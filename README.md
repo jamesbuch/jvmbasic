@@ -3,10 +3,12 @@
 This project is a minimal compiler for a small BASIC-like language written in modern C++. It reads source from stdin and writes a valid Java `.class` file (`BasicProg.class`) that can be disassembled with `javap` and executed on any JVM.
 
 ### Features
-- **Statements**: `PRINT <expr>;`, `LET <ID> = <expr>;`
-- **Expressions**: integers, floats, strings, variable references, parentheses, and `+ - * / % (MOD)` with precedence
-- **Types**: `Int`, `Float`, `String` with simple numeric promotion (Int→Float)
-- **Output**: Uses `java/lang/System.out.println` overloads for `int`, `float`, and `String`
+- **Statements**: `PRINT <expr>;`, `LET <ID> = <expr>;`, `IF...THEN...ELSEIF...ELSE...ENDIF`
+- **Expressions**: integers, floats, strings, booleans, variable references, parentheses, and `+ - * / % (MOD)` with precedence
+- **Comparisons**: `< > <= >= == <>` for numeric, string, and boolean values
+- **Types**: `Int`, `Float`, `String`, `Bool` with simple numeric promotion (Int→Float)
+- **Control Flow**: IF/THEN/ELSEIF/ELSE/ENDIF with cascading conditions
+- **Output**: Uses `java/lang/System.out.println` overloads for `int`, `float`, `String`, and `boolean`
 
 ### Quick start
 1) Build (macOS or Linux, C++20):
@@ -34,16 +36,19 @@ Hello
 ```
 
 ### Language reference (current subset)
-- **Program**: a sequence of statements, each terminated by `;`
+- **Program**: a sequence of statements, each terminated by `;` (except IF blocks)
 - **Statements**:
   - `PRINT <expr>;`
   - `LET <ID> = <expr>;`
+  - `IF <expr> THEN <stmt>* [ELSEIF <expr> THEN <stmt>*]* [ELSE <stmt>*] ENDIF`
 - **Expressions**:
-  - Literals: integer (`1`, `42`), float (`3.14`, `.5`), string (`"Hello"`)
+  - Literals: integer (`1`, `42`), float (`3.14`, `.5`), string (`"Hello"`), boolean (`true`, `false` - case insensitive)
   - Variables: `<ID>` defined by a previous `LET`
   - Parentheses: `(<expr>)`
   - Binary ops: `*` and `/` bind tighter than `+` and `-`
+  - Comparisons: `< > <= >= == <>` (relational ops bind looser than arithmetic)
   - Type rules: numeric ops must be numeric; `Int` is promoted to `Float` when mixed
+  - Comparison rules: numeric comparisons use epsilon for floats; string comparisons use `.equals()`
 
 ### How it works (high level)
 - The single file `jvmbasic.cpp` contains:
@@ -60,6 +65,18 @@ PRINT A * 2;
 LET B = "Hello";
 PRINT B;
 PRINT 7 % 3;
+
+LET flag = true;
+LET x = 10;
+LET y = 5;
+
+IF x > y THEN
+    PRINT "x is greater";
+ELSEIF x == y THEN
+    PRINT "x equals y";
+ELSE
+    PRINT "x is less";
+ENDIF
 ```
 
 Disassembled `main` (abridged):
@@ -92,10 +109,12 @@ return
 - `ClassFile`: constant-pool builder and bytecode emitter for arithmetic, loads/stores, literals, and `println`
 
 ### Limitations (by design for simplicity)
-- No boolean type, comparisons, or control flow yet
 - No user-defined functions/procedures
 - No function calls or library/builtin calls beyond `println`
+- No loops (WHILE, FOR) yet
+- No GOTO or named labels
 - Minimal constant pool management (no deduplication)
+- Targets Java 6 bytecode (no StackMapTable generation)
 
 ### Documentation
 - Walkthrough of the code: see [`docs/walkthrough.md`](docs/walkthrough.md)
