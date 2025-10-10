@@ -3,12 +3,13 @@
 This project is a minimal compiler for a small BASIC-like language written in modern C++. It reads source from stdin and writes a valid Java `.class` file (`BasicProg.class`) that can be disassembled with `javap` and executed on any JVM.
 
 ### Features
-- **Statements**: `PRINT`, `LET`, `INPUT`, `DIM`, `IF...THEN...ELSEIF...ELSE...ENDIF` (no semicolons required!)
+- **Statements**: `PRINT`, `LET`, `INPUT`, `DIM`, `IF...THEN...ELSE...ENDIF`, `FOR...TO...STEP...NEXT`, `WHILE...ENDWHILE`, `DO...WHILE/UNTIL` (no semicolons required!)
 - **Expressions**: integers, floats, strings, booleans, variable references, parentheses, and `+ - * / % (MOD)` with precedence
 - **Comparisons**: `< > <= >= == <>` for numeric, string, and boolean values
 - **Types**: `Int`, `Float`, `String`, `Bool` with simple numeric promotion (Int→Float)
 - **Arrays**: One-dimensional typed arrays with `DIM arr(size) = initValue`
-- **Control Flow**: IF/THEN/ELSEIF/ELSE/ENDIF with cascading conditions
+- **Control Flow**: IF/THEN/ELSEIF/ELSE/ENDIF with cascading conditions, nested support
+- **Loops**: FOR...TO...STEP...NEXT, WHILE...ENDWHILE, DO...WHILE/UNTIL with full nesting
 - **Output**: Multi-argument PRINT with traditional BASIC `,` (space) and `;` (no space) separators
 - **Input**: INPUT statement with automatic type conversion based on variable type
 - **Built-in Functions**: 40+ math and string functions (see below)
@@ -72,6 +73,12 @@ Hello
 - `VAL(s)` - Convert string to number
 - `ISNUM(s)`, `ISINT(s)` - Type checking
 
+**Array Functions:**
+- `MINARRAY(arr)` - Find minimum value in array
+- `MAXARRAY(arr)` - Find maximum value in array
+- `SUMARRAY(arr)` - Sum all array elements
+- `UBOUND(arr)` - Get upper bound (size - 1) of array
+
 ### Language reference (current subset)
 - **Program**: a sequence of statements (no semicolons required!)
 - **Statements**:
@@ -88,6 +95,14 @@ Hello
     - Init value determines array type (Int, Float, String, or Bool)
     - All elements initialized to the given value
   - `IF <expr> THEN <stmt>* [ELSEIF <expr> THEN <stmt>*]* [ELSE <stmt>*] ENDIF` - Conditional execution
+  - `FOR <ID> = <start> TO <end> [STEP <step>] ... NEXT [<ID>]` - FOR loop
+    - Default step is 1
+    - Works with Int and Float
+    - Loop variable automatically defined
+  - `WHILE <expr> ... ENDWHILE` (or `WEND`) - WHILE loop
+    - Condition checked before each iteration
+  - `DO ... WHILE <expr>` - DO-WHILE loop (executes at least once)
+  - `DO ... UNTIL <expr>` - DO-UNTIL loop (executes at least once)
 - **Expressions**:
   - Literals: integer (`1`, `42`), float (`3.14`, `.5`), string (`"Hello"`), boolean (`true`, `false` - case insensitive)
   - Variables: `<ID>` defined by a previous `LET`
@@ -155,6 +170,24 @@ PRINT greeting, "has", LEN(greeting), "letters"
 
 LET hypotenuse = SQR(POW(3, 2) + POW(4, 2))
 PRINT "3-4-5 triangle hypotenuse:", hypotenuse
+
+FOR i = 1 TO 10
+    PRINT i
+NEXT i
+
+DIM numbers(10) = 0
+FOR i = 0 TO 9
+    LET numbers(i) = INT(RND() * 100)
+NEXT i
+
+LET total = SUMARRAY(numbers)
+PRINT "Sum of random numbers:", total
+
+LET x = 0
+WHILE x < 5
+    PRINT "Counting:", x
+    LET x = x + 1
+ENDWHILE
 ```
 
 Disassembled `main` (abridged):
@@ -187,19 +220,33 @@ return
 - `ClassFile`: constant-pool builder and bytecode emitter for arithmetic, loads/stores, literals, and `println`
 
 ### Limitations (by design for simplicity)
-- No user-defined functions/procedures yet
-- No loops (WHILE, FOR, DO-WHILE) yet  
-- No GOTO or named labels
-- One-dimensional arrays only (no multi-dimensional)
-- No array bounds checking at compile time
+- No user-defined functions/procedures (planned for Phase 5)
+- No GOTO, GOSUB, or line numbers (classic BASIC compat - future)
+- One-dimensional arrays only (multi-dimensional planned)
+- No loop control statements (EXIT FOR, CONTINUE - future)
+- No array procedure calls (SORT, REVERSE - needs procedure support)
+- No file I/O (OPEN, CLOSE - planned)
+- No user-defined types/structures (future)
 - Minimal constant pool management (no deduplication)
-- Targets Java 6 bytecode (no StackMapTable generation)
+- Targets Java 6 bytecode (avoids StackMapTable complexity)
 - Requires `basicrt/BasicRuntime.class` in classpath for built-in functions
 
 ### Documentation
-- Walkthrough of the code: see [`docs/walkthrough.md`](docs/walkthrough.md)
-- How to extend the language and compiler: see [`docs/extending.md`](docs/extending.md)
-- Docs index: [`docs/index.md`](docs/index.md)
+
+**For Users:**
+- `README.md` - This file (language reference)
+- `showcase.bas` - Feature demonstration
+- `ultimate_demo.bas` - Comprehensive real-world example
+- `loops_showcase.bas` - All loop types demonstrated
+
+**For Developers:**
+- `CODE_GUIDE.md` - **START HERE!** Complete developer guide (1000+ lines)
+- `walkthrough.md` - Original code walkthrough
+- `extending.md` - How to extend the language
+- `DEVELOPMENT_PLAN.md` - Feature roadmap
+- `WISHLIST.md` - Future features (25+ ideas)
+- `LOOPS_PLAN.md`, `ARRAY_PLAN.md`, `STDLIB_PLAN.md` - Specific designs
+- `SESSION_SUMMARY.md` - Development history
 
 ### License
 Public domain or MIT—choose what fits your needs. If you contribute, include a license header of your choice.
