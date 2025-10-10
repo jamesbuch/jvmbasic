@@ -11,9 +11,10 @@ enum class Type { Int, Float, String, Bool, IntArray, FloatArray, StringArray, B
 enum class Op { Add, Sub, Mul, Div, Mod, Lt, Gt, Le, Ge, Eq, Ne };
 enum class TokenType { END, NUMBER, STRING, ID, PLUS, MINUS, MUL, DIV, MOD, ASSIGN, SEMI, COMMA, LPAREN, RPAREN, 
                        PRINT, LET, INPUT, DIM, LT, GT, LE, GE, EQ, NE, 
-                       TRUE, FALSE, IF, THEN, ELSE, ENDIF, ELSEIF };
+                       TRUE, FALSE, IF, THEN, ELSE, ENDIF, ELSEIF,
+                       FOR, TO, STEP, NEXT, WHILE, ENDWHILE, WEND, DO, UNTIL };
 enum class ExprKind { Num, Str, Var, Bin, BoolLit, Cmp, Call };
-enum class StmtKind { Print, Let, Input, Dim, If };
+enum class StmtKind { Print, Let, Input, Dim, If, For, While, DoWhile };
 
 // Forward declarations
 struct Expr;
@@ -78,16 +79,35 @@ struct IfStmt {
     vector<ElseIfClause> elseIfs;
     vector<StmtPtr> elseBody;
 };
+struct ForStmt {
+    string var;
+    ExprPtr start;
+    ExprPtr end;
+    ExprPtr step;  // nullptr means default 1
+    vector<StmtPtr> body;
+};
+struct WhileStmt {
+    ExprPtr cond;
+    vector<StmtPtr> body;
+};
+struct DoWhileStmt {
+    ExprPtr cond;
+    vector<StmtPtr> body;
+    bool isUntil;  // true for UNTIL, false for WHILE
+};
 
 struct Stmt {
     StmtKind kind;
-    variant<PrintStmt, LetStmt, InputStmt, DimStmt, IfStmt> data;
+    variant<PrintStmt, LetStmt, InputStmt, DimStmt, IfStmt, ForStmt, WhileStmt, DoWhileStmt> data;
 
     Stmt(StmtKind k, PrintStmt p) : kind(k), data(std::move(p)) {}
     Stmt(StmtKind k, LetStmt l) : kind(k), data(std::move(l)) {}
     Stmt(StmtKind k, InputStmt i) : kind(k), data(std::move(i)) {}
     Stmt(StmtKind k, DimStmt d) : kind(k), data(std::move(d)) {}
     Stmt(StmtKind k, IfStmt ifs) : kind(k), data(std::move(ifs)) {}
+    Stmt(StmtKind k, ForStmt fs) : kind(k), data(std::move(fs)) {}
+    Stmt(StmtKind k, WhileStmt ws) : kind(k), data(std::move(ws)) {}
+    Stmt(StmtKind k, DoWhileStmt dws) : kind(k), data(std::move(dws)) {}
 };
 
 // Token
@@ -251,6 +271,15 @@ public:
             if (upper == "ELSE") return {TokenType::ELSE};
             if (upper == "ELSEIF") return {TokenType::ELSEIF};
             if (upper == "ENDIF") return {TokenType::ENDIF};
+            if (upper == "FOR") return {TokenType::FOR};
+            if (upper == "TO") return {TokenType::TO};
+            if (upper == "STEP") return {TokenType::STEP};
+            if (upper == "NEXT") return {TokenType::NEXT};
+            if (upper == "WHILE") return {TokenType::WHILE};
+            if (upper == "ENDWHILE") return {TokenType::ENDWHILE};
+            if (upper == "WEND") return {TokenType::WEND};
+            if (upper == "DO") return {TokenType::DO};
+            if (upper == "UNTIL") return {TokenType::UNTIL};
             if (upper == "END") {
                 // Check if next token is IF
                 skipWhite();
@@ -522,7 +551,9 @@ private:
                 // Check if this is a trailing separator (no expression follows)
                 if (tok.type == TokenType::END || tok.type == TokenType::PRINT || 
                     tok.type == TokenType::LET || tok.type == TokenType::INPUT || 
-                    tok.type == TokenType::DIM || tok.type == TokenType::IF) {
+                    tok.type == TokenType::DIM || tok.type == TokenType::IF ||
+                    tok.type == TokenType::FOR || tok.type == TokenType::WHILE || tok.type == TokenType::DO ||
+                    tok.type == TokenType::NEXT || tok.type == TokenType::ENDWHILE || tok.type == TokenType::WEND) {
                     addNewline = false;
                     break;
                 }
@@ -598,6 +629,79 @@ private:
             knownTypes[var] = arrType;
             
             return make_unique<Stmt>(StmtKind::Dim, DimStmt{var, move(size), move(initVal)});
+        } else if (tok.type == TokenType::FOR) {
+            next();
+            string var = expect(TokenType::ID).val;
+            expect(TokenType::ASSIGN);
+            auto start = parseExpr();
+            expect(TokenType::TO);
+            auto end = parseExpr();
+            
+            ExprPtr step = nullptr;
+            if (tok.type == TokenType::STEP) {
+                next();
+                step = parseExpr();
+            }
+            
+            // Register loop variable type BEFORE parsing body
+            Type loopType = start->type;
+            if (knownTypes.count(var) && knownTypes[var] != loopType) {
+                error("FOR loop variable type mismatch");
+            }
+            knownTypes[var] = loopType;
+            
+            // Parse body
+            vector<StmtPtr> body;
+            while (tok.type != TokenType::NEXT && tok.type != TokenType::END) {
+                body.push_back(parseStmt());
+            }
+            
+            expect(TokenType::NEXT);
+            // Optional: consume variable name after NEXT
+            if (tok.type == TokenType::ID) {
+                next();
+            }
+            
+            return make_unique<Stmt>(StmtKind::For, ForStmt{var, move(start), move(end), move(step), move(body)});
+        } else if (tok.type == TokenType::WHILE) {
+            next();
+            auto cond = parseExpr();
+            
+            // Parse body
+            vector<StmtPtr> body;
+            while (tok.type != TokenType::ENDWHILE && tok.type != TokenType::WEND && tok.type != TokenType::END) {
+                body.push_back(parseStmt());
+            }
+            
+            if (tok.type == TokenType::ENDWHILE || tok.type == TokenType::WEND) {
+                next();
+            } else {
+                error("Expected ENDWHILE or WEND");
+            }
+            
+            return make_unique<Stmt>(StmtKind::While, WhileStmt{move(cond), move(body)});
+        } else if (tok.type == TokenType::DO) {
+            next();
+            
+            // Parse body
+            vector<StmtPtr> body;
+            while (tok.type != TokenType::WHILE && tok.type != TokenType::UNTIL && tok.type != TokenType::END) {
+                body.push_back(parseStmt());
+            }
+            
+            bool isUntil = false;
+            if (tok.type == TokenType::WHILE) {
+                next();
+            } else if (tok.type == TokenType::UNTIL) {
+                isUntil = true;
+                next();
+            } else {
+                error("Expected WHILE or UNTIL after DO");
+            }
+            
+            auto cond = parseExpr();
+            
+            return make_unique<Stmt>(StmtKind::DoWhile, DoWhileStmt{move(cond), move(body), isUntil});
         } else if (tok.type == TokenType::IF) {
             next();
             auto cond = parseExpr();
@@ -1415,6 +1519,109 @@ public:
             // goto loopStart
             goto_(loopStart);
             mark(loopEnd);
+        } else if (s.kind == StmtKind::For) {
+            const ForStmt& fs = get<ForStmt>(s.data);
+            
+            // Allocate loop variable if needed
+            if (varIdx.find(fs.var) == varIdx.end()) {
+                varIdx[fs.var] = nextLocal++;
+                max_locals = max(max_locals, static_cast<u2>(nextLocal));
+            }
+            u1 varSlot = varIdx[fs.var];
+            Type varType = knownTypes.at(fs.var);
+            
+            // Initialize: var = start
+            load(*fs.start, varIdx);
+            if (varType == Type::Int) istore(varSlot);
+            else fstore(varSlot);
+            
+            // Determine step value (default 1)
+            bool hasStep = (fs.step != nullptr);
+            
+            Label loopStart, loopEnd;
+            mark(loopStart);
+            
+            // Check condition: var <= end (or >= for negative step)
+            if (varType == Type::Int) {
+                iload(varSlot);
+                load(*fs.end, varIdx);
+                // For simplicity, always use <= (assume positive step or user knows what they're doing)
+                if_icmpgt(loopEnd);
+            } else {
+                // Float loop
+                fload(varSlot);
+                load(*fs.end, varIdx);
+                if (fs.start->type == Type::Int) i2f();
+                fcmpg();
+                ifgt(loopEnd);
+            }
+            
+            // Body
+            for (const auto& stmt : fs.body) {
+                genStmt(*stmt, varIdx, nextLocal, knownTypes);
+            }
+            
+            // Increment: var += step (or += 1)
+            if (varType == Type::Int) {
+                iload(varSlot);
+                if (hasStep) {
+                    load(*fs.step, varIdx);
+                } else {
+                    iconst(1);
+                }
+                iadd();
+                istore(varSlot);
+            } else {
+                fload(varSlot);
+                if (hasStep) {
+                    load(*fs.step, varIdx);
+                    if (fs.step->type == Type::Int) i2f();
+                } else {
+                    fconst(1.0f);
+                }
+                fadd();
+                fstore(varSlot);
+            }
+            
+            goto_(loopStart);
+            mark(loopEnd);
+        } else if (s.kind == StmtKind::While) {
+            const WhileStmt& ws = get<WhileStmt>(s.data);
+            
+            Label loopStart, loopEnd;
+            mark(loopStart);
+            
+            // Check condition
+            load(*ws.cond, varIdx);
+            ifeq(loopEnd);
+            
+            // Body
+            for (const auto& stmt : ws.body) {
+                genStmt(*stmt, varIdx, nextLocal, knownTypes);
+            }
+            
+            goto_(loopStart);
+            mark(loopEnd);
+        } else if (s.kind == StmtKind::DoWhile) {
+            const DoWhileStmt& dws = get<DoWhileStmt>(s.data);
+            
+            Label loopStart;
+            mark(loopStart);
+            
+            // Body (executes at least once)
+            for (const auto& stmt : dws.body) {
+                genStmt(*stmt, varIdx, nextLocal, knownTypes);
+            }
+            
+            // Check condition
+            load(*dws.cond, varIdx);
+            if (dws.isUntil) {
+                // UNTIL: loop while condition is false
+                ifeq(loopStart);
+            } else {
+                // WHILE: loop while condition is true
+                ifne(loopStart);
+            }
         } else if (s.kind == StmtKind::If) {
             const IfStmt& ifs = get<IfStmt>(s.data);
             
