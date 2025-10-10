@@ -279,5 +279,191 @@ public class BasicRuntime {
             return false;
         }
     }
+    
+    // ===== ARRAY ALGORITHMS =====
+    
+    /**
+     * Sort an integer array in-place (ascending order)
+     */
+    public static void sort_ia(int[] arr) {
+        if (arr == null) return;
+        java.util.Arrays.sort(arr);
+    }
+    
+    /**
+     * Sort a float array in-place (ascending order)
+     */
+    public static void sort_fa(float[] arr) {
+        if (arr == null) return;
+        java.util.Arrays.sort(arr);
+    }
+    
+    /**
+     * Sort a String array in-place (lexicographic order)
+     */
+    public static void sort_sa(String[] arr) {
+        if (arr == null) return;
+        java.util.Arrays.sort(arr);
+    }
+    
+    /**
+     * Reverse an integer array in-place
+     */
+    public static void reverse_ia(int[] arr) {
+        if (arr == null) return;
+        int left = 0, right = arr.length - 1;
+        while (left < right) {
+            int temp = arr[left];
+            arr[left] = arr[right];
+            arr[right] = temp;
+            left++;
+            right--;
+        }
+    }
+    
+    /**
+     * Reverse a float array in-place
+     */
+    public static void reverse_fa(float[] arr) {
+        if (arr == null) return;
+        int left = 0, right = arr.length - 1;
+        while (left < right) {
+            float temp = arr[left];
+            arr[left] = arr[right];
+            arr[right] = temp;
+            left++;
+            right--;
+        }
+    }
+    
+    /**
+     * Reverse a String array in-place
+     */
+    public static void reverse_sa(String[] arr) {
+        if (arr == null) return;
+        int left = 0, right = arr.length - 1;
+        while (left < right) {
+            String temp = arr[left];
+            arr[left] = arr[right];
+            arr[right] = temp;
+            left++;
+            right--;
+        }
+    }
+    
+    /**
+     * Find minimum value in integer array
+     */
+    public static int min_ia(int[] arr) {
+        if (arr == null || arr.length == 0) return 0;
+        int min = arr[0];
+        for (int i = 1; i < arr.length; i++) {
+            if (arr[i] < min) min = arr[i];
+        }
+        return min;
+    }
+    
+    /**
+     * Find maximum value in integer array
+     */
+    public static int max_ia(int[] arr) {
+        if (arr == null || arr.length == 0) return 0;
+        int max = arr[0];
+        for (int i = 1; i < arr.length; i++) {
+            if (arr[i] > max) max = arr[i];
+        }
+        return max;
+    }
+    
+    /**
+     * Find minimum value in float array
+     */
+    public static float min_fa(float[] arr) {
+        if (arr == null || arr.length == 0) return 0.0f;
+        float min = arr[0];
+        for (int i = 1; i < arr.length; i++) {
+            if (arr[i] < min) min = arr[i];
+        }
+        return min;
+    }
+    
+    /**
+     * Find maximum value in float array
+     */
+    public static float max_fa(float[] arr) {
+        if (arr == null || arr.length == 0) return 0.0f;
+        float max = arr[0];
+        for (int i = 1; i < arr.length; i++) {
+            if (arr[i] > max) max = arr[i];
+        }
+        return max;
+    }
+    
+    /**
+     * Sum all values in integer array
+     */
+    public static int sum_ia(int[] arr) {
+        if (arr == null) return 0;
+        int sum = 0;
+        for (int val : arr) {
+            sum += val;
+        }
+        return sum;
+    }
+    
+    /**
+     * Sum all values in float array
+     */
+    public static float sum_fa(float[] arr) {
+        if (arr == null) return 0.0f;
+        float sum = 0.0f;
+        for (float val : arr) {
+            sum += val;
+        }
+        return sum;
+    }
+    
+    /**
+     * Fill an integer array with a value
+     */
+    public static void fill_ia(int[] arr, int val) {
+        if (arr == null) return;
+        java.util.Arrays.fill(arr, val);
+    }
+    
+    /**
+     * Fill a float array with a value
+     */
+    public static void fill_fa(float[] arr, float val) {
+        if (arr == null) return;
+        java.util.Arrays.fill(arr, val);
+    }
+    
+    /**
+     * Fill a String array with a value
+     */
+    public static void fill_sa(String[] arr, String val) {
+        if (arr == null) return;
+        java.util.Arrays.fill(arr, val);
+    }
+    
+    /**
+     * Get array length
+     */
+    public static int ubound_ia(int[] arr) {
+        return arr == null ? 0 : arr.length - 1;
+    }
+    
+    public static int ubound_fa(float[] arr) {
+        return arr == null ? 0 : arr.length - 1;
+    }
+    
+    public static int ubound_sa(String[] arr) {
+        return arr == null ? 0 : arr.length - 1;
+    }
+    
+    public static int ubound_ba(boolean[] arr) {
+        return arr == null ? 0 : arr.length - 1;
+    }
 }
 
