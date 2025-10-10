@@ -1,0 +1,7 @@
+#!/usr/bin/env zsh
+# Wrapper for g++-15 to work around Cursor AppImage environment pollution
+export COLLECT_GCC=/usr/local/bin/g++-15
+export PATH=/opt/gcc-15/bin:/usr/local/bin:/usr/bin:/bin
+export LD_LIBRARY_PATH=/opt/gcc-15/lib64:${LD_LIBRARY_PATH:-}
+exec /usr/local/bin/g++-15 "$@"
+
