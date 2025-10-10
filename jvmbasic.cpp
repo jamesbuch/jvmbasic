@@ -10,10 +10,10 @@ using u4 = uint32_t;
 enum class Type { Int, Float, String, Bool };
 enum class Op { Add, Sub, Mul, Div, Mod, Lt, Gt, Le, Ge, Eq, Ne };
 enum class TokenType { END, NUMBER, STRING, ID, PLUS, MINUS, MUL, DIV, MOD, ASSIGN, SEMI, COMMA, LPAREN, RPAREN, 
-                       PRINT, LET, LT, GT, LE, GE, EQ, NE, 
+                       PRINT, LET, INPUT, LT, GT, LE, GE, EQ, NE, 
                        TRUE, FALSE, IF, THEN, ELSE, ENDIF, ELSEIF };
 enum class ExprKind { Num, Str, Var, Bin, BoolLit, Cmp };
-enum class StmtKind { Print, Let, If };
+enum class StmtKind { Print, Let, Input, If };
 
 // Forward declarations
 struct Expr;
@@ -50,6 +50,7 @@ struct PrintStmt {
     bool addNewline; // false if statement ends with , or ;
 };
 struct LetStmt { string var; ExprPtr expr; };
+struct InputStmt { string var; };
 struct ElseIfClause { ExprPtr cond; vector<StmtPtr> body; };
 struct IfStmt { 
     ExprPtr cond; 
@@ -60,11 +61,12 @@ struct IfStmt {
 
 struct Stmt {
     StmtKind kind;
-    variant<PrintStmt, LetStmt, IfStmt> data;
+    variant<PrintStmt, LetStmt, InputStmt, IfStmt> data;
 
     Stmt(StmtKind k, PrintStmt p) : kind(k), data(std::move(p)) {}
     Stmt(StmtKind k, LetStmt l) : kind(k), data(std::move(l)) {}
-    Stmt(StmtKind k, IfStmt i) : kind(k), data(std::move(i)) {}
+    Stmt(StmtKind k, InputStmt i) : kind(k), data(std::move(i)) {}
+    Stmt(StmtKind k, IfStmt ifs) : kind(k), data(std::move(ifs)) {}
 };
 
 // Token
@@ -147,6 +149,7 @@ public:
             
             if (upper == "PRINT") return {TokenType::PRINT};
             if (upper == "LET") return {TokenType::LET};
+            if (upper == "INPUT") return {TokenType::INPUT};
             if (upper == "MOD") return {TokenType::MOD};
             if (upper == "IF") return {TokenType::IF};
             if (upper == "THEN") return {TokenType::THEN};
@@ -348,7 +351,7 @@ private:
                 
                 // Check if this is a trailing separator (no expression follows)
                 if (tok.type == TokenType::END || tok.type == TokenType::PRINT || 
-                    tok.type == TokenType::LET || tok.type == TokenType::IF) {
+                    tok.type == TokenType::LET || tok.type == TokenType::INPUT || tok.type == TokenType::IF) {
                     addNewline = false;
                     break;
                 }
@@ -366,6 +369,14 @@ private:
             if (knownTypes.count(var) && knownTypes[var] != ty) error("Type mismatch reassign");
             knownTypes[var] = ty;
             return make_unique<Stmt>(StmtKind::Let, LetStmt{var, move(e)});
+        } else if (tok.type == TokenType::INPUT) {
+            next();
+            string var = expect(TokenType::ID).val;
+            // Variable must already be defined to know its type
+            if (knownTypes.find(var) == knownTypes.end()) {
+                error("INPUT variable must be defined first with LET");
+            }
+            return make_unique<Stmt>(StmtKind::Input, InputStmt{var});
         } else if (tok.type == TokenType::IF) {
             next();
             auto cond = parseExpr();
@@ -426,6 +437,8 @@ private:
 
 public:
     vector<StmtPtr> program;
+    
+    const map<string, Type>& getKnownTypes() const { return knownTypes; }
 
     Parser(istream& i) : lex(i) { next(); }
     void parse() {
@@ -523,6 +536,14 @@ public:
     u2 print_space_idx;
     u2 string_class_idx;
     u2 string_equals_idx;
+    u2 scanner_class_idx;
+    u2 scanner_init_idx;
+    u2 scanner_nextline_idx;
+    u2 system_in_idx;
+    u2 integer_class_idx;
+    u2 integer_parseint_idx;
+    u2 float_class_idx;
+    u2 float_parsefloat_idx;
     u2 main_name_idx;
     u2 main_desc_idx;
     u2 code_name_idx;
@@ -530,6 +551,7 @@ public:
     vector<u1> code;
     u2 max_stack = 10;
     u2 max_locals = 1;
+    u1 scanner_local = 0; // Local variable index for Scanner
     
     int labelCounter = 0;
 
@@ -612,6 +634,40 @@ public:
         u2 nat_equals = cp.addNameAndType(equals_name, equals_desc);
         string_equals_idx = cp.addMethodRef(string_class_idx, nat_equals);
 
+        // Scanner for input
+        u2 scanner_class_name = cp.addUtf8("java/util/Scanner");
+        scanner_class_idx = cp.addClass(scanner_class_name);
+        u2 init_name = cp.addUtf8("<init>");
+        u2 scanner_init_desc = cp.addUtf8("(Ljava/io/InputStream;)V");
+        u2 nat_scanner_init = cp.addNameAndType(init_name, scanner_init_desc);
+        scanner_init_idx = cp.addMethodRef(scanner_class_idx, nat_scanner_init);
+        u2 nextline_name = cp.addUtf8("nextLine");
+        u2 nextline_desc = cp.addUtf8("()Ljava/lang/String;");
+        u2 nat_nextline = cp.addNameAndType(nextline_name, nextline_desc);
+        scanner_nextline_idx = cp.addMethodRef(scanner_class_idx, nat_nextline);
+
+        // System.in
+        u2 in_name = cp.addUtf8("in");
+        u2 in_desc = cp.addUtf8("Ljava/io/InputStream;");
+        u2 nat_in = cp.addNameAndType(in_name, in_desc);
+        system_in_idx = cp.addFieldRef(sys_cls_idx, nat_in);
+
+        // Integer.parseInt
+        u2 integer_class_name = cp.addUtf8("java/lang/Integer");
+        integer_class_idx = cp.addClass(integer_class_name);
+        u2 parseint_name = cp.addUtf8("parseInt");
+        u2 parseint_desc = cp.addUtf8("(Ljava/lang/String;)I");
+        u2 nat_parseint = cp.addNameAndType(parseint_name, parseint_desc);
+        integer_parseint_idx = cp.addMethodRef(integer_class_idx, nat_parseint);
+
+        // Float.parseFloat
+        u2 float_class_name = cp.addUtf8("java/lang/Float");
+        float_class_idx = cp.addClass(float_class_name);
+        u2 parsefloat_name = cp.addUtf8("parseFloat");
+        u2 parsefloat_desc = cp.addUtf8("(Ljava/lang/String;)F");
+        u2 nat_parsefloat = cp.addNameAndType(parsefloat_name, parsefloat_desc);
+        float_parsefloat_idx = cp.addMethodRef(float_class_idx, nat_parsefloat);
+
         code_name_idx = cp.addUtf8("Code");
     }
 
@@ -684,6 +740,10 @@ public:
     void frem() { emit(0x72); }
     void i2f() { emit(0x86); } // Added i2f instruction
     void _return() { emit(0xB1); }
+    void new_(u2 idx) { emit(0xBB, idx); }
+    void dup() { emit(0x59); }
+    void invokespecial(u2 idx) { emit(0xB7, idx); }
+    void invokestatic(u2 idx) { emit(0xB8, idx); }
     
     // Branching instructions
     void ifeq(Label& L) { emitBranch(0x99, L); }
@@ -876,7 +936,7 @@ public:
         }
     }
 
-    void genStmt(const Stmt& s, map<string, u1>& varIdx, u1& nextLocal) {
+    void genStmt(const Stmt& s, map<string, u1>& varIdx, u1& nextLocal, const map<string, Type>& knownTypes) {
         if (s.kind == StmtKind::Print) {
             const PrintStmt& ps = get<PrintStmt>(s.data);
             
@@ -934,6 +994,44 @@ public:
             else if (ls.expr->type == Type::Float) fstore(idx);
             else astore(idx);
             max_locals = max(max_locals, static_cast<u2>(nextLocal));
+        } else if (s.kind == StmtKind::Input) {
+            const InputStmt& is = get<InputStmt>(s.data);
+            u1 idx = varIdx.at(is.var);
+            Type varType = knownTypes.at(is.var);
+            
+            // Load scanner
+            aload(scanner_local);
+            // Call nextLine()
+            invokevirtual(scanner_nextline_idx);
+            
+            // Convert string to appropriate type
+            if (varType == Type::Int) {
+                // Integer.parseInt(string)
+                invokestatic(integer_parseint_idx);
+                istore(idx);
+            } else if (varType == Type::Float) {
+                // Float.parseFloat(string)
+                invokestatic(float_parsefloat_idx);
+                fstore(idx);
+            } else if (varType == Type::Bool) {
+                // Check if string equals "true" (case-insensitive)
+                // For simplicity: use String.toLowerCase().equals("true")
+                u2 tolower_name = cp.addUtf8("toLowerCase");
+                u2 tolower_desc = cp.addUtf8("()Ljava/lang/String;");
+                u2 nat_tolower = cp.addNameAndType(tolower_name, tolower_desc);
+                u2 tolower_idx = cp.addMethodRef(string_class_idx, nat_tolower);
+                
+                invokevirtual(tolower_idx);
+                u2 true_utf = cp.addUtf8("true");
+                u2 true_str = cp.addString(true_utf);
+                ldc(true_str);
+                invokevirtual(string_equals_idx);
+                // Result is 0 or 1 (boolean as int)
+                istore(idx);
+            } else {
+                // String: just store directly
+                astore(idx);
+            }
         } else if (s.kind == StmtKind::If) {
             const IfStmt& ifs = get<IfStmt>(s.data);
             
@@ -944,7 +1042,7 @@ public:
             
             // Generate THEN body
             for (const auto& stmt : ifs.thenBody) {
-                genStmt(*stmt, varIdx, nextLocal);
+                genStmt(*stmt, varIdx, nextLocal, knownTypes);
             }
             goto_(endLabel);
             
@@ -957,7 +1055,7 @@ public:
                 ifeq(nextLabel);
                 
                 for (const auto& stmt : elseIf.body) {
-                    genStmt(*stmt, varIdx, nextLocal);
+                    genStmt(*stmt, varIdx, nextLocal, knownTypes);
                 }
                 goto_(endLabel);
             }
@@ -965,19 +1063,31 @@ public:
             // Generate ELSE body
             mark(nextLabel);
             for (const auto& stmt : ifs.elseBody) {
-                genStmt(*stmt, varIdx, nextLocal);
+                genStmt(*stmt, varIdx, nextLocal, knownTypes);
             }
             
             mark(endLabel);
         }
     }
 
-    void generate(const vector<StmtPtr>& program) {
+    void generate(const vector<StmtPtr>& program, const map<string, Type>& knownTypes) {
         map<string, u1> varIdx;
         u1 nextLocal = 1;
         max_locals = 1;
+        
+        // Initialize Scanner for INPUT (allocate before other variables)
+        scanner_local = nextLocal++;
+        max_locals = max(max_locals, static_cast<u2>(nextLocal));
+        
+        // new Scanner(System.in)
+        new_(scanner_class_idx);
+        dup();
+        getstatic(system_in_idx);
+        invokespecial(scanner_init_idx);
+        astore(scanner_local);
+        
         for (const auto& sp : program) {
-            genStmt(*sp, varIdx, nextLocal);
+            genStmt(*sp, varIdx, nextLocal, knownTypes);
         }
         _return();
     }
@@ -1048,7 +1158,7 @@ public:
         Parser p(input);
         p.parse();
         cf.buildConstantPool();
-        cf.generate(p.program);
+        cf.generate(p.program, p.getKnownTypes());
         cf.write(output);
     }
 
