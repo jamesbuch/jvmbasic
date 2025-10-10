@@ -1,0 +1,21 @@
+LET x = 10;
+LET y = 5;
+IF x > y THEN
+    PRINT 1;
+ENDIF
+
+IF x < y THEN
+    PRINT 2;
+ELSE
+    PRINT 3;
+ENDIF
+
+LET z = 10;
+IF z < 5 THEN
+    PRINT 4;
+ELSEIF z == 10 THEN
+    PRINT 5;
+ELSE
+    PRINT 6;
+ENDIF
+
