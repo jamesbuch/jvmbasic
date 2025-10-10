@@ -233,20 +233,32 @@ return
 
 ### Documentation
 
-**For Users:**
-- `README.md` - This file (language reference)
-- `showcase.bas` - Feature demonstration
-- `ultimate_demo.bas` - Comprehensive real-world example
-- `loops_showcase.bas` - All loop types demonstrated
+**For Users** (Learning the language):
+- `README.md` - This file (complete language reference)
+- `docs/user/showcase.bas` - Feature demonstration
+- `docs/user/ultimate_demo.bas` - Comprehensive real-world example
+- `docs/user/loops_showcase.bas` - All loop types demonstrated
+- `docs/user/demo.bas` - Original demo
 
-**For Developers:**
-- `CODE_GUIDE.md` - **START HERE!** Complete developer guide (1000+ lines)
-- `walkthrough.md` - Original code walkthrough
-- `extending.md` - How to extend the language
-- `DEVELOPMENT_PLAN.md` - Feature roadmap
-- `WISHLIST.md` - Future features (25+ ideas)
-- `LOOPS_PLAN.md`, `ARRAY_PLAN.md`, `STDLIB_PLAN.md` - Specific designs
-- `SESSION_SUMMARY.md` - Development history
+**For Developers** (Understanding and extending):
+- `docs/dev/CODE_GUIDE.md` - ⭐ **START HERE!** Complete developer guide (1,000+ lines)
+- `docs/dev/FEATURES.md` - Complete feature specification
+- `docs/dev/FINAL_SUMMARY.md` - What was accomplished
+- `docs/dev/SESSION_SUMMARY.md` - Development history
+- `docs/dev/DEVELOPMENT_PLAN.md` - Feature roadmap
+- `docs/dev/walkthrough.md` - Original code walkthrough
+- `docs/dev/extending.md` - How to extend the language
+
+**Planning and Ideas**:
+- `docs/ideas/WISHLIST.md` - ⭐ Future features (25+ ideas, prioritized)
+- `docs/ideas/LOOPS_PLAN.md` - Loop design document
+- `docs/ideas/ARRAY_PLAN.md` - Array design document
+- `docs/ideas/STDLIB_PLAN.md` - Standard library design
+
+**Continuing Development**:
+- `CONTINUATION.md` - ⭐ **Read this to continue development independently**
+
+**Tests**: `tests/*.bas` - 31 comprehensive test files covering all features
 
 ### License
 Public domain or MIT—choose what fits your needs. If you contribute, include a license header of your choice.
