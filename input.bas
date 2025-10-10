@@ -1,9 +1,9 @@
-PRINT 1 + 2;
-LET A = 3.5;
-PRINT A * 2;
-LET B = "Hello";
-PRINT B;
-LET C = 7;
-LET D = 3;
-PRINT C % D;
+PRINT 1 + 2
+LET A = 3.5
+PRINT A * 2
+LET B = "Hello"
+PRINT B
+LET C = 7
+LET D = 3
+PRINT C % D
 

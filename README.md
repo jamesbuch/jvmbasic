@@ -3,12 +3,13 @@
 This project is a minimal compiler for a small BASIC-like language written in modern C++. It reads source from stdin and writes a valid Java `.class` file (`BasicProg.class`) that can be disassembled with `javap` and executed on any JVM.
 
 ### Features
-- **Statements**: `PRINT <expr>;`, `LET <ID> = <expr>;`, `IF...THEN...ELSEIF...ELSE...ENDIF`
+- **Statements**: `PRINT [expr [, expr | ; expr]*]`, `LET <ID> = <expr>`, `IF...THEN...ELSEIF...ELSE...ENDIF` (no semicolons required!)
 - **Expressions**: integers, floats, strings, booleans, variable references, parentheses, and `+ - * / % (MOD)` with precedence
 - **Comparisons**: `< > <= >= == <>` for numeric, string, and boolean values
 - **Types**: `Int`, `Float`, `String`, `Bool` with simple numeric promotion (Int→Float)
 - **Control Flow**: IF/THEN/ELSEIF/ELSE/ENDIF with cascading conditions
-- **Output**: Uses `java/lang/System.out.println` overloads for `int`, `float`, `String`, and `boolean`
+- **Output**: Multi-argument PRINT with traditional BASIC `,` (space) and `;` (no space) separators
+- **I/O**: Uses `java/lang/System.out` for output with `print`/`println` methods
 
 ### Quick start
 1) Build (macOS or Linux, C++20):
@@ -36,11 +37,14 @@ Hello
 ```
 
 ### Language reference (current subset)
-- **Program**: a sequence of statements, each terminated by `;` (except IF blocks)
+- **Program**: a sequence of statements (no semicolons required!)
 - **Statements**:
-  - `PRINT <expr>;`
-  - `LET <ID> = <expr>;`
-  - `IF <expr> THEN <stmt>* [ELSEIF <expr> THEN <stmt>*]* [ELSE <stmt>*] ENDIF`
+  - `PRINT [<expr> [{, | ;}  <expr>]* [, | ;]?]` - Print expressions with optional separators
+    - Comma (`,`): adds space between values
+    - Semicolon (`;`): no space between values
+    - Trailing `,` or `;`: suppresses final newline
+  - `LET <ID> = <expr>` - Variable assignment
+  - `IF <expr> THEN <stmt>* [ELSEIF <expr> THEN <stmt>*]* [ELSE <stmt>*] ENDIF` - Conditional execution
 - **Expressions**:
   - Literals: integer (`1`, `42`), float (`3.14`, `.5`), string (`"Hello"`), boolean (`true`, `false` - case insensitive)
   - Variables: `<ID>` defined by a previous `LET`
@@ -59,24 +63,30 @@ Hello
 
 ### Example
 ```basic
-PRINT 1 + 2;
-LET A = 3.5;
-PRINT A * 2;
-LET B = "Hello";
-PRINT B;
-PRINT 7 % 3;
+PRINT 1 + 2
+LET A = 3.5
+PRINT A * 2
+LET B = "Hello"
+PRINT B
+PRINT 7 % 3
 
-LET flag = true;
-LET x = 10;
-LET y = 5;
+LET flag = true
+LET x = 10
+LET y = 5
+
+PRINT "Multi-argument PRINT:", x, y, flag
 
 IF x > y THEN
-    PRINT "x is greater";
+    PRINT "x is greater"
 ELSEIF x == y THEN
-    PRINT "x equals y";
+    PRINT "x equals y"
 ELSE
-    PRINT "x is less";
+    PRINT "x is less"
 ENDIF
+
+PRINT "Values:"; x; ","; y
+PRINT "Loading...";
+PRINT "done!"
 ```
 
 Disassembled `main` (abridged):
