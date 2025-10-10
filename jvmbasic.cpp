@@ -188,6 +188,12 @@ static map<string, FunctionSig> builtinFunctions = {
     // Type checking
     {"ISNUM", {{Type::String}, Type::Bool, "isnum", "(Ljava/lang/String;)Z"}},
     {"ISINT", {{Type::String}, Type::Bool, "isint", "(Ljava/lang/String;)Z"}},
+    
+    // Array utility functions (that return values)
+    {"MINARRAY", {{Type::IntArray}, Type::Int, "min_ia", "([I)I"}},
+    {"MAXARRAY", {{Type::IntArray}, Type::Int, "max_ia", "([I)I"}},
+    {"SUMARRAY", {{Type::IntArray}, Type::Int, "sum_ia", "([I)I"}},
+    {"UBOUND", {{Type::IntArray}, Type::Int, "ubound_ia", "([I)I"}},
 };
 
 // Lexer
@@ -442,16 +448,13 @@ private:
                 else if (arrType == Type::BoolArray) varType = Type::Bool;
                 else error("Variable is not an array: " + name);
             } else {
-                // Scalar variable access
+                // Scalar variable access (or array reference for function calls)
                 auto it = knownTypes.find(name);
                 if (it == knownTypes.end()) error("Undefined variable: " + name);
                 varType = it->second;
                 
-                // Ensure it's not an array type (can't use array without index)
-                if (varType == Type::IntArray || varType == Type::FloatArray ||
-                    varType == Type::StringArray || varType == Type::BoolArray) {
-                    error("Array requires index: " + name);
-                }
+                // Arrays without indices are allowed (for passing to functions)
+                // The type stays as IntArray, FloatArray, etc.
             }
             
             return make_unique<Expr>(ExprKind::Var, varType, VarRef{name, move(index)});
@@ -1277,7 +1280,7 @@ public:
                 else if (e.type == Type::Bool) baload();
                 else if (e.type == Type::String) aaload();
             } else {
-                // Scalar variable access
+                // Scalar variable access or array reference
                 if (e.type == Type::Int || e.type == Type::Bool) {
                     iload(idx);
                     if (e.type != Type::Float) return; // No conversion needed
@@ -1285,6 +1288,7 @@ public:
                 } else if (e.type == Type::Float) {
                     fload(idx);
                 } else {
+                    // String or array reference
                     aload(idx);
                 }
             }
