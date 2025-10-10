@@ -7,11 +7,13 @@ using u2 = uint16_t;
 using u4 = uint32_t;
 
 // Enums
-enum class Type { Int, Float, String };
-enum class Op { Add, Sub, Mul, Div, Mod };
-enum class TokenType { END, NUMBER, STRING, ID, PLUS, MINUS, MUL, DIV, MOD, ASSIGN, SEMI, LPAREN, RPAREN, PRINT, LET };
-enum class ExprKind { Num, Str, Var, Bin };
-enum class StmtKind { Print, Let };
+enum class Type { Int, Float, String, Bool };
+enum class Op { Add, Sub, Mul, Div, Mod, Lt, Gt, Le, Ge, Eq, Ne };
+enum class TokenType { END, NUMBER, STRING, ID, PLUS, MINUS, MUL, DIV, MOD, ASSIGN, SEMI, LPAREN, RPAREN, 
+                       PRINT, LET, LT, GT, LE, GE, EQ, NE, 
+                       TRUE, FALSE, IF, THEN, ELSE, ENDIF, ELSEIF };
+enum class ExprKind { Num, Str, Var, Bin, BoolLit, Cmp };
+enum class StmtKind { Print, Let, If };
 
 // Forward declarations
 struct Expr;
@@ -24,28 +26,40 @@ struct NumLit { double value; };
 struct StrLit { string value; };
 struct VarRef { string name; };
 struct BinOp { Op op; ExprPtr left, right; };
+struct BoolLit { bool value; };
+struct CmpOp { Op op; ExprPtr left, right; };
 
 struct Expr {
     ExprKind kind;
     Type type;
-    variant<NumLit, StrLit, VarRef, BinOp> data;
+    variant<NumLit, StrLit, VarRef, BinOp, BoolLit, CmpOp> data;
 
     Expr(ExprKind k, Type t, NumLit n) : kind(k), type(t), data(n) {}
     Expr(ExprKind k, Type t, StrLit s) : kind(k), type(t), data(s) {}
     Expr(ExprKind k, Type t, VarRef v) : kind(k), type(t), data(v) {}
     Expr(ExprKind k, Type t, BinOp b) : kind(k), type(t), data(std::move(b)) {}
+    Expr(ExprKind k, Type t, BoolLit bl) : kind(k), type(t), data(bl) {}
+    Expr(ExprKind k, Type t, CmpOp c) : kind(k), type(t), data(std::move(c)) {}
 };
 
 // Stmt structures
 struct PrintStmt { ExprPtr expr; };
 struct LetStmt { string var; ExprPtr expr; };
+struct ElseIfClause { ExprPtr cond; vector<StmtPtr> body; };
+struct IfStmt { 
+    ExprPtr cond; 
+    vector<StmtPtr> thenBody;
+    vector<ElseIfClause> elseIfs;
+    vector<StmtPtr> elseBody;
+};
 
 struct Stmt {
     StmtKind kind;
-    variant<PrintStmt, LetStmt> data;
+    variant<PrintStmt, LetStmt, IfStmt> data;
 
     Stmt(StmtKind k, PrintStmt p) : kind(k), data(std::move(p)) {}
     Stmt(StmtKind k, LetStmt l) : kind(k), data(std::move(l)) {}
+    Stmt(StmtKind k, IfStmt i) : kind(k), data(std::move(i)) {}
 };
 
 // Token
@@ -122,9 +136,39 @@ public:
                 s += ch;
                 read();
             }
-            if (s == "PRINT") return {TokenType::PRINT};
-            if (s == "LET") return {TokenType::LET};
-            if (s == "MOD") return {TokenType::MOD};
+            // Convert to uppercase for keyword matching
+            string upper = s;
+            for (auto& c : upper) c = toupper(c);
+            
+            if (upper == "PRINT") return {TokenType::PRINT};
+            if (upper == "LET") return {TokenType::LET};
+            if (upper == "MOD") return {TokenType::MOD};
+            if (upper == "IF") return {TokenType::IF};
+            if (upper == "THEN") return {TokenType::THEN};
+            if (upper == "ELSE") return {TokenType::ELSE};
+            if (upper == "ELSEIF") return {TokenType::ELSEIF};
+            if (upper == "ENDIF") return {TokenType::ENDIF};
+            if (upper == "END") {
+                // Check if next token is IF
+                skipWhite();
+                if (!eof && isalpha(ch)) {
+                    string next;
+                    while (!eof && isalnum(ch)) {
+                        next += ch;
+                        read();
+                    }
+                    string nextUpper = next;
+                    for (auto& c : nextUpper) c = toupper(c);
+                    if (nextUpper == "IF") return {TokenType::ENDIF};
+                    // Not "END IF", so this is an error or undefined ID
+                    error("Expected IF after END");
+                }
+                error("Expected IF after END");
+            }
+            // Boolean literals (case-insensitive, normalized to lowercase)
+            if (upper == "TRUE") return {TokenType::TRUE, "true"};
+            if (upper == "FALSE") return {TokenType::FALSE, "false"};
+            
             return {TokenType::ID, s};
         } else if (!eof) {
             if (ch == '+') { read(); return {TokenType::PLUS}; }
@@ -132,7 +176,22 @@ public:
             else if (ch == '*') { read(); return {TokenType::MUL}; }
             else if (ch == '/') { read(); return {TokenType::DIV}; }
             else if (ch == '%') { read(); return {TokenType::MOD}; }
-            else if (ch == '=') { read(); return {TokenType::ASSIGN}; }
+            else if (ch == '=') { 
+                read(); 
+                if (!eof && ch == '=') { read(); return {TokenType::EQ}; }
+                return {TokenType::ASSIGN}; 
+            }
+            else if (ch == '<') {
+                read();
+                if (!eof && ch == '=') { read(); return {TokenType::LE}; }
+                if (!eof && ch == '>') { read(); return {TokenType::NE}; }
+                return {TokenType::LT};
+            }
+            else if (ch == '>') {
+                read();
+                if (!eof && ch == '=') { read(); return {TokenType::GE}; }
+                return {TokenType::GT};
+            }
             else if (ch == ';') { read(); return {TokenType::SEMI}; }
             else if (ch == '(') { read(); return {TokenType::LPAREN}; }
             else if (ch == ')') { read(); return {TokenType::RPAREN}; }
@@ -176,6 +235,12 @@ private:
         } else if (tok.type == TokenType::STRING) {
             Token st = expect(TokenType::STRING);
             return make_unique<Expr>(ExprKind::Str, Type::String, StrLit{st.val});
+        } else if (tok.type == TokenType::TRUE) {
+            next();
+            return make_unique<Expr>(ExprKind::BoolLit, Type::Bool, BoolLit{true});
+        } else if (tok.type == TokenType::FALSE) {
+            next();
+            return make_unique<Expr>(ExprKind::BoolLit, Type::Bool, BoolLit{false});
         } else if (tok.type == TokenType::ID) {
             string name = tok.val;
             next();
@@ -226,7 +291,38 @@ private:
         return left;
     }
 
-    ExprPtr parseExpr() { return parseAdd(); }
+    ExprPtr parseRel() {
+        auto left = parseAdd();
+        while (tok.type == TokenType::LT || tok.type == TokenType::GT || 
+               tok.type == TokenType::LE || tok.type == TokenType::GE) {
+            Op op;
+            if (tok.type == TokenType::LT) op = Op::Lt;
+            else if (tok.type == TokenType::GT) op = Op::Gt;
+            else if (tok.type == TokenType::LE) op = Op::Le;
+            else op = Op::Ge;
+            next();
+            auto right = parseAdd();
+            // Comparisons always produce Bool type
+            auto cmp = make_unique<Expr>(ExprKind::Cmp, Type::Bool, CmpOp{op, move(left), move(right)});
+            left = move(cmp);
+        }
+        return left;
+    }
+
+    ExprPtr parseEq() {
+        auto left = parseRel();
+        while (tok.type == TokenType::EQ || tok.type == TokenType::NE) {
+            Op op = (tok.type == TokenType::EQ) ? Op::Eq : Op::Ne;
+            next();
+            auto right = parseRel();
+            // Comparisons always produce Bool type
+            auto cmp = make_unique<Expr>(ExprKind::Cmp, Type::Bool, CmpOp{op, move(left), move(right)});
+            left = move(cmp);
+        }
+        return left;
+    }
+
+    ExprPtr parseExpr() { return parseEq(); }
 
     StmtPtr parseStmt() {
         if (tok.type == TokenType::PRINT) {
@@ -244,6 +340,59 @@ private:
             knownTypes[var] = ty;
             expect(TokenType::SEMI);
             return make_unique<Stmt>(StmtKind::Let, LetStmt{var, move(e)});
+        } else if (tok.type == TokenType::IF) {
+            next();
+            auto cond = parseExpr();
+            if (cond->type != Type::Bool && cond->type != Type::Int) {
+                error("IF condition must be boolean or integer");
+            }
+            expect(TokenType::THEN);
+            
+            // Parse THEN body
+            vector<StmtPtr> thenBody;
+            while (tok.type != TokenType::ELSEIF && tok.type != TokenType::ELSE && 
+                   tok.type != TokenType::ENDIF && tok.type != TokenType::END) {
+                thenBody.push_back(parseStmt());
+            }
+            
+            // Parse ELSE IF clauses
+            vector<ElseIfClause> elseIfs;
+            while (tok.type == TokenType::ELSEIF) {
+                next();
+                auto elseIfCond = parseExpr();
+                if (elseIfCond->type != Type::Bool && elseIfCond->type != Type::Int) {
+                    error("ELSE IF condition must be boolean or integer");
+                }
+                expect(TokenType::THEN);
+                vector<StmtPtr> elseIfBody;
+                while (tok.type != TokenType::ELSEIF && tok.type != TokenType::ELSE && 
+                       tok.type != TokenType::ENDIF && tok.type != TokenType::END) {
+                    elseIfBody.push_back(parseStmt());
+                }
+                elseIfs.push_back(ElseIfClause{move(elseIfCond), move(elseIfBody)});
+            }
+            
+            // Parse ELSE body
+            vector<StmtPtr> elseBody;
+            if (tok.type == TokenType::ELSE) {
+                next();
+                while (tok.type != TokenType::ENDIF && tok.type != TokenType::END) {
+                    elseBody.push_back(parseStmt());
+                }
+            }
+            
+            // Expect ENDIF or END IF
+            if (tok.type == TokenType::ENDIF) {
+                next();
+            } else if (tok.type == TokenType::END) {
+                // END IF was already handled in lexer
+                error("Expected ENDIF");
+            } else {
+                error("Expected ENDIF");
+            }
+            
+            return make_unique<Stmt>(StmtKind::If, IfStmt{move(cond), move(thenBody), 
+                                                           move(elseIfs), move(elseBody)});
         }
         error();
         return nullptr;
@@ -320,12 +469,18 @@ struct ConstantPool {
     }
 };
 
+// Label for branching
+struct Label {
+    int pos = -1;
+    vector<int> patchSites;
+};
+
 // ClassFile
 class ClassFile {
 public:
     u4 magic = 0xCAFEBABE;
     u2 minor_version = 0;
-    u2 major_version = 65; // Java 21
+    u2 major_version = 50; // Java 6 (avoids StackMapTable requirement)
     ConstantPool cp;
     u2 this_class_idx;
     u2 super_class_idx;
@@ -333,6 +488,9 @@ public:
     u2 println_int_idx;
     u2 println_float_idx;
     u2 println_str_idx;
+    u2 println_bool_idx;
+    u2 string_class_idx;
+    u2 string_equals_idx;
     u2 main_name_idx;
     u2 main_desc_idx;
     u2 code_name_idx;
@@ -340,6 +498,8 @@ public:
     vector<u1> code;
     u2 max_stack = 10;
     u2 max_locals = 1;
+    
+    int labelCounter = 0;
 
     void buildConstantPool() {
         // Utf8
@@ -378,6 +538,19 @@ public:
         u2 ps_desc = cp.addUtf8("(Ljava/lang/String;)V");
         u2 nat_ps = cp.addNameAndType(println_name, ps_desc);
         println_str_idx = cp.addMethodRef(ps_cls_idx, nat_ps);
+
+        // println (Z)V for boolean
+        u2 pb_desc = cp.addUtf8("(Z)V");
+        u2 nat_pb = cp.addNameAndType(println_name, pb_desc);
+        println_bool_idx = cp.addMethodRef(ps_cls_idx, nat_pb);
+
+        // String.equals
+        u2 string_class_name = cp.addUtf8("java/lang/String");
+        string_class_idx = cp.addClass(string_class_name);
+        u2 equals_name = cp.addUtf8("equals");
+        u2 equals_desc = cp.addUtf8("(Ljava/lang/Object;)Z");
+        u2 nat_equals = cp.addNameAndType(equals_name, equals_desc);
+        string_equals_idx = cp.addMethodRef(string_class_idx, nat_equals);
 
         code_name_idx = cp.addUtf8("Code");
     }
@@ -451,6 +624,132 @@ public:
     void frem() { emit(0x72); }
     void i2f() { emit(0x86); } // Added i2f instruction
     void _return() { emit(0xB1); }
+    
+    // Branching instructions
+    void ifeq(Label& L) { emitBranch(0x99, L); }
+    void ifne(Label& L) { emitBranch(0x9A, L); }
+    void iflt(Label& L) { emitBranch(0x9B, L); }
+    void ifge(Label& L) { emitBranch(0x9C, L); }
+    void ifgt(Label& L) { emitBranch(0x9D, L); }
+    void ifle(Label& L) { emitBranch(0x9E, L); }
+    void if_icmpeq(Label& L) { emitBranch(0x9F, L); }
+    void if_icmpne(Label& L) { emitBranch(0xA0, L); }
+    void if_icmplt(Label& L) { emitBranch(0xA1, L); }
+    void if_icmpge(Label& L) { emitBranch(0xA2, L); }
+    void if_icmpgt(Label& L) { emitBranch(0xA3, L); }
+    void if_icmple(Label& L) { emitBranch(0xA4, L); }
+    void goto_(Label& L) { emitBranch(0xA7, L); }
+    
+    // Float comparison instructions
+    void fcmpl() { emit(0x95); }
+    void fcmpg() { emit(0x96); }
+    
+    // Label management
+    int position() const { return static_cast<int>(code.size()); }
+    
+    void mark(Label& L) {
+        L.pos = position();
+        for (int site : L.patchSites) {
+            patchJump(site, L.pos);
+        }
+        L.patchSites.clear();
+    }
+    
+    void emitBranch(u1 opcode, Label& L) {
+        emit(opcode);
+        int site = position();
+        emit(static_cast<u1>(0)); // Placeholder
+        emit(static_cast<u1>(0)); // Placeholder
+        if (L.pos >= 0) {
+            patchJump(site, L.pos);
+        } else {
+            L.patchSites.push_back(site);
+        }
+    }
+    
+    void patchJump(int site, int target) {
+        int16_t offset = static_cast<int16_t>(target - (site - 1));
+        code[site] = static_cast<u1>((offset >> 8) & 0xFF);
+        code[site + 1] = static_cast<u1>(offset & 0xFF);
+    }
+    
+    void loadComparison(const CmpOp& co, map<string, u1>& varIdx) {
+        // Determine the operand types (promote if needed)
+        Type leftType = co.left->type;
+        Type rightType = co.right->type;
+        
+        // Handle string comparisons
+        if (leftType == Type::String && rightType == Type::String) {
+            load(*co.left, varIdx);
+            load(*co.right, varIdx);
+            invokevirtual(string_equals_idx); // returns boolean (0 or 1)
+            
+            // Handle negation for != operator
+            if (co.op == Op::Ne) {
+                // XOR with 1 to flip the boolean
+                iconst(1);
+                emit(0x82); // ixor
+            } else if (co.op != Op::Eq) {
+                throw runtime_error("Only == and <> are supported for string comparisons");
+            }
+            return;
+        }
+        
+        // Handle float comparisons with epsilon
+        if (leftType == Type::Float || rightType == Type::Float) {
+            load(*co.left, varIdx);
+            if (leftType == Type::Int) i2f();
+            load(*co.right, varIdx);
+            if (rightType == Type::Int) i2f();
+            
+            // For float comparisons, we use fcmpg/fcmpl and then conditional branches
+            // fcmpg: pushes 1 if left > right, 0 if equal, -1 if left < right (or either NaN)
+            fcmpg();
+            
+            Label trueLabel, endLabel;
+            switch (co.op) {
+                case Op::Lt: iflt(trueLabel); break;
+                case Op::Gt: ifgt(trueLabel); break;
+                case Op::Le: ifle(trueLabel); break;
+                case Op::Ge: ifge(trueLabel); break;
+                case Op::Eq: ifeq(trueLabel); break;
+                case Op::Ne: ifne(trueLabel); break;
+                default: throw runtime_error("Unknown comparison operator");
+            }
+            iconst(0);
+            goto_(endLabel);
+            mark(trueLabel);
+            iconst(1);
+            mark(endLabel);
+            return;
+        }
+        
+        // Handle integer/boolean comparisons
+        if ((leftType == Type::Int || leftType == Type::Bool) && 
+            (rightType == Type::Int || rightType == Type::Bool)) {
+            load(*co.left, varIdx);
+            load(*co.right, varIdx);
+            
+            Label trueLabel, endLabel;
+            switch (co.op) {
+                case Op::Lt: if_icmplt(trueLabel); break;
+                case Op::Gt: if_icmpgt(trueLabel); break;
+                case Op::Le: if_icmple(trueLabel); break;
+                case Op::Ge: if_icmpge(trueLabel); break;
+                case Op::Eq: if_icmpeq(trueLabel); break;
+                case Op::Ne: if_icmpne(trueLabel); break;
+                default: throw runtime_error("Unknown comparison operator");
+            }
+            iconst(0);
+            goto_(endLabel);
+            mark(trueLabel);
+            iconst(1);
+            mark(endLabel);
+            return;
+        }
+        
+        throw runtime_error("Type mismatch in comparison");
+    }
 
     void load(const Expr& e, map<string, u1>& varIdx) {
         if (e.kind == ExprKind::Num) {
@@ -467,10 +766,13 @@ public:
             u2 utfIdx = cp.addUtf8(sl.value);
             u2 strIdx = cp.addString(utfIdx);
             ldc(strIdx);
+        } else if (e.kind == ExprKind::BoolLit) {
+            const BoolLit& bl = get<BoolLit>(e.data);
+            iconst(bl.value ? 1 : 0);
         } else if (e.kind == ExprKind::Var) {
             const VarRef& vr = get<VarRef>(e.data);
             u1 idx = varIdx.at(vr.name);
-            if (e.type == Type::Int) {
+            if (e.type == Type::Int || e.type == Type::Bool) {
                 iload(idx);
                 if (e.type != Type::Float) return; // No conversion needed
                 i2f(); // Convert int to float for Float-typed expression
@@ -479,6 +781,9 @@ public:
             } else {
                 aload(idx);
             }
+        } else if (e.kind == ExprKind::Cmp) {
+            const CmpOp& co = get<CmpOp>(e.data);
+            loadComparison(co, varIdx);
         } else if (e.kind == ExprKind::Bin) {
             const BinOp& bo = get<BinOp>(e.data);
             load(*bo.left, varIdx);
@@ -518,6 +823,7 @@ public:
             load(*ps.expr, varIdx);
             if (ps.expr->type == Type::Int) invokevirtual(println_int_idx);
             else if (ps.expr->type == Type::Float) invokevirtual(println_float_idx);
+            else if (ps.expr->type == Type::Bool) invokevirtual(println_bool_idx);
             else invokevirtual(println_str_idx);
         } else if (s.kind == StmtKind::Let) {
             const LetStmt& ls = get<LetStmt>(s.data);
@@ -526,10 +832,45 @@ public:
             }
             u1 idx = varIdx[ls.var];
             load(*ls.expr, varIdx);
-            if (ls.expr->type == Type::Int) istore(idx);
+            if (ls.expr->type == Type::Int || ls.expr->type == Type::Bool) istore(idx);
             else if (ls.expr->type == Type::Float) fstore(idx);
             else astore(idx);
             max_locals = max(max_locals, static_cast<u2>(nextLocal));
+        } else if (s.kind == StmtKind::If) {
+            const IfStmt& ifs = get<IfStmt>(s.data);
+            
+            // Evaluate main condition
+            load(*ifs.cond, varIdx);
+            Label nextLabel, endLabel;
+            ifeq(nextLabel); // Jump to next clause if condition is false (0)
+            
+            // Generate THEN body
+            for (const auto& stmt : ifs.thenBody) {
+                genStmt(*stmt, varIdx, nextLocal);
+            }
+            goto_(endLabel);
+            
+            // Generate ELSE IF clauses
+            for (const auto& elseIf : ifs.elseIfs) {
+                mark(nextLabel);
+                nextLabel = Label(); // Create new label for next clause
+                
+                load(*elseIf.cond, varIdx);
+                ifeq(nextLabel);
+                
+                for (const auto& stmt : elseIf.body) {
+                    genStmt(*stmt, varIdx, nextLocal);
+                }
+                goto_(endLabel);
+            }
+            
+            // Generate ELSE body
+            mark(nextLabel);
+            for (const auto& stmt : ifs.elseBody) {
+                genStmt(*stmt, varIdx, nextLocal);
+            }
+            
+            mark(endLabel);
         }
     }
 
