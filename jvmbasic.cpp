@@ -12,7 +12,7 @@ enum class Op { Add, Sub, Mul, Div, Mod, Lt, Gt, Le, Ge, Eq, Ne };
 enum class TokenType { END, NUMBER, STRING, ID, PLUS, MINUS, MUL, DIV, MOD, ASSIGN, SEMI, COMMA, LPAREN, RPAREN, 
                        PRINT, LET, INPUT, DIM, LT, GT, LE, GE, EQ, NE, 
                        TRUE, FALSE, IF, THEN, ELSE, ENDIF, ELSEIF };
-enum class ExprKind { Num, Str, Var, Bin, BoolLit, Cmp };
+enum class ExprKind { Num, Str, Var, Bin, BoolLit, Cmp, Call };
 enum class StmtKind { Print, Let, Input, Dim, If };
 
 // Forward declarations
@@ -31,11 +31,15 @@ struct VarRef {
 struct BinOp { Op op; ExprPtr left, right; };
 struct BoolLit { bool value; };
 struct CmpOp { Op op; ExprPtr left, right; };
+struct CallExpr { 
+    string name; 
+    vector<ExprPtr> args;
+};
 
 struct Expr {
     ExprKind kind;
     Type type;
-    variant<NumLit, StrLit, VarRef, BinOp, BoolLit, CmpOp> data;
+    variant<NumLit, StrLit, VarRef, BinOp, BoolLit, CmpOp, CallExpr> data;
 
     Expr(ExprKind k, Type t, NumLit n) : kind(k), type(t), data(n) {}
     Expr(ExprKind k, Type t, StrLit s) : kind(k), type(t), data(s) {}
@@ -43,6 +47,7 @@ struct Expr {
     Expr(ExprKind k, Type t, BinOp b) : kind(k), type(t), data(std::move(b)) {}
     Expr(ExprKind k, Type t, BoolLit bl) : kind(k), type(t), data(bl) {}
     Expr(ExprKind k, Type t, CmpOp c) : kind(k), type(t), data(std::move(c)) {}
+    Expr(ExprKind k, Type t, CallExpr c) : kind(k), type(t), data(std::move(c)) {}
 };
 
 // Stmt structures
@@ -90,6 +95,79 @@ struct Token {
     TokenType type;
     string val;
     double num = 0.0;
+};
+
+// Function signature
+struct FunctionSig {
+    vector<Type> paramTypes;
+    Type returnType;
+    string javaMethod;  // Method name in BasicRuntime
+    string javaDescriptor; // JVM method descriptor
+};
+
+// Global function registry
+static map<string, FunctionSig> builtinFunctions = {
+    // Math functions - single parameter
+    {"ABS", {{Type::Float}, Type::Float, "abs_f", "(F)F"}},
+    {"SQR", {{Type::Float}, Type::Float, "sqr", "(F)F"}},
+    {"SQRT", {{Type::Float}, Type::Float, "sqr", "(F)F"}},  // Alias
+    {"INT", {{Type::Float}, Type::Int, "int_f", "(F)I"}},
+    {"SGN", {{Type::Float}, Type::Int, "sgn_f", "(F)I"}},
+    {"SIN", {{Type::Float}, Type::Float, "sin", "(F)F"}},
+    {"COS", {{Type::Float}, Type::Float, "cos", "(F)F"}},
+    {"TAN", {{Type::Float}, Type::Float, "tan", "(F)F"}},
+    {"ASIN", {{Type::Float}, Type::Float, "asin", "(F)F"}},
+    {"ACOS", {{Type::Float}, Type::Float, "acos", "(F)F"}},
+    {"ATAN", {{Type::Float}, Type::Float, "atan", "(F)F"}},
+    {"EXP", {{Type::Float}, Type::Float, "exp", "(F)F"}},
+    {"LOG", {{Type::Float}, Type::Float, "log", "(F)F"}},
+    {"LOG10", {{Type::Float}, Type::Float, "log10", "(F)F"}},
+    {"ROUND", {{Type::Float}, Type::Int, "round", "(F)I"}},
+    {"CEIL", {{Type::Float}, Type::Float, "ceil", "(F)F"}},
+    {"FLOOR", {{Type::Float}, Type::Float, "floor", "(F)F"}},
+    
+    // Math functions - no parameters
+    {"RND", {{}, Type::Float, "rnd", "()F"}},
+    {"PI", {{}, Type::Float, "pi", "()F"}},
+    {"E", {{}, Type::Float, "e", "()F"}},
+    
+    // Math functions - two parameters
+    {"POW", {{Type::Float, Type::Float}, Type::Float, "pow", "(FF)F"}},
+    {"ATAN2", {{Type::Float, Type::Float}, Type::Float, "atan2", "(FF)F"}},
+    {"MIN", {{Type::Float, Type::Float}, Type::Float, "min_ff", "(FF)F"}},
+    {"MAX", {{Type::Float, Type::Float}, Type::Float, "max_ff", "(FF)F"}},
+    
+    // String functions - single parameter
+    {"LEN", {{Type::String}, Type::Int, "len", "(Ljava/lang/String;)I"}},
+    {"UPPER", {{Type::String}, Type::String, "upper", "(Ljava/lang/String;)Ljava/lang/String;"}},
+    {"UCASE", {{Type::String}, Type::String, "upper", "(Ljava/lang/String;)Ljava/lang/String;"}},  // Alias
+    {"LOWER", {{Type::String}, Type::String, "lower", "(Ljava/lang/String;)Ljava/lang/String;"}},
+    {"LCASE", {{Type::String}, Type::String, "lower", "(Ljava/lang/String;)Ljava/lang/String;"}},  // Alias
+    {"TRIM", {{Type::String}, Type::String, "trim", "(Ljava/lang/String;)Ljava/lang/String;"}},
+    {"LTRIM", {{Type::String}, Type::String, "ltrim", "(Ljava/lang/String;)Ljava/lang/String;"}},
+    {"RTRIM", {{Type::String}, Type::String, "rtrim", "(Ljava/lang/String;)Ljava/lang/String;"}},
+    {"REVERSE", {{Type::String}, Type::String, "reverse", "(Ljava/lang/String;)Ljava/lang/String;"}},
+    {"ASC", {{Type::String}, Type::Int, "asc", "(Ljava/lang/String;)I"}},
+    
+    // String functions - two parameters
+    {"LEFT", {{Type::String, Type::Int}, Type::String, "left", "(Ljava/lang/String;I)Ljava/lang/String;"}},
+    {"RIGHT", {{Type::String, Type::Int}, Type::String, "right", "(Ljava/lang/String;I)Ljava/lang/String;"}},
+    {"INSTR", {{Type::String, Type::String}, Type::Int, "instr", "(Ljava/lang/String;Ljava/lang/String;)I"}},
+    {"CONTAINS", {{Type::String, Type::String}, Type::Bool, "contains", "(Ljava/lang/String;Ljava/lang/String;)Z"}},
+    {"SPACE", {{Type::Int}, Type::String, "space", "(I)Ljava/lang/String;"}},
+    
+    // String functions - three parameters
+    {"MID", {{Type::String, Type::Int, Type::Int}, Type::String, "mid", "(Ljava/lang/String;II)Ljava/lang/String;"}},
+    {"SUBSTR", {{Type::String, Type::Int, Type::Int}, Type::String, "mid", "(Ljava/lang/String;II)Ljava/lang/String;"}},  // Alias
+    {"STRING", {{Type::Int, Type::String}, Type::String, "string", "(ILjava/lang/String;)Ljava/lang/String;"}},
+    
+    // Type conversion
+    {"CHR", {{Type::Int}, Type::String, "chr", "(I)Ljava/lang/String;"}},
+    {"VAL", {{Type::String}, Type::Float, "val_f", "(Ljava/lang/String;)F"}},
+    
+    // Type checking
+    {"ISNUM", {{Type::String}, Type::Bool, "isnum", "(Ljava/lang/String;)Z"}},
+    {"ISINT", {{Type::String}, Type::Bool, "isint", "(Ljava/lang/String;)Z"}},
 };
 
 // Lexer
@@ -269,9 +347,51 @@ private:
             return make_unique<Expr>(ExprKind::BoolLit, Type::Bool, BoolLit{false});
         } else if (tok.type == TokenType::ID) {
             string name = tok.val;
+            string nameUpper = name;
+            for (auto& c : nameUpper) c = toupper(c);
             next();
             
-            // Check for array indexing
+            // Check if it's a function call
+            auto funcIt = builtinFunctions.find(nameUpper);
+            if (funcIt != builtinFunctions.end()) {
+                // Function call
+                const FunctionSig& sig = funcIt->second;
+                vector<ExprPtr> args;
+                
+                if (sig.paramTypes.empty()) {
+                    // No-arg function, but might have empty parens
+                    if (tok.type == TokenType::LPAREN) {
+                        next();
+                        expect(TokenType::RPAREN);
+                    }
+                } else {
+                    // Parse arguments
+                    expect(TokenType::LPAREN);
+                    for (size_t i = 0; i < sig.paramTypes.size(); ++i) {
+                        args.push_back(parseExpr());
+                        
+                        // Check argument type (allow Int->Float promotion)
+                        Type expectedType = sig.paramTypes[i];
+                        Type actualType = args.back()->type;
+                        
+                        if (actualType != expectedType) {
+                            // Allow Int->Float promotion
+                            if (!(expectedType == Type::Float && actualType == Type::Int)) {
+                                error("Type mismatch in function argument for " + nameUpper);
+                            }
+                        }
+                        
+                        if (i < sig.paramTypes.size() - 1) {
+                            expect(TokenType::COMMA);
+                        }
+                    }
+                    expect(TokenType::RPAREN);
+                }
+                
+                return make_unique<Expr>(ExprKind::Call, sig.returnType, CallExpr{nameUpper, move(args)});
+            }
+            
+            // Not a function, check for array indexing or variable
             ExprPtr index = nullptr;
             Type varType;
             
@@ -655,6 +775,10 @@ public:
     u1 scanner_local = 0; // Local variable index for Scanner
     
     int labelCounter = 0;
+    
+    // Runtime support
+    u2 basicruntime_class_idx = 0;
+    map<string, u2> functionMethodRefs; // Cache of function name -> method ref index
 
     void buildConstantPool() {
         // Utf8
@@ -769,7 +893,37 @@ public:
         u2 nat_parsefloat = cp.addNameAndType(parsefloat_name, parsefloat_desc);
         float_parsefloat_idx = cp.addMethodRef(float_class_idx, nat_parsefloat);
 
+        // BasicRuntime for standard library functions
+        u2 basicruntime_class_name = cp.addUtf8("basicrt/BasicRuntime");
+        basicruntime_class_idx = cp.addClass(basicruntime_class_name);
+
         code_name_idx = cp.addUtf8("Code");
+    }
+    
+    // Get or create method reference for a function
+    u2 getFunctionMethodRef(const string& funcName) {
+        // Check cache
+        if (functionMethodRefs.count(funcName)) {
+            return functionMethodRefs[funcName];
+        }
+        
+        // Look up function signature
+        auto it = builtinFunctions.find(funcName);
+        if (it == builtinFunctions.end()) {
+            throw runtime_error("Unknown function: " + funcName);
+        }
+        
+        const FunctionSig& sig = it->second;
+        
+        // Add to constant pool
+        u2 method_name = cp.addUtf8(sig.javaMethod);
+        u2 method_desc = cp.addUtf8(sig.javaDescriptor);
+        u2 nat = cp.addNameAndType(method_name, method_desc);
+        u2 method_ref = cp.addMethodRef(basicruntime_class_idx, nat);
+        
+        // Cache it
+        functionMethodRefs[funcName] = method_ref;
+        return method_ref;
     }
 
     void emit(u1 byte) { code.push_back(byte); }
@@ -1033,6 +1187,27 @@ public:
         } else if (e.kind == ExprKind::Cmp) {
             const CmpOp& co = get<CmpOp>(e.data);
             loadComparison(co, varIdx);
+        } else if (e.kind == ExprKind::Call) {
+            const CallExpr& ce = get<CallExpr>(e.data);
+            
+            // Look up function signature
+            const FunctionSig& sig = builtinFunctions.at(ce.name);
+            
+            // Load arguments
+            for (size_t i = 0; i < ce.args.size(); ++i) {
+                load(*ce.args[i], varIdx);
+                
+                // Convert Int to Float if needed
+                Type expectedType = sig.paramTypes[i];
+                Type actualType = ce.args[i]->type;
+                if (expectedType == Type::Float && actualType == Type::Int) {
+                    i2f();
+                }
+            }
+            
+            // Call function
+            u2 methodRef = getFunctionMethodRef(ce.name);
+            invokestatic(methodRef);
         } else if (e.kind == ExprKind::Bin) {
             const BinOp& bo = get<BinOp>(e.data);
             load(*bo.left, varIdx);
