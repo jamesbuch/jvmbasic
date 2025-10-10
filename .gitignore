@@ -1,4 +1,5 @@
 BasicProgram.class
+basicrt/*.class
 *.o
 *.out
 jvmbasic
