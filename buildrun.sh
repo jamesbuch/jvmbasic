@@ -5,7 +5,14 @@ if [ -x ./g++-15-wrapper ]; then
 else
     g++ -std=gnu++20 -O2 -g jvmbasic.cpp -o jvmbasic
 fi
+
+# Compile BasicRuntime if needed
+if [ ! -f basicrt/BasicRuntime.class ] || [ BasicRuntime.java -nt basicrt/BasicRuntime.class ]; then
+    echo "Compiling BasicRuntime..."
+    javac -d . BasicRuntime.java
+fi
+
 ./jvmbasic < input.bas
 javap -c BasicProgram
-java BasicProgram
+java -cp . BasicProgram
 
