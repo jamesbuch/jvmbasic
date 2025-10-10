@@ -1,0 +1,5 @@
+BasicProgram.class
+*.o
+*.out
+jvmbasic
+
