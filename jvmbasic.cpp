@@ -9,7 +9,7 @@ using u4 = uint32_t;
 // Enums
 enum class Type { Int, Float, String, Bool };
 enum class Op { Add, Sub, Mul, Div, Mod, Lt, Gt, Le, Ge, Eq, Ne };
-enum class TokenType { END, NUMBER, STRING, ID, PLUS, MINUS, MUL, DIV, MOD, ASSIGN, SEMI, LPAREN, RPAREN, 
+enum class TokenType { END, NUMBER, STRING, ID, PLUS, MINUS, MUL, DIV, MOD, ASSIGN, SEMI, COMMA, LPAREN, RPAREN, 
                        PRINT, LET, LT, GT, LE, GE, EQ, NE, 
                        TRUE, FALSE, IF, THEN, ELSE, ENDIF, ELSEIF };
 enum class ExprKind { Num, Str, Var, Bin, BoolLit, Cmp };
@@ -43,7 +43,12 @@ struct Expr {
 };
 
 // Stmt structures
-struct PrintStmt { ExprPtr expr; };
+enum class PrintSep { Comma, Semi };
+struct PrintStmt { 
+    vector<ExprPtr> exprs;
+    vector<PrintSep> seps; // separators between expressions (size = exprs.size() - 1)
+    bool addNewline; // false if statement ends with , or ;
+};
 struct LetStmt { string var; ExprPtr expr; };
 struct ElseIfClause { ExprPtr cond; vector<StmtPtr> body; };
 struct IfStmt { 
@@ -193,6 +198,7 @@ public:
                 return {TokenType::GT};
             }
             else if (ch == ';') { read(); return {TokenType::SEMI}; }
+            else if (ch == ',') { read(); return {TokenType::COMMA}; }
             else if (ch == '(') { read(); return {TokenType::LPAREN}; }
             else if (ch == ')') { read(); return {TokenType::RPAREN}; }
             else {
@@ -327,9 +333,30 @@ private:
     StmtPtr parseStmt() {
         if (tok.type == TokenType::PRINT) {
             next();
-            auto e = parseExpr();
-            expect(TokenType::SEMI);
-            return make_unique<Stmt>(StmtKind::Print, PrintStmt{move(e)});
+            vector<ExprPtr> exprs;
+            vector<PrintSep> seps;
+            bool addNewline = true;
+            
+            // Parse first expression
+            exprs.push_back(parseExpr());
+            
+            // Parse additional expressions with separators
+            while (tok.type == TokenType::COMMA || tok.type == TokenType::SEMI) {
+                PrintSep sep = (tok.type == TokenType::COMMA) ? PrintSep::Comma : PrintSep::Semi;
+                seps.push_back(sep);
+                next();
+                
+                // Check if this is a trailing separator (no expression follows)
+                if (tok.type == TokenType::END || tok.type == TokenType::PRINT || 
+                    tok.type == TokenType::LET || tok.type == TokenType::IF) {
+                    addNewline = false;
+                    break;
+                }
+                
+                exprs.push_back(parseExpr());
+            }
+            
+            return make_unique<Stmt>(StmtKind::Print, PrintStmt{move(exprs), move(seps), addNewline});
         } else if (tok.type == TokenType::LET) {
             next();
             string var = expect(TokenType::ID).val;
@@ -338,7 +365,6 @@ private:
             Type ty = e->type;
             if (knownTypes.count(var) && knownTypes[var] != ty) error("Type mismatch reassign");
             knownTypes[var] = ty;
-            expect(TokenType::SEMI);
             return make_unique<Stmt>(StmtKind::Let, LetStmt{var, move(e)});
         } else if (tok.type == TokenType::IF) {
             next();
@@ -489,6 +515,12 @@ public:
     u2 println_float_idx;
     u2 println_str_idx;
     u2 println_bool_idx;
+    u2 print_int_idx;
+    u2 print_float_idx;
+    u2 print_str_idx;
+    u2 print_bool_idx;
+    u2 println_void_idx;
+    u2 print_space_idx;
     u2 string_class_idx;
     u2 string_equals_idx;
     u2 main_name_idx;
@@ -523,7 +555,9 @@ public:
         u2 ps_class = cp.addUtf8("java/io/PrintStream");
         u2 ps_cls_idx = cp.addClass(ps_class);
         u2 println_name = cp.addUtf8("println");
+        u2 print_name = cp.addUtf8("print");
 
+        // println methods (with newline)
         // println (I)V
         u2 pi_desc = cp.addUtf8("(I)V");
         u2 nat_pi = cp.addNameAndType(println_name, pi_desc);
@@ -543,6 +577,32 @@ public:
         u2 pb_desc = cp.addUtf8("(Z)V");
         u2 nat_pb = cp.addNameAndType(println_name, pb_desc);
         println_bool_idx = cp.addMethodRef(ps_cls_idx, nat_pb);
+
+        // println ()V for empty newline
+        u2 pv_desc = cp.addUtf8("()V");
+        u2 nat_pv = cp.addNameAndType(println_name, pv_desc);
+        println_void_idx = cp.addMethodRef(ps_cls_idx, nat_pv);
+
+        // print methods (without newline)
+        // print (I)V
+        u2 nat_pri = cp.addNameAndType(print_name, pi_desc);
+        print_int_idx = cp.addMethodRef(ps_cls_idx, nat_pri);
+
+        // print (F)V
+        u2 nat_prf = cp.addNameAndType(print_name, pf_desc);
+        print_float_idx = cp.addMethodRef(ps_cls_idx, nat_prf);
+
+        // print (Ljava/lang/String;)V
+        u2 nat_prs = cp.addNameAndType(print_name, ps_desc);
+        print_str_idx = cp.addMethodRef(ps_cls_idx, nat_prs);
+
+        // print (Z)V for boolean
+        u2 nat_prb = cp.addNameAndType(print_name, pb_desc);
+        print_bool_idx = cp.addMethodRef(ps_cls_idx, nat_prb);
+
+        // For comma separator: print a space
+        u2 space_utf = cp.addUtf8(" ");
+        print_space_idx = cp.addString(space_utf);
 
         // String.equals
         u2 string_class_name = cp.addUtf8("java/lang/String");
@@ -819,12 +879,50 @@ public:
     void genStmt(const Stmt& s, map<string, u1>& varIdx, u1& nextLocal) {
         if (s.kind == StmtKind::Print) {
             const PrintStmt& ps = get<PrintStmt>(s.data);
-            getstatic(out_field_idx);
-            load(*ps.expr, varIdx);
-            if (ps.expr->type == Type::Int) invokevirtual(println_int_idx);
-            else if (ps.expr->type == Type::Float) invokevirtual(println_float_idx);
-            else if (ps.expr->type == Type::Bool) invokevirtual(println_bool_idx);
-            else invokevirtual(println_str_idx);
+            
+            for (size_t i = 0; i < ps.exprs.size(); ++i) {
+                const auto& expr = ps.exprs[i];
+                bool isLast = (i == ps.exprs.size() - 1);
+                
+                // Load System.out
+                getstatic(out_field_idx);
+                // Load expression value
+                load(*expr, varIdx);
+                
+                // Determine which print method to use
+                if (isLast && ps.addNewline) {
+                    // Last expression with newline: use println
+                    if (expr->type == Type::Int) invokevirtual(println_int_idx);
+                    else if (expr->type == Type::Float) invokevirtual(println_float_idx);
+                    else if (expr->type == Type::Bool) invokevirtual(println_bool_idx);
+                    else invokevirtual(println_str_idx);
+                } else {
+                    // Not last, or no newline: use print (no newline)
+                    if (expr->type == Type::Int) invokevirtual(print_int_idx);
+                    else if (expr->type == Type::Float) invokevirtual(print_float_idx);
+                    else if (expr->type == Type::Bool) invokevirtual(print_bool_idx);
+                    else invokevirtual(print_str_idx);
+                }
+                
+                // Print separator if not last
+                if (!isLast) {
+                    PrintSep sep = ps.seps[i];
+                    if (sep == PrintSep::Comma) {
+                        // Print a space for comma separator
+                        getstatic(out_field_idx);
+                        ldc(print_space_idx);
+                        invokevirtual(print_str_idx);
+                    }
+                    // Semicolon separator: print nothing (no space)
+                }
+            }
+            
+            // If no newline at end but expressions were printed, we're done
+            // Otherwise if empty PRINT, add newline
+            if (ps.exprs.empty()) {
+                getstatic(out_field_idx);
+                invokevirtual(println_void_idx);
+            }
         } else if (s.kind == StmtKind::Let) {
             const LetStmt& ls = get<LetStmt>(s.data);
             if (varIdx.find(ls.var) == varIdx.end()) {
