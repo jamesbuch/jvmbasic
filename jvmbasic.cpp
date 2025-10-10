@@ -7,13 +7,13 @@ using u2 = uint16_t;
 using u4 = uint32_t;
 
 // Enums
-enum class Type { Int, Float, String, Bool };
+enum class Type { Int, Float, String, Bool, IntArray, FloatArray, StringArray, BoolArray };
 enum class Op { Add, Sub, Mul, Div, Mod, Lt, Gt, Le, Ge, Eq, Ne };
 enum class TokenType { END, NUMBER, STRING, ID, PLUS, MINUS, MUL, DIV, MOD, ASSIGN, SEMI, COMMA, LPAREN, RPAREN, 
-                       PRINT, LET, INPUT, LT, GT, LE, GE, EQ, NE, 
+                       PRINT, LET, INPUT, DIM, LT, GT, LE, GE, EQ, NE, 
                        TRUE, FALSE, IF, THEN, ELSE, ENDIF, ELSEIF };
 enum class ExprKind { Num, Str, Var, Bin, BoolLit, Cmp };
-enum class StmtKind { Print, Let, Input, If };
+enum class StmtKind { Print, Let, Input, Dim, If };
 
 // Forward declarations
 struct Expr;
@@ -24,7 +24,10 @@ using StmtPtr = unique_ptr<Stmt>;
 // Expr structures
 struct NumLit { double value; };
 struct StrLit { string value; };
-struct VarRef { string name; };
+struct VarRef { 
+    string name;
+    ExprPtr index; // nullptr for scalar, non-null for array access
+};
 struct BinOp { Op op; ExprPtr left, right; };
 struct BoolLit { bool value; };
 struct CmpOp { Op op; ExprPtr left, right; };
@@ -49,8 +52,20 @@ struct PrintStmt {
     vector<PrintSep> seps; // separators between expressions (size = exprs.size() - 1)
     bool addNewline; // false if statement ends with , or ;
 };
-struct LetStmt { string var; ExprPtr expr; };
-struct InputStmt { string var; };
+struct LetStmt { 
+    string var; 
+    ExprPtr expr;
+    ExprPtr index; // nullptr for scalar, non-null for array assignment
+};
+struct InputStmt { 
+    string var;
+    ExprPtr index; // nullptr for scalar, non-null for array input
+};
+struct DimStmt {
+    string var;
+    ExprPtr size;     // Array size expression
+    ExprPtr initVal;  // Initial value for all elements
+};
 struct ElseIfClause { ExprPtr cond; vector<StmtPtr> body; };
 struct IfStmt { 
     ExprPtr cond; 
@@ -61,11 +76,12 @@ struct IfStmt {
 
 struct Stmt {
     StmtKind kind;
-    variant<PrintStmt, LetStmt, InputStmt, IfStmt> data;
+    variant<PrintStmt, LetStmt, InputStmt, DimStmt, IfStmt> data;
 
     Stmt(StmtKind k, PrintStmt p) : kind(k), data(std::move(p)) {}
     Stmt(StmtKind k, LetStmt l) : kind(k), data(std::move(l)) {}
     Stmt(StmtKind k, InputStmt i) : kind(k), data(std::move(i)) {}
+    Stmt(StmtKind k, DimStmt d) : kind(k), data(std::move(d)) {}
     Stmt(StmtKind k, IfStmt ifs) : kind(k), data(std::move(ifs)) {}
 };
 
@@ -150,6 +166,7 @@ public:
             if (upper == "PRINT") return {TokenType::PRINT};
             if (upper == "LET") return {TokenType::LET};
             if (upper == "INPUT") return {TokenType::INPUT};
+            if (upper == "DIM") return {TokenType::DIM};
             if (upper == "MOD") return {TokenType::MOD};
             if (upper == "IF") return {TokenType::IF};
             if (upper == "THEN") return {TokenType::THEN};
@@ -368,7 +385,7 @@ private:
             Type ty = e->type;
             if (knownTypes.count(var) && knownTypes[var] != ty) error("Type mismatch reassign");
             knownTypes[var] = ty;
-            return make_unique<Stmt>(StmtKind::Let, LetStmt{var, move(e)});
+            return make_unique<Stmt>(StmtKind::Let, LetStmt{var, move(e), nullptr});
         } else if (tok.type == TokenType::INPUT) {
             next();
             string var = expect(TokenType::ID).val;
@@ -376,7 +393,7 @@ private:
             if (knownTypes.find(var) == knownTypes.end()) {
                 error("INPUT variable must be defined first with LET");
             }
-            return make_unique<Stmt>(StmtKind::Input, InputStmt{var});
+            return make_unique<Stmt>(StmtKind::Input, InputStmt{var, nullptr});
         } else if (tok.type == TokenType::IF) {
             next();
             auto cond = parseExpr();
