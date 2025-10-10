@@ -12,7 +12,7 @@ if [ ! -f basicrt/BasicRuntime.class ] || [ BasicRuntime.java -nt basicrt/BasicR
     javac -d . BasicRuntime.java
 fi
 
-./jvmbasic < input.bas
+./jvmbasic < tests/input.bas
 javap -c BasicProgram
 java -cp . BasicProgram
 
