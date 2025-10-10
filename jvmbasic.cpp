@@ -7,13 +7,13 @@ using u2 = uint16_t;
 using u4 = uint32_t;
 
 // Enums
-enum class Type { Int, Float, String, Bool };
+enum class Type { Int, Float, String, Bool, IntArray, FloatArray, StringArray, BoolArray };
 enum class Op { Add, Sub, Mul, Div, Mod, Lt, Gt, Le, Ge, Eq, Ne };
 enum class TokenType { END, NUMBER, STRING, ID, PLUS, MINUS, MUL, DIV, MOD, ASSIGN, SEMI, COMMA, LPAREN, RPAREN, 
-                       PRINT, LET, INPUT, LT, GT, LE, GE, EQ, NE, 
+                       PRINT, LET, INPUT, DIM, LT, GT, LE, GE, EQ, NE, 
                        TRUE, FALSE, IF, THEN, ELSE, ENDIF, ELSEIF };
 enum class ExprKind { Num, Str, Var, Bin, BoolLit, Cmp };
-enum class StmtKind { Print, Let, Input, If };
+enum class StmtKind { Print, Let, Input, Dim, If };
 
 // Forward declarations
 struct Expr;
@@ -24,7 +24,10 @@ using StmtPtr = unique_ptr<Stmt>;
 // Expr structures
 struct NumLit { double value; };
 struct StrLit { string value; };
-struct VarRef { string name; };
+struct VarRef { 
+    string name;
+    ExprPtr index; // nullptr for scalar, non-null for array access
+};
 struct BinOp { Op op; ExprPtr left, right; };
 struct BoolLit { bool value; };
 struct CmpOp { Op op; ExprPtr left, right; };
@@ -36,7 +39,7 @@ struct Expr {
 
     Expr(ExprKind k, Type t, NumLit n) : kind(k), type(t), data(n) {}
     Expr(ExprKind k, Type t, StrLit s) : kind(k), type(t), data(s) {}
-    Expr(ExprKind k, Type t, VarRef v) : kind(k), type(t), data(v) {}
+    Expr(ExprKind k, Type t, VarRef v) : kind(k), type(t), data(std::move(v)) {}
     Expr(ExprKind k, Type t, BinOp b) : kind(k), type(t), data(std::move(b)) {}
     Expr(ExprKind k, Type t, BoolLit bl) : kind(k), type(t), data(bl) {}
     Expr(ExprKind k, Type t, CmpOp c) : kind(k), type(t), data(std::move(c)) {}
@@ -49,8 +52,20 @@ struct PrintStmt {
     vector<PrintSep> seps; // separators between expressions (size = exprs.size() - 1)
     bool addNewline; // false if statement ends with , or ;
 };
-struct LetStmt { string var; ExprPtr expr; };
-struct InputStmt { string var; };
+struct LetStmt { 
+    string var; 
+    ExprPtr expr;
+    ExprPtr index; // nullptr for scalar, non-null for array assignment
+};
+struct InputStmt { 
+    string var;
+    ExprPtr index; // nullptr for scalar, non-null for array input
+};
+struct DimStmt {
+    string var;
+    ExprPtr size;     // Array size expression
+    ExprPtr initVal;  // Initial value for all elements
+};
 struct ElseIfClause { ExprPtr cond; vector<StmtPtr> body; };
 struct IfStmt { 
     ExprPtr cond; 
@@ -61,11 +76,12 @@ struct IfStmt {
 
 struct Stmt {
     StmtKind kind;
-    variant<PrintStmt, LetStmt, InputStmt, IfStmt> data;
+    variant<PrintStmt, LetStmt, InputStmt, DimStmt, IfStmt> data;
 
     Stmt(StmtKind k, PrintStmt p) : kind(k), data(std::move(p)) {}
     Stmt(StmtKind k, LetStmt l) : kind(k), data(std::move(l)) {}
     Stmt(StmtKind k, InputStmt i) : kind(k), data(std::move(i)) {}
+    Stmt(StmtKind k, DimStmt d) : kind(k), data(std::move(d)) {}
     Stmt(StmtKind k, IfStmt ifs) : kind(k), data(std::move(ifs)) {}
 };
 
@@ -150,6 +166,7 @@ public:
             if (upper == "PRINT") return {TokenType::PRINT};
             if (upper == "LET") return {TokenType::LET};
             if (upper == "INPUT") return {TokenType::INPUT};
+            if (upper == "DIM") return {TokenType::DIM};
             if (upper == "MOD") return {TokenType::MOD};
             if (upper == "IF") return {TokenType::IF};
             if (upper == "THEN") return {TokenType::THEN};
@@ -253,9 +270,42 @@ private:
         } else if (tok.type == TokenType::ID) {
             string name = tok.val;
             next();
-            auto it = knownTypes.find(name);
-            if (it == knownTypes.end()) error("Undefined variable: " + name);
-            return make_unique<Expr>(ExprKind::Var, it->second, VarRef{name});
+            
+            // Check for array indexing
+            ExprPtr index = nullptr;
+            Type varType;
+            
+            if (tok.type == TokenType::LPAREN) {
+                // Array access: name(index)
+                next();
+                index = parseExpr();
+                expect(TokenType::RPAREN);
+                
+                // Check variable is defined and is an array
+                auto it = knownTypes.find(name);
+                if (it == knownTypes.end()) error("Undefined array: " + name);
+                
+                Type arrType = it->second;
+                // Get element type from array type
+                if (arrType == Type::IntArray) varType = Type::Int;
+                else if (arrType == Type::FloatArray) varType = Type::Float;
+                else if (arrType == Type::StringArray) varType = Type::String;
+                else if (arrType == Type::BoolArray) varType = Type::Bool;
+                else error("Variable is not an array: " + name);
+            } else {
+                // Scalar variable access
+                auto it = knownTypes.find(name);
+                if (it == knownTypes.end()) error("Undefined variable: " + name);
+                varType = it->second;
+                
+                // Ensure it's not an array type (can't use array without index)
+                if (varType == Type::IntArray || varType == Type::FloatArray ||
+                    varType == Type::StringArray || varType == Type::BoolArray) {
+                    error("Array requires index: " + name);
+                }
+            }
+            
+            return make_unique<Expr>(ExprKind::Var, varType, VarRef{name, move(index)});
         } else if (tok.type == TokenType::LPAREN) {
             next();
             auto e = parseExpr();
@@ -351,7 +401,8 @@ private:
                 
                 // Check if this is a trailing separator (no expression follows)
                 if (tok.type == TokenType::END || tok.type == TokenType::PRINT || 
-                    tok.type == TokenType::LET || tok.type == TokenType::INPUT || tok.type == TokenType::IF) {
+                    tok.type == TokenType::LET || tok.type == TokenType::INPUT || 
+                    tok.type == TokenType::DIM || tok.type == TokenType::IF) {
                     addNewline = false;
                     break;
                 }
@@ -363,12 +414,40 @@ private:
         } else if (tok.type == TokenType::LET) {
             next();
             string var = expect(TokenType::ID).val;
+            
+            // Check for array assignment: LET arr(index) = value
+            ExprPtr index = nullptr;
+            if (tok.type == TokenType::LPAREN) {
+                next();
+                index = parseExpr();
+                expect(TokenType::RPAREN);
+            }
+            
             expect(TokenType::ASSIGN);
             auto e = parseExpr();
             Type ty = e->type;
-            if (knownTypes.count(var) && knownTypes[var] != ty) error("Type mismatch reassign");
-            knownTypes[var] = ty;
-            return make_unique<Stmt>(StmtKind::Let, LetStmt{var, move(e)});
+            
+            if (index) {
+                // Array element assignment
+                auto it = knownTypes.find(var);
+                if (it == knownTypes.end()) error("Undefined array: " + var);
+                
+                Type arrType = it->second;
+                Type elemType;
+                if (arrType == Type::IntArray) elemType = Type::Int;
+                else if (arrType == Type::FloatArray) elemType = Type::Float;
+                else if (arrType == Type::StringArray) elemType = Type::String;
+                else if (arrType == Type::BoolArray) elemType = Type::Bool;
+                else error("Variable is not an array: " + var);
+                
+                if (ty != elemType) error("Type mismatch in array assignment");
+            } else {
+                // Scalar assignment
+                if (knownTypes.count(var) && knownTypes[var] != ty) error("Type mismatch reassign");
+                knownTypes[var] = ty;
+            }
+            
+            return make_unique<Stmt>(StmtKind::Let, LetStmt{var, move(e), move(index)});
         } else if (tok.type == TokenType::INPUT) {
             next();
             string var = expect(TokenType::ID).val;
@@ -376,7 +455,29 @@ private:
             if (knownTypes.find(var) == knownTypes.end()) {
                 error("INPUT variable must be defined first with LET");
             }
-            return make_unique<Stmt>(StmtKind::Input, InputStmt{var});
+            return make_unique<Stmt>(StmtKind::Input, InputStmt{var, nullptr});
+        } else if (tok.type == TokenType::DIM) {
+            next();
+            string var = expect(TokenType::ID).val;
+            expect(TokenType::LPAREN);
+            auto size = parseExpr();
+            expect(TokenType::RPAREN);
+            expect(TokenType::ASSIGN);
+            auto initVal = parseExpr();
+            
+            // Infer array type from init value
+            Type elemType = initVal->type;
+            Type arrType;
+            if (elemType == Type::Int) arrType = Type::IntArray;
+            else if (elemType == Type::Float) arrType = Type::FloatArray;
+            else if (elemType == Type::String) arrType = Type::StringArray;
+            else if (elemType == Type::Bool) arrType = Type::BoolArray;
+            else error("Invalid array element type");
+            
+            if (knownTypes.count(var)) error("Variable already defined: " + var);
+            knownTypes[var] = arrType;
+            
+            return make_unique<Stmt>(StmtKind::Dim, DimStmt{var, move(size), move(initVal)});
         } else if (tok.type == TokenType::IF) {
             next();
             auto cond = parseExpr();
@@ -745,6 +846,20 @@ public:
     void invokespecial(u2 idx) { emit(0xB7, idx); }
     void invokestatic(u2 idx) { emit(0xB8, idx); }
     
+    // Array instructions
+    void newarray_int() { emit(0xBC); emit(10); }      // T_INT = 10
+    void newarray_float() { emit(0xBC); emit(6); }     // T_FLOAT = 6
+    void newarray_bool() { emit(0xBC); emit(4); }      // T_BOOLEAN = 4
+    void anewarray(u2 idx) { emit(0xBD, idx); }        // For String arrays
+    void iaload() { emit(0x2E); }
+    void faload() { emit(0x30); }
+    void aaload() { emit(0x32); }
+    void baload() { emit(0x33); }
+    void iastore() { emit(0x4F); }
+    void fastore() { emit(0x51); }
+    void aastore() { emit(0x53); }
+    void bastore() { emit(0x54); }
+    
     // Branching instructions
     void ifeq(Label& L) { emitBranch(0x99, L); }
     void ifne(Label& L) { emitBranch(0x9A, L); }
@@ -892,14 +1007,28 @@ public:
         } else if (e.kind == ExprKind::Var) {
             const VarRef& vr = get<VarRef>(e.data);
             u1 idx = varIdx.at(vr.name);
-            if (e.type == Type::Int || e.type == Type::Bool) {
-                iload(idx);
-                if (e.type != Type::Float) return; // No conversion needed
-                i2f(); // Convert int to float for Float-typed expression
-            } else if (e.type == Type::Float) {
-                fload(idx);
+            
+            if (vr.index) {
+                // Array element access: load array, load index, load element
+                aload(idx);  // Load array reference
+                load(*vr.index, varIdx);  // Load index (should be Int)
+                
+                // Load element based on type
+                if (e.type == Type::Int) iaload();
+                else if (e.type == Type::Float) faload();
+                else if (e.type == Type::Bool) baload();
+                else if (e.type == Type::String) aaload();
             } else {
-                aload(idx);
+                // Scalar variable access
+                if (e.type == Type::Int || e.type == Type::Bool) {
+                    iload(idx);
+                    if (e.type != Type::Float) return; // No conversion needed
+                    i2f(); // Convert int to float for Float-typed expression
+                } else if (e.type == Type::Float) {
+                    fload(idx);
+                } else {
+                    aload(idx);
+                }
             }
         } else if (e.kind == ExprKind::Cmp) {
             const CmpOp& co = get<CmpOp>(e.data);
@@ -985,15 +1114,31 @@ public:
             }
         } else if (s.kind == StmtKind::Let) {
             const LetStmt& ls = get<LetStmt>(s.data);
-            if (varIdx.find(ls.var) == varIdx.end()) {
-                varIdx[ls.var] = nextLocal++;
+            
+            if (ls.index) {
+                // Array element assignment: LET arr(index) = value
+                u1 idx = varIdx.at(ls.var);
+                aload(idx);  // Load array reference
+                load(*ls.index, varIdx);  // Load index
+                load(*ls.expr, varIdx);  // Load value
+                
+                // Store based on type
+                if (ls.expr->type == Type::Int) iastore();
+                else if (ls.expr->type == Type::Float) fastore();
+                else if (ls.expr->type == Type::Bool) bastore();
+                else if (ls.expr->type == Type::String) aastore();
+            } else {
+                // Scalar assignment
+                if (varIdx.find(ls.var) == varIdx.end()) {
+                    varIdx[ls.var] = nextLocal++;
+                }
+                u1 idx = varIdx[ls.var];
+                load(*ls.expr, varIdx);
+                if (ls.expr->type == Type::Int || ls.expr->type == Type::Bool) istore(idx);
+                else if (ls.expr->type == Type::Float) fstore(idx);
+                else astore(idx);
+                max_locals = max(max_locals, static_cast<u2>(nextLocal));
             }
-            u1 idx = varIdx[ls.var];
-            load(*ls.expr, varIdx);
-            if (ls.expr->type == Type::Int || ls.expr->type == Type::Bool) istore(idx);
-            else if (ls.expr->type == Type::Float) fstore(idx);
-            else astore(idx);
-            max_locals = max(max_locals, static_cast<u2>(nextLocal));
         } else if (s.kind == StmtKind::Input) {
             const InputStmt& is = get<InputStmt>(s.data);
             u1 idx = varIdx.at(is.var);
@@ -1032,6 +1177,69 @@ public:
                 // String: just store directly
                 astore(idx);
             }
+        } else if (s.kind == StmtKind::Dim) {
+            const DimStmt& ds = get<DimStmt>(s.data);
+            
+            // Allocate local variable for array
+            varIdx[ds.var] = nextLocal++;
+            max_locals = max(max_locals, static_cast<u2>(nextLocal));
+            u1 idx = varIdx[ds.var];
+            
+            // Load size and create array
+            load(*ds.size, varIdx);
+            
+            Type arrType = knownTypes.at(ds.var);
+            if (arrType == Type::IntArray) newarray_int();
+            else if (arrType == Type::FloatArray) newarray_float();
+            else if (arrType == Type::BoolArray) newarray_bool();
+            else if (arrType == Type::StringArray) anewarray(string_class_idx);
+            
+            // Store array reference
+            astore(idx);
+            
+            // Initialize all elements with initVal
+            // For simplicity, we'll initialize in a loop at runtime
+            // Save size to a temp variable
+            load(*ds.size, varIdx);
+            u1 sizeVar = nextLocal++;
+            max_locals = max(max_locals, static_cast<u2>(nextLocal));
+            istore(sizeVar);
+            
+            // Initialize counter to 0
+            iconst(0);
+            u1 counterVar = nextLocal++;
+            max_locals = max(max_locals, static_cast<u2>(nextLocal));
+            istore(counterVar);
+            
+            // Loop: while counter < size
+            Label loopStart, loopEnd;
+            mark(loopStart);
+            
+            // Check: counter < size
+            iload(counterVar);
+            iload(sizeVar);
+            if_icmpge(loopEnd);
+            
+            // arr[counter] = initVal
+            aload(idx);  // Load array
+            iload(counterVar);  // Load index
+            load(*ds.initVal, varIdx);  // Load init value
+            
+            // Store based on type
+            if (ds.initVal->type == Type::Int) iastore();
+            else if (ds.initVal->type == Type::Float) fastore();
+            else if (ds.initVal->type == Type::Bool) bastore();
+            else if (ds.initVal->type == Type::String) aastore();
+            
+            // counter++
+            iload(counterVar);
+            iconst(1);
+            iadd();
+            istore(counterVar);
+            
+            // goto loopStart
+            goto_(loopStart);
+            mark(loopEnd);
         } else if (s.kind == StmtKind::If) {
             const IfStmt& ifs = get<IfStmt>(s.data);
             
