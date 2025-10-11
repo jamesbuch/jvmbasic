@@ -126,7 +126,14 @@ struct Stmt {
 // Parameter for functions/subs
 struct Param {
     string name;
-    Type type;  // Type::Int means unspecified, will infer from usage
+    Type type;  // Inferred from call sites
+};
+
+// Call site information for type inference
+struct CallSite {
+    string funcName;
+    vector<Type> argTypes;
+    int line;
 };
 
 // Function/Sub declarations
@@ -155,6 +162,7 @@ struct Token {
     TokenType type;
     string val;
     double num = 0.0;
+    int line = 1;  // Line number for error reporting
 };
 
 // Function signature
@@ -246,11 +254,14 @@ private:
     istream& in;
     char ch = 0;
     bool eof = false;
+    int line = 1;  // Track current line number
 
     void read() {
         if (!in.get(ch)) {
             eof = true;
             ch = 0;
+        } else if (ch == '\n') {
+            line++;
         }
     }
 
@@ -262,10 +273,13 @@ private:
 
 public:
     Lexer(istream& i) : in(i) { read(); skipWhite(); }
+    
+    int getLine() const { return line; }
 
     Token nextToken() {
         skipWhite();
-        if (eof) return {TokenType::END};
+        int tokenLine = line;  // Capture line at start of token
+        if (eof) return {TokenType::END, "", 0.0, tokenLine};
 
         if (isdigit(ch) || ch == '.') {
             string s;
@@ -289,7 +303,7 @@ public:
                     read();
                 }
             }
-            Token t{TokenType::NUMBER, s, s.empty() ? 0.0 : stod(s)};
+            Token t{TokenType::NUMBER, s, s.empty() ? 0.0 : stod(s), tokenLine};
             return t;
         } else if (ch == '"') {
             read();
@@ -299,8 +313,8 @@ public:
                 read();
             }
             if (!eof && ch == '"') read();
-            else if (eof) error("Unterminated string");
-            return {TokenType::STRING, s};
+            else if (eof) error("Unterminated string at line " + to_string(tokenLine));
+            return {TokenType::STRING, s, 0.0, tokenLine};
         } else if (!eof && isalpha(ch)) {
             string s;
             while (!eof && isalnum(ch)) {
@@ -311,31 +325,31 @@ public:
             string upper = s;
             for (auto& c : upper) c = toupper(c);
             
-            if (upper == "PRINT") return {TokenType::PRINT};
-            if (upper == "LET") return {TokenType::LET};
-            if (upper == "INPUT") return {TokenType::INPUT};
-            if (upper == "DIM") return {TokenType::DIM};
-            if (upper == "MOD") return {TokenType::MOD};
-            if (upper == "IF") return {TokenType::IF};
-            if (upper == "THEN") return {TokenType::THEN};
-            if (upper == "ELSE") return {TokenType::ELSE};
-            if (upper == "ELSEIF") return {TokenType::ELSEIF};
-            if (upper == "ENDIF") return {TokenType::ENDIF};
-            if (upper == "FOR") return {TokenType::FOR};
-            if (upper == "TO") return {TokenType::TO};
-            if (upper == "STEP") return {TokenType::STEP};
-            if (upper == "NEXT") return {TokenType::NEXT};
-            if (upper == "WHILE") return {TokenType::WHILE};
-            if (upper == "ENDWHILE") return {TokenType::ENDWHILE};
-            if (upper == "WEND") return {TokenType::WEND};
-            if (upper == "DO") return {TokenType::DO};
-            if (upper == "UNTIL") return {TokenType::UNTIL};
-            if (upper == "FUNCTION") return {TokenType::FUNCTION};
-            if (upper == "ENDFUNCTION") return {TokenType::ENDFUNCTION};
-            if (upper == "SUB") return {TokenType::SUB};
-            if (upper == "ENDSUB") return {TokenType::ENDSUB};
-            if (upper == "RETURN") return {TokenType::RETURN};
-            if (upper == "CALL") return {TokenType::CALL};
+            if (upper == "PRINT") return {TokenType::PRINT, s, 0.0, tokenLine};
+            if (upper == "LET") return {TokenType::LET, s, 0.0, tokenLine};
+            if (upper == "INPUT") return {TokenType::INPUT, s, 0.0, tokenLine};
+            if (upper == "DIM") return {TokenType::DIM, s, 0.0, tokenLine};
+            if (upper == "MOD") return {TokenType::MOD, s, 0.0, tokenLine};
+            if (upper == "IF") return {TokenType::IF, s, 0.0, tokenLine};
+            if (upper == "THEN") return {TokenType::THEN, s, 0.0, tokenLine};
+            if (upper == "ELSE") return {TokenType::ELSE, s, 0.0, tokenLine};
+            if (upper == "ELSEIF") return {TokenType::ELSEIF, s, 0.0, tokenLine};
+            if (upper == "ENDIF") return {TokenType::ENDIF, s, 0.0, tokenLine};
+            if (upper == "FOR") return {TokenType::FOR, s, 0.0, tokenLine};
+            if (upper == "TO") return {TokenType::TO, s, 0.0, tokenLine};
+            if (upper == "STEP") return {TokenType::STEP, s, 0.0, tokenLine};
+            if (upper == "NEXT") return {TokenType::NEXT, s, 0.0, tokenLine};
+            if (upper == "WHILE") return {TokenType::WHILE, s, 0.0, tokenLine};
+            if (upper == "ENDWHILE") return {TokenType::ENDWHILE, s, 0.0, tokenLine};
+            if (upper == "WEND") return {TokenType::WEND, s, 0.0, tokenLine};
+            if (upper == "DO") return {TokenType::DO, s, 0.0, tokenLine};
+            if (upper == "UNTIL") return {TokenType::UNTIL, s, 0.0, tokenLine};
+            if (upper == "FUNCTION") return {TokenType::FUNCTION, s, 0.0, tokenLine};
+            if (upper == "ENDFUNCTION") return {TokenType::ENDFUNCTION, s, 0.0, tokenLine};
+            if (upper == "SUB") return {TokenType::SUB, s, 0.0, tokenLine};
+            if (upper == "ENDSUB") return {TokenType::ENDSUB, s, 0.0, tokenLine};
+            if (upper == "RETURN") return {TokenType::RETURN, s, 0.0, tokenLine};
+            if (upper == "CALL") return {TokenType::CALL, s, 0.0, tokenLine};
             if (upper == "END") {
                 // Check if next token is IF
                 skipWhite();
@@ -347,50 +361,50 @@ public:
                     }
                     string nextUpper = next;
                     for (auto& c : nextUpper) c = toupper(c);
-                    if (nextUpper == "IF") return {TokenType::ENDIF};
+                    if (nextUpper == "IF") return {TokenType::ENDIF, "ENDIF", 0.0, tokenLine};
                     // Not "END IF", so this is an error or undefined ID
-                    error("Expected IF after END");
+                    error("Expected IF after END at line " + to_string(tokenLine));
                 }
-                error("Expected IF after END");
+                error("Expected IF after END at line " + to_string(tokenLine));
             }
             // Boolean literals (case-insensitive, normalized to lowercase)
-            if (upper == "TRUE") return {TokenType::TRUE, "true"};
-            if (upper == "FALSE") return {TokenType::FALSE, "false"};
+            if (upper == "TRUE") return {TokenType::TRUE, "true", 0.0, tokenLine};
+            if (upper == "FALSE") return {TokenType::FALSE, "false", 0.0, tokenLine};
             
-            return {TokenType::ID, s};
+            return {TokenType::ID, s, 0.0, tokenLine};
         } else if (!eof) {
-            if (ch == '+') { read(); return {TokenType::PLUS}; }
-            else if (ch == '-') { read(); return {TokenType::MINUS}; }
-            else if (ch == '*') { read(); return {TokenType::MUL}; }
-            else if (ch == '/') { read(); return {TokenType::DIV}; }
-            else if (ch == '%') { read(); return {TokenType::MOD}; }
+            if (ch == '+') { read(); return {TokenType::PLUS, "+", 0.0, tokenLine}; }
+            else if (ch == '-') { read(); return {TokenType::MINUS, "-", 0.0, tokenLine}; }
+            else if (ch == '*') { read(); return {TokenType::MUL, "*", 0.0, tokenLine}; }
+            else if (ch == '/') { read(); return {TokenType::DIV, "/", 0.0, tokenLine}; }
+            else if (ch == '%') { read(); return {TokenType::MOD, "%", 0.0, tokenLine}; }
             else if (ch == '=') { 
                 read(); 
-                if (!eof && ch == '=') { read(); return {TokenType::EQ}; }
-                return {TokenType::ASSIGN}; 
+                if (!eof && ch == '=') { read(); return {TokenType::EQ, "==", 0.0, tokenLine}; }
+                return {TokenType::ASSIGN, "=", 0.0, tokenLine}; 
             }
             else if (ch == '<') {
                 read();
-                if (!eof && ch == '=') { read(); return {TokenType::LE}; }
-                if (!eof && ch == '>') { read(); return {TokenType::NE}; }
-                return {TokenType::LT};
+                if (!eof && ch == '=') { read(); return {TokenType::LE, "<=", 0.0, tokenLine}; }
+                if (!eof && ch == '>') { read(); return {TokenType::NE, "<>", 0.0, tokenLine}; }
+                return {TokenType::LT, "<", 0.0, tokenLine};
             }
             else if (ch == '>') {
                 read();
-                if (!eof && ch == '=') { read(); return {TokenType::GE}; }
-                return {TokenType::GT};
+                if (!eof && ch == '=') { read(); return {TokenType::GE, ">=", 0.0, tokenLine}; }
+                return {TokenType::GT, ">", 0.0, tokenLine};
             }
-            else if (ch == ';') { read(); return {TokenType::SEMI}; }
-            else if (ch == ',') { read(); return {TokenType::COMMA}; }
-            else if (ch == '(') { read(); return {TokenType::LPAREN}; }
-            else if (ch == ')') { read(); return {TokenType::RPAREN}; }
+            else if (ch == ';') { read(); return {TokenType::SEMI, ";", 0.0, tokenLine}; }
+            else if (ch == ',') { read(); return {TokenType::COMMA, ",", 0.0, tokenLine}; }
+            else if (ch == '(') { read(); return {TokenType::LPAREN, "(", 0.0, tokenLine}; }
+            else if (ch == ')') { read(); return {TokenType::RPAREN, ")", 0.0, tokenLine}; }
             else {
                 char c = ch;
                 read();
-                error("Invalid character: " + string(1, c));
+                error("Invalid character '" + string(1, c) + "' at line " + to_string(tokenLine));
             }
         }
-        return {TokenType::END};
+        return {TokenType::END, "", 0.0, tokenLine};
     }
 
 private:
@@ -405,6 +419,7 @@ private:
     map<string, Type> knownTypes;
     map<string, pair<vector<Type>, Type>> userFunctions;  // name -> (param types, return type)
     map<string, vector<Type>> userSubs;  // name -> param types
+    vector<CallSite> callSites;  // Collect call sites for type inference
 
     void next() { tok = lex.nextToken(); }
     Token expect(TokenType tt) {
@@ -413,9 +428,35 @@ private:
             next();
             return res;
         }
-        throw runtime_error("Unexpected token: " + tok.val);
+        string expected = tokenTypeName(tt);
+        string got = tok.val.empty() ? tokenTypeName(tok.type) : "'" + tok.val + "'";
+        error("Expected " + expected + " but got " + got);
+        return tok;  // Unreachable
     }
-    void error(const string& msg = "Parse error") { throw runtime_error(msg); }
+    
+    void error(const string& msg) { 
+        throw runtime_error("Line " + to_string(tok.line) + ": " + msg);
+    }
+    
+    string tokenTypeName(TokenType tt) {
+        switch(tt) {
+            case TokenType::END: return "end of file";
+            case TokenType::NUMBER: return "number";
+            case TokenType::STRING: return "string";
+            case TokenType::ID: return "identifier";
+            case TokenType::LPAREN: return "'('";
+            case TokenType::RPAREN: return "')'";
+            case TokenType::COMMA: return "','";
+            case TokenType::ASSIGN: return "'='";
+            case TokenType::THEN: return "THEN";
+            case TokenType::ENDIF: return "ENDIF";
+            case TokenType::ENDFUNCTION: return "ENDFUNCTION";
+            case TokenType::ENDSUB: return "ENDSUB";
+            case TokenType::NEXT: return "NEXT";
+            case TokenType::ENDWHILE: return "ENDWHILE";
+            default: return "token";
+        }
+    }
 
     ExprPtr parsePrimary() {
         if (tok.type == TokenType::NUMBER) {
@@ -455,8 +496,15 @@ private:
                 }
                 expect(TokenType::RPAREN);
                 
-                // Type check arguments (simplified for now)
-                if (args.size() != paramTypes.size()) {
+                // Record call site for type inference
+                vector<Type> argTypes;
+                for (const auto& arg : args) {
+                    argTypes.push_back(arg->type);
+                }
+                callSites.push_back(CallSite{name, argTypes, tok.line});
+                
+                // Type check arguments
+                if (!paramTypes.empty() && args.size() != paramTypes.size()) {
                     error("Wrong number of arguments for function " + name);
                 }
                 
@@ -540,7 +588,7 @@ private:
             expect(TokenType::RPAREN);
             return e;
         }
-        error();
+        error("Unexpected token in expression: '" + tok.val + "'");
         return nullptr;
     }
 
@@ -947,9 +995,17 @@ private:
                 }
             }
             expect(TokenType::RPAREN);
+            
+            // Record call site for type inference
+            vector<Type> argTypes;
+            for (const auto& arg : args) {
+                argTypes.push_back(arg->type);
+            }
+            callSites.push_back(CallSite{name, argTypes, tok.line});
+            
             return make_unique<Stmt>(StmtKind::CallStmt, CallStmtNode{name, move(args)});
         }
-        error();
+        error("Unexpected token in statement: '" + tok.val + "'");
         return nullptr;
     }
 
@@ -959,13 +1015,77 @@ public:
     
     const map<string, Type>& getKnownTypes() const { return knownTypes; }
 
-    Parser(istream& i) : lex(i) { next(); }
-    void parse() {
-        // First, parse all function/sub declarations
-        while (tok.type == TokenType::FUNCTION || tok.type == TokenType::SUB) {
-            auto decl = parseDecl();
+    void inferParameterTypes() {
+        // Group call sites by function name
+        map<string, vector<vector<Type>>> callsByFunc;
+        for (const auto& call : callSites) {
+            callsByFunc[call.funcName].push_back(call.argTypes);
+        }
+        
+        // Infer parameter types for each function/sub
+        for (auto& decl : declarations) {
+            string funcName;
+            vector<Param>* params = nullptr;
             
-            // Register the function/sub for later calls
+            if (decl->kind == DeclKind::Function) {
+                FunctionDecl& fd = get<FunctionDecl>(decl->data);
+                funcName = fd.name;
+                params = &fd.params;
+            } else if (decl->kind == DeclKind::Sub) {
+                SubDecl& sd = get<SubDecl>(decl->data);
+                funcName = sd.name;
+                params = &sd.params;
+            }
+            
+            if (!params || params->empty()) continue;
+            
+            auto callsIt = callsByFunc.find(funcName);
+            if (callsIt == callsByFunc.end() || callsIt->second.empty()) {
+                // No calls found, use Float as default
+                for (auto& param : *params) {
+                    param.type = Type::Float;
+                }
+                continue;
+            }
+            
+            // Infer parameter types by examining all calls
+            const vector<Type>& firstCallArgs = callsIt->second[0];
+            if (firstCallArgs.size() != params->size()) {
+                error("Inconsistent number of arguments for " + funcName);
+            }
+            
+            // Initialize with first call
+            for (size_t i = 0; i < params->size(); ++i) {
+                (*params)[i].type = firstCallArgs[i];
+            }
+            
+            // Refine types by examining all calls
+            for (size_t callIdx = 1; callIdx < callsIt->second.size(); ++callIdx) {
+                const vector<Type>& callArgs = callsIt->second[callIdx];
+                if (callArgs.size() != params->size()) {
+                    error("Inconsistent number of arguments for " + funcName);
+                }
+                for (size_t i = 0; i < params->size(); ++i) {
+                    Type paramType = (*params)[i].type;
+                    Type argType = callArgs[i];
+                    
+                    if (paramType != argType) {
+                        // If we have Int and Float, promote to Float
+                        if ((paramType == Type::Int && argType == Type::Float) ||
+                            (paramType == Type::Float && argType == Type::Int)) {
+                            (*params)[i].type = Type::Float;
+                        } else {
+                            error("Type mismatch in arguments for " + funcName + " at parameter " + 
+                                  to_string(i+1) + " (expected " + typeToString(paramType) + 
+                                  " but got " + typeToString(argType) + ")");
+                        }
+                    }
+                }
+            }
+        }
+        
+        // Update userFunctions and userSubs with inferred types
+        for (const auto& decl : declarations) {
             if (decl->kind == DeclKind::Function) {
                 const FunctionDecl& fd = get<FunctionDecl>(decl->data);
                 vector<Type> paramTypes;
@@ -981,6 +1101,37 @@ public:
                 }
                 userSubs[sd.name] = paramTypes;
             }
+        }
+    }
+    
+    string typeToString(Type t) {
+        switch(t) {
+            case Type::Int: return "Int";
+            case Type::Float: return "Float";
+            case Type::String: return "String";
+            case Type::Bool: return "Bool";
+            case Type::IntArray: return "IntArray";
+            case Type::FloatArray: return "FloatArray";
+            case Type::StringArray: return "StringArray";
+            case Type::BoolArray: return "BoolArray";
+            default: return "Unknown";
+        }
+    }
+
+    Parser(istream& i) : lex(i) { next(); }
+    void parse() {
+        // First, parse all function/sub declarations (without fixed parameter types)
+        while (tok.type == TokenType::FUNCTION || tok.type == TokenType::SUB) {
+            auto decl = parseDecl();
+            
+            // Register the function/sub with empty parameter types initially
+            if (decl->kind == DeclKind::Function) {
+                const FunctionDecl& fd = get<FunctionDecl>(decl->data);
+                userFunctions[fd.name] = {vector<Type>(), fd.returnType};
+            } else if (decl->kind == DeclKind::Sub) {
+                const SubDecl& sd = get<SubDecl>(decl->data);
+                userSubs[sd.name] = vector<Type>();
+            }
             
             declarations.push_back(move(decl));
         }
@@ -988,6 +1139,9 @@ public:
         while (tok.type != TokenType::END) {
             program.push_back(parseStmt());
         }
+        
+        // Infer parameter types from call sites
+        inferParameterTypes();
     }
 };
 
