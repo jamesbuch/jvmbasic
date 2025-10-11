@@ -40,6 +40,11 @@ public class BasicRuntime {
         if (n <= 0) return 0;
         return (int) (Math.random() * n);
     }
+
+    public static int rnd_i_ranged(int min, int max) {
+        java.util.Random random = new java.util.Random();
+        return random.nextInt(max - min + 1) + min;
+    }
     
     // Trigonometry (radians)
     public static float sin(float x) {

@@ -54,6 +54,8 @@ Hello
 - `ASIN(x)`, `ACOS(x)`, `ATAN(x)`, `ATAN2(y,x)` - Inverse trig
 - `EXP(x)`, `LOG(x)`, `LOG10(x)` - Exponential and logarithms
 - `RND()` - Random 0.0-1.0
+- `RNDI(x)` - Random integer to x
+- `RNDINT(x,y)` - Ranged random integer x to y inclusive
 - `PI()`, `E()` - Mathematical constants
 
 **String Functions:**

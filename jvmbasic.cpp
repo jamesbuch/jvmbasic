@@ -150,6 +150,10 @@ static map<string, FunctionSig> builtinFunctions = {
     {"RND", {{}, Type::Float, "rnd", "()F"}},
     {"PI", {{}, Type::Float, "pi", "()F"}},
     {"E", {{}, Type::Float, "e", "()F"}},
+
+    // Math functions - one and two parameters, random numbers
+    {"RNDI", {{Type::Int}, Type::Int, "rnd_i", "(I)I"}},
+    {"RNDINT", {{Type::Int, Type::Int}, Type::Int, "rnd_i_ranged", "(II)I"}},
     
     // Math functions - two parameters
     {"POW", {{Type::Float, Type::Float}, Type::Float, "pow", "(FF)F"}},
@@ -361,7 +365,7 @@ private:
             next();
             return res;
         }
-        throw runtime_error("Unexpected token");
+        throw runtime_error("Unexpected token: " + tok.val);
     }
     void error(const string& msg = "Parse error") { throw runtime_error(msg); }
 

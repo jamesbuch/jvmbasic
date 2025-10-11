@@ -799,7 +799,7 @@ Usually, the answer is in the documentation or git history!
 
 This isn't a toy compiler anymore. It's a:
 - ✅ Fully functional programming language
-- ✅ Educational masterpiece  
+- ✅ Educational masterpiece
 - ✅ Production-ready system
 - ✅ Foundation for unlimited extension
 
