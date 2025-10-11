@@ -1248,7 +1248,7 @@ class ClassFile {
 public:
     u4 magic = 0xCAFEBABE;
     u2 minor_version = 0;
-    u2 major_version = 50; // Java 6 (avoids StackMapTable requirement)
+    u2 major_version = 49; // Java 5 (no StackMapTable required, works on all modern JVMs)
     ConstantPool cp;
     u2 this_class_idx;
     u2 super_class_idx;
