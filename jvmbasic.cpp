@@ -693,6 +693,10 @@ private:
             }
             expect(TokenType::RPAREN);
             
+            // Register function BEFORE parsing body (enables recursion)
+            // We'll use Float as default return type, will be refined later
+            userFunctions[name] = {vector<Type>(), Type::Float};
+            
             // Save current known types and create new scope
             map<string, Type> savedTypes = knownTypes;
             // Register parameters in function scope
@@ -740,6 +744,9 @@ private:
                 }
             }
             expect(TokenType::RPAREN);
+            
+            // Register SUB BEFORE parsing body (enables recursion)
+            userSubs[name] = vector<Type>();
             
             // Save current known types and create new scope
             map<string, Type> savedTypes = knownTypes;
