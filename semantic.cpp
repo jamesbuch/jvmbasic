@@ -98,6 +98,11 @@ Type SemanticAnalyzer::inferExprType(const Expr& expr, const SymbolTable& symbol
         
         case ExprKind::Cmp:
             return Type::Bool;
+        
+        case ExprKind::Unary: {
+            const UnaryExpr& ue = get<UnaryExpr>(expr.data);
+            return inferExprType(*ue.operand, symbols);
+        }
             
         case ExprKind::Call: {
             const CallExpr& ce = get<CallExpr>(expr.data);
@@ -160,6 +165,15 @@ void SemanticAnalyzer::analyzeExpr(Expr& expr, const SymbolTable& symbols) {
             CmpOp& co = get<CmpOp>(expr.data);
             analyzeExpr(*co.left, symbols);
             analyzeExpr(*co.right, symbols);
+            break;
+        }
+        
+        case ExprKind::Unary: {
+            UnaryExpr& ue = get<UnaryExpr>(expr.data);
+            analyzeExpr(*ue.operand, symbols);
+            if (!isNumericType(ue.operand->type)) {
+                error("Unary minus requires numeric type");
+            }
             break;
         }
         

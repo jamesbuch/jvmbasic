@@ -25,7 +25,10 @@ using StmtPtr = unique_ptr<Stmt>;
 using DeclPtr = unique_ptr<Decl>;
 
 // Expression kinds
-enum class ExprKind { Num, Str, Var, Bin, BoolLit, Cmp, Call };
+enum class ExprKind { Num, Str, Var, Bin, BoolLit, Cmp, Call, Unary };
+
+// Unary operators
+enum class UnaryOp { Neg };
 
 // Expression structures
 struct NumLit { 
@@ -60,10 +63,15 @@ struct CallExpr {
     vector<ExprPtr> args;
 };
 
+struct UnaryExpr {
+    UnaryOp op;
+    ExprPtr operand;
+};
+
 struct Expr {
     ExprKind kind;
     Type type;
-    variant<NumLit, StrLit, VarRef, BinOp, BoolLit, CmpOp, CallExpr> data;
+    variant<NumLit, StrLit, VarRef, BinOp, BoolLit, CmpOp, CallExpr, UnaryExpr> data;
 
     Expr(ExprKind k, Type t, NumLit n) : kind(k), type(t), data(n) {}
     Expr(ExprKind k, Type t, StrLit s) : kind(k), type(t), data(s) {}
@@ -72,6 +80,7 @@ struct Expr {
     Expr(ExprKind k, Type t, BoolLit bl) : kind(k), type(t), data(bl) {}
     Expr(ExprKind k, Type t, CmpOp c) : kind(k), type(t), data(std::move(c)) {}
     Expr(ExprKind k, Type t, CallExpr c) : kind(k), type(t), data(std::move(c)) {}
+    Expr(ExprKind k, Type t, UnaryExpr u) : kind(k), type(t), data(std::move(u)) {}
 };
 
 // Statement kinds

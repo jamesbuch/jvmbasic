@@ -47,6 +47,13 @@ string Parser::tokenTypeName(TokenType tt) {
 }
 
 ExprPtr Parser::parsePrimary() {
+    // Handle unary minus
+    if (tok.type == TokenType::MINUS) {
+        next();
+        auto operand = parsePrimary();
+        return make_unique<Expr>(ExprKind::Unary, operand->type, UnaryExpr{UnaryOp::Neg, move(operand)});
+    }
+    
     if (tok.type == TokenType::NUMBER) {
         Token nt = expect(TokenType::NUMBER);
         bool isFloat = nt.val.find('.') != string::npos;

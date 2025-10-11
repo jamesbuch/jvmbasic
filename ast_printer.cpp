@@ -59,6 +59,14 @@ void ASTPrinter::printExpr(const Expr& expr) {
             break;
         }
         
+        case ExprKind::Unary: {
+            const UnaryExpr& ue = get<UnaryExpr>(expr.data);
+            out << "(-";
+            printExpr(*ue.operand);
+            out << ")";
+            break;
+        }
+        
         case ExprKind::Call: {
             const CallExpr& ce = get<CallExpr>(expr.data);
             out << ce.name << "(";

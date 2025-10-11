@@ -14,7 +14,8 @@ enum class TokenType { END, NUMBER, STRING, ID, PLUS, MINUS, MUL, DIV, MOD, ASSI
                        TRUE, FALSE, IF, THEN, ELSE, ENDIF, ELSEIF,
                        FOR, TO, STEP, NEXT, WHILE, ENDWHILE, WEND, DO, UNTIL,
                        FUNCTION, ENDFUNCTION, SUB, ENDSUB, RETURN, CALL };
-enum class ExprKind { Num, Str, Var, Bin, BoolLit, Cmp, Call };
+enum class ExprKind { Num, Str, Var, Bin, BoolLit, Cmp, Call, Unary };
+enum class UnaryOp { Neg };
 enum class StmtKind { Print, Let, Input, Dim, If, For, While, DoWhile, Return, CallStmt };
 enum class DeclKind { Function, Sub };
 
@@ -41,10 +42,15 @@ struct CallExpr {
     vector<ExprPtr> args;
 };
 
+struct UnaryExpr {
+    UnaryOp op;
+    ExprPtr operand;
+};
+
 struct Expr {
     ExprKind kind;
     Type type;
-    variant<NumLit, StrLit, VarRef, BinOp, BoolLit, CmpOp, CallExpr> data;
+    variant<NumLit, StrLit, VarRef, BinOp, BoolLit, CmpOp, CallExpr, UnaryExpr> data;
 
     Expr(ExprKind k, Type t, NumLit n) : kind(k), type(t), data(n) {}
     Expr(ExprKind k, Type t, StrLit s) : kind(k), type(t), data(s) {}
@@ -53,6 +59,7 @@ struct Expr {
     Expr(ExprKind k, Type t, BoolLit bl) : kind(k), type(t), data(bl) {}
     Expr(ExprKind k, Type t, CmpOp c) : kind(k), type(t), data(std::move(c)) {}
     Expr(ExprKind k, Type t, CallExpr c) : kind(k), type(t), data(std::move(c)) {}
+    Expr(ExprKind k, Type t, UnaryExpr u) : kind(k), type(t), data(std::move(u)) {}
 };
 
 // Stmt structures
@@ -459,6 +466,13 @@ private:
     }
 
     ExprPtr parsePrimary() {
+        // Handle unary minus
+        if (tok.type == TokenType::MINUS) {
+            next();
+            auto operand = parsePrimary();
+            return make_unique<Expr>(ExprKind::Unary, operand->type, UnaryExpr{UnaryOp::Neg, move(operand)});
+        }
+        
         if (tok.type == TokenType::NUMBER) {
             Token nt = expect(TokenType::NUMBER);
             bool isFloat = nt.val.find('.') != string::npos;
@@ -1483,6 +1497,8 @@ public:
     void fdiv() { emit(0x6E); }
     void irem() { emit(0x70); }
     void frem() { emit(0x72); }
+    void ineg() { emit(0x74); }
+    void fneg() { emit(0x76); }
     void i2f() { emit(0x86); } // Added i2f instruction
     void _return() { emit(0xB1); }
     void ireturn() { emit(0xAC); }
@@ -1698,6 +1714,14 @@ public:
         } else if (e.kind == ExprKind::Cmp) {
             const CmpOp& co = get<CmpOp>(e.data);
             loadComparison(co, varIdx);
+        } else if (e.kind == ExprKind::Unary) {
+            const UnaryExpr& ue = get<UnaryExpr>(e.data);
+            load(*ue.operand, varIdx);
+            if (e.type == Type::Int) {
+                ineg();
+            } else if (e.type == Type::Float) {
+                fneg();
+            }
         } else if (e.kind == ExprKind::Call) {
             const CallExpr& ce = get<CallExpr>(e.data);
             
