@@ -198,15 +198,28 @@ StmtPtr Parser::parseStmt() {
         vector<PrintSep> seps;
         bool addNewline = true;
         
-        // Parse expressions with separators
-        if (tok.type != TokenType::END && tok.type != TokenType::PRINT && 
-            tok.type != TokenType::LET && tok.type != TokenType::INPUT &&
-            tok.type != TokenType::DIM && tok.type != TokenType::IF &&
-            tok.type != TokenType::FOR && tok.type != TokenType::WHILE && tok.type != TokenType::DO &&
-            tok.type != TokenType::NEXT && tok.type != TokenType::ENDWHILE && tok.type != TokenType::WEND &&
-            tok.type != TokenType::ENDIF && tok.type != TokenType::ELSEIF && tok.type == TokenType::ELSE &&
-            tok.type != TokenType::RETURN && tok.type != TokenType::CALL &&
-            tok.type != TokenType::ENDFUNCTION && tok.type != TokenType::ENDSUB) {
+        // Parse expressions with separators (check we're not at a statement keyword or end)
+        bool shouldParse = (tok.type != TokenType::END && 
+                           tok.type != TokenType::PRINT && 
+                           tok.type != TokenType::LET && 
+                           tok.type != TokenType::INPUT &&
+                           tok.type != TokenType::DIM && 
+                           tok.type != TokenType::IF &&
+                           tok.type != TokenType::FOR && 
+                           tok.type != TokenType::WHILE && 
+                           tok.type != TokenType::DO &&
+                           tok.type != TokenType::NEXT && 
+                           tok.type != TokenType::ENDWHILE && 
+                           tok.type != TokenType::WEND &&
+                           tok.type != TokenType::ENDIF && 
+                           tok.type != TokenType::ELSEIF && 
+                           tok.type != TokenType::ELSE &&
+                           tok.type != TokenType::RETURN && 
+                           tok.type != TokenType::CALL &&
+                           tok.type != TokenType::ENDFUNCTION && 
+                           tok.type != TokenType::ENDSUB);
+        
+        if (shouldParse) {
             
             exprs.push_back(parseExpr());
             

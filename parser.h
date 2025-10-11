@@ -9,15 +9,6 @@ class Parser {
 private:
     Lexer& lex;
     Token tok;
-    
-    // Built-in function registry (for recognition, not type checking)
-    struct FunctionSig {
-        vector<Type> paramTypes;
-        Type returnType;
-        string javaMethod;
-        string descriptor;
-    };
-    static const map<string, FunctionSig> builtinFunctions;
 
     void next();
     Token expect(TokenType tt);
