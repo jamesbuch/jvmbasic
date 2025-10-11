@@ -9,9 +9,9 @@ all: jvmbasic jvmbasic-new
 jvmbasic-new: $(OBJECTS) main.o
 	$(CXX) $(CXXFLAGS) $(OBJECTS) main.o -o jvmbasic-new
 
-# Old monolithic version (working code generation)
-jvmbasic: jvmbasic.cpp
-	$(CXX) $(CXXFLAGS) jvmbasic.cpp -o jvmbasic
+# Modular version with extracted codegen (now default)
+jvmbasic: jvmbasic.cpp builtin_functions.o
+	$(CXX) $(CXXFLAGS) jvmbasic.cpp builtin_functions.o -o jvmbasic
 
 # Object files
 ast.o: ast.cpp ast.h
