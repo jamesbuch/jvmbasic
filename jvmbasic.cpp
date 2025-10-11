@@ -1692,7 +1692,12 @@ public:
             if (vr.index) {
                 // Array element access: load array, load index, load element
                 aload(idx);  // Load array reference
-                load(*vr.index, varIdx);  // Load index (should be Int)
+                load(*vr.index, varIdx);  // Load index
+                
+                // Convert Float index to Int (for FOR loop variables)
+                if (vr.index->type == Type::Float) {
+                    emit(0x8B);  // f2i - float to int conversion
+                }
                 
                 // Load element based on type
                 if (e.type == Type::Int) iaload();
@@ -1886,6 +1891,12 @@ public:
                 u1 idx = varIdx.at(ls.var);
                 aload(idx);  // Load array reference
                 load(*ls.index, varIdx);  // Load index
+                
+                // Convert Float index to Int (for FOR loop variables)
+                if (ls.index->type == Type::Float) {
+                    emit(0x8B);  // f2i - float to int conversion
+                }
+                
                 load(*ls.expr, varIdx);  // Load value
                 
                 // Store based on type
