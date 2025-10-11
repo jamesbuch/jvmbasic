@@ -1834,18 +1834,28 @@ public:
                 // Load expression value
                 load(*expr, varIdx);
                 
-                // Determine which print method to use
+                // Determine actual type (check currentLocalTypes for function/sub parameters)
+                Type actualType = expr->type;
+                if (expr->kind == ExprKind::Var) {
+                    const VarRef& vr = get<VarRef>(expr->data);
+                    auto localIt = currentLocalTypes.find(vr.name);
+                    if (localIt != currentLocalTypes.end()) {
+                        actualType = localIt->second;
+                    }
+                }
+                
+                // Determine which print method to use based on actual type
                 if (isLast && ps.addNewline) {
                     // Last expression with newline: use println
-                    if (expr->type == Type::Int) invokevirtual(println_int_idx);
-                    else if (expr->type == Type::Float) invokevirtual(println_float_idx);
-                    else if (expr->type == Type::Bool) invokevirtual(println_bool_idx);
+                    if (actualType == Type::Int) invokevirtual(println_int_idx);
+                    else if (actualType == Type::Float) invokevirtual(println_float_idx);
+                    else if (actualType == Type::Bool) invokevirtual(println_bool_idx);
                     else invokevirtual(println_str_idx);
                 } else {
                     // Not last, or no newline: use print (no newline)
-                    if (expr->type == Type::Int) invokevirtual(print_int_idx);
-                    else if (expr->type == Type::Float) invokevirtual(print_float_idx);
-                    else if (expr->type == Type::Bool) invokevirtual(print_bool_idx);
+                    if (actualType == Type::Int) invokevirtual(print_int_idx);
+                    else if (actualType == Type::Float) invokevirtual(print_float_idx);
+                    else if (actualType == Type::Bool) invokevirtual(print_bool_idx);
                     else invokevirtual(print_str_idx);
                 }
                 
@@ -2265,10 +2275,10 @@ public:
         }
         max_locals = nextLocal;
         
-        // Infer parameter types (default to String for SUBs)
+        // Use inferred parameter types from call sites
         map<string, Type> paramTypes;
         for (const auto& param : sd.params) {
-            paramTypes[param.name] = Type::String;  // Default to String
+            paramTypes[param.name] = param.type;  // Use inferred type, not String default
         }
         
         // Build parameter types map for genStmt
