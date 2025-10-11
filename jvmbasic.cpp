@@ -12,15 +12,19 @@ enum class Op { Add, Sub, Mul, Div, Mod, Lt, Gt, Le, Ge, Eq, Ne };
 enum class TokenType { END, NUMBER, STRING, ID, PLUS, MINUS, MUL, DIV, MOD, ASSIGN, SEMI, COMMA, LPAREN, RPAREN, 
                        PRINT, LET, INPUT, DIM, LT, GT, LE, GE, EQ, NE, 
                        TRUE, FALSE, IF, THEN, ELSE, ENDIF, ELSEIF,
-                       FOR, TO, STEP, NEXT, WHILE, ENDWHILE, WEND, DO, UNTIL };
+                       FOR, TO, STEP, NEXT, WHILE, ENDWHILE, WEND, DO, UNTIL,
+                       FUNCTION, ENDFUNCTION, SUB, ENDSUB, RETURN, CALL };
 enum class ExprKind { Num, Str, Var, Bin, BoolLit, Cmp, Call };
-enum class StmtKind { Print, Let, Input, Dim, If, For, While, DoWhile };
+enum class StmtKind { Print, Let, Input, Dim, If, For, While, DoWhile, Return, CallStmt };
+enum class DeclKind { Function, Sub };
 
 // Forward declarations
 struct Expr;
 struct Stmt;
+struct Decl;
 using ExprPtr = unique_ptr<Expr>;
 using StmtPtr = unique_ptr<Stmt>;
+using DeclPtr = unique_ptr<Decl>;
 
 // Expr structures
 struct NumLit { double value; };
@@ -95,10 +99,17 @@ struct DoWhileStmt {
     vector<StmtPtr> body;
     bool isUntil;  // true for UNTIL, false for WHILE
 };
+struct ReturnStmt {
+    ExprPtr expr;  // nullptr for void SUBs
+};
+struct CallStmtNode {
+    string name;
+    vector<ExprPtr> args;
+};
 
 struct Stmt {
     StmtKind kind;
-    variant<PrintStmt, LetStmt, InputStmt, DimStmt, IfStmt, ForStmt, WhileStmt, DoWhileStmt> data;
+    variant<PrintStmt, LetStmt, InputStmt, DimStmt, IfStmt, ForStmt, WhileStmt, DoWhileStmt, ReturnStmt, CallStmtNode> data;
 
     Stmt(StmtKind k, PrintStmt p) : kind(k), data(std::move(p)) {}
     Stmt(StmtKind k, LetStmt l) : kind(k), data(std::move(l)) {}
@@ -108,6 +119,35 @@ struct Stmt {
     Stmt(StmtKind k, ForStmt fs) : kind(k), data(std::move(fs)) {}
     Stmt(StmtKind k, WhileStmt ws) : kind(k), data(std::move(ws)) {}
     Stmt(StmtKind k, DoWhileStmt dws) : kind(k), data(std::move(dws)) {}
+    Stmt(StmtKind k, ReturnStmt rs) : kind(k), data(std::move(rs)) {}
+    Stmt(StmtKind k, CallStmtNode cs) : kind(k), data(std::move(cs)) {}
+};
+
+// Parameter for functions/subs
+struct Param {
+    string name;
+    Type type;  // Type::Int means unspecified, will infer from usage
+};
+
+// Function/Sub declarations
+struct FunctionDecl {
+    string name;
+    vector<Param> params;
+    Type returnType;  // Inferred from RETURN statement
+    vector<StmtPtr> body;
+};
+struct SubDecl {
+    string name;
+    vector<Param> params;
+    vector<StmtPtr> body;
+};
+
+struct Decl {
+    DeclKind kind;
+    variant<FunctionDecl, SubDecl> data;
+
+    Decl(DeclKind k, FunctionDecl f) : kind(k), data(std::move(f)) {}
+    Decl(DeclKind k, SubDecl s) : kind(k), data(std::move(s)) {}
 };
 
 // Token
@@ -290,6 +330,12 @@ public:
             if (upper == "WEND") return {TokenType::WEND};
             if (upper == "DO") return {TokenType::DO};
             if (upper == "UNTIL") return {TokenType::UNTIL};
+            if (upper == "FUNCTION") return {TokenType::FUNCTION};
+            if (upper == "ENDFUNCTION") return {TokenType::ENDFUNCTION};
+            if (upper == "SUB") return {TokenType::SUB};
+            if (upper == "ENDSUB") return {TokenType::ENDSUB};
+            if (upper == "RETURN") return {TokenType::RETURN};
+            if (upper == "CALL") return {TokenType::CALL};
             if (upper == "END") {
                 // Check if next token is IF
                 skipWhite();
@@ -357,6 +403,8 @@ private:
     Lexer lex;
     Token tok;
     map<string, Type> knownTypes;
+    map<string, pair<vector<Type>, Type>> userFunctions;  // name -> (param types, return type)
+    map<string, vector<Type>> userSubs;  // name -> param types
 
     void next() { tok = lex.nextToken(); }
     Token expect(TokenType tt) {
@@ -390,10 +438,34 @@ private:
             for (auto& c : nameUpper) c = toupper(c);
             next();
             
-            // Check if it's a function call
+            // Check if it's a function call (check user functions first, then built-in)
+            auto userFuncIt = userFunctions.find(name);
+            if (userFuncIt != userFunctions.end()) {
+                // User-defined function call
+                const auto& [paramTypes, returnType] = userFuncIt->second;
+                vector<ExprPtr> args;
+                
+                expect(TokenType::LPAREN);
+                if (tok.type != TokenType::RPAREN) {
+                    args.push_back(parseExpr());
+                    while (tok.type == TokenType::COMMA) {
+                        next();
+                        args.push_back(parseExpr());
+                    }
+                }
+                expect(TokenType::RPAREN);
+                
+                // Type check arguments (simplified for now)
+                if (args.size() != paramTypes.size()) {
+                    error("Wrong number of arguments for function " + name);
+                }
+                
+                return make_unique<Expr>(ExprKind::Call, returnType, CallExpr{name, move(args)});
+            }
+            
             auto funcIt = builtinFunctions.find(nameUpper);
             if (funcIt != builtinFunctions.end()) {
-                // Function call
+                // Built-in function call
                 const FunctionSig& sig = funcIt->second;
                 vector<ExprPtr> args;
                 
@@ -538,6 +610,96 @@ private:
     }
 
     ExprPtr parseExpr() { return parseEq(); }
+
+    DeclPtr parseDecl() {
+        if (tok.type == TokenType::FUNCTION) {
+            next();
+            string name = expect(TokenType::ID).val;
+            expect(TokenType::LPAREN);
+            
+            // Parse parameters
+            vector<Param> params;
+            if (tok.type != TokenType::RPAREN) {
+                string paramName = expect(TokenType::ID).val;
+                params.push_back(Param{paramName, Type::Int});  // Type will be inferred
+                while (tok.type == TokenType::COMMA) {
+                    next();
+                    paramName = expect(TokenType::ID).val;
+                    params.push_back(Param{paramName, Type::Int});
+                }
+            }
+            expect(TokenType::RPAREN);
+            
+            // Save current known types and create new scope
+            map<string, Type> savedTypes = knownTypes;
+            // Register parameters in function scope
+            for (const auto& param : params) {
+                knownTypes[param.name] = Type::Float;  // Default to Float for flexibility
+            }
+            
+            // Parse body
+            vector<StmtPtr> body;
+            while (tok.type != TokenType::ENDFUNCTION && tok.type != TokenType::END) {
+                body.push_back(parseStmt());
+            }
+            expect(TokenType::ENDFUNCTION);
+            
+            // Infer return type from RETURN statements (default to Float for now)
+            Type returnType = Type::Float;
+            for (const auto& stmt : body) {
+                if (stmt->kind == StmtKind::Return) {
+                    const ReturnStmt& rs = get<ReturnStmt>(stmt->data);
+                    if (rs.expr) {
+                        returnType = rs.expr->type;
+                        break;
+                    }
+                }
+            }
+            
+            // Restore known types
+            knownTypes = savedTypes;
+            
+            return make_unique<Decl>(DeclKind::Function, FunctionDecl{name, params, returnType, move(body)});
+        } else if (tok.type == TokenType::SUB) {
+            next();
+            string name = expect(TokenType::ID).val;
+            expect(TokenType::LPAREN);
+            
+            // Parse parameters
+            vector<Param> params;
+            if (tok.type != TokenType::RPAREN) {
+                string paramName = expect(TokenType::ID).val;
+                params.push_back(Param{paramName, Type::Int});
+                while (tok.type == TokenType::COMMA) {
+                    next();
+                    paramName = expect(TokenType::ID).val;
+                    params.push_back(Param{paramName, Type::Int});
+                }
+            }
+            expect(TokenType::RPAREN);
+            
+            // Save current known types and create new scope
+            map<string, Type> savedTypes = knownTypes;
+            // Register parameters in function scope
+            for (const auto& param : params) {
+                knownTypes[param.name] = Type::Float;  // Default to Float for flexibility
+            }
+            
+            // Parse body
+            vector<StmtPtr> body;
+            while (tok.type != TokenType::ENDSUB && tok.type != TokenType::END) {
+                body.push_back(parseStmt());
+            }
+            expect(TokenType::ENDSUB);
+            
+            // Restore known types
+            knownTypes = savedTypes;
+            
+            return make_unique<Decl>(DeclKind::Sub, SubDecl{name, params, move(body)});
+        }
+        error("Expected FUNCTION or SUB");
+        return nullptr;
+    }
 
     StmtPtr parseStmt() {
         if (tok.type == TokenType::PRINT) {
@@ -762,18 +924,67 @@ private:
             
             return make_unique<Stmt>(StmtKind::If, IfStmt{move(cond), move(thenBody), 
                                                            move(elseIfs), move(elseBody)});
+        } else if (tok.type == TokenType::RETURN) {
+            next();
+            // Check if there's an expression to return
+            if (tok.type == TokenType::END || tok.type == TokenType::ENDFUNCTION || tok.type == TokenType::ENDSUB) {
+                // Empty return (for SUBs)
+                return make_unique<Stmt>(StmtKind::Return, ReturnStmt{nullptr});
+            } else {
+                auto expr = parseExpr();
+                return make_unique<Stmt>(StmtKind::Return, ReturnStmt{move(expr)});
+            }
+        } else if (tok.type == TokenType::CALL) {
+            next();
+            string name = expect(TokenType::ID).val;
+            expect(TokenType::LPAREN);
+            vector<ExprPtr> args;
+            if (tok.type != TokenType::RPAREN) {
+                args.push_back(parseExpr());
+                while (tok.type == TokenType::COMMA) {
+                    next();
+                    args.push_back(parseExpr());
+                }
+            }
+            expect(TokenType::RPAREN);
+            return make_unique<Stmt>(StmtKind::CallStmt, CallStmtNode{name, move(args)});
         }
         error();
         return nullptr;
     }
 
 public:
-    vector<StmtPtr> program;
+    vector<DeclPtr> declarations;  // Function and sub declarations
+    vector<StmtPtr> program;       // Main program statements
     
     const map<string, Type>& getKnownTypes() const { return knownTypes; }
 
     Parser(istream& i) : lex(i) { next(); }
     void parse() {
+        // First, parse all function/sub declarations
+        while (tok.type == TokenType::FUNCTION || tok.type == TokenType::SUB) {
+            auto decl = parseDecl();
+            
+            // Register the function/sub for later calls
+            if (decl->kind == DeclKind::Function) {
+                const FunctionDecl& fd = get<FunctionDecl>(decl->data);
+                vector<Type> paramTypes;
+                for (const auto& p : fd.params) {
+                    paramTypes.push_back(p.type);
+                }
+                userFunctions[fd.name] = {paramTypes, fd.returnType};
+            } else if (decl->kind == DeclKind::Sub) {
+                const SubDecl& sd = get<SubDecl>(decl->data);
+                vector<Type> paramTypes;
+                for (const auto& p : sd.params) {
+                    paramTypes.push_back(p.type);
+                }
+                userSubs[sd.name] = paramTypes;
+            }
+            
+            declarations.push_back(move(decl));
+        }
+        // Then parse main program statements
         while (tok.type != TokenType::END) {
             program.push_back(parseStmt());
         }
@@ -782,6 +993,16 @@ public:
 
 // Constant Pool Entry
 using CpEntry = vector<u1>;
+
+// Method information for multi-method generation
+struct MethodInfo {
+    u2 name_idx;
+    u2 descriptor_idx;
+    u2 access_flags;
+    vector<u1> code;
+    u2 max_stack;
+    u2 max_locals;
+};
 
 struct ConstantPool {
     vector<CpEntry> entries;
@@ -880,7 +1101,7 @@ public:
     u2 main_desc_idx;
     u2 code_name_idx;
 
-    vector<u1> code;
+    vector<u1> code;  // Current method's code (for generation)
     u2 max_stack = 10;
     u2 max_locals = 1;
     u1 scanner_local = 0; // Local variable index for Scanner
@@ -890,6 +1111,10 @@ public:
     // Runtime support
     u2 basicruntime_class_idx = 0;
     map<string, u2> functionMethodRefs; // Cache of function name -> method ref index
+    
+    // Multiple methods support
+    vector<MethodInfo> methods;
+    map<string, Type> currentLocalTypes;  // Current function's local types (for load to access)
 
     void buildConstantPool() {
         // Utf8
@@ -1106,8 +1331,21 @@ public:
     void frem() { emit(0x72); }
     void i2f() { emit(0x86); } // Added i2f instruction
     void _return() { emit(0xB1); }
+    void ireturn() { emit(0xAC); }
+    void freturn() { emit(0xAE); }
+    void areturn() { emit(0xB0); }
     void new_(u2 idx) { emit(0xBB, idx); }
     void dup() { emit(0x59); }
+    
+    void ldc_string(const string& s) {
+        u2 str_utf8_idx = cp.addUtf8(s);
+        u2 str_idx = cp.addString(str_utf8_idx);
+        if (str_idx <= 255) {
+            emit(0x12, static_cast<u1>(str_idx)); // ldc
+        } else {
+            emit(0x13, str_idx); // ldc_w
+        }
+    }
     void invokespecial(u2 idx) { emit(0xB7, idx); }
     void invokestatic(u2 idx) { emit(0xB8, idx); }
     
@@ -1285,11 +1523,18 @@ public:
                 else if (e.type == Type::String) aaload();
             } else {
                 // Scalar variable access or array reference
-                if (e.type == Type::Int || e.type == Type::Bool) {
+                // Check currentLocalTypes for function parameters
+                Type actualType = e.type;
+                auto localIt = currentLocalTypes.find(vr.name);
+                if (localIt != currentLocalTypes.end()) {
+                    actualType = localIt->second;
+                }
+                
+                if (actualType == Type::Int || actualType == Type::Bool) {
                     iload(idx);
-                    if (e.type != Type::Float) return; // No conversion needed
+                    if (actualType != Type::Float) return; // No conversion needed
                     i2f(); // Convert int to float for Float-typed expression
-                } else if (e.type == Type::Float) {
+                } else if (actualType == Type::Float) {
                     fload(idx);
                 } else {
                     // String or array reference
@@ -1302,24 +1547,62 @@ public:
         } else if (e.kind == ExprKind::Call) {
             const CallExpr& ce = get<CallExpr>(e.data);
             
-            // Look up function signature
-            const FunctionSig& sig = builtinFunctions.at(ce.name);
-            
-            // Load arguments
-            for (size_t i = 0; i < ce.args.size(); ++i) {
-                load(*ce.args[i], varIdx);
+            // Check if it's a built-in function (uppercase names)
+            auto builtinIt = builtinFunctions.find(ce.name);
+            if (builtinIt != builtinFunctions.end()) {
+                // Built-in function
+                const FunctionSig& sig = builtinIt->second;
                 
-                // Convert Int to Float if needed
-                Type expectedType = sig.paramTypes[i];
-                Type actualType = ce.args[i]->type;
-                if (expectedType == Type::Float && actualType == Type::Int) {
-                    i2f();
+                // Load arguments
+                for (size_t i = 0; i < ce.args.size(); ++i) {
+                    load(*ce.args[i], varIdx);
+                    
+                    // Convert Int to Float if needed
+                    Type expectedType = sig.paramTypes[i];
+                    Type actualType = ce.args[i]->type;
+                    if (expectedType == Type::Float && actualType == Type::Int) {
+                        i2f();
+                    }
                 }
+                
+                // Call built-in function
+                u2 methodRef = getFunctionMethodRef(ce.name);
+                invokestatic(methodRef);
+            } else {
+                // User-defined function
+                // Load arguments and convert Int to Float if return type is Float
+                for (const auto& arg : ce.args) {
+                    load(*arg, varIdx);
+                    // If return type is Float and arg is Int, convert
+                    if (e.type == Type::Float && arg->type == Type::Int) {
+                        i2f();
+                    }
+                }
+                
+                // Build method descriptor (use return type for param types - simple inference)
+                string descriptor = "(";
+                for (size_t i = 0; i < ce.args.size(); ++i) {
+                    if (e.type == Type::Int || e.type == Type::Bool) descriptor += "I";
+                    else if (e.type == Type::Float) descriptor += "F";
+                    else if (e.type == Type::String) descriptor += "Ljava/lang/String;";
+                }
+                descriptor += ")";
+                if (e.type == Type::Int || e.type == Type::Bool) descriptor += "I";
+                else if (e.type == Type::Float) descriptor += "F";
+                else if (e.type == Type::String) descriptor += "Ljava/lang/String;";
+                
+                // Create method reference if not cached
+                string funcKey = ce.name + descriptor;
+                if (functionMethodRefs.find(funcKey) == functionMethodRefs.end()) {
+                    u2 name_idx = cp.addUtf8(ce.name);
+                    u2 desc_idx = cp.addUtf8(descriptor);
+                    u2 nat_idx = cp.addNameAndType(name_idx, desc_idx);
+                    functionMethodRefs[funcKey] = cp.addMethodRef(this_class_idx, nat_idx);
+                }
+                
+                // Call the user-defined function
+                invokestatic(functionMethodRefs[funcKey]);
             }
-            
-            // Call function
-            u2 methodRef = getFunctionMethodRef(ce.name);
-            invokestatic(methodRef);
         } else if (e.kind == ExprKind::Bin) {
             const BinOp& bo = get<BinOp>(e.data);
             load(*bo.left, varIdx);
@@ -1665,13 +1948,204 @@ public:
             }
             
             mark(endLabel);
+        } else if (s.kind == StmtKind::Return) {
+            const ReturnStmt& rs = get<ReturnStmt>(s.data);
+            if (rs.expr) {
+                // Load return value
+                load(*rs.expr, varIdx);
+                // Generate appropriate return instruction
+                if (rs.expr->type == Type::Int || rs.expr->type == Type::Bool) {
+                    ireturn();
+                } else if (rs.expr->type == Type::Float) {
+                    freturn();
+                } else if (rs.expr->type == Type::String) {
+                    areturn();
+                }
+            } else {
+                // Void return
+                _return();
+            }
+        } else if (s.kind == StmtKind::CallStmt) {
+            const CallStmtNode& cs = get<CallStmtNode>(s.data);
+            // Load arguments
+            for (const auto& arg : cs.args) {
+                load(*arg, varIdx);
+            }
+            // Build method descriptor
+            string descriptor = "(";
+            for (const auto& arg : cs.args) {
+                if (arg->type == Type::Int || arg->type == Type::Bool) descriptor += "I";
+                else if (arg->type == Type::Float) descriptor += "F";
+                else if (arg->type == Type::String) descriptor += "Ljava/lang/String;";
+            }
+            descriptor += ")V";  // Subs return void
+            
+            // Create method reference if not cached
+            string funcKey = cs.name + descriptor;
+            if (functionMethodRefs.find(funcKey) == functionMethodRefs.end()) {
+                u2 name_idx = cp.addUtf8(cs.name);
+                u2 desc_idx = cp.addUtf8(descriptor);
+                u2 nat_idx = cp.addNameAndType(name_idx, desc_idx);
+                functionMethodRefs[funcKey] = cp.addMethodRef(this_class_idx, nat_idx);
+            }
+            
+            // Call the user-defined sub
+            invokestatic(functionMethodRefs[funcKey]);
         }
     }
 
-    void generate(const vector<StmtPtr>& program, const map<string, Type>& knownTypes) {
+    // Generate user-defined function method
+    void generateFunction(const FunctionDecl& fd) {
+        // Reset code for new method
+        code.clear();
+        max_stack = 10;
+        u1 nextLocal = 0; // Note: for static methods, slot 0 is first param (no 'this')
+        
+        // Map parameters to local slots
+        map<string, u1> varIdx;
+        for (const auto& param : fd.params) {
+            varIdx[param.name] = nextLocal++;
+        }
+        max_locals = nextLocal;
+        
+        // Build parameter types map for genStmt (use return type for params)
+        map<string, Type> localTypes;
+        for (const auto& param : fd.params) {
+            localTypes[param.name] = fd.returnType;  // Assume same type as return
+        }
+        
+        // Set current local types for load() to access
+        currentLocalTypes = localTypes;
+        
+        // Generate body
+        for (const auto& stmt : fd.body) {
+            genStmt(*stmt, varIdx, nextLocal, localTypes);
+        }
+        
+        // If no explicit return, add default return of 0 or empty string
+        if (fd.returnType == Type::Int) {
+            iconst(0);
+            ireturn();
+        } else if (fd.returnType == Type::Float) {
+            fconst(0.0f);
+            freturn();
+        } else if (fd.returnType == Type::String) {
+            ldc_string("");
+            areturn();
+        } else if (fd.returnType == Type::Bool) {
+            iconst(0);
+            ireturn();
+        }
+        
+        // Build method descriptor using return type as param type (simple inference)
+        string descriptor = "(";
+        for (const auto& param : fd.params) {
+            // Use return type for parameters (simple inference for now)
+            if (fd.returnType == Type::Int || fd.returnType == Type::Bool) descriptor += "I";
+            else if (fd.returnType == Type::Float) descriptor += "F";
+            else if (fd.returnType == Type::String) descriptor += "Ljava/lang/String;";
+        }
+        descriptor += ")";
+        if (fd.returnType == Type::Int || fd.returnType == Type::Bool) descriptor += "I";
+        else if (fd.returnType == Type::Float) descriptor += "F";
+        else if (fd.returnType == Type::String) descriptor += "Ljava/lang/String;";
+        
+        // Add name and descriptor to constant pool
+        u2 name_idx = cp.addUtf8(fd.name);
+        u2 desc_idx = cp.addUtf8(descriptor);
+        
+        // Save method
+        methods.push_back(MethodInfo{
+            name_idx,
+            desc_idx,
+            0x0009, // public static
+            code,
+            max_stack,
+            max_locals
+        });
+    }
+    
+    // Generate user-defined sub method
+    void generateSub(const SubDecl& sd) {
+        // Reset code for new method
+        code.clear();
+        max_stack = 10;
+        u1 nextLocal = 0;
+        
+        // Map parameters to local slots
+        map<string, u1> varIdx;
+        for (const auto& param : sd.params) {
+            varIdx[param.name] = nextLocal++;
+        }
+        max_locals = nextLocal;
+        
+        // Infer parameter types (default to String for SUBs)
+        map<string, Type> paramTypes;
+        for (const auto& param : sd.params) {
+            paramTypes[param.name] = Type::String;  // Default to String
+        }
+        
+        // Build parameter types map for genStmt
+        map<string, Type> localTypes;
+        for (const auto& param : sd.params) {
+            localTypes[param.name] = paramTypes[param.name];
+        }
+        
+        // Set current local types for load() to access
+        currentLocalTypes = localTypes;
+        
+        // Generate body
+        for (const auto& stmt : sd.body) {
+            genStmt(*stmt, varIdx, nextLocal, localTypes);
+        }
+        
+        // Add return
+        _return();
+        
+        // Build method descriptor
+        string descriptor = "(";
+        for (const auto& param : sd.params) {
+            Type ptype = paramTypes[param.name];
+            if (ptype == Type::Int || ptype == Type::Bool) descriptor += "I";
+            else if (ptype == Type::Float) descriptor += "F";
+            else if (ptype == Type::String) descriptor += "Ljava/lang/String;";
+        }
+        descriptor += ")V";
+        
+        // Add name and descriptor to constant pool
+        u2 name_idx = cp.addUtf8(sd.name);
+        u2 desc_idx = cp.addUtf8(descriptor);
+        
+        // Save method
+        methods.push_back(MethodInfo{
+            name_idx,
+            desc_idx,
+            0x0009, // public static
+            code,
+            max_stack,
+            max_locals
+        });
+    }
+
+    void generate(const vector<DeclPtr>& declarations, const vector<StmtPtr>& program, const map<string, Type>& knownTypes) {
+        // Generate methods for user-defined functions and subs
+        for (const auto& decl : declarations) {
+            if (decl->kind == DeclKind::Function) {
+                const FunctionDecl& fd = get<FunctionDecl>(decl->data);
+                generateFunction(fd);
+            } else if (decl->kind == DeclKind::Sub) {
+                const SubDecl& sd = get<SubDecl>(decl->data);
+                generateSub(sd);
+            }
+        }
+        
+        // Generate main method
+        code.clear();  // Reset code for main method
+        currentLocalTypes.clear();  // Clear function local types
         map<string, u1> varIdx;
         u1 nextLocal = 1;
         max_locals = 1;
+        max_stack = 10;
         
         // Initialize Scanner for INPUT (allocate before other variables)
         scanner_local = nextLocal++;
@@ -1688,6 +2162,16 @@ public:
             genStmt(*sp, varIdx, nextLocal, knownTypes);
         }
         _return();
+        
+        // Save main method
+        methods.push_back(MethodInfo{
+            main_name_idx,
+            main_desc_idx,
+            0x0009, // public static
+            code,
+            max_stack,
+            max_locals
+        });
     }
 
     void write(ostream& out) {
@@ -1709,31 +2193,35 @@ public:
         writeU2(out, 0); // interfaces_count
         writeU2(out, 0); // fields_count
 
-        writeU2(out, 1); // methods_count
-        writeU2(out, 0x0009); // public static
-        writeU2(out, main_name_idx);
-        writeU2(out, main_desc_idx);
-        writeU2(out, 1); // attributes_count
+        // Write all methods
+        writeU2(out, static_cast<u2>(methods.size())); // methods_count
+        
+        for (const auto& method : methods) {
+            writeU2(out, method.access_flags);
+            writeU2(out, method.name_idx);
+            writeU2(out, method.descriptor_idx);
+            writeU2(out, 1); // attributes_count (Code attribute)
 
-        // Code attribute
-        auto start_pos = out.tellp();
-        writeU2(out, code_name_idx);
-        auto len_pos = out.tellp();
-        writeU4(out, 0); // placeholder for attribute_length
+            // Code attribute
+            auto start_pos = out.tellp();
+            writeU2(out, code_name_idx);
+            auto len_pos = out.tellp();
+            writeU4(out, 0); // placeholder for attribute_length
 
-        writeU2(out, max_stack);
-        writeU2(out, max_locals);
-        u4 code_len = static_cast<u4>(code.size());
-        writeU4(out, code_len);
-        for (u1 b : code) out.put(b);
-        writeU2(out, 0); // exception_table_length
-        writeU2(out, 0); // code_attributes_count
+            writeU2(out, method.max_stack);
+            writeU2(out, method.max_locals);
+            u4 code_len = static_cast<u4>(method.code.size());
+            writeU4(out, code_len);
+            for (u1 b : method.code) out.put(b);
+            writeU2(out, 0); // exception_table_length
+            writeU2(out, 0); // code_attributes_count
 
-        auto end_pos = out.tellp();
-        u4 attr_len = static_cast<u4>(end_pos - (len_pos + static_cast<streamoff>(4)));
-        out.seekp(len_pos);
-        writeU4(out, attr_len);
-        out.seekp(end_pos);
+            auto end_pos = out.tellp();
+            u4 attr_len = static_cast<u4>(end_pos - (len_pos + static_cast<streamoff>(4)));
+            out.seekp(len_pos);
+            writeU4(out, attr_len);
+            out.seekp(end_pos);
+        }
 
         writeU2(out, 0); // attributes_count
     }
@@ -1756,7 +2244,7 @@ public:
         Parser p(input);
         p.parse();
         cf.buildConstantPool();
-        cf.generate(p.program, p.getKnownTypes());
+        cf.generate(p.declarations, p.program, p.getKnownTypes());
         cf.write(output);
     }
 
