@@ -470,7 +470,8 @@ private:
         if (tok.type == TokenType::MINUS) {
             next();
             auto operand = parsePrimary();
-            return make_unique<Expr>(ExprKind::Unary, operand->type, UnaryExpr{UnaryOp::Neg, move(operand)});
+            Type opType = operand->type;  // Capture type before move
+            return make_unique<Expr>(ExprKind::Unary, opType, UnaryExpr{UnaryOp::Neg, move(operand)});
         }
         
         if (tok.type == TokenType::NUMBER) {
