@@ -30,7 +30,7 @@ ENDFUNCTION
 SUB generateUniqueNumbers(arr, count, minVal, maxVal)
     LET i = 0.0
     WHILE i < count
-        LET num = RNDINT(minVal, maxVal)
+        LET num = INT(RNDINT(INT(minVal), INT(maxVal)))
         
         IF hasDuplicate(arr, i, num) == 0.0 THEN
             LET arr(i) = num
