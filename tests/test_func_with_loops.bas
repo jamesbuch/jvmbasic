@@ -1,18 +1,18 @@
 FUNCTION factorial(n)
-    LET result = 1
-    LET i = 1
+    LET result = 1.0
+    LET i = 1.0
     WHILE i <= n
         LET result = result * i
-        LET i = i + 1
+        LET i = i + 1.0
     ENDWHILE
     RETURN result
 ENDFUNCTION
 
 FUNCTION sumrange(start, finish)
-    LET total = 0
+    LET total = 0.0
     FOR i = start TO finish
         LET total = total + i
-    NEXT i
+    NEXT
     RETURN total
 ENDFUNCTION
 

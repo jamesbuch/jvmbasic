@@ -30,9 +30,7 @@ SUB printFibonacci(n)
     PRINT "Fibonacci first", n, "terms:"
     WHILE count < n
         PRINT a;
-        IF count < n - 1.0 THEN
-            PRINT ",";
-        ENDIF
+        PRINT ",";
         LET temp = a + b
         LET a = b
         LET b = temp
@@ -71,10 +69,10 @@ ENDFUNCTION
 FUNCTION digitSum(num)
     LET sum = 0.0
     LET n = num
-    WHILE n > 0.0
+    WHILE n >= 1.0
         LET digit = n MOD 10.0
         LET sum = sum + digit
-        LET n = INT(n / 10.0)
+        LET n = FLOOR(n / 10.0)
     ENDWHILE
     RETURN sum
 ENDFUNCTION
