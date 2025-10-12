@@ -28,8 +28,10 @@ ENDIF
 
 PRINT ""
 PRINT "4. File existence checks..."
-PRINT "   FILEEXISTS(\"/tmp\"):", FILEEXISTS("/tmp")
-PRINT "   FILEEXISTS(\"/nonexistent.txt\"):", FILEEXISTS("/nonexistent.txt")
+LET tmpExists = FILEEXISTS("/tmp/jvmbasic_test.txt")
+PRINT "   Test file exists:", tmpExists
+LET noFile = FILEEXISTS("/nonexistent_file_xyz.txt")
+PRINT "   Nonexistent file:", noFile
 
 PRINT ""
 PRINT "=== File I/O Tests Complete ==="
