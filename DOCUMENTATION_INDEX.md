@@ -3,77 +3,63 @@
 
 ---
 
-## 📖 START HERE (Next Session)
+## 📖 START HERE
 
-### 🎯 **CONTINUATION_FOR_NEXT_SESSION.md** ⭐
-**Purpose**: Quick-start guide for next session  
-**Read First**: YES - Start here every time  
-**Contents**:
-- What's working
-- How to test everything
-- Where to begin Phase 6
-- Quick commands reference
+### 🎯 **CONTINUATION_FOR_NEXT_SESSION.md** (root) ⭐⭐⭐
+**Purpose**: Quick-start guide for continuing development  
+**Read First**: YES - Start here when resuming work  
 
-**Time**: 5 minutes to read
-
----
-
-## 🗺️ PLANNING & ROADMAP
-
-### 📋 **PHASE6_ROADMAP.md** ⭐⭐⭐
-**Purpose**: Complete Phase 6-10 implementation plan  
-**Read When**: Planning Phase 6 (User-Defined Types)  
-**Contents**:
-- Detailed Phase 6 implementation (20-30 hours)
-- Phases 7-10 overview
-- Design decisions needed
-- Timeline estimates
-- JVM implementation options
-
-**Time**: 20 minutes to read  
-**Critical**: YES - Read before starting Phase 6
-
-### 📊 **SERIOUS_LANGUAGE_ANALYSIS.md** ⭐⭐
-**Purpose**: What makes a serious language + maturity analysis  
-**Read When**: Understanding priorities  
-**Contents**:
-- Current vs needed features
-- Language maturity levels (we're at 40%)
-- Strategic priorities
-- Comparison with Python, Go, Lua
-- Growth path recommendation
-
-**Time**: 15 minutes to read  
-**Useful**: Strategic planning
-
----
-
-## 📚 REFERENCE DOCUMENTATION
-
-### 📘 **LANGUAGE_FEATURES.md** ⭐⭐⭐
-**Purpose**: Complete language reference  
-**Read When**: Coding, teaching, or remembering syntax  
-**Contents**:
-- All data types
-- All 93 built-in functions
-- All operators
-- All control structures
-- Usage examples
-- Phase 6+ preview
-
-**Time**: 30 minutes to read fully  
-**Critical**: Keep open while coding
-
-### 📝 **README.md**
+### 📘 **README.md** (root) ⭐⭐⭐
 **Purpose**: Project overview and quick start  
-**Read When**: First time or sharing project  
-**Contents**:
-- What is JVM BASIC
-- How to build & run
-- Quick examples
-- Architecture overview
+**Contents**: Build instructions, usage, examples  
 
-**Time**: 10 minutes to read
+### 📂 **docs/README.md** ⭐⭐
+**Purpose**: Guide to all documentation  
+**Contents**: Complete documentation roadmap
+
+---
+
+## 📂 Documentation Organization
+
+### Developer Guides (`docs/dev/`)
+- **CODE_GUIDE.md** - Architecture overview
+- **LEXER_GUIDE.md** - How tokenization works ⭐⭐⭐
+- **AST_GUIDE.md** - Abstract Syntax Tree structure ⭐⭐⭐
+- **DEBUGGING_GUIDE.md** - Debug techniques & tools ⭐⭐⭐
+- **walkthrough.md** - Detailed code walkthrough
+- **extending.md** - Extension guidelines
+
+### Reference Documentation (`docs/reference/`)
+- **LANGUAGE_FEATURES.md** - Complete language reference ⭐⭐⭐
+- **ARRAY_PARAM_RESEARCH.md** - Array parameter implementation
+- **SESSION_DELIVERABLES.md** - Phase 5 achievements
+- **SESSION_ACHIEVEMENTS.md** - Detailed accomplishments
+- **FINAL_SESSION_REPORT.md** - Comprehensive report
+
+### Planning & Roadmap (`docs/planning/`)
+- **PHASE6_ROADMAP.md** - Complete Phase 6-10 plan ⭐⭐⭐
+- **PHASE6_DESIGN.md** - Detailed Phase 6 design ⭐⭐
+- **SERIOUS_LANGUAGE_ANALYSIS.md** - Maturity analysis ⭐⭐
+
+---
+
+## 🎯 Quick Reference
+
+### For New Users:
+1. `/README.md` (project overview)
+2. `docs/reference/LANGUAGE_FEATURES.md` (what you can do)
+3. Example programs in `/examples/`
+
+### For Developers:
+1. `docs/dev/CODE_GUIDE.md` (architecture)
+2. `docs/dev/LEXER_GUIDE.md` (tokens)
+3. `docs/dev/AST_GUIDE.md` (structure)
+4. `docs/dev/DEBUGGING_GUIDE.md` (troubleshooting)
+
+### For Planning:
+1. `docs/planning/PHASE6_ROADMAP.md` (future)
+2. `docs/planning/PHASE6_DESIGN.md` (Phase 6 details)
+3. `docs/planning/SERIOUS_LANGUAGE_ANALYSIS.md` (strategy)
 
 ---
 
