@@ -95,6 +95,7 @@ struct Label {
 // ClassFile
 class ClassFile {
 public:
+    string className = "BasicProgram"; // Default class name
     u4 magic = 0xCAFEBABE;
     u2 minor_version = 0;
     u2 major_version = 49; // Java 5 (no StackMapTable required, works on all modern JVMs)
@@ -143,7 +144,7 @@ public:
 
     void buildConstantPool() {
         // Utf8
-        u2 simple_class = cp.addUtf8("BasicProgram");
+        u2 simple_class = cp.addUtf8(className);
         u2 object_class = cp.addUtf8("java/lang/Object");
         main_name_idx = cp.addUtf8("main");
         main_desc_idx = cp.addUtf8("([Ljava/lang/String;)V");

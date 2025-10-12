@@ -1194,6 +1194,10 @@ public:
 };
 class BasicCompiler {
 public:
+    void setClassName(const string& name) {
+        cf.className = name;
+    }
+    
     void compile(istream& input, ostream& output) {
         Parser p(input);
         p.parse();
@@ -1209,6 +1213,7 @@ private:
 int main(int argc, char* argv[]) {
     string inputFile;
     string outputFile = "BasicProgram.class";
+    string className = "BasicProgram";
     bool showHelp = false;
     
     // Parse command line arguments
@@ -1218,6 +1223,18 @@ int main(int argc, char* argv[]) {
             showHelp = true;
         } else if (arg == "-o" && i + 1 < argc) {
             outputFile = argv[++i];
+            // Extract class name from output file (remove .class extension)
+            size_t dotPos = outputFile.rfind('.');
+            if (dotPos != string::npos && outputFile.substr(dotPos) == ".class") {
+                className = outputFile.substr(0, dotPos);
+            } else {
+                className = outputFile;
+            }
+            // Remove path if present
+            size_t slashPos = className.rfind('/');
+            if (slashPos != string::npos) {
+                className = className.substr(slashPos + 1);
+            }
         } else if (arg[0] != '-') {
             inputFile = arg;
         } else {
@@ -1231,12 +1248,16 @@ int main(int argc, char* argv[]) {
         cout << "Usage: jvmbasic [options] [input.bas]\n\n";
         cout << "Options:\n";
         cout << "  -o <file>      Output class file (default: BasicProgram.class)\n";
+        cout << "                 Class name is derived from filename\n";
         cout << "  -h, --help     Show this help message\n\n";
         cout << "Examples:\n";
         cout << "  jvmbasic program.bas              # Compile program.bas\n";
         cout << "  jvmbasic < program.bas            # Read from stdin\n";
-        cout << "  jvmbasic program.bas -o Out.class # Custom output\n";
+        cout << "  jvmbasic program.bas -o MyProg.class # Output MyProg.class, class MyProg\n";
         cout << "  jvmbasic --help                   # Show help\n\n";
+        cout << "Running compiled programs:\n";
+        cout << "  java BasicProgram                 # Default\n";
+        cout << "  java MyProg                       # If compiled with -o MyProg.class\n\n";
         cout << "Features: Functions, Arrays, Recursion, File I/O, Regex\n";
         cout << "Built-in functions: 93\n";
         cout << "Documentation: See docs/ and README.md\n";
@@ -1244,6 +1265,8 @@ int main(int argc, char* argv[]) {
     }
     
     BasicCompiler bc;
+    bc.setClassName(className);
+    
     try {
         ofstream out(outputFile, ios::binary);
         
@@ -1260,7 +1283,7 @@ int main(int argc, char* argv[]) {
             bc.compile(cin, out);
         }
         
-        cout << "Compiled to " << outputFile << endl;
+        cout << "Compiled to " << outputFile << " (class " << className << ")" << endl;
     } catch (const exception& e) {
         cerr << "Error: " << e.what() << endl;
         return 1;
