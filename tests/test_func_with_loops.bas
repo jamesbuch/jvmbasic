@@ -12,7 +12,7 @@ FUNCTION sumrange(start, finish)
     LET total = 0.0
     FOR i = start TO finish
         LET total = total + i
-    NEXT
+    NEXT i
     RETURN total
 ENDFUNCTION
 
