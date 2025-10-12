@@ -412,11 +412,22 @@ private:
                 
                 // Look up the member type from the struct definition
                 if (varType == Type::UserDefined) {
-                    // Find the type definition
-                    // We need to get the type name from somewhere...
-                    // For now, we'll set member type to Float as a placeholder
-                    // This will need proper type resolution later
-                    Type memberType = Type::Float;  // TODO: proper type lookup
+                    // Get the type name for this variable
+                    // We need to find which TYPE this variable was declared as
+                    // For now, look through knownTypes to find the variable's type name
+                    // This is a limitation - we should store typeName with the variable
+                    
+                    // Search through userTypes to find the field
+                    Type memberType = Type::Float;  // Default fallback
+                    for (const auto& [typeName, typeDef] : userTypes) {
+                        for (const Field& field : typeDef.fields) {
+                            if (field.name == member) {
+                                memberType = field.type;
+                                break;
+                            }
+                        }
+                    }
+                    
                     expr = make_unique<Expr>(ExprKind::MemberAccess, memberType, 
                                            MemberAccessExpr{move(expr), member});
                     varType = memberType;  // Update for chained access
@@ -964,6 +975,7 @@ public:
     vector<StmtPtr> program;       // Main program statements
     
     const map<string, Type>& getKnownTypes() const { return knownTypes; }
+    const map<string, TypeDefDecl>& getUserTypes() const { return userTypes; }
 
     // Fix types in AST after parameter type inference
     void fixParameterTypesInAST() {
@@ -1340,6 +1352,7 @@ public:
         Parser p(input);
         p.parse();
         cf.buildConstantPool();
+        cf.initStructs(p.getUserTypes());  // Initialize struct metadata
         cf.generate(p.declarations, p.program, p.getKnownTypes());
         cf.write(output);
     }
