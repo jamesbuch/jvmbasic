@@ -3,4 +3,5 @@ basicrt/*.class
 *.o
 *.out
 jvmbasic
-
+jvmbasic-new
+jvmbasic-modular

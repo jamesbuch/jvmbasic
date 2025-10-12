@@ -33,7 +33,7 @@ We transformed a simple arithmetic calculator into a **fully-featured programmin
 
 ### Phase 4: Standard Library ✅
 - **50+ built-in functions!**
-- Math: ABS, SQR, SIN, COS, TAN, POW, LOG, RND, PI, E, etc.
+- Math: ABS, SQR, SIN, COS, TAN, POW, LOG, RND, RNDI, RNDINT, PI, E, etc.
 - String: LEN, LEFT, RIGHT, MID, UPPER, LOWER, TRIM, CHR, ASC, etc.
 - Array utilities: MINARRAY, MAXARRAY, SUMARRAY, UBOUND
 - BasicRuntime helper class (470 lines Java)

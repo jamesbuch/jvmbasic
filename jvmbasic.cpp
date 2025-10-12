@@ -1,4 +1,7 @@
 #include <bits/stdc++.h>
+#include "ast.h"
+#include "builtin_functions.h"
+#include "codegen.h"
 
 using namespace std;
 
@@ -6,195 +9,28 @@ using u1 = uint8_t;
 using u2 = uint16_t;
 using u4 = uint32_t;
 
-// Enums
-enum class Type { Int, Float, String, Bool, IntArray, FloatArray, StringArray, BoolArray };
-enum class Op { Add, Sub, Mul, Div, Mod, Lt, Gt, Le, Ge, Eq, Ne };
+// TokenType remains here (Lexer-specific, not in AST)
 enum class TokenType { END, NUMBER, STRING, ID, PLUS, MINUS, MUL, DIV, MOD, ASSIGN, SEMI, COMMA, LPAREN, RPAREN, 
                        PRINT, LET, INPUT, DIM, LT, GT, LE, GE, EQ, NE, 
                        TRUE, FALSE, IF, THEN, ELSE, ENDIF, ELSEIF,
-                       FOR, TO, STEP, NEXT, WHILE, ENDWHILE, WEND, DO, UNTIL };
-enum class ExprKind { Num, Str, Var, Bin, BoolLit, Cmp, Call };
-enum class StmtKind { Print, Let, Input, Dim, If, For, While, DoWhile };
+                       FOR, TO, STEP, NEXT, WHILE, ENDWHILE, WEND, DO, UNTIL,
+                       FUNCTION, ENDFUNCTION, SUB, ENDSUB, RETURN, CALL };
 
-// Forward declarations
-struct Expr;
-struct Stmt;
-using ExprPtr = unique_ptr<Expr>;
-using StmtPtr = unique_ptr<Stmt>;
-
-// Expr structures
-struct NumLit { double value; };
-struct StrLit { string value; };
-struct VarRef { 
-    string name;
-    ExprPtr index; // nullptr for scalar, non-null for array access
-};
-struct BinOp { Op op; ExprPtr left, right; };
-struct BoolLit { bool value; };
-struct CmpOp { Op op; ExprPtr left, right; };
-struct CallExpr { 
-    string name; 
-    vector<ExprPtr> args;
-};
-
-struct Expr {
-    ExprKind kind;
-    Type type;
-    variant<NumLit, StrLit, VarRef, BinOp, BoolLit, CmpOp, CallExpr> data;
-
-    Expr(ExprKind k, Type t, NumLit n) : kind(k), type(t), data(n) {}
-    Expr(ExprKind k, Type t, StrLit s) : kind(k), type(t), data(s) {}
-    Expr(ExprKind k, Type t, VarRef v) : kind(k), type(t), data(std::move(v)) {}
-    Expr(ExprKind k, Type t, BinOp b) : kind(k), type(t), data(std::move(b)) {}
-    Expr(ExprKind k, Type t, BoolLit bl) : kind(k), type(t), data(bl) {}
-    Expr(ExprKind k, Type t, CmpOp c) : kind(k), type(t), data(std::move(c)) {}
-    Expr(ExprKind k, Type t, CallExpr c) : kind(k), type(t), data(std::move(c)) {}
-};
-
-// Stmt structures
-enum class PrintSep { Comma, Semi };
-struct PrintStmt { 
-    vector<ExprPtr> exprs;
-    vector<PrintSep> seps; // separators between expressions (size = exprs.size() - 1)
-    bool addNewline; // false if statement ends with , or ;
-};
-struct LetStmt { 
-    string var; 
-    ExprPtr expr;
-    ExprPtr index; // nullptr for scalar, non-null for array assignment
-};
-struct InputStmt { 
-    string var;
-    ExprPtr index; // nullptr for scalar, non-null for array input
-};
-struct DimStmt {
-    string var;
-    ExprPtr size;     // Array size expression
-    ExprPtr initVal;  // Initial value for all elements
-};
-struct ElseIfClause { ExprPtr cond; vector<StmtPtr> body; };
-struct IfStmt { 
-    ExprPtr cond; 
-    vector<StmtPtr> thenBody;
-    vector<ElseIfClause> elseIfs;
-    vector<StmtPtr> elseBody;
-};
-struct ForStmt {
-    string var;
-    ExprPtr start;
-    ExprPtr end;
-    ExprPtr step;  // nullptr means default 1
-    vector<StmtPtr> body;
-};
-struct WhileStmt {
-    ExprPtr cond;
-    vector<StmtPtr> body;
-};
-struct DoWhileStmt {
-    ExprPtr cond;
-    vector<StmtPtr> body;
-    bool isUntil;  // true for UNTIL, false for WHILE
-};
-
-struct Stmt {
-    StmtKind kind;
-    variant<PrintStmt, LetStmt, InputStmt, DimStmt, IfStmt, ForStmt, WhileStmt, DoWhileStmt> data;
-
-    Stmt(StmtKind k, PrintStmt p) : kind(k), data(std::move(p)) {}
-    Stmt(StmtKind k, LetStmt l) : kind(k), data(std::move(l)) {}
-    Stmt(StmtKind k, InputStmt i) : kind(k), data(std::move(i)) {}
-    Stmt(StmtKind k, DimStmt d) : kind(k), data(std::move(d)) {}
-    Stmt(StmtKind k, IfStmt ifs) : kind(k), data(std::move(ifs)) {}
-    Stmt(StmtKind k, ForStmt fs) : kind(k), data(std::move(fs)) {}
-    Stmt(StmtKind k, WhileStmt ws) : kind(k), data(std::move(ws)) {}
-    Stmt(StmtKind k, DoWhileStmt dws) : kind(k), data(std::move(dws)) {}
-};
-
-// Token
+// Token (Lexer-specific)
 struct Token {
     TokenType type;
     string val;
     double num = 0.0;
+    int line = 1;
 };
 
-// Function signature
-struct FunctionSig {
-    vector<Type> paramTypes;
-    Type returnType;
-    string javaMethod;  // Method name in BasicRuntime
-    string javaDescriptor; // JVM method descriptor
+// CallSite for type inference (Parser-specific)
+struct CallSite {
+    string funcName;
+    vector<Type> argTypes;
+    int line;
 };
 
-// Global function registry
-static map<string, FunctionSig> builtinFunctions = {
-    // Math functions - single parameter
-    {"ABS", {{Type::Float}, Type::Float, "abs_f", "(F)F"}},
-    {"SQR", {{Type::Float}, Type::Float, "sqr", "(F)F"}},
-    {"SQRT", {{Type::Float}, Type::Float, "sqr", "(F)F"}},  // Alias
-    {"INT", {{Type::Float}, Type::Int, "int_f", "(F)I"}},
-    {"SGN", {{Type::Float}, Type::Int, "sgn_f", "(F)I"}},
-    {"SIN", {{Type::Float}, Type::Float, "sin", "(F)F"}},
-    {"COS", {{Type::Float}, Type::Float, "cos", "(F)F"}},
-    {"TAN", {{Type::Float}, Type::Float, "tan", "(F)F"}},
-    {"ASIN", {{Type::Float}, Type::Float, "asin", "(F)F"}},
-    {"ACOS", {{Type::Float}, Type::Float, "acos", "(F)F"}},
-    {"ATAN", {{Type::Float}, Type::Float, "atan", "(F)F"}},
-    {"EXP", {{Type::Float}, Type::Float, "exp", "(F)F"}},
-    {"LOG", {{Type::Float}, Type::Float, "log", "(F)F"}},
-    {"LOG10", {{Type::Float}, Type::Float, "log10", "(F)F"}},
-    {"ROUND", {{Type::Float}, Type::Int, "round", "(F)I"}},
-    {"CEIL", {{Type::Float}, Type::Float, "ceil", "(F)F"}},
-    {"FLOOR", {{Type::Float}, Type::Float, "floor", "(F)F"}},
-    
-    // Math functions - no parameters
-    {"RND", {{}, Type::Float, "rnd", "()F"}},
-    {"PI", {{}, Type::Float, "pi", "()F"}},
-    {"E", {{}, Type::Float, "e", "()F"}},
-    
-    // Math functions - two parameters
-    {"POW", {{Type::Float, Type::Float}, Type::Float, "pow", "(FF)F"}},
-    {"ATAN2", {{Type::Float, Type::Float}, Type::Float, "atan2", "(FF)F"}},
-    {"MIN", {{Type::Float, Type::Float}, Type::Float, "min_ff", "(FF)F"}},
-    {"MAX", {{Type::Float, Type::Float}, Type::Float, "max_ff", "(FF)F"}},
-    
-    // String functions - single parameter
-    {"LEN", {{Type::String}, Type::Int, "len", "(Ljava/lang/String;)I"}},
-    {"UPPER", {{Type::String}, Type::String, "upper", "(Ljava/lang/String;)Ljava/lang/String;"}},
-    {"UCASE", {{Type::String}, Type::String, "upper", "(Ljava/lang/String;)Ljava/lang/String;"}},  // Alias
-    {"LOWER", {{Type::String}, Type::String, "lower", "(Ljava/lang/String;)Ljava/lang/String;"}},
-    {"LCASE", {{Type::String}, Type::String, "lower", "(Ljava/lang/String;)Ljava/lang/String;"}},  // Alias
-    {"TRIM", {{Type::String}, Type::String, "trim", "(Ljava/lang/String;)Ljava/lang/String;"}},
-    {"LTRIM", {{Type::String}, Type::String, "ltrim", "(Ljava/lang/String;)Ljava/lang/String;"}},
-    {"RTRIM", {{Type::String}, Type::String, "rtrim", "(Ljava/lang/String;)Ljava/lang/String;"}},
-    {"REVERSE", {{Type::String}, Type::String, "reverse", "(Ljava/lang/String;)Ljava/lang/String;"}},
-    {"ASC", {{Type::String}, Type::Int, "asc", "(Ljava/lang/String;)I"}},
-    
-    // String functions - two parameters
-    {"LEFT", {{Type::String, Type::Int}, Type::String, "left", "(Ljava/lang/String;I)Ljava/lang/String;"}},
-    {"RIGHT", {{Type::String, Type::Int}, Type::String, "right", "(Ljava/lang/String;I)Ljava/lang/String;"}},
-    {"INSTR", {{Type::String, Type::String}, Type::Int, "instr", "(Ljava/lang/String;Ljava/lang/String;)I"}},
-    {"CONTAINS", {{Type::String, Type::String}, Type::Bool, "contains", "(Ljava/lang/String;Ljava/lang/String;)Z"}},
-    {"SPACE", {{Type::Int}, Type::String, "space", "(I)Ljava/lang/String;"}},
-    
-    // String functions - three parameters
-    {"MID", {{Type::String, Type::Int, Type::Int}, Type::String, "mid", "(Ljava/lang/String;II)Ljava/lang/String;"}},
-    {"SUBSTR", {{Type::String, Type::Int, Type::Int}, Type::String, "mid", "(Ljava/lang/String;II)Ljava/lang/String;"}},  // Alias
-    {"STRING", {{Type::Int, Type::String}, Type::String, "string", "(ILjava/lang/String;)Ljava/lang/String;"}},
-    
-    // Type conversion
-    {"CHR", {{Type::Int}, Type::String, "chr", "(I)Ljava/lang/String;"}},
-    {"VAL", {{Type::String}, Type::Float, "val_f", "(Ljava/lang/String;)F"}},
-    
-    // Type checking
-    {"ISNUM", {{Type::String}, Type::Bool, "isnum", "(Ljava/lang/String;)Z"}},
-    {"ISINT", {{Type::String}, Type::Bool, "isint", "(Ljava/lang/String;)Z"}},
-    
-    // Array utility functions (that return values)
-    {"MINARRAY", {{Type::IntArray}, Type::Int, "min_ia", "([I)I"}},
-    {"MAXARRAY", {{Type::IntArray}, Type::Int, "max_ia", "([I)I"}},
-    {"SUMARRAY", {{Type::IntArray}, Type::Int, "sum_ia", "([I)I"}},
-    {"UBOUND", {{Type::IntArray}, Type::Int, "ubound_ia", "([I)I"}},
-};
 
 // Lexer
 class Lexer {
@@ -202,11 +38,14 @@ private:
     istream& in;
     char ch = 0;
     bool eof = false;
+    int line = 1;  // Track current line number
 
     void read() {
         if (!in.get(ch)) {
             eof = true;
             ch = 0;
+        } else if (ch == '\n') {
+            line++;
         }
     }
 
@@ -218,10 +57,13 @@ private:
 
 public:
     Lexer(istream& i) : in(i) { read(); skipWhite(); }
+    
+    int getLine() const { return line; }
 
     Token nextToken() {
         skipWhite();
-        if (eof) return {TokenType::END};
+        int tokenLine = line;  // Capture line at start of token
+        if (eof) return {TokenType::END, "", 0.0, tokenLine};
 
         if (isdigit(ch) || ch == '.') {
             string s;
@@ -245,7 +87,7 @@ public:
                     read();
                 }
             }
-            Token t{TokenType::NUMBER, s, s.empty() ? 0.0 : stod(s)};
+            Token t{TokenType::NUMBER, s, s.empty() ? 0.0 : stod(s), tokenLine};
             return t;
         } else if (ch == '"') {
             read();
@@ -255,8 +97,8 @@ public:
                 read();
             }
             if (!eof && ch == '"') read();
-            else if (eof) error("Unterminated string");
-            return {TokenType::STRING, s};
+            else if (eof) error("Unterminated string at line " + to_string(tokenLine));
+            return {TokenType::STRING, s, 0.0, tokenLine};
         } else if (!eof && isalpha(ch)) {
             string s;
             while (!eof && isalnum(ch)) {
@@ -267,25 +109,31 @@ public:
             string upper = s;
             for (auto& c : upper) c = toupper(c);
             
-            if (upper == "PRINT") return {TokenType::PRINT};
-            if (upper == "LET") return {TokenType::LET};
-            if (upper == "INPUT") return {TokenType::INPUT};
-            if (upper == "DIM") return {TokenType::DIM};
-            if (upper == "MOD") return {TokenType::MOD};
-            if (upper == "IF") return {TokenType::IF};
-            if (upper == "THEN") return {TokenType::THEN};
-            if (upper == "ELSE") return {TokenType::ELSE};
-            if (upper == "ELSEIF") return {TokenType::ELSEIF};
-            if (upper == "ENDIF") return {TokenType::ENDIF};
-            if (upper == "FOR") return {TokenType::FOR};
-            if (upper == "TO") return {TokenType::TO};
-            if (upper == "STEP") return {TokenType::STEP};
-            if (upper == "NEXT") return {TokenType::NEXT};
-            if (upper == "WHILE") return {TokenType::WHILE};
-            if (upper == "ENDWHILE") return {TokenType::ENDWHILE};
-            if (upper == "WEND") return {TokenType::WEND};
-            if (upper == "DO") return {TokenType::DO};
-            if (upper == "UNTIL") return {TokenType::UNTIL};
+            if (upper == "PRINT") return {TokenType::PRINT, s, 0.0, tokenLine};
+            if (upper == "LET") return {TokenType::LET, s, 0.0, tokenLine};
+            if (upper == "INPUT") return {TokenType::INPUT, s, 0.0, tokenLine};
+            if (upper == "DIM") return {TokenType::DIM, s, 0.0, tokenLine};
+            if (upper == "MOD") return {TokenType::MOD, s, 0.0, tokenLine};
+            if (upper == "IF") return {TokenType::IF, s, 0.0, tokenLine};
+            if (upper == "THEN") return {TokenType::THEN, s, 0.0, tokenLine};
+            if (upper == "ELSE") return {TokenType::ELSE, s, 0.0, tokenLine};
+            if (upper == "ELSEIF") return {TokenType::ELSEIF, s, 0.0, tokenLine};
+            if (upper == "ENDIF") return {TokenType::ENDIF, s, 0.0, tokenLine};
+            if (upper == "FOR") return {TokenType::FOR, s, 0.0, tokenLine};
+            if (upper == "TO") return {TokenType::TO, s, 0.0, tokenLine};
+            if (upper == "STEP") return {TokenType::STEP, s, 0.0, tokenLine};
+            if (upper == "NEXT") return {TokenType::NEXT, s, 0.0, tokenLine};
+            if (upper == "WHILE") return {TokenType::WHILE, s, 0.0, tokenLine};
+            if (upper == "ENDWHILE") return {TokenType::ENDWHILE, s, 0.0, tokenLine};
+            if (upper == "WEND") return {TokenType::WEND, s, 0.0, tokenLine};
+            if (upper == "DO") return {TokenType::DO, s, 0.0, tokenLine};
+            if (upper == "UNTIL") return {TokenType::UNTIL, s, 0.0, tokenLine};
+            if (upper == "FUNCTION") return {TokenType::FUNCTION, s, 0.0, tokenLine};
+            if (upper == "ENDFUNCTION") return {TokenType::ENDFUNCTION, s, 0.0, tokenLine};
+            if (upper == "SUB") return {TokenType::SUB, s, 0.0, tokenLine};
+            if (upper == "ENDSUB") return {TokenType::ENDSUB, s, 0.0, tokenLine};
+            if (upper == "RETURN") return {TokenType::RETURN, s, 0.0, tokenLine};
+            if (upper == "CALL") return {TokenType::CALL, s, 0.0, tokenLine};
             if (upper == "END") {
                 // Check if next token is IF
                 skipWhite();
@@ -297,50 +145,50 @@ public:
                     }
                     string nextUpper = next;
                     for (auto& c : nextUpper) c = toupper(c);
-                    if (nextUpper == "IF") return {TokenType::ENDIF};
+                    if (nextUpper == "IF") return {TokenType::ENDIF, "ENDIF", 0.0, tokenLine};
                     // Not "END IF", so this is an error or undefined ID
-                    error("Expected IF after END");
+                    error("Expected IF after END at line " + to_string(tokenLine));
                 }
-                error("Expected IF after END");
+                error("Expected IF after END at line " + to_string(tokenLine));
             }
             // Boolean literals (case-insensitive, normalized to lowercase)
-            if (upper == "TRUE") return {TokenType::TRUE, "true"};
-            if (upper == "FALSE") return {TokenType::FALSE, "false"};
+            if (upper == "TRUE") return {TokenType::TRUE, "true", 0.0, tokenLine};
+            if (upper == "FALSE") return {TokenType::FALSE, "false", 0.0, tokenLine};
             
-            return {TokenType::ID, s};
+            return {TokenType::ID, s, 0.0, tokenLine};
         } else if (!eof) {
-            if (ch == '+') { read(); return {TokenType::PLUS}; }
-            else if (ch == '-') { read(); return {TokenType::MINUS}; }
-            else if (ch == '*') { read(); return {TokenType::MUL}; }
-            else if (ch == '/') { read(); return {TokenType::DIV}; }
-            else if (ch == '%') { read(); return {TokenType::MOD}; }
+            if (ch == '+') { read(); return {TokenType::PLUS, "+", 0.0, tokenLine}; }
+            else if (ch == '-') { read(); return {TokenType::MINUS, "-", 0.0, tokenLine}; }
+            else if (ch == '*') { read(); return {TokenType::MUL, "*", 0.0, tokenLine}; }
+            else if (ch == '/') { read(); return {TokenType::DIV, "/", 0.0, tokenLine}; }
+            else if (ch == '%') { read(); return {TokenType::MOD, "%", 0.0, tokenLine}; }
             else if (ch == '=') { 
                 read(); 
-                if (!eof && ch == '=') { read(); return {TokenType::EQ}; }
-                return {TokenType::ASSIGN}; 
+                if (!eof && ch == '=') { read(); return {TokenType::EQ, "==", 0.0, tokenLine}; }
+                return {TokenType::ASSIGN, "=", 0.0, tokenLine}; 
             }
             else if (ch == '<') {
                 read();
-                if (!eof && ch == '=') { read(); return {TokenType::LE}; }
-                if (!eof && ch == '>') { read(); return {TokenType::NE}; }
-                return {TokenType::LT};
+                if (!eof && ch == '=') { read(); return {TokenType::LE, "<=", 0.0, tokenLine}; }
+                if (!eof && ch == '>') { read(); return {TokenType::NE, "<>", 0.0, tokenLine}; }
+                return {TokenType::LT, "<", 0.0, tokenLine};
             }
             else if (ch == '>') {
                 read();
-                if (!eof && ch == '=') { read(); return {TokenType::GE}; }
-                return {TokenType::GT};
+                if (!eof && ch == '=') { read(); return {TokenType::GE, ">=", 0.0, tokenLine}; }
+                return {TokenType::GT, ">", 0.0, tokenLine};
             }
-            else if (ch == ';') { read(); return {TokenType::SEMI}; }
-            else if (ch == ',') { read(); return {TokenType::COMMA}; }
-            else if (ch == '(') { read(); return {TokenType::LPAREN}; }
-            else if (ch == ')') { read(); return {TokenType::RPAREN}; }
+            else if (ch == ';') { read(); return {TokenType::SEMI, ";", 0.0, tokenLine}; }
+            else if (ch == ',') { read(); return {TokenType::COMMA, ",", 0.0, tokenLine}; }
+            else if (ch == '(') { read(); return {TokenType::LPAREN, "(", 0.0, tokenLine}; }
+            else if (ch == ')') { read(); return {TokenType::RPAREN, ")", 0.0, tokenLine}; }
             else {
                 char c = ch;
                 read();
-                error("Invalid character: " + string(1, c));
+                error("Invalid character '" + string(1, c) + "' at line " + to_string(tokenLine));
             }
         }
-        return {TokenType::END};
+        return {TokenType::END, "", 0.0, tokenLine};
     }
 
 private:
@@ -353,6 +201,9 @@ private:
     Lexer lex;
     Token tok;
     map<string, Type> knownTypes;
+    map<string, pair<vector<Type>, Type>> userFunctions;  // name -> (param types, return type)
+    map<string, vector<Type>> userSubs;  // name -> param types
+    vector<CallSite> callSites;  // Collect call sites for type inference
 
     void next() { tok = lex.nextToken(); }
     Token expect(TokenType tt) {
@@ -361,11 +212,45 @@ private:
             next();
             return res;
         }
-        throw runtime_error("Unexpected token");
+        string expected = tokenTypeName(tt);
+        string got = tok.val.empty() ? tokenTypeName(tok.type) : "'" + tok.val + "'";
+        error("Expected " + expected + " but got " + got);
+        return tok;  // Unreachable
     }
-    void error(const string& msg = "Parse error") { throw runtime_error(msg); }
+    
+    void error(const string& msg) { 
+        throw runtime_error("Line " + to_string(tok.line) + ": " + msg);
+    }
+    
+    string tokenTypeName(TokenType tt) {
+        switch(tt) {
+            case TokenType::END: return "end of file";
+            case TokenType::NUMBER: return "number";
+            case TokenType::STRING: return "string";
+            case TokenType::ID: return "identifier";
+            case TokenType::LPAREN: return "'('";
+            case TokenType::RPAREN: return "')'";
+            case TokenType::COMMA: return "','";
+            case TokenType::ASSIGN: return "'='";
+            case TokenType::THEN: return "THEN";
+            case TokenType::ENDIF: return "ENDIF";
+            case TokenType::ENDFUNCTION: return "ENDFUNCTION";
+            case TokenType::ENDSUB: return "ENDSUB";
+            case TokenType::NEXT: return "NEXT";
+            case TokenType::ENDWHILE: return "ENDWHILE";
+            default: return "token";
+        }
+    }
 
     ExprPtr parsePrimary() {
+        // Handle unary minus
+        if (tok.type == TokenType::MINUS) {
+            next();
+            auto operand = parsePrimary();
+            Type opType = operand->type;  // Capture type before move
+            return make_unique<Expr>(ExprKind::Unary, opType, UnaryExpr{UnaryOp::Neg, move(operand)});
+        }
+        
         if (tok.type == TokenType::NUMBER) {
             Token nt = expect(TokenType::NUMBER);
             bool isFloat = nt.val.find('.') != string::npos;
@@ -386,10 +271,41 @@ private:
             for (auto& c : nameUpper) c = toupper(c);
             next();
             
-            // Check if it's a function call
+            // Check if it's a function call (check user functions first, then built-in)
+            auto userFuncIt = userFunctions.find(name);
+            if (userFuncIt != userFunctions.end()) {
+                // User-defined function call
+                const auto& [paramTypes, returnType] = userFuncIt->second;
+                vector<ExprPtr> args;
+                
+                expect(TokenType::LPAREN);
+                if (tok.type != TokenType::RPAREN) {
+                    args.push_back(parseExpr());
+                    while (tok.type == TokenType::COMMA) {
+                        next();
+                        args.push_back(parseExpr());
+                    }
+                }
+                expect(TokenType::RPAREN);
+                
+                // Record call site for type inference
+                vector<Type> argTypes;
+                for (const auto& arg : args) {
+                    argTypes.push_back(arg->type);
+                }
+                callSites.push_back(CallSite{name, argTypes, tok.line});
+                
+                // Type check arguments
+                if (!paramTypes.empty() && args.size() != paramTypes.size()) {
+                    error("Wrong number of arguments for function " + name);
+                }
+                
+                return make_unique<Expr>(ExprKind::Call, returnType, CallExpr{name, move(args)});
+            }
+            
             auto funcIt = builtinFunctions.find(nameUpper);
             if (funcIt != builtinFunctions.end()) {
-                // Function call
+                // Built-in function call
                 const FunctionSig& sig = funcIt->second;
                 vector<ExprPtr> args;
                 
@@ -436,9 +352,9 @@ private:
                 index = parseExpr();
                 expect(TokenType::RPAREN);
                 
-                // Check variable is defined and is an array
+                // Check variable is defined
                 auto it = knownTypes.find(name);
-                if (it == knownTypes.end()) error("Undefined array: " + name);
+                if (it == knownTypes.end()) error("Undefined variable: " + name);
                 
                 Type arrType = it->second;
                 // Get element type from array type
@@ -446,6 +362,14 @@ private:
                 else if (arrType == Type::FloatArray) varType = Type::Float;
                 else if (arrType == Type::StringArray) varType = Type::String;
                 else if (arrType == Type::BoolArray) varType = Type::Bool;
+                else if (arrType == Type::Float) {
+                    // Parameter typed as Float during parsing, might be array
+                    // Assume Float element, will be refined by type inference
+                    varType = Type::Float;
+                }
+                else if (arrType == Type::Int) {
+                    varType = Type::Int;  // Might be array parameter
+                }
                 else error("Variable is not an array: " + name);
             } else {
                 // Scalar variable access (or array reference for function calls)
@@ -464,7 +388,7 @@ private:
             expect(TokenType::RPAREN);
             return e;
         }
-        error();
+        error("Unexpected token in expression: '" + tok.val + "'");
         return nullptr;
     }
 
@@ -534,6 +458,103 @@ private:
     }
 
     ExprPtr parseExpr() { return parseEq(); }
+
+    DeclPtr parseDecl() {
+        if (tok.type == TokenType::FUNCTION) {
+            next();
+            string name = expect(TokenType::ID).val;
+            expect(TokenType::LPAREN);
+            
+            // Parse parameters
+            vector<Param> params;
+            if (tok.type != TokenType::RPAREN) {
+                string paramName = expect(TokenType::ID).val;
+                params.push_back(Param{paramName, Type::Int});  // Type will be inferred
+                while (tok.type == TokenType::COMMA) {
+                    next();
+                    paramName = expect(TokenType::ID).val;
+                    params.push_back(Param{paramName, Type::Int});
+                }
+            }
+            expect(TokenType::RPAREN);
+            
+            // Register function BEFORE parsing body (enables recursion)
+            // We'll use Float as default return type, will be refined later
+            userFunctions[name] = {vector<Type>(), Type::Float};
+            
+            // Save current known types and create new scope
+            map<string, Type> savedTypes = knownTypes;
+            // Register parameters in function scope as Float (scalar default)
+            for (const auto& param : params) {
+                knownTypes[param.name] = Type::Float;  // Will be inferred correctly later
+            }
+            
+            // Parse body
+            vector<StmtPtr> body;
+            while (tok.type != TokenType::ENDFUNCTION && tok.type != TokenType::END) {
+                body.push_back(parseStmt());
+            }
+            expect(TokenType::ENDFUNCTION);
+            
+            // Infer return type from RETURN statements (default to Float for now)
+            Type returnType = Type::Float;
+            for (const auto& stmt : body) {
+                if (stmt->kind == StmtKind::Return) {
+                    const ReturnStmt& rs = get<ReturnStmt>(stmt->data);
+                    if (rs.expr) {
+                        returnType = rs.expr->type;
+                        break;
+                    }
+                }
+            }
+            
+            // Restore known types
+            knownTypes = savedTypes;
+            
+            return make_unique<Decl>(DeclKind::Function, FunctionDecl{name, params, returnType, move(body)});
+        } else if (tok.type == TokenType::SUB) {
+            next();
+            string name = expect(TokenType::ID).val;
+            expect(TokenType::LPAREN);
+            
+            // Parse parameters
+            vector<Param> params;
+            if (tok.type != TokenType::RPAREN) {
+                string paramName = expect(TokenType::ID).val;
+                params.push_back(Param{paramName, Type::Int});
+                while (tok.type == TokenType::COMMA) {
+                    next();
+                    paramName = expect(TokenType::ID).val;
+                    params.push_back(Param{paramName, Type::Int});
+                }
+            }
+            expect(TokenType::RPAREN);
+            
+            // Register SUB BEFORE parsing body (enables recursion)
+            userSubs[name] = vector<Type>();
+            
+            // Save current known types and create new scope
+            map<string, Type> savedTypes = knownTypes;
+            // Register parameters in function scope as Float (scalar default)
+            for (const auto& param : params) {
+                knownTypes[param.name] = Type::Float;  // Will be inferred correctly later
+            }
+            
+            // Parse body
+            vector<StmtPtr> body;
+            while (tok.type != TokenType::ENDSUB && tok.type != TokenType::END) {
+                body.push_back(parseStmt());
+            }
+            expect(TokenType::ENDSUB);
+            
+            // Restore known types
+            knownTypes = savedTypes;
+            
+            return make_unique<Decl>(DeclKind::Sub, SubDecl{name, params, move(body)});
+        }
+        error("Expected FUNCTION or SUB");
+        return nullptr;
+    }
 
     StmtPtr parseStmt() {
         if (tok.type == TokenType::PRINT) {
@@ -758,1001 +779,416 @@ private:
             
             return make_unique<Stmt>(StmtKind::If, IfStmt{move(cond), move(thenBody), 
                                                            move(elseIfs), move(elseBody)});
+        } else if (tok.type == TokenType::RETURN) {
+            next();
+            // Check if there's an expression to return
+            if (tok.type == TokenType::END || tok.type == TokenType::ENDFUNCTION || tok.type == TokenType::ENDSUB) {
+                // Empty return (for SUBs)
+                return make_unique<Stmt>(StmtKind::Return, ReturnStmt{nullptr});
+            } else {
+                auto expr = parseExpr();
+                return make_unique<Stmt>(StmtKind::Return, ReturnStmt{move(expr)});
+            }
+        } else if (tok.type == TokenType::CALL) {
+            next();
+            string name = expect(TokenType::ID).val;
+            expect(TokenType::LPAREN);
+            vector<ExprPtr> args;
+            if (tok.type != TokenType::RPAREN) {
+                args.push_back(parseExpr());
+                while (tok.type == TokenType::COMMA) {
+                    next();
+                    args.push_back(parseExpr());
+                }
+            }
+            expect(TokenType::RPAREN);
+            
+            // Record call site for type inference
+            vector<Type> argTypes;
+            for (const auto& arg : args) {
+                argTypes.push_back(arg->type);
+            }
+            callSites.push_back(CallSite{name, argTypes, tok.line});
+            
+            return make_unique<Stmt>(StmtKind::CallStmt, CallStmtNode{name, move(args)});
         }
-        error();
+        error("Unexpected token in statement: '" + tok.val + "'");
         return nullptr;
     }
 
 public:
-    vector<StmtPtr> program;
+    vector<DeclPtr> declarations;  // Function and sub declarations
+    vector<StmtPtr> program;       // Main program statements
     
     const map<string, Type>& getKnownTypes() const { return knownTypes; }
 
+    // Fix types in AST after parameter type inference
+    void fixParameterTypesInAST() {
+        for (auto& decl : declarations) {
+            map<string, Type> paramTypes;
+            vector<StmtPtr>* body = nullptr;
+            
+            if (decl->kind == DeclKind::Function) {
+                FunctionDecl& fd = get<FunctionDecl>(decl->data);
+                for (const auto& p : fd.params) {
+                    paramTypes[p.name] = p.type;
+                }
+                body = &fd.body;
+            } else if (decl->kind == DeclKind::Sub) {
+                SubDecl& sd = get<SubDecl>(decl->data);
+                for (const auto& p : sd.params) {
+                    paramTypes[p.name] = p.type;
+                }
+                body = &sd.body;
+            }
+            
+            if (!body) continue;
+            
+            // Fix expression types in function/sub body
+            function<void(Expr&)> fixExpr = [&](Expr& e) {
+                if (e.kind == ExprKind::Var) {
+                    // Variable reference (scalar or array) - check if it's a parameter
+                    const VarRef& vr = get<VarRef>(e.data);
+                    auto it = paramTypes.find(vr.name);
+                    if (it != paramTypes.end() && !vr.index) {
+                        // Full array or scalar parameter reference
+                        e.type = it->second;  // Update to inferred type (might be FloatArray!)
+                    }
+                    // If it has an index (arr(i)), element type is already correct
+                } else if (e.kind == ExprKind::Call) {
+                    CallExpr& c = get<CallExpr>(e.data);
+                    for (auto& arg : c.args) fixExpr(*arg);
+                } else if (e.kind == ExprKind::Bin) {
+                    BinOp& b = get<BinOp>(e.data);
+                    fixExpr(*b.left);
+                    fixExpr(*b.right);
+                } else if (e.kind == ExprKind::Cmp) {
+                    CmpOp& c = get<CmpOp>(e.data);
+                    fixExpr(*c.left);
+                    fixExpr(*c.right);
+                } else if (e.kind == ExprKind::Unary) {
+                    UnaryExpr& u = get<UnaryExpr>(e.data);
+                    fixExpr(*u.operand);
+                }
+            };
+            
+            function<void(Stmt&)> fixStmt = [&](Stmt& s) {
+                if (s.kind == StmtKind::Print) {
+                    PrintStmt& ps = get<PrintStmt>(s.data);
+                    for (auto& e : ps.exprs) fixExpr(*e);
+                } else if (s.kind == StmtKind::Let) {
+                    LetStmt& ls = get<LetStmt>(s.data);
+                    if (ls.index) fixExpr(*ls.index);
+                    fixExpr(*ls.expr);
+                } else if (s.kind == StmtKind::Return) {
+                    ReturnStmt& rs = get<ReturnStmt>(s.data);
+                    if (rs.expr) fixExpr(*rs.expr);
+                } else if (s.kind == StmtKind::CallStmt) {
+                    CallStmtNode& cs = get<CallStmtNode>(s.data);
+                    for (auto& arg : cs.args) fixExpr(*arg);
+                } else if (s.kind == StmtKind::If) {
+                    IfStmt& ifs = get<IfStmt>(s.data);
+                    fixExpr(*ifs.cond);
+                    for (auto& stmt : ifs.thenBody) fixStmt(*stmt);
+                    for (auto& elif : ifs.elseIfs) {
+                        fixExpr(*elif.cond);
+                        for (auto& stmt : elif.body) fixStmt(*stmt);
+                    }
+                    for (auto& stmt : ifs.elseBody) fixStmt(*stmt);
+                } else if (s.kind == StmtKind::For) {
+                    ForStmt& fs = get<ForStmt>(s.data);
+                    fixExpr(*fs.start);
+                    fixExpr(*fs.end);
+                    if (fs.step) fixExpr(*fs.step);
+                    for (auto& stmt : fs.body) fixStmt(*stmt);
+                } else if (s.kind == StmtKind::While) {
+                    WhileStmt& ws = get<WhileStmt>(s.data);
+                    fixExpr(*ws.cond);
+                    for (auto& stmt : ws.body) fixStmt(*stmt);
+                } else if (s.kind == StmtKind::DoWhile) {
+                    DoWhileStmt& dws = get<DoWhileStmt>(s.data);
+                    fixExpr(*dws.cond);
+                    for (auto& stmt : dws.body) fixStmt(*stmt);
+                }
+            };
+            
+            for (auto& stmt : *body) {
+                fixStmt(*stmt);
+            }
+        }
+    }
+ 
+    void inferParameterTypes() {
+        // Group call sites by function name
+        map<string, vector<vector<Type>>> callsByFunc;
+        for (const auto& call : callSites) {
+            callsByFunc[call.funcName].push_back(call.argTypes);
+        }
+        
+        // Infer parameter types for each function/sub
+        for (auto& decl : declarations) {
+            string funcName;
+            vector<Param>* params = nullptr;
+            
+            if (decl->kind == DeclKind::Function) {
+                FunctionDecl& fd = get<FunctionDecl>(decl->data);
+                funcName = fd.name;
+                params = &fd.params;
+            } else if (decl->kind == DeclKind::Sub) {
+                SubDecl& sd = get<SubDecl>(decl->data);
+                funcName = sd.name;
+                params = &sd.params;
+            }
+            
+            if (!params || params->empty()) continue;
+            
+            auto callsIt = callsByFunc.find(funcName);
+            if (callsIt == callsByFunc.end() || callsIt->second.empty()) {
+                // No calls found, use Float as default
+                for (auto& param : *params) {
+                    param.type = Type::Float;
+                }
+                continue;
+            }
+            
+            // Infer parameter types by examining all calls
+            const vector<Type>& firstCallArgs = callsIt->second[0];
+            if (firstCallArgs.size() != params->size()) {
+                error("Inconsistent number of arguments for " + funcName);
+            }
+            
+            // Initialize with first call
+            for (size_t i = 0; i < params->size(); ++i) {
+                (*params)[i].type = firstCallArgs[i];
+            }
+            
+            // Refine types by examining all calls
+            for (size_t callIdx = 1; callIdx < callsIt->second.size(); ++callIdx) {
+                const vector<Type>& callArgs = callsIt->second[callIdx];
+                if (callArgs.size() != params->size()) {
+                    error("Inconsistent number of arguments for " + funcName);
+                }
+                for (size_t i = 0; i < params->size(); ++i) {
+                    Type paramType = (*params)[i].type;
+                    Type argType = callArgs[i];
+                    
+                    if (paramType != argType) {
+                        // If we have Int and Float, promote to Float
+                        if ((paramType == Type::Int && argType == Type::Float) ||
+                            (paramType == Type::Float && argType == Type::Int)) {
+                            (*params)[i].type = Type::Float;
+                        }
+                        // If we have scalar and array type, prefer array (multi-pass convergence)
+                        else if (paramType == Type::Float && argType == Type::FloatArray) {
+                            (*params)[i].type = Type::FloatArray;
+                        }
+                        else if (paramType == Type::Int && argType == Type::IntArray) {
+                            (*params)[i].type = Type::IntArray;
+                        }
+                        else if (paramType == Type::String && argType == Type::StringArray) {
+                            (*params)[i].type = Type::StringArray;
+                        }
+                        else if (paramType == Type::Bool && argType == Type::BoolArray) {
+                            (*params)[i].type = Type::BoolArray;
+                        }
+                        // Reverse: array to scalar means we need the array type
+                        else if (paramType == Type::FloatArray && argType == Type::Float) {
+                            // Keep FloatArray (already more specific)
+                        }
+                        else if (paramType == Type::IntArray && argType == Type::Int) {
+                            // Keep IntArray
+                        }
+                        else if (paramType == Type::StringArray && argType == Type::String) {
+                            // Keep StringArray
+                        }
+                        else if (paramType == Type::BoolArray && argType == Type::Bool) {
+                            // Keep BoolArray
+                        }
+                        else {
+                            error("Type mismatch in arguments for " + funcName + " at parameter " + 
+                                  to_string(i+1) + " (expected " + typeToString(paramType) + 
+                                  " but got " + typeToString(argType) + ")");
+                        }
+                    }
+                }
+            }
+        }
+        
+        // Update userFunctions and userSubs with inferred types
+        for (const auto& decl : declarations) {
+            if (decl->kind == DeclKind::Function) {
+                const FunctionDecl& fd = get<FunctionDecl>(decl->data);
+                vector<Type> paramTypes;
+                for (const auto& p : fd.params) {
+                    paramTypes.push_back(p.type);
+                }
+                userFunctions[fd.name] = {paramTypes, fd.returnType};
+            } else if (decl->kind == DeclKind::Sub) {
+                const SubDecl& sd = get<SubDecl>(decl->data);
+                vector<Type> paramTypes;
+                for (const auto& p : sd.params) {
+                    paramTypes.push_back(p.type);
+                }
+                userSubs[sd.name] = paramTypes;
+            }
+        }
+    }
+    
+    string typeToString(Type t) {
+        switch(t) {
+            case Type::Int: return "Int";
+            case Type::Float: return "Float";
+            case Type::String: return "String";
+            case Type::Bool: return "Bool";
+            case Type::IntArray: return "IntArray";
+            case Type::FloatArray: return "FloatArray";
+            case Type::StringArray: return "StringArray";
+            case Type::BoolArray: return "BoolArray";
+            default: return "Unknown";
+        }
+    }
+
     Parser(istream& i) : lex(i) { next(); }
     void parse() {
+        // First, parse all function/sub declarations (without fixed parameter types)
+        while (tok.type == TokenType::FUNCTION || tok.type == TokenType::SUB) {
+            auto decl = parseDecl();
+            
+            // Register the function/sub with empty parameter types initially
+            if (decl->kind == DeclKind::Function) {
+                const FunctionDecl& fd = get<FunctionDecl>(decl->data);
+                userFunctions[fd.name] = {vector<Type>(), fd.returnType};
+            } else if (decl->kind == DeclKind::Sub) {
+                const SubDecl& sd = get<SubDecl>(decl->data);
+                userSubs[sd.name] = vector<Type>();
+            }
+            
+            declarations.push_back(move(decl));
+        }
+        // Then parse main program statements
         while (tok.type != TokenType::END) {
             program.push_back(parseStmt());
         }
+        
+        // Multi-pass type inference for array parameters
+        // Pass 1: Initial inference from main program calls
+        inferParameterTypes();
+        
+        // Pass 2: Fix AST with inferred types
+        fixParameterTypesInAST();
+        
+        // Pass 3: Rebuild call sites with corrected types
+        callSites.clear();
+        rebuildCallSites();
+        inferParameterTypes();
+        
+        // Pass 4: Fix AST again (for nested calls)
+        fixParameterTypesInAST();
+        
+        // Pass 5: Final inference (should converge)
+        callSites.clear();
+        rebuildCallSites();
+        inferParameterTypes();
+    }
+    
+    // Rebuild call sites after AST type fixing
+    void rebuildCallSites() {
+        function<void(const Expr&)> scanExpr = [&](const Expr& e) {
+            if (e.kind == ExprKind::Call) {
+                const CallExpr& ce = get<CallExpr>(e.data);
+                vector<Type> argTypes;
+                for (const auto& arg : ce.args) {
+                    argTypes.push_back(arg->type);
+                }
+                callSites.push_back(CallSite{ce.name, argTypes, 0});
+                for (const auto& arg : ce.args) scanExpr(*arg);
+            } else if (e.kind == ExprKind::Bin) {
+                const BinOp& b = get<BinOp>(e.data);
+                scanExpr(*b.left);
+                scanExpr(*b.right);
+            } else if (e.kind == ExprKind::Cmp) {
+                const CmpOp& c = get<CmpOp>(e.data);
+                scanExpr(*c.left);
+                scanExpr(*c.right);
+            } else if (e.kind == ExprKind::Unary) {
+                const UnaryExpr& u = get<UnaryExpr>(e.data);
+                scanExpr(*u.operand);
+            }
+        };
+        
+        function<void(const Stmt&)> scanStmt = [&](const Stmt& s) {
+            if (s.kind == StmtKind::Print) {
+                const PrintStmt& ps = get<PrintStmt>(s.data);
+                for (const auto& e : ps.exprs) scanExpr(*e);
+            } else if (s.kind == StmtKind::Let) {
+                const LetStmt& ls = get<LetStmt>(s.data);
+                if (ls.index) scanExpr(*ls.index);
+                scanExpr(*ls.expr);
+            } else if (s.kind == StmtKind::Return) {
+                const ReturnStmt& rs = get<ReturnStmt>(s.data);
+                if (rs.expr) scanExpr(*rs.expr);
+            } else if (s.kind == StmtKind::CallStmt) {
+                const CallStmtNode& cs = get<CallStmtNode>(s.data);
+                vector<Type> argTypes;
+                for (const auto& arg : cs.args) {
+                    argTypes.push_back(arg->type);
+                }
+                callSites.push_back(CallSite{cs.name, argTypes, 0});
+                for (const auto& arg : cs.args) scanExpr(*arg);
+            } else if (s.kind == StmtKind::If) {
+                const IfStmt& ifs = get<IfStmt>(s.data);
+                scanExpr(*ifs.cond);
+                for (const auto& stmt : ifs.thenBody) scanStmt(*stmt);
+                for (const auto& elif : ifs.elseIfs) {
+                    scanExpr(*elif.cond);
+                    for (const auto& stmt : elif.body) scanStmt(*stmt);
+                }
+                for (const auto& stmt : ifs.elseBody) scanStmt(*stmt);
+            } else if (s.kind == StmtKind::For) {
+                const ForStmt& fs = get<ForStmt>(s.data);
+                scanExpr(*fs.start);
+                scanExpr(*fs.end);
+                if (fs.step) scanExpr(*fs.step);
+                for (const auto& stmt : fs.body) scanStmt(*stmt);
+            } else if (s.kind == StmtKind::While) {
+                const WhileStmt& ws = get<WhileStmt>(s.data);
+                scanExpr(*ws.cond);
+                for (const auto& stmt : ws.body) scanStmt(*stmt);
+            } else if (s.kind == StmtKind::DoWhile) {
+                const DoWhileStmt& dws = get<DoWhileStmt>(s.data);
+                scanExpr(*dws.cond);
+                for (const auto& stmt : dws.body) scanStmt(*stmt);
+            }
+        };
+        
+        // Scan all function/sub bodies
+        for (const auto& decl : declarations) {
+            if (decl->kind == DeclKind::Function) {
+                const FunctionDecl& fd = get<FunctionDecl>(decl->data);
+                for (const auto& stmt : fd.body) {
+                    scanStmt(*stmt);
+                }
+            } else if (decl->kind == DeclKind::Sub) {
+                const SubDecl& sd = get<SubDecl>(decl->data);
+                for (const auto& stmt : sd.body) {
+                    scanStmt(*stmt);
+                }
+            }
+        }
+        
+        // Scan main program
+        for (const auto& stmt : program) {
+            scanStmt(*stmt);
+        }
     }
 };
-
-// Constant Pool Entry
-using CpEntry = vector<u1>;
-
-struct ConstantPool {
-    vector<CpEntry> entries;
-
-    u2 addEntry(CpEntry e) {
-        // Simple no dedup for brevity
-        entries.push_back(move(e));
-        return static_cast<u2>(entries.size());
-    }
-
-    u2 addUtf8(const string& s) {
-        CpEntry e;
-        e.push_back(1); // tag
-        u2 len = static_cast<u2>(s.size());
-        e.push_back(static_cast<u1>(len >> 8));
-        e.push_back(static_cast<u1>(len & 0xFF));
-        for (char c : s) e.push_back(static_cast<u1>(c));
-        return addEntry(move(e));
-    }
-
-    u2 addString(u2 strIdx) {
-        CpEntry e{8, static_cast<u1>(strIdx >> 8), static_cast<u1>(strIdx & 0xFF)};
-        return addEntry(move(e));
-    }
-
-    u2 addFloat(u4 bits) {
-        CpEntry e{4};
-        e.push_back(static_cast<u1>((bits >> 24) & 0xFF));
-        e.push_back(static_cast<u1>((bits >> 16) & 0xFF));
-        e.push_back(static_cast<u1>((bits >> 8) & 0xFF));
-        e.push_back(static_cast<u1>(bits & 0xFF));
-        return addEntry(move(e));
-    }
-
-    u2 addNameAndType(u2 nameIdx, u2 descIdx) {
-        CpEntry e{12, static_cast<u1>(nameIdx >> 8), static_cast<u1>(nameIdx & 0xFF),
-                  static_cast<u1>(descIdx >> 8), static_cast<u1>(descIdx & 0xFF)};
-        return addEntry(move(e));
-    }
-
-    u2 addClass(u2 nameIdx) {
-        CpEntry e{7, static_cast<u1>(nameIdx >> 8), static_cast<u1>(nameIdx & 0xFF)};
-        return addEntry(move(e));
-    }
-
-    u2 addFieldRef(u2 classIdx, u2 natIdx) {
-        CpEntry e{9, static_cast<u1>(classIdx >> 8), static_cast<u1>(classIdx & 0xFF),
-                  static_cast<u1>(natIdx >> 8), static_cast<u1>(natIdx & 0xFF)};
-        return addEntry(move(e));
-    }
-
-    u2 addMethodRef(u2 classIdx, u2 natIdx) {
-        CpEntry e{10, static_cast<u1>(classIdx >> 8), static_cast<u1>(classIdx & 0xFF),
-                   static_cast<u1>(natIdx >> 8), static_cast<u1>(natIdx & 0xFF)};
-        return addEntry(move(e));
-    }
-};
-
-// Label for branching
-struct Label {
-    int pos = -1;
-    vector<int> patchSites;
-};
-
-// ClassFile
-class ClassFile {
-public:
-    u4 magic = 0xCAFEBABE;
-    u2 minor_version = 0;
-    u2 major_version = 50; // Java 6 (avoids StackMapTable requirement)
-    ConstantPool cp;
-    u2 this_class_idx;
-    u2 super_class_idx;
-    u2 out_field_idx;
-    u2 println_int_idx;
-    u2 println_float_idx;
-    u2 println_str_idx;
-    u2 println_bool_idx;
-    u2 print_int_idx;
-    u2 print_float_idx;
-    u2 print_str_idx;
-    u2 print_bool_idx;
-    u2 println_void_idx;
-    u2 print_space_idx;
-    u2 string_class_idx;
-    u2 string_equals_idx;
-    u2 scanner_class_idx;
-    u2 scanner_init_idx;
-    u2 scanner_nextline_idx;
-    u2 system_in_idx;
-    u2 integer_class_idx;
-    u2 integer_parseint_idx;
-    u2 float_class_idx;
-    u2 float_parsefloat_idx;
-    u2 main_name_idx;
-    u2 main_desc_idx;
-    u2 code_name_idx;
-
-    vector<u1> code;
-    u2 max_stack = 10;
-    u2 max_locals = 1;
-    u1 scanner_local = 0; // Local variable index for Scanner
-    
-    int labelCounter = 0;
-    
-    // Runtime support
-    u2 basicruntime_class_idx = 0;
-    map<string, u2> functionMethodRefs; // Cache of function name -> method ref index
-
-    void buildConstantPool() {
-        // Utf8
-        u2 simple_class = cp.addUtf8("BasicProgram");
-        u2 object_class = cp.addUtf8("java/lang/Object");
-        main_name_idx = cp.addUtf8("main");
-        main_desc_idx = cp.addUtf8("([Ljava/lang/String;)V");
-        u2 nat_main = cp.addNameAndType(main_name_idx, main_desc_idx);
-        this_class_idx = cp.addClass(simple_class);
-        super_class_idx = cp.addClass(object_class);
-
-        // System.out
-        u2 system_class = cp.addUtf8("java/lang/System");
-        u2 out_name = cp.addUtf8("out");
-        u2 out_desc = cp.addUtf8("Ljava/io/PrintStream;");
-        u2 nat_out = cp.addNameAndType(out_name, out_desc);
-        u2 sys_cls_idx = cp.addClass(system_class);
-        out_field_idx = cp.addFieldRef(sys_cls_idx, nat_out);
-
-        // PrintStream
-        u2 ps_class = cp.addUtf8("java/io/PrintStream");
-        u2 ps_cls_idx = cp.addClass(ps_class);
-        u2 println_name = cp.addUtf8("println");
-        u2 print_name = cp.addUtf8("print");
-
-        // println methods (with newline)
-        // println (I)V
-        u2 pi_desc = cp.addUtf8("(I)V");
-        u2 nat_pi = cp.addNameAndType(println_name, pi_desc);
-        println_int_idx = cp.addMethodRef(ps_cls_idx, nat_pi);
-
-        // println (F)V
-        u2 pf_desc = cp.addUtf8("(F)V");
-        u2 nat_pf = cp.addNameAndType(println_name, pf_desc);
-        println_float_idx = cp.addMethodRef(ps_cls_idx, nat_pf);
-
-        // println (Ljava/lang/String;)V
-        u2 ps_desc = cp.addUtf8("(Ljava/lang/String;)V");
-        u2 nat_ps = cp.addNameAndType(println_name, ps_desc);
-        println_str_idx = cp.addMethodRef(ps_cls_idx, nat_ps);
-
-        // println (Z)V for boolean
-        u2 pb_desc = cp.addUtf8("(Z)V");
-        u2 nat_pb = cp.addNameAndType(println_name, pb_desc);
-        println_bool_idx = cp.addMethodRef(ps_cls_idx, nat_pb);
-
-        // println ()V for empty newline
-        u2 pv_desc = cp.addUtf8("()V");
-        u2 nat_pv = cp.addNameAndType(println_name, pv_desc);
-        println_void_idx = cp.addMethodRef(ps_cls_idx, nat_pv);
-
-        // print methods (without newline)
-        // print (I)V
-        u2 nat_pri = cp.addNameAndType(print_name, pi_desc);
-        print_int_idx = cp.addMethodRef(ps_cls_idx, nat_pri);
-
-        // print (F)V
-        u2 nat_prf = cp.addNameAndType(print_name, pf_desc);
-        print_float_idx = cp.addMethodRef(ps_cls_idx, nat_prf);
-
-        // print (Ljava/lang/String;)V
-        u2 nat_prs = cp.addNameAndType(print_name, ps_desc);
-        print_str_idx = cp.addMethodRef(ps_cls_idx, nat_prs);
-
-        // print (Z)V for boolean
-        u2 nat_prb = cp.addNameAndType(print_name, pb_desc);
-        print_bool_idx = cp.addMethodRef(ps_cls_idx, nat_prb);
-
-        // For comma separator: print a space
-        u2 space_utf = cp.addUtf8(" ");
-        print_space_idx = cp.addString(space_utf);
-
-        // String.equals
-        u2 string_class_name = cp.addUtf8("java/lang/String");
-        string_class_idx = cp.addClass(string_class_name);
-        u2 equals_name = cp.addUtf8("equals");
-        u2 equals_desc = cp.addUtf8("(Ljava/lang/Object;)Z");
-        u2 nat_equals = cp.addNameAndType(equals_name, equals_desc);
-        string_equals_idx = cp.addMethodRef(string_class_idx, nat_equals);
-
-        // Scanner for input
-        u2 scanner_class_name = cp.addUtf8("java/util/Scanner");
-        scanner_class_idx = cp.addClass(scanner_class_name);
-        u2 init_name = cp.addUtf8("<init>");
-        u2 scanner_init_desc = cp.addUtf8("(Ljava/io/InputStream;)V");
-        u2 nat_scanner_init = cp.addNameAndType(init_name, scanner_init_desc);
-        scanner_init_idx = cp.addMethodRef(scanner_class_idx, nat_scanner_init);
-        u2 nextline_name = cp.addUtf8("nextLine");
-        u2 nextline_desc = cp.addUtf8("()Ljava/lang/String;");
-        u2 nat_nextline = cp.addNameAndType(nextline_name, nextline_desc);
-        scanner_nextline_idx = cp.addMethodRef(scanner_class_idx, nat_nextline);
-
-        // System.in
-        u2 in_name = cp.addUtf8("in");
-        u2 in_desc = cp.addUtf8("Ljava/io/InputStream;");
-        u2 nat_in = cp.addNameAndType(in_name, in_desc);
-        system_in_idx = cp.addFieldRef(sys_cls_idx, nat_in);
-
-        // Integer.parseInt
-        u2 integer_class_name = cp.addUtf8("java/lang/Integer");
-        integer_class_idx = cp.addClass(integer_class_name);
-        u2 parseint_name = cp.addUtf8("parseInt");
-        u2 parseint_desc = cp.addUtf8("(Ljava/lang/String;)I");
-        u2 nat_parseint = cp.addNameAndType(parseint_name, parseint_desc);
-        integer_parseint_idx = cp.addMethodRef(integer_class_idx, nat_parseint);
-
-        // Float.parseFloat
-        u2 float_class_name = cp.addUtf8("java/lang/Float");
-        float_class_idx = cp.addClass(float_class_name);
-        u2 parsefloat_name = cp.addUtf8("parseFloat");
-        u2 parsefloat_desc = cp.addUtf8("(Ljava/lang/String;)F");
-        u2 nat_parsefloat = cp.addNameAndType(parsefloat_name, parsefloat_desc);
-        float_parsefloat_idx = cp.addMethodRef(float_class_idx, nat_parsefloat);
-
-        // BasicRuntime for standard library functions
-        u2 basicruntime_class_name = cp.addUtf8("basicrt/BasicRuntime");
-        basicruntime_class_idx = cp.addClass(basicruntime_class_name);
-
-        code_name_idx = cp.addUtf8("Code");
-    }
-    
-    // Get or create method reference for a function
-    u2 getFunctionMethodRef(const string& funcName) {
-        // Check cache
-        if (functionMethodRefs.count(funcName)) {
-            return functionMethodRefs[funcName];
-        }
-        
-        // Look up function signature
-        auto it = builtinFunctions.find(funcName);
-        if (it == builtinFunctions.end()) {
-            throw runtime_error("Unknown function: " + funcName);
-        }
-        
-        const FunctionSig& sig = it->second;
-        
-        // Add to constant pool
-        u2 method_name = cp.addUtf8(sig.javaMethod);
-        u2 method_desc = cp.addUtf8(sig.javaDescriptor);
-        u2 nat = cp.addNameAndType(method_name, method_desc);
-        u2 method_ref = cp.addMethodRef(basicruntime_class_idx, nat);
-        
-        // Cache it
-        functionMethodRefs[funcName] = method_ref;
-        return method_ref;
-    }
-
-    void emit(u1 byte) { code.push_back(byte); }
-    void emit(u1 opc, u1 arg) { emit(opc); emit(arg); }
-    void emit(u1 opc, u2 arg) {
-        emit(opc);
-        emit(static_cast<u1>(arg >> 8));
-        emit(static_cast<u1>(arg & 0xFF));
-    }
-    void ldc(u2 idx) {
-        if (idx <= 255) {
-            emit(0x12, static_cast<u1>(idx));
-        } else {
-            emit(0x13, idx);
-        }
-    }
-
-    void getstatic(u2 idx) { emit(0xB2, idx); }
-    void invokevirtual(u2 idx) { emit(0xB6, idx); }
-    void iconst(int i) {
-        if (i == -1) emit(0x02);
-        else if (i >= 0 && i <= 5) emit(0x03 + static_cast<u1>(i));
-        else if (i >= -128 && i <= 127) emit(0x10, static_cast<u1>(i));
-        else emit(0x11, static_cast<u2>(i));
-    }
-    void fconst(float f) {
-        if (f == 0.0f) emit(0x0B);
-        else if (f == 1.0f) emit(0x0C);
-        else if (f == 2.0f) emit(0x0D);
-        else {
-            uint32_t bits = *reinterpret_cast<uint32_t*>(&f);
-            u2 fidx = cp.addFloat(bits);
-            ldc(fidx);
-        }
-    }
-    void iload(u1 idx) {
-        if (idx < 4) emit(0x1A + idx);
-        else emit(0x15, idx);
-    }
-    void fload(u1 idx) {
-        if (idx < 4) emit(0x22 + idx);
-        else emit(0x17, idx);
-    }
-    void aload(u1 idx) {
-        if (idx < 4) emit(0x2A + idx);
-        else emit(0x19, idx);
-    }
-    void istore(u1 idx) {
-        if (idx < 4) emit(0x3B + idx);
-        else emit(0x36, idx);
-    }
-    void fstore(u1 idx) {
-        if (idx < 4) emit(0x43 + idx);
-        else emit(0x38, idx);
-    }
-    void astore(u1 idx) {
-        if (idx < 4) emit(0x4B + idx);
-        else emit(0x3A, idx);
-    }
-    void iadd() { emit(0x60); }
-    void isub() { emit(0x64); }
-    void imul() { emit(0x68); }
-    void idiv() { emit(0x6C); }
-    void fadd() { emit(0x62); }
-    void fsub() { emit(0x66); }
-    void fmul() { emit(0x6A); }
-    void fdiv() { emit(0x6E); }
-    void irem() { emit(0x70); }
-    void frem() { emit(0x72); }
-    void i2f() { emit(0x86); } // Added i2f instruction
-    void _return() { emit(0xB1); }
-    void new_(u2 idx) { emit(0xBB, idx); }
-    void dup() { emit(0x59); }
-    void invokespecial(u2 idx) { emit(0xB7, idx); }
-    void invokestatic(u2 idx) { emit(0xB8, idx); }
-    
-    // Array instructions
-    void newarray_int() { emit(0xBC); emit(10); }      // T_INT = 10
-    void newarray_float() { emit(0xBC); emit(6); }     // T_FLOAT = 6
-    void newarray_bool() { emit(0xBC); emit(4); }      // T_BOOLEAN = 4
-    void anewarray(u2 idx) { emit(0xBD, idx); }        // For String arrays
-    void iaload() { emit(0x2E); }
-    void faload() { emit(0x30); }
-    void aaload() { emit(0x32); }
-    void baload() { emit(0x33); }
-    void iastore() { emit(0x4F); }
-    void fastore() { emit(0x51); }
-    void aastore() { emit(0x53); }
-    void bastore() { emit(0x54); }
-    
-    // Branching instructions
-    void ifeq(Label& L) { emitBranch(0x99, L); }
-    void ifne(Label& L) { emitBranch(0x9A, L); }
-    void iflt(Label& L) { emitBranch(0x9B, L); }
-    void ifge(Label& L) { emitBranch(0x9C, L); }
-    void ifgt(Label& L) { emitBranch(0x9D, L); }
-    void ifle(Label& L) { emitBranch(0x9E, L); }
-    void if_icmpeq(Label& L) { emitBranch(0x9F, L); }
-    void if_icmpne(Label& L) { emitBranch(0xA0, L); }
-    void if_icmplt(Label& L) { emitBranch(0xA1, L); }
-    void if_icmpge(Label& L) { emitBranch(0xA2, L); }
-    void if_icmpgt(Label& L) { emitBranch(0xA3, L); }
-    void if_icmple(Label& L) { emitBranch(0xA4, L); }
-    void goto_(Label& L) { emitBranch(0xA7, L); }
-    
-    // Float comparison instructions
-    void fcmpl() { emit(0x95); }
-    void fcmpg() { emit(0x96); }
-    
-    // Label management
-    int position() const { return static_cast<int>(code.size()); }
-    
-    void mark(Label& L) {
-        L.pos = position();
-        for (int site : L.patchSites) {
-            patchJump(site, L.pos);
-        }
-        L.patchSites.clear();
-    }
-    
-    void emitBranch(u1 opcode, Label& L) {
-        emit(opcode);
-        int site = position();
-        emit(static_cast<u1>(0)); // Placeholder
-        emit(static_cast<u1>(0)); // Placeholder
-        if (L.pos >= 0) {
-            patchJump(site, L.pos);
-        } else {
-            L.patchSites.push_back(site);
-        }
-    }
-    
-    void patchJump(int site, int target) {
-        int16_t offset = static_cast<int16_t>(target - (site - 1));
-        code[site] = static_cast<u1>((offset >> 8) & 0xFF);
-        code[site + 1] = static_cast<u1>(offset & 0xFF);
-    }
-    
-    void loadComparison(const CmpOp& co, map<string, u1>& varIdx) {
-        // Determine the operand types (promote if needed)
-        Type leftType = co.left->type;
-        Type rightType = co.right->type;
-        
-        // Handle string comparisons
-        if (leftType == Type::String && rightType == Type::String) {
-            load(*co.left, varIdx);
-            load(*co.right, varIdx);
-            invokevirtual(string_equals_idx); // returns boolean (0 or 1)
-            
-            // Handle negation for != operator
-            if (co.op == Op::Ne) {
-                // XOR with 1 to flip the boolean
-                iconst(1);
-                emit(0x82); // ixor
-            } else if (co.op != Op::Eq) {
-                throw runtime_error("Only == and <> are supported for string comparisons");
-            }
-            return;
-        }
-        
-        // Handle float comparisons with epsilon
-        if (leftType == Type::Float || rightType == Type::Float) {
-            load(*co.left, varIdx);
-            if (leftType == Type::Int) i2f();
-            load(*co.right, varIdx);
-            if (rightType == Type::Int) i2f();
-            
-            // For float comparisons, we use fcmpg/fcmpl and then conditional branches
-            // fcmpg: pushes 1 if left > right, 0 if equal, -1 if left < right (or either NaN)
-            fcmpg();
-            
-            Label trueLabel, endLabel;
-            switch (co.op) {
-                case Op::Lt: iflt(trueLabel); break;
-                case Op::Gt: ifgt(trueLabel); break;
-                case Op::Le: ifle(trueLabel); break;
-                case Op::Ge: ifge(trueLabel); break;
-                case Op::Eq: ifeq(trueLabel); break;
-                case Op::Ne: ifne(trueLabel); break;
-                default: throw runtime_error("Unknown comparison operator");
-            }
-            iconst(0);
-            goto_(endLabel);
-            mark(trueLabel);
-            iconst(1);
-            mark(endLabel);
-            return;
-        }
-        
-        // Handle integer/boolean comparisons
-        if ((leftType == Type::Int || leftType == Type::Bool) && 
-            (rightType == Type::Int || rightType == Type::Bool)) {
-            load(*co.left, varIdx);
-            load(*co.right, varIdx);
-            
-            Label trueLabel, endLabel;
-            switch (co.op) {
-                case Op::Lt: if_icmplt(trueLabel); break;
-                case Op::Gt: if_icmpgt(trueLabel); break;
-                case Op::Le: if_icmple(trueLabel); break;
-                case Op::Ge: if_icmpge(trueLabel); break;
-                case Op::Eq: if_icmpeq(trueLabel); break;
-                case Op::Ne: if_icmpne(trueLabel); break;
-                default: throw runtime_error("Unknown comparison operator");
-            }
-            iconst(0);
-            goto_(endLabel);
-            mark(trueLabel);
-            iconst(1);
-            mark(endLabel);
-            return;
-        }
-        
-        throw runtime_error("Type mismatch in comparison");
-    }
-
-    void load(const Expr& e, map<string, u1>& varIdx) {
-        if (e.kind == ExprKind::Num) {
-            const NumLit& nl = get<NumLit>(e.data);
-            if (e.type == Type::Int) {
-                iconst(static_cast<int>(nl.value));
-                if (e.type != Type::Float) return; // No conversion needed
-                i2f(); // Convert int to float for Float-typed expression
-            } else {
-                fconst(static_cast<float>(nl.value));
-            }
-        } else if (e.kind == ExprKind::Str) {
-            const StrLit& sl = get<StrLit>(e.data);
-            u2 utfIdx = cp.addUtf8(sl.value);
-            u2 strIdx = cp.addString(utfIdx);
-            ldc(strIdx);
-        } else if (e.kind == ExprKind::BoolLit) {
-            const BoolLit& bl = get<BoolLit>(e.data);
-            iconst(bl.value ? 1 : 0);
-        } else if (e.kind == ExprKind::Var) {
-            const VarRef& vr = get<VarRef>(e.data);
-            u1 idx = varIdx.at(vr.name);
-            
-            if (vr.index) {
-                // Array element access: load array, load index, load element
-                aload(idx);  // Load array reference
-                load(*vr.index, varIdx);  // Load index (should be Int)
-                
-                // Load element based on type
-                if (e.type == Type::Int) iaload();
-                else if (e.type == Type::Float) faload();
-                else if (e.type == Type::Bool) baload();
-                else if (e.type == Type::String) aaload();
-            } else {
-                // Scalar variable access or array reference
-                if (e.type == Type::Int || e.type == Type::Bool) {
-                    iload(idx);
-                    if (e.type != Type::Float) return; // No conversion needed
-                    i2f(); // Convert int to float for Float-typed expression
-                } else if (e.type == Type::Float) {
-                    fload(idx);
-                } else {
-                    // String or array reference
-                    aload(idx);
-                }
-            }
-        } else if (e.kind == ExprKind::Cmp) {
-            const CmpOp& co = get<CmpOp>(e.data);
-            loadComparison(co, varIdx);
-        } else if (e.kind == ExprKind::Call) {
-            const CallExpr& ce = get<CallExpr>(e.data);
-            
-            // Look up function signature
-            const FunctionSig& sig = builtinFunctions.at(ce.name);
-            
-            // Load arguments
-            for (size_t i = 0; i < ce.args.size(); ++i) {
-                load(*ce.args[i], varIdx);
-                
-                // Convert Int to Float if needed
-                Type expectedType = sig.paramTypes[i];
-                Type actualType = ce.args[i]->type;
-                if (expectedType == Type::Float && actualType == Type::Int) {
-                    i2f();
-                }
-            }
-            
-            // Call function
-            u2 methodRef = getFunctionMethodRef(ce.name);
-            invokestatic(methodRef);
-        } else if (e.kind == ExprKind::Bin) {
-            const BinOp& bo = get<BinOp>(e.data);
-            load(*bo.left, varIdx);
-            // If binary op is Float but left operand is Int, convert
-            if (e.type == Type::Float && bo.left->type == Type::Int) {
-                i2f();
-            }
-            load(*bo.right, varIdx);
-            // If binary op is Float but right operand is Int, convert
-            if (e.type == Type::Float && bo.right->type == Type::Int) {
-                i2f();
-            }
-            if (e.type == Type::Int) {
-                switch (bo.op) {
-                    case Op::Add: iadd(); break;
-                    case Op::Sub: isub(); break;
-                    case Op::Mul: imul(); break;
-                    case Op::Div: idiv(); break;
-                    case Op::Mod: irem(); break;
-                }
-            } else if (e.type == Type::Float) {
-                switch (bo.op) {
-                    case Op::Add: fadd(); break;
-                    case Op::Sub: fsub(); break;
-                    case Op::Mul: fmul(); break;
-                    case Op::Div: fdiv(); break;
-                    case Op::Mod: frem(); break;
-                }
-            }
-        }
-    }
-
-    void genStmt(const Stmt& s, map<string, u1>& varIdx, u1& nextLocal, const map<string, Type>& knownTypes) {
-        if (s.kind == StmtKind::Print) {
-            const PrintStmt& ps = get<PrintStmt>(s.data);
-            
-            for (size_t i = 0; i < ps.exprs.size(); ++i) {
-                const auto& expr = ps.exprs[i];
-                bool isLast = (i == ps.exprs.size() - 1);
-                
-                // Load System.out
-                getstatic(out_field_idx);
-                // Load expression value
-                load(*expr, varIdx);
-                
-                // Determine which print method to use
-                if (isLast && ps.addNewline) {
-                    // Last expression with newline: use println
-                    if (expr->type == Type::Int) invokevirtual(println_int_idx);
-                    else if (expr->type == Type::Float) invokevirtual(println_float_idx);
-                    else if (expr->type == Type::Bool) invokevirtual(println_bool_idx);
-                    else invokevirtual(println_str_idx);
-                } else {
-                    // Not last, or no newline: use print (no newline)
-                    if (expr->type == Type::Int) invokevirtual(print_int_idx);
-                    else if (expr->type == Type::Float) invokevirtual(print_float_idx);
-                    else if (expr->type == Type::Bool) invokevirtual(print_bool_idx);
-                    else invokevirtual(print_str_idx);
-                }
-                
-                // Print separator if not last
-                if (!isLast) {
-                    PrintSep sep = ps.seps[i];
-                    if (sep == PrintSep::Comma) {
-                        // Print a space for comma separator
-                        getstatic(out_field_idx);
-                        ldc(print_space_idx);
-                        invokevirtual(print_str_idx);
-                    }
-                    // Semicolon separator: print nothing (no space)
-                }
-            }
-            
-            // If no newline at end but expressions were printed, we're done
-            // Otherwise if empty PRINT, add newline
-            if (ps.exprs.empty()) {
-                getstatic(out_field_idx);
-                invokevirtual(println_void_idx);
-            }
-        } else if (s.kind == StmtKind::Let) {
-            const LetStmt& ls = get<LetStmt>(s.data);
-            
-            if (ls.index) {
-                // Array element assignment: LET arr(index) = value
-                u1 idx = varIdx.at(ls.var);
-                aload(idx);  // Load array reference
-                load(*ls.index, varIdx);  // Load index
-                load(*ls.expr, varIdx);  // Load value
-                
-                // Store based on type
-                if (ls.expr->type == Type::Int) iastore();
-                else if (ls.expr->type == Type::Float) fastore();
-                else if (ls.expr->type == Type::Bool) bastore();
-                else if (ls.expr->type == Type::String) aastore();
-            } else {
-                // Scalar assignment
-                if (varIdx.find(ls.var) == varIdx.end()) {
-                    varIdx[ls.var] = nextLocal++;
-                }
-                u1 idx = varIdx[ls.var];
-                load(*ls.expr, varIdx);
-                if (ls.expr->type == Type::Int || ls.expr->type == Type::Bool) istore(idx);
-                else if (ls.expr->type == Type::Float) fstore(idx);
-                else astore(idx);
-                max_locals = max(max_locals, static_cast<u2>(nextLocal));
-            }
-        } else if (s.kind == StmtKind::Input) {
-            const InputStmt& is = get<InputStmt>(s.data);
-            u1 idx = varIdx.at(is.var);
-            Type varType = knownTypes.at(is.var);
-            
-            // Load scanner
-            aload(scanner_local);
-            // Call nextLine()
-            invokevirtual(scanner_nextline_idx);
-            
-            // Convert string to appropriate type
-            if (varType == Type::Int) {
-                // Integer.parseInt(string)
-                invokestatic(integer_parseint_idx);
-                istore(idx);
-            } else if (varType == Type::Float) {
-                // Float.parseFloat(string)
-                invokestatic(float_parsefloat_idx);
-                fstore(idx);
-            } else if (varType == Type::Bool) {
-                // Check if string equals "true" (case-insensitive)
-                // For simplicity: use String.toLowerCase().equals("true")
-                u2 tolower_name = cp.addUtf8("toLowerCase");
-                u2 tolower_desc = cp.addUtf8("()Ljava/lang/String;");
-                u2 nat_tolower = cp.addNameAndType(tolower_name, tolower_desc);
-                u2 tolower_idx = cp.addMethodRef(string_class_idx, nat_tolower);
-                
-                invokevirtual(tolower_idx);
-                u2 true_utf = cp.addUtf8("true");
-                u2 true_str = cp.addString(true_utf);
-                ldc(true_str);
-                invokevirtual(string_equals_idx);
-                // Result is 0 or 1 (boolean as int)
-                istore(idx);
-            } else {
-                // String: just store directly
-                astore(idx);
-            }
-        } else if (s.kind == StmtKind::Dim) {
-            const DimStmt& ds = get<DimStmt>(s.data);
-            
-            // Allocate local variable for array
-            varIdx[ds.var] = nextLocal++;
-            max_locals = max(max_locals, static_cast<u2>(nextLocal));
-            u1 idx = varIdx[ds.var];
-            
-            // Load size and create array
-            load(*ds.size, varIdx);
-            
-            Type arrType = knownTypes.at(ds.var);
-            if (arrType == Type::IntArray) newarray_int();
-            else if (arrType == Type::FloatArray) newarray_float();
-            else if (arrType == Type::BoolArray) newarray_bool();
-            else if (arrType == Type::StringArray) anewarray(string_class_idx);
-            
-            // Store array reference
-            astore(idx);
-            
-            // Initialize all elements with initVal
-            // For simplicity, we'll initialize in a loop at runtime
-            // Save size to a temp variable
-            load(*ds.size, varIdx);
-            u1 sizeVar = nextLocal++;
-            max_locals = max(max_locals, static_cast<u2>(nextLocal));
-            istore(sizeVar);
-            
-            // Initialize counter to 0
-            iconst(0);
-            u1 counterVar = nextLocal++;
-            max_locals = max(max_locals, static_cast<u2>(nextLocal));
-            istore(counterVar);
-            
-            // Loop: while counter < size
-            Label loopStart, loopEnd;
-            mark(loopStart);
-            
-            // Check: counter < size
-            iload(counterVar);
-            iload(sizeVar);
-            if_icmpge(loopEnd);
-            
-            // arr[counter] = initVal
-            aload(idx);  // Load array
-            iload(counterVar);  // Load index
-            load(*ds.initVal, varIdx);  // Load init value
-            
-            // Store based on type
-            if (ds.initVal->type == Type::Int) iastore();
-            else if (ds.initVal->type == Type::Float) fastore();
-            else if (ds.initVal->type == Type::Bool) bastore();
-            else if (ds.initVal->type == Type::String) aastore();
-            
-            // counter++
-            iload(counterVar);
-            iconst(1);
-            iadd();
-            istore(counterVar);
-            
-            // goto loopStart
-            goto_(loopStart);
-            mark(loopEnd);
-        } else if (s.kind == StmtKind::For) {
-            const ForStmt& fs = get<ForStmt>(s.data);
-            
-            // Allocate loop variable if needed
-            if (varIdx.find(fs.var) == varIdx.end()) {
-                varIdx[fs.var] = nextLocal++;
-                max_locals = max(max_locals, static_cast<u2>(nextLocal));
-            }
-            u1 varSlot = varIdx[fs.var];
-            Type varType = knownTypes.at(fs.var);
-            
-            // Initialize: var = start
-            load(*fs.start, varIdx);
-            if (varType == Type::Int) istore(varSlot);
-            else fstore(varSlot);
-            
-            // Determine step value (default 1)
-            bool hasStep = (fs.step != nullptr);
-            
-            Label loopStart, loopEnd;
-            mark(loopStart);
-            
-            // Check condition: var <= end (or >= for negative step)
-            if (varType == Type::Int) {
-                iload(varSlot);
-                load(*fs.end, varIdx);
-                // For simplicity, always use <= (assume positive step or user knows what they're doing)
-                if_icmpgt(loopEnd);
-            } else {
-                // Float loop
-                fload(varSlot);
-                load(*fs.end, varIdx);
-                if (fs.start->type == Type::Int) i2f();
-                fcmpg();
-                ifgt(loopEnd);
-            }
-            
-            // Body
-            for (const auto& stmt : fs.body) {
-                genStmt(*stmt, varIdx, nextLocal, knownTypes);
-            }
-            
-            // Increment: var += step (or += 1)
-            if (varType == Type::Int) {
-                iload(varSlot);
-                if (hasStep) {
-                    load(*fs.step, varIdx);
-                } else {
-                    iconst(1);
-                }
-                iadd();
-                istore(varSlot);
-            } else {
-                fload(varSlot);
-                if (hasStep) {
-                    load(*fs.step, varIdx);
-                    if (fs.step->type == Type::Int) i2f();
-                } else {
-                    fconst(1.0f);
-                }
-                fadd();
-                fstore(varSlot);
-            }
-            
-            goto_(loopStart);
-            mark(loopEnd);
-        } else if (s.kind == StmtKind::While) {
-            const WhileStmt& ws = get<WhileStmt>(s.data);
-            
-            Label loopStart, loopEnd;
-            mark(loopStart);
-            
-            // Check condition
-            load(*ws.cond, varIdx);
-            ifeq(loopEnd);
-            
-            // Body
-            for (const auto& stmt : ws.body) {
-                genStmt(*stmt, varIdx, nextLocal, knownTypes);
-            }
-            
-            goto_(loopStart);
-            mark(loopEnd);
-        } else if (s.kind == StmtKind::DoWhile) {
-            const DoWhileStmt& dws = get<DoWhileStmt>(s.data);
-            
-            Label loopStart;
-            mark(loopStart);
-            
-            // Body (executes at least once)
-            for (const auto& stmt : dws.body) {
-                genStmt(*stmt, varIdx, nextLocal, knownTypes);
-            }
-            
-            // Check condition
-            load(*dws.cond, varIdx);
-            if (dws.isUntil) {
-                // UNTIL: loop while condition is false
-                ifeq(loopStart);
-            } else {
-                // WHILE: loop while condition is true
-                ifne(loopStart);
-            }
-        } else if (s.kind == StmtKind::If) {
-            const IfStmt& ifs = get<IfStmt>(s.data);
-            
-            // Evaluate main condition
-            load(*ifs.cond, varIdx);
-            Label nextLabel, endLabel;
-            ifeq(nextLabel); // Jump to next clause if condition is false (0)
-            
-            // Generate THEN body
-            for (const auto& stmt : ifs.thenBody) {
-                genStmt(*stmt, varIdx, nextLocal, knownTypes);
-            }
-            goto_(endLabel);
-            
-            // Generate ELSE IF clauses
-            for (const auto& elseIf : ifs.elseIfs) {
-                mark(nextLabel);
-                nextLabel = Label(); // Create new label for next clause
-                
-                load(*elseIf.cond, varIdx);
-                ifeq(nextLabel);
-                
-                for (const auto& stmt : elseIf.body) {
-                    genStmt(*stmt, varIdx, nextLocal, knownTypes);
-                }
-                goto_(endLabel);
-            }
-            
-            // Generate ELSE body
-            mark(nextLabel);
-            for (const auto& stmt : ifs.elseBody) {
-                genStmt(*stmt, varIdx, nextLocal, knownTypes);
-            }
-            
-            mark(endLabel);
-        }
-    }
-
-    void generate(const vector<StmtPtr>& program, const map<string, Type>& knownTypes) {
-        map<string, u1> varIdx;
-        u1 nextLocal = 1;
-        max_locals = 1;
-        
-        // Initialize Scanner for INPUT (allocate before other variables)
-        scanner_local = nextLocal++;
-        max_locals = max(max_locals, static_cast<u2>(nextLocal));
-        
-        // new Scanner(System.in)
-        new_(scanner_class_idx);
-        dup();
-        getstatic(system_in_idx);
-        invokespecial(scanner_init_idx);
-        astore(scanner_local);
-        
-        for (const auto& sp : program) {
-            genStmt(*sp, varIdx, nextLocal, knownTypes);
-        }
-        _return();
-    }
-
-    void write(ostream& out) {
-        writeU4(out, magic);
-        writeU2(out, minor_version);
-        writeU2(out, major_version);
-
-        u2 cp_count = static_cast<u2>(cp.entries.size() + 1);
-        writeU2(out, cp_count);
-        for (const auto& entry : cp.entries) {
-            for (u1 b : entry) {
-                out.put(b);
-            }
-        }
-
-        writeU2(out, 0x0021); // public, super
-        writeU2(out, this_class_idx);
-        writeU2(out, super_class_idx);
-        writeU2(out, 0); // interfaces_count
-        writeU2(out, 0); // fields_count
-
-        writeU2(out, 1); // methods_count
-        writeU2(out, 0x0009); // public static
-        writeU2(out, main_name_idx);
-        writeU2(out, main_desc_idx);
-        writeU2(out, 1); // attributes_count
-
-        // Code attribute
-        auto start_pos = out.tellp();
-        writeU2(out, code_name_idx);
-        auto len_pos = out.tellp();
-        writeU4(out, 0); // placeholder for attribute_length
-
-        writeU2(out, max_stack);
-        writeU2(out, max_locals);
-        u4 code_len = static_cast<u4>(code.size());
-        writeU4(out, code_len);
-        for (u1 b : code) out.put(b);
-        writeU2(out, 0); // exception_table_length
-        writeU2(out, 0); // code_attributes_count
-
-        auto end_pos = out.tellp();
-        u4 attr_len = static_cast<u4>(end_pos - (len_pos + static_cast<streamoff>(4)));
-        out.seekp(len_pos);
-        writeU4(out, attr_len);
-        out.seekp(end_pos);
-
-        writeU2(out, 0); // attributes_count
-    }
-
-private:
-    void writeU2(ostream& o, u2 v) {
-        o.put(static_cast<char>(v >> 8));
-        o.put(static_cast<char>(v & 0xFF));
-    }
-    void writeU4(ostream& o, u4 v) {
-        writeU2(o, static_cast<u2>(v >> 16));
-        writeU2(o, static_cast<u2>(v & 0xFFFF));
-    }
-};
-
-// Compiler
 class BasicCompiler {
 public:
     void compile(istream& input, ostream& output) {
         Parser p(input);
         p.parse();
         cf.buildConstantPool();
-        cf.generate(p.program, p.getKnownTypes());
+        cf.generate(p.declarations, p.program, p.getKnownTypes());
         cf.write(output);
     }
 

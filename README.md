@@ -3,16 +3,17 @@
 This project is a minimal compiler for a small BASIC-like language written in modern C++. It reads source from stdin and writes a valid Java `.class` file (`BasicProg.class`) that can be disassembled with `javap` and executed on any JVM.
 
 ### Features
-- **Statements**: `PRINT`, `LET`, `INPUT`, `DIM`, `IF...THEN...ELSE...ENDIF`, `FOR...TO...STEP...NEXT`, `WHILE...ENDWHILE`, `DO...WHILE/UNTIL` (no semicolons required!)
+- **Statements**: `PRINT`, `LET`, `INPUT`, `DIM`, `IF...THEN...ELSE...ENDIF`, `FOR...TO...STEP...NEXT`, `WHILE...ENDWHILE`, `DO...WHILE/UNTIL`, `FUNCTION`, `SUB`, `RETURN`, `CALL` (no semicolons required!)
 - **Expressions**: integers, floats, strings, booleans, variable references, parentheses, and `+ - * / % (MOD)` with precedence
 - **Comparisons**: `< > <= >= == <>` for numeric, string, and boolean values
 - **Types**: `Int`, `Float`, `String`, `Bool` with simple numeric promotion (Int→Float)
 - **Arrays**: One-dimensional typed arrays with `DIM arr(size) = initValue`
 - **Control Flow**: IF/THEN/ELSEIF/ELSE/ENDIF with cascading conditions, nested support
 - **Loops**: FOR...TO...STEP...NEXT, WHILE...ENDWHILE, DO...WHILE/UNTIL with full nesting
+- **User Functions**: FUNCTION...ENDFUNCTION for functions with return values, SUB...ENDSUB for void procedures
 - **Output**: Multi-argument PRINT with traditional BASIC `,` (space) and `;` (no space) separators
 - **Input**: INPUT statement with automatic type conversion based on variable type
-- **Built-in Functions**: 40+ math and string functions (see below)
+- **Built-in Functions**: 50+ math and string functions (see below)
 - **I/O**: Uses `java/lang/System.out` for output, `java.util.Scanner` for input, `basicrt.BasicRuntime` for functions
 
 ### Quick start
@@ -54,6 +55,8 @@ Hello
 - `ASIN(x)`, `ACOS(x)`, `ATAN(x)`, `ATAN2(y,x)` - Inverse trig
 - `EXP(x)`, `LOG(x)`, `LOG10(x)` - Exponential and logarithms
 - `RND()` - Random 0.0-1.0
+- `RNDI(x)` - Random integer to x
+- `RNDINT(x,y)` - Ranged random integer x to y inclusive
 - `PI()`, `E()` - Mathematical constants
 
 **String Functions:**
@@ -79,8 +82,11 @@ Hello
 - `SUMARRAY(arr)` - Sum all array elements
 - `UBOUND(arr)` - Get upper bound (size - 1) of array
 
-### Language reference (current subset)
-- **Program**: a sequence of statements (no semicolons required!)
+### Language reference
+- **Program**: optional function/sub declarations followed by main program statements (no semicolons required!)
+- **Declarations**:
+  - `FUNCTION <name>(<params>) ... RETURN <expr> ... ENDFUNCTION` - Define a function with return value
+  - `SUB <name>(<params>) ... ENDSUB` - Define a void procedure
 - **Statements**:
   - `PRINT [<expr> [{, | ;}  <expr>]* [, | ;]?]` - Print expressions with optional separators
     - Comma (`,`): adds space between values
@@ -103,6 +109,8 @@ Hello
     - Condition checked before each iteration
   - `DO ... WHILE <expr>` - DO-WHILE loop (executes at least once)
   - `DO ... UNTIL <expr>` - DO-UNTIL loop (executes at least once)
+  - `RETURN [<expr>]` - Return from function (with optional value)
+  - `CALL <name>(<args>)` - Call a void procedure/sub
 - **Expressions**:
   - Literals: integer (`1`, `42`), float (`3.14`, `.5`), string (`"Hello"`), boolean (`true`, `false` - case insensitive)
   - Variables: `<ID>` defined by a previous `LET`
@@ -219,12 +227,29 @@ return
 - `Parser`: builds AST nodes for expressions (`Num`, `Str`, `Var`, `Bin`) and statements (`Print`, `Let`), checks types, and performs simple numeric promotion
 - `ClassFile`: constant-pool builder and bytecode emitter for arithmetic, loads/stores, literals, and `println`
 
+### User-Defined Functions Example
+```basic
+FUNCTION square(x)
+    RETURN x * x
+ENDFUNCTION
+
+FUNCTION add(a, b)
+    RETURN a + b
+ENDFUNCTION
+
+LET result = square(5)
+PRINT "Square of 5 is", result
+
+LET sum = add(10, 20)
+PRINT "10 + 20 =", sum
+```
+
 ### Limitations (by design for simplicity)
-- No user-defined functions/procedures (planned for Phase 5)
+- User function type inference is simplified (parameters inferred from return type)
 - No GOTO, GOSUB, or line numbers (classic BASIC compat - future)
 - One-dimensional arrays only (multi-dimensional planned)
 - No loop control statements (EXIT FOR, CONTINUE - future)
-- No array procedure calls (SORT, REVERSE - needs procedure support)
+- No array procedure calls (SORT, REVERSE - needs enhanced type support)
 - No file I/O (OPEN, CLOSE - planned)
 - No user-defined types/structures (future)
 - Minimal constant pool management (no deduplication)
