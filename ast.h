@@ -10,7 +10,8 @@ using namespace std;
 // Type system
 enum class Type { 
     Int, Float, String, Bool, 
-    IntArray, FloatArray, StringArray, BoolArray 
+    IntArray, FloatArray, StringArray, BoolArray,
+    UserDefined  // For user-defined types (structs)
 };
 
 // Operators
@@ -25,7 +26,7 @@ using StmtPtr = unique_ptr<Stmt>;
 using DeclPtr = unique_ptr<Decl>;
 
 // Expression kinds
-enum class ExprKind { Num, Str, Var, Bin, BoolLit, Cmp, Call, Unary };
+enum class ExprKind { Num, Str, Var, Bin, BoolLit, Cmp, Call, Unary, MemberAccess };
 
 // Unary operators
 enum class UnaryOp { Neg };
@@ -68,10 +69,16 @@ struct UnaryExpr {
     ExprPtr operand;
 };
 
+struct MemberAccessExpr {
+    ExprPtr object;
+    string member;
+};
+
 struct Expr {
     ExprKind kind;
     Type type;
-    variant<NumLit, StrLit, VarRef, BinOp, BoolLit, CmpOp, CallExpr, UnaryExpr> data;
+    string typeName;  // For UserDefined types, stores the type name
+    variant<NumLit, StrLit, VarRef, BinOp, BoolLit, CmpOp, CallExpr, UnaryExpr, MemberAccessExpr> data;
 
     Expr(ExprKind k, Type t, NumLit n) : kind(k), type(t), data(n) {}
     Expr(ExprKind k, Type t, StrLit s) : kind(k), type(t), data(s) {}
@@ -81,6 +88,7 @@ struct Expr {
     Expr(ExprKind k, Type t, CmpOp c) : kind(k), type(t), data(std::move(c)) {}
     Expr(ExprKind k, Type t, CallExpr c) : kind(k), type(t), data(std::move(c)) {}
     Expr(ExprKind k, Type t, UnaryExpr u) : kind(k), type(t), data(std::move(u)) {}
+    Expr(ExprKind k, Type t, MemberAccessExpr m) : kind(k), type(t), data(std::move(m)) {}
 };
 
 // Statement kinds
@@ -112,6 +120,7 @@ struct DimStmt {
     string var;
     ExprPtr size;
     ExprPtr initVal;
+    string typeName;  // For "DIM var AS TypeName"
 };
 
 struct ElseIfClause { 
@@ -172,12 +181,20 @@ struct Stmt {
 };
 
 // Declaration kinds
-enum class DeclKind { Function, Sub };
+enum class DeclKind { Function, Sub, TypeDef };
 
 // Parameter for functions/subs
 struct Param {
     string name;
     Type type;
+    string typeName;  // For UserDefined types
+};
+
+// Field definition for TYPE declarations
+struct Field {
+    string name;
+    Type type;
+    string typeName;  // For UserDefined field types
 };
 
 // Function/Sub declarations
@@ -194,12 +211,19 @@ struct SubDecl {
     vector<StmtPtr> body;
 };
 
+// TYPE declaration (user-defined type)
+struct TypeDefDecl {
+    string name;
+    vector<Field> fields;
+};
+
 struct Decl {
     DeclKind kind;
-    variant<FunctionDecl, SubDecl> data;
+    variant<FunctionDecl, SubDecl, TypeDefDecl> data;
 
     Decl(DeclKind k, FunctionDecl f) : kind(k), data(std::move(f)) {}
     Decl(DeclKind k, SubDecl s) : kind(k), data(std::move(s)) {}
+    Decl(DeclKind k, TypeDefDecl t) : kind(k), data(std::move(t)) {}
 };
 
 // Program structure

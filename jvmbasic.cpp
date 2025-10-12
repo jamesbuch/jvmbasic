@@ -10,11 +10,12 @@ using u2 = uint16_t;
 using u4 = uint32_t;
 
 // TokenType remains here (Lexer-specific, not in AST)
-enum class TokenType { END, NUMBER, STRING, ID, PLUS, MINUS, MUL, DIV, MOD, ASSIGN, SEMI, COMMA, LPAREN, RPAREN, 
+enum class TokenType { END, NUMBER, STRING, ID, PLUS, MINUS, MUL, DIV, MOD, ASSIGN, SEMI, COMMA, LPAREN, RPAREN, DOT,
                        PRINT, LET, INPUT, DIM, LT, GT, LE, GE, EQ, NE, 
                        TRUE, FALSE, IF, THEN, ELSE, ENDIF, ELSEIF,
                        FOR, TO, STEP, NEXT, WHILE, ENDWHILE, WEND, DO, UNTIL,
-                       FUNCTION, ENDFUNCTION, SUB, ENDSUB, RETURN, CALL, REM };
+                       FUNCTION, ENDFUNCTION, SUB, ENDSUB, RETURN, CALL, REM,
+                       TYPE, ENDTYPE, AS };
 
 // Token (Lexer-specific)
 struct Token {
@@ -65,30 +66,42 @@ public:
         int tokenLine = line;  // Capture line at start of token
         if (eof) return {TokenType::END, "", 0.0, tokenLine};
 
-        if (isdigit(ch) || ch == '.') {
+        if (isdigit(ch)) {
             string s;
-            bool hasDot = false;
-            if (ch == '.') {
-                hasDot = true;
-                s += ch;
-                read();
-            }
             while (!eof && isdigit(ch)) {
                 s += ch;
                 read();
             }
+            // Check for decimal point followed by more digits
             if (!eof && ch == '.') {
-                if (hasDot) error("Invalid number: multiple decimal points");
-                hasDot = true;
                 s += ch;
                 read();
+                // Must have at least one digit after decimal point for valid number
+                if (isdigit(ch)) {
+                    while (!eof && isdigit(ch)) {
+                        s += ch;
+                        read();
+                    }
+                }
+                // If no digit after dot, we have "123." which is still a valid number
+            }
+            Token t{TokenType::NUMBER, s, s.empty() ? 0.0 : stod(s), tokenLine};
+            return t;
+        } else if (ch == '.') {
+            // Could be start of decimal number (.5) or DOT operator
+            // Peek ahead: if next is digit, it's a number
+            read();
+            if (isdigit(ch)) {
+                string s = ".";
                 while (!eof && isdigit(ch)) {
                     s += ch;
                     read();
                 }
+                return {TokenType::NUMBER, s, stod(s), tokenLine};
+            } else {
+                // It's a DOT operator for member access
+                return {TokenType::DOT, ".", 0.0, tokenLine};
             }
-            Token t{TokenType::NUMBER, s, s.empty() ? 0.0 : stod(s), tokenLine};
-            return t;
         } else if (ch == '"') {
             read();
             string s;
@@ -134,6 +147,9 @@ public:
             if (upper == "ENDSUB") return {TokenType::ENDSUB, s, 0.0, tokenLine};
             if (upper == "RETURN") return {TokenType::RETURN, s, 0.0, tokenLine};
             if (upper == "CALL") return {TokenType::CALL, s, 0.0, tokenLine};
+            if (upper == "TYPE") return {TokenType::TYPE, s, 0.0, tokenLine};
+            if (upper == "ENDTYPE") return {TokenType::ENDTYPE, s, 0.0, tokenLine};
+            if (upper == "AS") return {TokenType::AS, s, 0.0, tokenLine};
             if (upper == "REM") {
                 // Comment - skip rest of line
                 while (!eof && ch != '\n') read();
@@ -209,6 +225,7 @@ private:
     map<string, pair<vector<Type>, Type>> userFunctions;  // name -> (param types, return type)
     map<string, vector<Type>> userSubs;  // name -> param types
     vector<CallSite> callSites;  // Collect call sites for type inference
+    map<string, TypeDefDecl> userTypes;  // name -> type definition (for user-defined types)
 
     void next() { tok = lex.nextToken(); }
     Token expect(TokenType tt) {
@@ -386,7 +403,29 @@ private:
                 // The type stays as IntArray, FloatArray, etc.
             }
             
-            return make_unique<Expr>(ExprKind::Var, varType, VarRef{name, move(index)});
+            // Check for member access (dot operator)
+            ExprPtr expr = make_unique<Expr>(ExprKind::Var, varType, VarRef{name, move(index)});
+            
+            while (tok.type == TokenType::DOT) {
+                next();
+                string member = expect(TokenType::ID).val;
+                
+                // Look up the member type from the struct definition
+                if (varType == Type::UserDefined) {
+                    // Find the type definition
+                    // We need to get the type name from somewhere...
+                    // For now, we'll set member type to Float as a placeholder
+                    // This will need proper type resolution later
+                    Type memberType = Type::Float;  // TODO: proper type lookup
+                    expr = make_unique<Expr>(ExprKind::MemberAccess, memberType, 
+                                           MemberAccessExpr{move(expr), member});
+                    varType = memberType;  // Update for chained access
+                } else {
+                    error("Dot operator can only be used with user-defined types");
+                }
+            }
+            
+            return expr;
         } else if (tok.type == TokenType::LPAREN) {
             next();
             auto e = parseExpr();
@@ -463,6 +502,49 @@ private:
     }
 
     ExprPtr parseExpr() { return parseEq(); }
+
+    // Parse user-defined type (TYPE...ENDTYPE)
+    DeclPtr parseTypeDecl() {
+        expect(TokenType::TYPE);
+        string typeName = expect(TokenType::ID).val;
+        
+        vector<Field> fields;
+        while (tok.type != TokenType::ENDTYPE && tok.type != TokenType::END) {
+            string fieldName = expect(TokenType::ID).val;
+            expect(TokenType::AS);
+            string fieldTypeName = expect(TokenType::ID).val;
+            
+            // Resolve field type
+            Type fieldType = resolveTypeName(fieldTypeName);
+            fields.push_back(Field{fieldName, fieldType, fieldTypeName});
+        }
+        expect(TokenType::ENDTYPE);
+        
+        return make_unique<Decl>(DeclKind::TypeDef, TypeDefDecl{typeName, fields});
+    }
+    
+    // Resolve type name to Type enum
+    Type resolveTypeName(const string& typeName) {
+        string upper = typeName;
+        transform(upper.begin(), upper.end(), upper.begin(), ::toupper);
+        
+        if (upper == "INT") return Type::Int;
+        if (upper == "FLOAT") return Type::Float;
+        if (upper == "STRING") return Type::String;
+        if (upper == "BOOL") return Type::Bool;
+        if (upper == "INTARRAY") return Type::IntArray;
+        if (upper == "FLOATARRAY") return Type::FloatArray;
+        if (upper == "STRINGARRAY") return Type::StringArray;
+        if (upper == "BOOLARRAY") return Type::BoolArray;
+        
+        // Check if it's a user-defined type
+        if (userTypes.count(upper)) {
+            return Type::UserDefined;
+        }
+        
+        // Unknown type - default to UserDefined and store name for later
+        return Type::UserDefined;
+    }
 
     DeclPtr parseDecl() {
         if (tok.type == TokenType::FUNCTION) {
@@ -595,6 +677,37 @@ private:
             next();
             string var = expect(TokenType::ID).val;
             
+            // Check for member access: LET var.member = value
+            if (tok.type == TokenType::DOT) {
+                // Member assignment - for now, we'll handle this via expression parsing
+                // Parse the entire left side as a member access expression
+                // LET point.x = 10.0
+                //     ^---- we've read "point"
+                //          ^---- next is DOT
+                
+                // Build the member access chain
+                vector<string> memberPath;
+                while (tok.type == TokenType::DOT) {
+                    next();
+                    memberPath.push_back(expect(TokenType::ID).val);
+                }
+                
+                expect(TokenType::ASSIGN);
+                auto e = parseExpr();
+                
+                // For now, store member path in a special way
+                // We'll use the var as base and store member path somehow
+                // This is a simplification - proper implementation would extend LetStmt
+                // For Phase 6, we'll just handle single-level member access
+                if (memberPath.size() == 1) {
+                    // Store as "var.member" in the var field (hack for now)
+                    string fullPath = var + "." + memberPath[0];
+                    return make_unique<Stmt>(StmtKind::Let, LetStmt{fullPath, move(e), nullptr});
+                } else {
+                    error("Nested member access in assignment not yet supported");
+                }
+            }
+            
             // Check for array assignment: LET arr(index) = value
             ExprPtr index = nullptr;
             if (tok.type == TokenType::LPAREN) {
@@ -644,25 +757,45 @@ private:
         } else if (tok.type == TokenType::DIM) {
             next();
             string var = expect(TokenType::ID).val;
-            expect(TokenType::LPAREN);
-            auto size = parseExpr();
-            expect(TokenType::RPAREN);
-            expect(TokenType::ASSIGN);
-            auto initVal = parseExpr();
             
-            // Infer array type from init value
-            Type elemType = initVal->type;
-            Type arrType;
-            if (elemType == Type::Int) arrType = Type::IntArray;
-            else if (elemType == Type::Float) arrType = Type::FloatArray;
-            else if (elemType == Type::String) arrType = Type::StringArray;
-            else if (elemType == Type::Bool) arrType = Type::BoolArray;
-            else error("Invalid array element type");
-            
-            if (knownTypes.count(var)) error("Variable already defined: " + var);
-            knownTypes[var] = arrType;
-            
-            return make_unique<Stmt>(StmtKind::Dim, DimStmt{var, move(size), move(initVal)});
+            // Check if it's "DIM var AS TypeName" or "DIM array(size) = value"
+            if (tok.type == TokenType::AS) {
+                // User-defined type: DIM var AS TypeName
+                next();
+                string typeName = expect(TokenType::ID).val;
+                
+                // Resolve type
+                Type varType = resolveTypeName(typeName);
+                if (varType != Type::UserDefined) {
+                    error("Expected user-defined type after AS, got: " + typeName);
+                }
+                
+                if (knownTypes.count(var)) error("Variable already defined: " + var);
+                knownTypes[var] = Type::UserDefined;
+                
+                return make_unique<Stmt>(StmtKind::Dim, DimStmt{var, nullptr, nullptr, typeName});
+            } else {
+                // Array: DIM array(size) = initValue
+                expect(TokenType::LPAREN);
+                auto size = parseExpr();
+                expect(TokenType::RPAREN);
+                expect(TokenType::ASSIGN);
+                auto initVal = parseExpr();
+                
+                // Infer array type from init value
+                Type elemType = initVal->type;
+                Type arrType;
+                if (elemType == Type::Int) arrType = Type::IntArray;
+                else if (elemType == Type::Float) arrType = Type::FloatArray;
+                else if (elemType == Type::String) arrType = Type::StringArray;
+                else if (elemType == Type::Bool) arrType = Type::BoolArray;
+                else error("Invalid array element type");
+                
+                if (knownTypes.count(var)) error("Variable already defined: " + var);
+                knownTypes[var] = arrType;
+                
+                return make_unique<Stmt>(StmtKind::Dim, DimStmt{var, move(size), move(initVal), ""});
+            }
         } else if (tok.type == TokenType::FOR) {
             next();
             string var = expect(TokenType::ID).val;
@@ -1060,7 +1193,16 @@ public:
 
     Parser(istream& i) : lex(i) { next(); }
     void parse() {
-        // First, parse all function/sub declarations (without fixed parameter types)
+        // First, parse all TYPE declarations (user-defined types)
+        while (tok.type == TokenType::TYPE) {
+            auto typeDecl = parseTypeDecl();
+            // Register the type
+            const TypeDefDecl& td = get<TypeDefDecl>(typeDecl->data);
+            userTypes[td.name] = td;
+            declarations.push_back(move(typeDecl));
+        }
+        
+        // Then, parse all function/sub declarations (without fixed parameter types)
         while (tok.type == TokenType::FUNCTION || tok.type == TokenType::SUB) {
             auto decl = parseDecl();
             
