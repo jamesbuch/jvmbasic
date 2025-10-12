@@ -18,9 +18,9 @@ ENDFUNCTION
 
 PRINT "Testing functions with loops"
 
-LET fact5 = factorial(5)
+LET fact5 = factorial(5.0)
 PRINT "factorial(5) =", fact5
 
-LET sum = sumrange(1, 10)
+LET sum = sumrange(1.0, 10.0)
 PRINT "sum(1 to 10) =", sum
 
