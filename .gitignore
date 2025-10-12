@@ -5,3 +5,5 @@ basicrt/*.class
 jvmbasic
 jvmbasic-new
 jvmbasic-modular
+# User reference files (not for repo)
+Defining*.txt
