@@ -553,9 +553,9 @@ public class BasicRuntime {
     }
     
     /**
-     * Close file
+     * Close file (returns 0 for compatibility with LET assignment)
      */
-    public static void closeFile(int handle) {
+    public static int closeFile(int handle) {
         try {
             if (inputFiles.containsKey(handle)) {
                 inputFiles.get(handle).close();
@@ -569,6 +569,7 @@ public class BasicRuntime {
         } catch (java.io.IOException e) {
             // Silently fail
         }
+        return 0;
     }
     
     /**
