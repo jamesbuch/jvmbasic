@@ -896,7 +896,16 @@ public:
                 max_locals = max(max_locals, static_cast<u2>(nextLocal));
             }
             u1 varSlot = varIdx[fs.var];
-            Type varType = knownTypes.at(fs.var);
+            
+            // Get loop variable type (safe lookup)
+            Type varType;
+            auto typeIt = knownTypes.find(fs.var);
+            if (typeIt != knownTypes.end()) {
+                varType = typeIt->second;
+            } else {
+                // Local FOR loop variable - use type from start expression
+                varType = fs.start->type;
+            }
             
             // Initialize: var = start
             load(*fs.start, varIdx);
