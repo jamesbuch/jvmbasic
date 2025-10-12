@@ -77,6 +77,13 @@ void ASTPrinter::printExpr(const Expr& expr) {
             out << ")";
             break;
         }
+        
+        case ExprKind::MemberAccess: {
+            const MemberAccessExpr& mae = get<MemberAccessExpr>(expr.data);
+            printExpr(*mae.object);
+            out << "." << mae.member;
+            break;
+        }
     }
 }
 
@@ -128,11 +135,18 @@ void ASTPrinter::printStmt(const Stmt& stmt) {
         
         case StmtKind::Dim: {
             const DimStmt& ds = get<DimStmt>(stmt.data);
-            out << "DIM " << ds.var << "(";
-            printExpr(*ds.size);
-            out << ") = ";
-            printExpr(*ds.initVal);
-            out << "\n";
+            out << "DIM " << ds.var;
+            if (!ds.typeName.empty()) {
+                // User-defined type: DIM var AS TypeName
+                out << " AS " << ds.typeName << "\n";
+            } else {
+                // Array: DIM var(size) = initVal
+                out << "(";
+                printExpr(*ds.size);
+                out << ") = ";
+                printExpr(*ds.initVal);
+                out << "\n";
+            }
             break;
         }
         
@@ -250,7 +264,21 @@ void ASTPrinter::printStmt(const Stmt& stmt) {
 }
 
 void ASTPrinter::printDecl(const Decl& decl) {
-    if (decl.kind == DeclKind::Function) {
+    if (decl.kind == DeclKind::TypeDef) {
+        const TypeDefDecl& td = get<TypeDefDecl>(decl.data);
+        out << "TYPE " << td.name << "\n";
+        indent++;
+        for (const Field& field : td.fields) {
+            printIndent();
+            out << field.name << " AS " << typeToString(field.type);
+            if (!field.typeName.empty()) {
+                out << " (" << field.typeName << ")";
+            }
+            out << "\n";
+        }
+        indent--;
+        out << "ENDTYPE\n\n";
+    } else if (decl.kind == DeclKind::Function) {
         const FunctionDecl& fd = get<FunctionDecl>(decl.data);
         out << "FUNCTION " << fd.name << "(";
         for (size_t i = 0; i < fd.params.size(); ++i) {
