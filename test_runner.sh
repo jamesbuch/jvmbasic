@@ -1,17 +1,30 @@
 #!/bin/bash
-# Test runner for JVM BASIC
+# Test runner for JVM BASIC - Runs ALL tests automatically
 
-echo "=== JVM BASIC Test Suite ==="
+echo "=== JVM BASIC Complete Test Suite ==="
 echo ""
 
 passed=0
 failed=0
+skipped=0
+
+# Tests that require stdin (will be skipped in main runner)
+input_tests=("test_input.bas" "test_input_simple.bas")
 
 run_test() {
     local test_file=$1
     local test_name=$(basename "$test_file" .bas)
     
-    printf "%-40s" "$test_name..."
+    # Check if this is an INPUT test
+    for input_test in "${input_tests[@]}"; do
+        if [[ "$test_file" == *"$input_test" ]]; then
+            printf "%-50s ⊘ SKIP (use run_input_tests.sh)\n" "$test_name..."
+            ((skipped++))
+            return
+        fi
+    done
+    
+    printf "%-50s" "$test_name..."
     
     if ./jvmbasic < "$test_file" > /dev/null 2>&1 && java -cp . BasicProgram > /dev/null 2>&1; then
         echo "✓ PASS"
@@ -22,30 +35,22 @@ run_test() {
     fi
 }
 
-# Phase 5 tests
-echo "Phase 5: User-Defined Functions"
-run_test "tests/test_function_simple.bas"
-run_test "tests/test_func_single_param.bas"
-run_test "tests/test_func_multi_param.bas"
-run_test "tests/test_func_minimal.bas"
-run_test "tests/test_func_expression_only.bas"
-
-echo ""
-echo "Phase 1-4: Core Features"
-run_test "tests/test_array_int.bas"
-run_test "tests/test_functions.bas"
-run_test "tests/test_advanced.bas"
-run_test "tests/test_math.bas"
-run_test "tests/test_bool.bas"
+# Run all tests in tests/ directory
+for test_file in tests/*.bas; do
+    if [ -f "$test_file" ]; then
+        run_test "$test_file"
+    fi
+done
 
 echo ""
 echo "=== Results ==="
-echo "Passed: $passed"
-echo "Failed: $failed"
-echo "Total:  $((passed + failed))"
+echo "Passed:  $passed"
+echo "Failed:  $failed"
+echo "Skipped: $skipped (INPUT tests - run with ./run_input_tests.sh)"
+echo "Total:   $((passed + failed + skipped))"
 
 if [ $failed -eq 0 ]; then
-    echo "✓ All tests passed!"
+    echo "✓ All non-INPUT tests passed!"
     exit 0
 else
     echo "⚠ Some tests failed"
