@@ -14,7 +14,7 @@ enum class TokenType { END, NUMBER, STRING, ID, PLUS, MINUS, MUL, DIV, MOD, ASSI
                        PRINT, LET, INPUT, DIM, LT, GT, LE, GE, EQ, NE, 
                        TRUE, FALSE, IF, THEN, ELSE, ENDIF, ELSEIF,
                        FOR, TO, STEP, NEXT, WHILE, ENDWHILE, WEND, DO, UNTIL,
-                       FUNCTION, ENDFUNCTION, SUB, ENDSUB, RETURN, CALL };
+                       FUNCTION, ENDFUNCTION, SUB, ENDSUB, RETURN, CALL, REM };
 
 // Token (Lexer-specific)
 struct Token {
@@ -134,6 +134,11 @@ public:
             if (upper == "ENDSUB") return {TokenType::ENDSUB, s, 0.0, tokenLine};
             if (upper == "RETURN") return {TokenType::RETURN, s, 0.0, tokenLine};
             if (upper == "CALL") return {TokenType::CALL, s, 0.0, tokenLine};
+            if (upper == "REM") {
+                // Comment - skip rest of line
+                while (!eof && ch != '\n') read();
+                return nextToken();
+            }
             if (upper == "END") {
                 // Check if next token is IF
                 skipWhite();
@@ -613,6 +618,11 @@ private:
                 else if (arrType == Type::FloatArray) elemType = Type::Float;
                 else if (arrType == Type::StringArray) elemType = Type::String;
                 else if (arrType == Type::BoolArray) elemType = Type::Bool;
+                // Allow scalar types for parameters - will be refined by type inference
+                else if (arrType == Type::Float) elemType = Type::Float;
+                else if (arrType == Type::Int) elemType = Type::Int;
+                else if (arrType == Type::String) elemType = Type::String;
+                else if (arrType == Type::Bool) elemType = Type::Bool;
                 else error("Variable is not an array: " + var);
                 
                 if (ty != elemType) error("Type mismatch in array assignment");

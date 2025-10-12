@@ -19,7 +19,7 @@ enum class TokenType {
     WHILE, ENDWHILE, WEND, 
     DO, UNTIL,
     FUNCTION, ENDFUNCTION, SUB, ENDSUB, RETURN, CALL,
-    TYPE, ENDTYPE, AS
+    TYPE, ENDTYPE, AS, REM
 };
 
 // Token structure

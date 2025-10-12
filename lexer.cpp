@@ -103,6 +103,13 @@ Token Lexer::nextToken() {
         if (upper == "TYPE") return {TokenType::TYPE, s, 0.0, tokenLine};
         if (upper == "ENDTYPE") return {TokenType::ENDTYPE, s, 0.0, tokenLine};
         if (upper == "AS") return {TokenType::AS, s, 0.0, tokenLine};
+        if (upper == "REM") {
+            // Comment - consume rest of line and return next token
+            while (!eof && ch != '\n') {
+                read();
+            }
+            return nextToken();
+        }
         
         // Handle END IF
         if (upper == "END") {
