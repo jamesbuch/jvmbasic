@@ -1206,12 +1206,61 @@ private:
     ClassFile cf;
 };
 
-int main() {
+int main(int argc, char* argv[]) {
+    string inputFile;
+    string outputFile = "BasicProgram.class";
+    bool showHelp = false;
+    
+    // Parse command line arguments
+    for (int i = 1; i < argc; i++) {
+        string arg = argv[i];
+        if (arg == "--help" || arg == "-h") {
+            showHelp = true;
+        } else if (arg == "-o" && i + 1 < argc) {
+            outputFile = argv[++i];
+        } else if (arg[0] != '-') {
+            inputFile = arg;
+        } else {
+            cerr << "Unknown option: " << arg << endl;
+            return 1;
+        }
+    }
+    
+    if (showHelp) {
+        cout << "JVM BASIC Compiler - Phase 5 Complete\n\n";
+        cout << "Usage: jvmbasic [options] [input.bas]\n\n";
+        cout << "Options:\n";
+        cout << "  -o <file>      Output class file (default: BasicProgram.class)\n";
+        cout << "  -h, --help     Show this help message\n\n";
+        cout << "Examples:\n";
+        cout << "  jvmbasic program.bas              # Compile program.bas\n";
+        cout << "  jvmbasic < program.bas            # Read from stdin\n";
+        cout << "  jvmbasic program.bas -o Out.class # Custom output\n";
+        cout << "  jvmbasic --help                   # Show help\n\n";
+        cout << "Features: Functions, Arrays, Recursion, File I/O, Regex\n";
+        cout << "Built-in functions: 93\n";
+        cout << "Documentation: See docs/ and README.md\n";
+        return 0;
+    }
+    
     BasicCompiler bc;
     try {
-        ofstream out("BasicProgram.class", ios::binary);
-        bc.compile(cin, out);
-        cout << "Compiled to BasicProgram.class" << endl;
+        ofstream out(outputFile, ios::binary);
+        
+        if (!inputFile.empty()) {
+            // Read from file
+            ifstream in(inputFile);
+            if (!in) {
+                cerr << "Error: Cannot open input file: " << inputFile << endl;
+                return 1;
+            }
+            bc.compile(in, out);
+        } else {
+            // Read from stdin
+            bc.compile(cin, out);
+        }
+        
+        cout << "Compiled to " << outputFile << endl;
     } catch (const exception& e) {
         cerr << "Error: " << e.what() << endl;
         return 1;
