@@ -525,9 +525,9 @@ public class BasicRuntime {
     }
     
     /**
-     * Write line to file
+     * Write line to file (returns 0 for BASIC compatibility)
      */
-    public static void writeLine(int handle, String text) {
+    public static int writeLine(int handle, String text) {
         try {
             java.io.PrintWriter writer = outputFiles.get(handle);
             if (writer != null) {
@@ -536,12 +536,13 @@ public class BasicRuntime {
         } catch (Exception e) {
             // Silently fail
         }
+        return 0;
     }
     
     /**
-     * Write text to file (no newline)
+     * Write text to file (no newline, returns 0)
      */
-    public static void writeText(int handle, String text) {
+    public static int writeText(int handle, String text) {
         try {
             java.io.PrintWriter writer = outputFiles.get(handle);
             if (writer != null) {
@@ -550,6 +551,7 @@ public class BasicRuntime {
         } catch (Exception e) {
             // Silently fail
         }
+        return 0;
     }
     
     /**
