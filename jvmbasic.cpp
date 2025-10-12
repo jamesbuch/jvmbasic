@@ -822,6 +822,100 @@ public:
     
     const map<string, Type>& getKnownTypes() const { return knownTypes; }
 
+    // Fix types in AST after parameter type inference
+    void fixParameterTypesInAST() {
+        for (auto& decl : declarations) {
+            map<string, Type> paramTypes;
+            vector<StmtPtr>* body = nullptr;
+            
+            if (decl->kind == DeclKind::Function) {
+                FunctionDecl& fd = get<FunctionDecl>(decl->data);
+                for (const auto& p : fd.params) {
+                    paramTypes[p.name] = p.type;
+                }
+                body = &fd.body;
+            } else if (decl->kind == DeclKind::Sub) {
+                SubDecl& sd = get<SubDecl>(decl->data);
+                for (const auto& p : sd.params) {
+                    paramTypes[p.name] = p.type;
+                }
+                body = &sd.body;
+            }
+            
+            if (!body) continue;
+            
+            // Fix expression types in function/sub body
+            function<void(Expr&)> fixExpr = [&](Expr& e) {
+                if (e.kind == ExprKind::Var && !get<VarRef>(e.data).index) {
+                    // Scalar variable reference - check if it's a parameter
+                    const VarRef& vr = get<VarRef>(e.data);
+                    auto it = paramTypes.find(vr.name);
+                    if (it != paramTypes.end()) {
+                        e.type = it->second;  // Update to inferred type
+                    }
+                } else if (e.kind == ExprKind::Call) {
+                    CallExpr& c = get<CallExpr>(e.data);
+                    for (auto& arg : c.args) fixExpr(*arg);
+                } else if (e.kind == ExprKind::Bin) {
+                    BinOp& b = get<BinOp>(e.data);
+                    fixExpr(*b.left);
+                    fixExpr(*b.right);
+                } else if (e.kind == ExprKind::Cmp) {
+                    CmpOp& c = get<CmpOp>(e.data);
+                    fixExpr(*c.left);
+                    fixExpr(*c.right);
+                } else if (e.kind == ExprKind::Unary) {
+                    UnaryExpr& u = get<UnaryExpr>(e.data);
+                    fixExpr(*u.operand);
+                }
+            };
+            
+            function<void(Stmt&)> fixStmt = [&](Stmt& s) {
+                if (s.kind == StmtKind::Print) {
+                    PrintStmt& ps = get<PrintStmt>(s.data);
+                    for (auto& e : ps.exprs) fixExpr(*e);
+                } else if (s.kind == StmtKind::Let) {
+                    LetStmt& ls = get<LetStmt>(s.data);
+                    if (ls.index) fixExpr(*ls.index);
+                    fixExpr(*ls.expr);
+                } else if (s.kind == StmtKind::Return) {
+                    ReturnStmt& rs = get<ReturnStmt>(s.data);
+                    if (rs.expr) fixExpr(*rs.expr);
+                } else if (s.kind == StmtKind::CallStmt) {
+                    CallStmtNode& cs = get<CallStmtNode>(s.data);
+                    for (auto& arg : cs.args) fixExpr(*arg);
+                } else if (s.kind == StmtKind::If) {
+                    IfStmt& ifs = get<IfStmt>(s.data);
+                    fixExpr(*ifs.cond);
+                    for (auto& stmt : ifs.thenBody) fixStmt(*stmt);
+                    for (auto& elif : ifs.elseIfs) {
+                        fixExpr(*elif.cond);
+                        for (auto& stmt : elif.body) fixStmt(*stmt);
+                    }
+                    for (auto& stmt : ifs.elseBody) fixStmt(*stmt);
+                } else if (s.kind == StmtKind::For) {
+                    ForStmt& fs = get<ForStmt>(s.data);
+                    fixExpr(*fs.start);
+                    fixExpr(*fs.end);
+                    if (fs.step) fixExpr(*fs.step);
+                    for (auto& stmt : fs.body) fixStmt(*stmt);
+                } else if (s.kind == StmtKind::While) {
+                    WhileStmt& ws = get<WhileStmt>(s.data);
+                    fixExpr(*ws.cond);
+                    for (auto& stmt : ws.body) fixStmt(*stmt);
+                } else if (s.kind == StmtKind::DoWhile) {
+                    DoWhileStmt& dws = get<DoWhileStmt>(s.data);
+                    fixExpr(*dws.cond);
+                    for (auto& stmt : dws.body) fixStmt(*stmt);
+                }
+            };
+            
+            for (auto& stmt : *body) {
+                fixStmt(*stmt);
+            }
+        }
+    }
+ 
     void inferParameterTypes() {
         // Group call sites by function name
         map<string, vector<vector<Type>>> callsByFunc;
@@ -947,8 +1041,107 @@ public:
             program.push_back(parseStmt());
         }
         
-        // Infer parameter types from call sites
+        // Infer parameter types from call sites (first pass)
         inferParameterTypes();
+        
+        // Fix parameter types in function/sub body ASTs
+        fixParameterTypesInAST();
+        
+        // Re-infer to catch nested function calls with corrected types
+        callSites.clear();  // Clear old call sites
+        rebuildCallSites();  // Rebuild with corrected AST
+        inferParameterTypes();  // Re-infer (should converge)
+    }
+    
+    // Rebuild call sites after AST type fixing
+    void rebuildCallSites() {
+        function<void(const Expr&)> scanExpr = [&](const Expr& e) {
+            if (e.kind == ExprKind::Call) {
+                const CallExpr& ce = get<CallExpr>(e.data);
+                vector<Type> argTypes;
+                for (const auto& arg : ce.args) {
+                    argTypes.push_back(arg->type);
+                }
+                callSites.push_back(CallSite{ce.name, argTypes, 0});
+                for (const auto& arg : ce.args) scanExpr(*arg);
+            } else if (e.kind == ExprKind::Bin) {
+                const BinOp& b = get<BinOp>(e.data);
+                scanExpr(*b.left);
+                scanExpr(*b.right);
+            } else if (e.kind == ExprKind::Cmp) {
+                const CmpOp& c = get<CmpOp>(e.data);
+                scanExpr(*c.left);
+                scanExpr(*c.right);
+            } else if (e.kind == ExprKind::Unary) {
+                const UnaryExpr& u = get<UnaryExpr>(e.data);
+                scanExpr(*u.operand);
+            }
+        };
+        
+        function<void(const Stmt&)> scanStmt = [&](const Stmt& s) {
+            if (s.kind == StmtKind::Print) {
+                const PrintStmt& ps = get<PrintStmt>(s.data);
+                for (const auto& e : ps.exprs) scanExpr(*e);
+            } else if (s.kind == StmtKind::Let) {
+                const LetStmt& ls = get<LetStmt>(s.data);
+                if (ls.index) scanExpr(*ls.index);
+                scanExpr(*ls.expr);
+            } else if (s.kind == StmtKind::Return) {
+                const ReturnStmt& rs = get<ReturnStmt>(s.data);
+                if (rs.expr) scanExpr(*rs.expr);
+            } else if (s.kind == StmtKind::CallStmt) {
+                const CallStmtNode& cs = get<CallStmtNode>(s.data);
+                vector<Type> argTypes;
+                for (const auto& arg : cs.args) {
+                    argTypes.push_back(arg->type);
+                }
+                callSites.push_back(CallSite{cs.name, argTypes, 0});
+                for (const auto& arg : cs.args) scanExpr(*arg);
+            } else if (s.kind == StmtKind::If) {
+                const IfStmt& ifs = get<IfStmt>(s.data);
+                scanExpr(*ifs.cond);
+                for (const auto& stmt : ifs.thenBody) scanStmt(*stmt);
+                for (const auto& elif : ifs.elseIfs) {
+                    scanExpr(*elif.cond);
+                    for (const auto& stmt : elif.body) scanStmt(*stmt);
+                }
+                for (const auto& stmt : ifs.elseBody) scanStmt(*stmt);
+            } else if (s.kind == StmtKind::For) {
+                const ForStmt& fs = get<ForStmt>(s.data);
+                scanExpr(*fs.start);
+                scanExpr(*fs.end);
+                if (fs.step) scanExpr(*fs.step);
+                for (const auto& stmt : fs.body) scanStmt(*stmt);
+            } else if (s.kind == StmtKind::While) {
+                const WhileStmt& ws = get<WhileStmt>(s.data);
+                scanExpr(*ws.cond);
+                for (const auto& stmt : ws.body) scanStmt(*stmt);
+            } else if (s.kind == StmtKind::DoWhile) {
+                const DoWhileStmt& dws = get<DoWhileStmt>(s.data);
+                scanExpr(*dws.cond);
+                for (const auto& stmt : dws.body) scanStmt(*stmt);
+            }
+        };
+        
+        // Scan all function/sub bodies
+        for (const auto& decl : declarations) {
+            if (decl->kind == DeclKind::Function) {
+                const FunctionDecl& fd = get<FunctionDecl>(decl->data);
+                for (const auto& stmt : fd.body) {
+                    scanStmt(*stmt);
+                }
+            } else if (decl->kind == DeclKind::Sub) {
+                const SubDecl& sd = get<SubDecl>(decl->data);
+                for (const auto& stmt : sd.body) {
+                    scanStmt(*stmt);
+                }
+            }
+        }
+        
+        // Scan main program
+        for (const auto& stmt : program) {
+            scanStmt(*stmt);
+        }
     }
 };
 class BasicCompiler {
