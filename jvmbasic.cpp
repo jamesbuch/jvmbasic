@@ -846,13 +846,15 @@ public:
             
             // Fix expression types in function/sub body
             function<void(Expr&)> fixExpr = [&](Expr& e) {
-                if (e.kind == ExprKind::Var && !get<VarRef>(e.data).index) {
-                    // Scalar variable reference - check if it's a parameter
+                if (e.kind == ExprKind::Var) {
+                    // Variable reference (scalar or array) - check if it's a parameter
                     const VarRef& vr = get<VarRef>(e.data);
                     auto it = paramTypes.find(vr.name);
-                    if (it != paramTypes.end()) {
-                        e.type = it->second;  // Update to inferred type
+                    if (it != paramTypes.end() && !vr.index) {
+                        // Full array or scalar parameter reference
+                        e.type = it->second;  // Update to inferred type (might be FloatArray!)
                     }
+                    // If it has an index (arr(i)), element type is already correct
                 } else if (e.kind == ExprKind::Call) {
                     CallExpr& c = get<CallExpr>(e.data);
                     for (auto& arg : c.args) fixExpr(*arg);
@@ -975,7 +977,34 @@ public:
                         if ((paramType == Type::Int && argType == Type::Float) ||
                             (paramType == Type::Float && argType == Type::Int)) {
                             (*params)[i].type = Type::Float;
-                        } else {
+                        }
+                        // If we have scalar and array type, prefer array (multi-pass convergence)
+                        else if (paramType == Type::Float && argType == Type::FloatArray) {
+                            (*params)[i].type = Type::FloatArray;
+                        }
+                        else if (paramType == Type::Int && argType == Type::IntArray) {
+                            (*params)[i].type = Type::IntArray;
+                        }
+                        else if (paramType == Type::String && argType == Type::StringArray) {
+                            (*params)[i].type = Type::StringArray;
+                        }
+                        else if (paramType == Type::Bool && argType == Type::BoolArray) {
+                            (*params)[i].type = Type::BoolArray;
+                        }
+                        // Reverse: array to scalar means we need the array type
+                        else if (paramType == Type::FloatArray && argType == Type::Float) {
+                            // Keep FloatArray (already more specific)
+                        }
+                        else if (paramType == Type::IntArray && argType == Type::Int) {
+                            // Keep IntArray
+                        }
+                        else if (paramType == Type::StringArray && argType == Type::String) {
+                            // Keep StringArray
+                        }
+                        else if (paramType == Type::BoolArray && argType == Type::Bool) {
+                            // Keep BoolArray
+                        }
+                        else {
                             error("Type mismatch in arguments for " + funcName + " at parameter " + 
                                   to_string(i+1) + " (expected " + typeToString(paramType) + 
                                   " but got " + typeToString(argType) + ")");
@@ -1041,16 +1070,25 @@ public:
             program.push_back(parseStmt());
         }
         
-        // Infer parameter types from call sites (first pass)
+        // Multi-pass type inference for array parameters
+        // Pass 1: Initial inference from main program calls
         inferParameterTypes();
         
-        // Fix parameter types in function/sub body ASTs
+        // Pass 2: Fix AST with inferred types
         fixParameterTypesInAST();
         
-        // Re-infer to catch nested function calls with corrected types
-        callSites.clear();  // Clear old call sites
-        rebuildCallSites();  // Rebuild with corrected AST
-        inferParameterTypes();  // Re-infer (should converge)
+        // Pass 3: Rebuild call sites with corrected types
+        callSites.clear();
+        rebuildCallSites();
+        inferParameterTypes();
+        
+        // Pass 4: Fix AST again (for nested calls)
+        fixParameterTypesInAST();
+        
+        // Pass 5: Final inference (should converge)
+        callSites.clear();
+        rebuildCallSites();
+        inferParameterTypes();
     }
     
     // Rebuild call sites after AST type fixing
