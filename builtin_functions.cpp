@@ -72,5 +72,24 @@ const map<string, FunctionSig> builtinFunctions = {
     {"MAXARRAY", {{Type::IntArray}, Type::Int, "max_ia", "([I)I"}},
     {"SUMARRAY", {{Type::IntArray}, Type::Int, "sum_ia", "([I)I"}},
     {"UBOUND", {{Type::IntArray}, Type::Int, "ubound_ia", "([I)I"}},
+    
+    // File I/O
+    {"OPENINPUT", {{Type::String}, Type::Int, "openInput", "(Ljava/lang/String;)I"}},
+    {"OPENOUTPUT", {{Type::String}, Type::Int, "openOutput", "(Ljava/lang/String;)I"}},
+    {"READLINE", {{Type::Int}, Type::String, "readLine", "(I)Ljava/lang/String;"}},
+    {"CLOSEFILE", {{Type::Int}, Type::Int, "closeFile", "(I)V"}},
+    {"FILEEXISTS", {{Type::String}, Type::Bool, "fileExists", "(Ljava/lang/String;)Z"}},
+    {"DELETEFILE", {{Type::String}, Type::Bool, "deleteFile", "(Ljava/lang/String;)Z"}},
+    
+    // Regular Expressions
+    {"REGEXMATCH", {{Type::String, Type::String}, Type::Bool, "regexMatch", "(Ljava/lang/String;Ljava/lang/String;)Z"}},
+    {"REGEXFIND", {{Type::String, Type::String}, Type::String, "regexFind", "(Ljava/lang/String;Ljava/lang/String;)Ljava/lang/String;"}},
+    {"REGEXREPLACE", {{Type::String, Type::String, Type::String}, Type::String, "regexReplace", "(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)Ljava/lang/String;"}},
+    {"REGEXGROUP", {{Type::String, Type::String, Type::Int}, Type::String, "regexGroup", "(Ljava/lang/String;Ljava/lang/String;I)Ljava/lang/String;"}},
+    
+    // Enhanced String Functions
+    {"FORMAT", {{Type::String, Type::String}, Type::String, "format1", "(Ljava/lang/String;Ljava/lang/String;)Ljava/lang/String;"}},
+    {"FORMATF", {{Type::String, Type::Float}, Type::String, "format1_f", "(Ljava/lang/String;F)Ljava/lang/String;"}},
+    {"FORMATI", {{Type::String, Type::Int}, Type::String, "format1_i", "(Ljava/lang/String;I)Ljava/lang/String;"}},
 };
 
