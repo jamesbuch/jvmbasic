@@ -141,6 +141,11 @@ public:
     // Multiple methods support
     vector<MethodInfo> methods;
     map<string, Type> currentLocalTypes;  // Current function's local types (for load to access)
+    
+    // Struct support (Phase 6)
+    map<string, map<string, int>> structFields;      // (typeName, fieldName) -> fieldIndex
+    map<string, map<string, Type>> structFieldTypes; // (typeName, fieldName) -> fieldType
+    map<string, string> varTypeNames;                // varName -> typeName (for user-defined types)
 
     void buildConstantPool() {
         // Utf8
@@ -382,6 +387,7 @@ public:
     void newarray_float() { emit(0xBC); emit(6); }     // T_FLOAT = 6
     void newarray_bool() { emit(0xBC); emit(4); }      // T_BOOLEAN = 4
     void anewarray(u2 idx) { emit(0xBD, idx); }        // For String arrays
+    void checkcast(u2 idx) { emit(0xC0, idx); }        // Cast object to type
     void iaload() { emit(0x2E); }
     void faload() { emit(0x30); }
     void aaload() { emit(0x32); }
@@ -578,6 +584,58 @@ public:
                     // String
                     aload(idx);
                 }
+            }
+        } else if (e.kind == ExprKind::MemberAccess) {
+            // Member access: var.member
+            const MemberAccessExpr& mae = get<MemberAccessExpr>(e.data);
+            
+            // Get the base object
+            // For now, assume it's a simple variable (not chained access)
+            if (mae.object->kind == ExprKind::Var) {
+                const VarRef& vr = get<VarRef>(mae.object->data);
+                u1 varSlot = varIdx.at(vr.name);
+                
+                // Load struct object (Object[])
+                aload(varSlot);
+                
+                // Get field index
+                string typeName = varTypeNames[vr.name];
+                int fieldIdx = structFields[typeName][mae.member];
+                
+                // Load field from array
+                iconst(fieldIdx);
+                aaload();  // Load from Object[]
+                
+                // Unbox if necessary
+                Type fieldType = structFieldTypes[typeName][mae.member];
+                if (fieldType == Type::Float) {
+                    u2 float_class = cp.addClass(cp.addUtf8("java/lang/Float"));
+                    checkcast(float_class);
+                    u2 floatValue_name = cp.addUtf8("floatValue");
+                    u2 floatValue_desc = cp.addUtf8("()F");
+                    u2 nat_floatValue = cp.addNameAndType(floatValue_name, floatValue_desc);
+                    u2 floatValue_idx = cp.addMethodRef(float_class, nat_floatValue);
+                    invokevirtual(floatValue_idx);
+                } else if (fieldType == Type::Int) {
+                    u2 int_class = cp.addClass(cp.addUtf8("java/lang/Integer"));
+                    checkcast(int_class);
+                    u2 intValue_name = cp.addUtf8("intValue");
+                    u2 intValue_desc = cp.addUtf8("()I");
+                    u2 nat_intValue = cp.addNameAndType(intValue_name, intValue_desc);
+                    u2 intValue_idx = cp.addMethodRef(int_class, nat_intValue);
+                    invokevirtual(intValue_idx);
+                } else if (fieldType == Type::Bool) {
+                    u2 bool_class = cp.addClass(cp.addUtf8("java/lang/Boolean"));
+                    checkcast(bool_class);
+                    u2 boolValue_name = cp.addUtf8("booleanValue");
+                    u2 boolValue_desc = cp.addUtf8("()Z");
+                    u2 nat_boolValue = cp.addNameAndType(boolValue_name, boolValue_desc);
+                    u2 boolValue_idx = cp.addMethodRef(bool_class, nat_boolValue);
+                    invokevirtual(boolValue_idx);
+                } else if (fieldType == Type::String) {
+                    checkcast(string_class_idx);
+                }
+                // For UserDefined types, keep as Object[]
             }
         } else if (e.kind == ExprKind::Cmp) {
             const CmpOp& co = get<CmpOp>(e.data);
@@ -776,16 +834,67 @@ public:
                 else if (ls.expr->type == Type::Bool) bastore();
                 else if (ls.expr->type == Type::String) aastore();
             } else {
-                // Scalar assignment
-                if (varIdx.find(ls.var) == varIdx.end()) {
-                    varIdx[ls.var] = nextLocal++;
+                // Check if it's a member assignment (var.member)
+                size_t dotPos = ls.var.find('.');
+                if (dotPos != string::npos) {
+                    // Member assignment: LET var.member = value
+                    string varName = ls.var.substr(0, dotPos);
+                    string memberName = ls.var.substr(dotPos + 1);
+                    
+                    // Load struct object
+                    u1 varSlot = varIdx.at(varName);
+                    aload(varSlot);
+                    
+                    // Get field index
+                    string typeName = varTypeNames[varName];
+                    int fieldIdx = structFields[typeName][memberName];
+                    
+                    // Push field index
+                    iconst(fieldIdx);
+                    
+                    // Load value expression
+                    load(*ls.expr, varIdx);
+                    
+                    // Box the value if it's a primitive
+                    Type valueType = ls.expr->type;
+                    if (valueType == Type::Float) {
+                        u2 float_class = cp.addClass(cp.addUtf8("java/lang/Float"));
+                        u2 valueOf_name = cp.addUtf8("valueOf");
+                        u2 valueOf_desc = cp.addUtf8("(F)Ljava/lang/Float;");
+                        u2 nat_valueOf = cp.addNameAndType(valueOf_name, valueOf_desc);
+                        u2 valueOf_idx = cp.addMethodRef(float_class, nat_valueOf);
+                        invokestatic(valueOf_idx);
+                    } else if (valueType == Type::Int) {
+                        u2 int_class = cp.addClass(cp.addUtf8("java/lang/Integer"));
+                        u2 valueOf_name = cp.addUtf8("valueOf");
+                        u2 valueOf_desc = cp.addUtf8("(I)Ljava/lang/Integer;");
+                        u2 nat_valueOf = cp.addNameAndType(valueOf_name, valueOf_desc);
+                        u2 valueOf_idx = cp.addMethodRef(int_class, nat_valueOf);
+                        invokestatic(valueOf_idx);
+                    } else if (valueType == Type::Bool) {
+                        u2 bool_class = cp.addClass(cp.addUtf8("java/lang/Boolean"));
+                        u2 valueOf_name = cp.addUtf8("valueOf");
+                        u2 valueOf_desc = cp.addUtf8("(Z)Ljava/lang/Boolean;");
+                        u2 nat_valueOf = cp.addNameAndType(valueOf_name, valueOf_desc);
+                        u2 valueOf_idx = cp.addMethodRef(bool_class, nat_valueOf);
+                        invokestatic(valueOf_idx);
+                    }
+                    // String is already an object
+                    
+                    // Store in array: array[index] = value
+                    aastore();
+                } else {
+                    // Scalar assignment
+                    if (varIdx.find(ls.var) == varIdx.end()) {
+                        varIdx[ls.var] = nextLocal++;
+                    }
+                    u1 idx = varIdx[ls.var];
+                    load(*ls.expr, varIdx);
+                    if (ls.expr->type == Type::Int || ls.expr->type == Type::Bool) istore(idx);
+                    else if (ls.expr->type == Type::Float) fstore(idx);
+                    else astore(idx);
+                    max_locals = max(max_locals, static_cast<u2>(nextLocal));
                 }
-                u1 idx = varIdx[ls.var];
-                load(*ls.expr, varIdx);
-                if (ls.expr->type == Type::Int || ls.expr->type == Type::Bool) istore(idx);
-                else if (ls.expr->type == Type::Float) fstore(idx);
-                else astore(idx);
-                max_locals = max(max_locals, static_cast<u2>(nextLocal));
             }
         } else if (s.kind == StmtKind::Input) {
             const InputStmt& is = get<InputStmt>(s.data);
@@ -828,66 +937,93 @@ public:
         } else if (s.kind == StmtKind::Dim) {
             const DimStmt& ds = get<DimStmt>(s.data);
             
-            // Allocate local variable for array
-            varIdx[ds.var] = nextLocal++;
-            max_locals = max(max_locals, static_cast<u2>(nextLocal));
-            u1 idx = varIdx[ds.var];
-            
-            // Load size and create array
-            load(*ds.size, varIdx);
-            
-            Type arrType = knownTypes.at(ds.var);
-            if (arrType == Type::IntArray) newarray_int();
-            else if (arrType == Type::FloatArray) newarray_float();
-            else if (arrType == Type::BoolArray) newarray_bool();
-            else if (arrType == Type::StringArray) anewarray(string_class_idx);
-            
-            // Store array reference
-            astore(idx);
-            
-            // Initialize all elements with initVal
-            // For simplicity, we'll initialize in a loop at runtime
-            // Save size to a temp variable
-            load(*ds.size, varIdx);
-            u1 sizeVar = nextLocal++;
-            max_locals = max(max_locals, static_cast<u2>(nextLocal));
-            istore(sizeVar);
-            
-            // Initialize counter to 0
-            iconst(0);
-            u1 counterVar = nextLocal++;
-            max_locals = max(max_locals, static_cast<u2>(nextLocal));
-            istore(counterVar);
-            
-            // Loop: while counter < size
-            Label loopStart, loopEnd;
-            mark(loopStart);
-            
-            // Check: counter < size
-            iload(counterVar);
-            iload(sizeVar);
-            if_icmpge(loopEnd);
-            
-            // arr[counter] = initVal
-            aload(idx);  // Load array
-            iload(counterVar);  // Load index
-            load(*ds.initVal, varIdx);  // Load init value
-            
-            // Store based on type
-            if (ds.initVal->type == Type::Int) iastore();
-            else if (ds.initVal->type == Type::Float) fastore();
-            else if (ds.initVal->type == Type::Bool) bastore();
-            else if (ds.initVal->type == Type::String) aastore();
-            
-            // counter++
-            iload(counterVar);
-            iconst(1);
-            iadd();
-            istore(counterVar);
-            
-            // goto loopStart
-            goto_(loopStart);
-            mark(loopEnd);
+            // Check if it's a user-defined type (struct)
+            if (!ds.typeName.empty()) {
+                // DIM var AS TypeName - allocate Object[] for struct
+                varIdx[ds.var] = nextLocal++;
+                max_locals = max(max_locals, static_cast<u2>(nextLocal));
+                u1 idx = varIdx[ds.var];
+                
+                // Get field count for this type
+                int fieldCount = static_cast<int>(structFields[ds.typeName].size());
+                
+                // Create Object array: new Object[fieldCount]
+                iconst(fieldCount);
+                
+                u2 objectClass = cp.addClass(cp.addUtf8("java/lang/Object"));
+                anewarray(objectClass);
+                
+                // Store array reference
+                astore(idx);
+                
+                // Store type name for later field lookups
+                varTypeNames[ds.var] = ds.typeName;
+                
+                // Initialize all fields to null/zero (arrays are already null by default)
+                // We could add default initialization here if needed
+            } else {
+                // Regular array: DIM arr(size) = initVal
+                // Allocate local variable for array
+                varIdx[ds.var] = nextLocal++;
+                max_locals = max(max_locals, static_cast<u2>(nextLocal));
+                u1 idx = varIdx[ds.var];
+                
+                // Load size and create array
+                load(*ds.size, varIdx);
+                
+                Type arrType = knownTypes.at(ds.var);
+                if (arrType == Type::IntArray) newarray_int();
+                else if (arrType == Type::FloatArray) newarray_float();
+                else if (arrType == Type::BoolArray) newarray_bool();
+                else if (arrType == Type::StringArray) anewarray(string_class_idx);
+                
+                // Store array reference
+                astore(idx);
+                
+                // Initialize all elements with initVal
+                // For simplicity, we'll initialize in a loop at runtime
+                // Save size to a temp variable
+                load(*ds.size, varIdx);
+                u1 sizeVar = nextLocal++;
+                max_locals = max(max_locals, static_cast<u2>(nextLocal));
+                istore(sizeVar);
+                
+                // Initialize counter to 0
+                iconst(0);
+                u1 counterVar = nextLocal++;
+                max_locals = max(max_locals, static_cast<u2>(nextLocal));
+                istore(counterVar);
+                
+                // Loop: while counter < size
+                Label loopStart, loopEnd;
+                mark(loopStart);
+                
+                // Check: counter < size
+                iload(counterVar);
+                iload(sizeVar);
+                if_icmpge(loopEnd);
+                
+                // arr[counter] = initVal
+                aload(idx);  // Load array
+                iload(counterVar);  // Load index
+                load(*ds.initVal, varIdx);  // Load init value
+                
+                // Store based on type
+                if (ds.initVal->type == Type::Int) iastore();
+                else if (ds.initVal->type == Type::Float) fastore();
+                else if (ds.initVal->type == Type::Bool) bastore();
+                else if (ds.initVal->type == Type::String) aastore();
+                
+                // counter++
+                iload(counterVar);
+                iconst(1);
+                iadd();
+                istore(counterVar);
+                
+                // goto loopStart
+                goto_(loopStart);
+                mark(loopEnd);
+            }  // end else (regular array)
         } else if (s.kind == StmtKind::For) {
             const ForStmt& fs = get<ForStmt>(s.data);
             
@@ -1220,6 +1356,17 @@ public:
         });
     }
 
+    // Initialize struct metadata from parsed type definitions
+    void initStructs(const map<string, TypeDefDecl>& userTypes) {
+        for (const auto& [typeName, typeDef] : userTypes) {
+            int fieldIdx = 0;
+            for (const Field& field : typeDef.fields) {
+                structFields[typeName][field.name] = fieldIdx++;
+                structFieldTypes[typeName][field.name] = field.type;
+            }
+        }
+    }
+    
     void generate(const vector<DeclPtr>& declarations, const vector<StmtPtr>& program, const map<string, Type>& knownTypes) {
         // Build userFunctions map from declarations for use in load()
         for (const auto& decl : declarations) {
