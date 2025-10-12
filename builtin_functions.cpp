@@ -77,6 +77,8 @@ const map<string, FunctionSig> builtinFunctions = {
     {"OPENINPUT", {{Type::String}, Type::Int, "openInput", "(Ljava/lang/String;)I"}},
     {"OPENOUTPUT", {{Type::String}, Type::Int, "openOutput", "(Ljava/lang/String;)I"}},
     {"READLINE", {{Type::Int}, Type::String, "readLine", "(I)Ljava/lang/String;"}},
+    {"WRITELINE", {{Type::Int, Type::String}, Type::Int, "writeLine", "(ILjava/lang/String;)V"}},
+    {"WRITETEXT", {{Type::Int, Type::String}, Type::Int, "writeText", "(ILjava/lang/String;)V"}},
     {"CLOSEFILE", {{Type::Int}, Type::Int, "closeFile", "(I)V"}},
     {"FILEEXISTS", {{Type::String}, Type::Bool, "fileExists", "(Ljava/lang/String;)Z"}},
     {"DELETEFILE", {{Type::String}, Type::Bool, "deleteFile", "(Ljava/lang/String;)Z"}},
