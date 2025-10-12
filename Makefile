@@ -10,7 +10,7 @@ jvmbasic-new: $(OBJECTS) main.o
 	$(CXX) $(CXXFLAGS) $(OBJECTS) main.o -o jvmbasic-new
 
 # Modular version with extracted codegen (now default)
-jvmbasic: jvmbasic.cpp builtin_functions.o
+jvmbasic: jvmbasic.cpp codegen.h builtin_functions.o
 	$(CXX) $(CXXFLAGS) jvmbasic.cpp builtin_functions.o -o jvmbasic
 
 # Object files
