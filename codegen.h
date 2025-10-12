@@ -562,14 +562,19 @@ public:
                     actualType = localIt->second;
                 }
                 
-                if (actualType == Type::Int || actualType == Type::Bool) {
+                // Arrays are reference types - use aload
+                if (actualType == Type::IntArray || actualType == Type::FloatArray ||
+                    actualType == Type::StringArray || actualType == Type::BoolArray) {
+                    aload(idx);
+                }
+                // Scalar types
+                else if (actualType == Type::Int || actualType == Type::Bool) {
                     iload(idx);
-                    if (actualType != Type::Float) return; // No conversion needed
-                    i2f(); // Convert int to float for Float-typed expression
+                    if (e.type == Type::Float) i2f(); // Convert int to float if needed
                 } else if (actualType == Type::Float) {
                     fload(idx);
                 } else {
-                    // String or array reference
+                    // String
                     aload(idx);
                 }
             }
@@ -609,39 +614,55 @@ public:
                 u2 methodRef = getFunctionMethodRef(ce.name);
                 invokestatic(methodRef);
             } else {
-                // User-defined function
-                // Load arguments and convert Int to Float if return type is Float
-                for (const auto& arg : ce.args) {
-                    load(*arg, varIdx);
-                    // If return type is Float and arg is Int, convert
-                    if (e.type == Type::Float && arg->type == Type::Int) {
-                        i2f();
+                // User-defined function - use userFunctions for correct signature
+                auto userIt = userFunctions.find(ce.name);
+                if (userIt != userFunctions.end()) {
+                    const auto& funcSig = userIt->second;
+                    const vector<Type>& paramTypes = funcSig.first;
+                    const Type& returnType = funcSig.second;
+                    
+                    // Load arguments with type matching
+                    for (size_t i = 0; i < ce.args.size(); ++i) {
+                        load(*ce.args[i], varIdx);
+                        
+                        // Convert Int to Float if parameter expects Float
+                        if (i < paramTypes.size()) {
+                            Type expectedType = paramTypes[i];
+                            Type actualType = ce.args[i]->type;
+                            if (expectedType == Type::Float && actualType == Type::Int) {
+                                i2f();
+                            }
+                        }
                     }
+                    
+                    // Build descriptor from actual function signature
+                    string descriptor = "(";
+                    for (const auto& ptype : paramTypes) {
+                        if (ptype == Type::IntArray) descriptor += "[I";
+                        else if (ptype == Type::FloatArray) descriptor += "[F";
+                        else if (ptype == Type::StringArray) descriptor += "[Ljava/lang/String;";
+                        else if (ptype == Type::BoolArray) descriptor += "[Z";
+                        else if (ptype == Type::Int || ptype == Type::Bool) descriptor += "I";
+                        else if (ptype == Type::Float) descriptor += "F";
+                        else if (ptype == Type::String) descriptor += "Ljava/lang/String;";
+                    }
+                    descriptor += ")";
+                    if (returnType == Type::Int || returnType == Type::Bool) descriptor += "I";
+                    else if (returnType == Type::Float) descriptor += "F";
+                    else if (returnType == Type::String) descriptor += "Ljava/lang/String;";
+                    
+                    // Create method reference if not cached
+                    string funcKey = ce.name;  // Use just name (signature is consistent now)
+                    if (functionMethodRefs.find(funcKey) == functionMethodRefs.end()) {
+                        u2 name_idx = cp.addUtf8(ce.name);
+                        u2 desc_idx = cp.addUtf8(descriptor);
+                        u2 nat_idx = cp.addNameAndType(name_idx, desc_idx);
+                        functionMethodRefs[funcKey] = cp.addMethodRef(this_class_idx, nat_idx);
+                    }
+                    
+                    // Call the user-defined function
+                    invokestatic(functionMethodRefs[funcKey]);
                 }
-                
-                // Build method descriptor (use return type for param types - simple inference)
-                string descriptor = "(";
-                for (size_t i = 0; i < ce.args.size(); ++i) {
-                    if (e.type == Type::Int || e.type == Type::Bool) descriptor += "I";
-                    else if (e.type == Type::Float) descriptor += "F";
-                    else if (e.type == Type::String) descriptor += "Ljava/lang/String;";
-                }
-                descriptor += ")";
-                if (e.type == Type::Int || e.type == Type::Bool) descriptor += "I";
-                else if (e.type == Type::Float) descriptor += "F";
-                else if (e.type == Type::String) descriptor += "Ljava/lang/String;";
-                
-                // Create method reference if not cached
-                string funcKey = ce.name + descriptor;
-                if (functionMethodRefs.find(funcKey) == functionMethodRefs.end()) {
-                    u2 name_idx = cp.addUtf8(ce.name);
-                    u2 desc_idx = cp.addUtf8(descriptor);
-                    u2 nat_idx = cp.addNameAndType(name_idx, desc_idx);
-                    functionMethodRefs[funcKey] = cp.addMethodRef(this_class_idx, nat_idx);
-                }
-                
-                // Call the user-defined function
-                invokestatic(functionMethodRefs[funcKey]);
             }
         } else if (e.kind == ExprKind::Bin) {
             const BinOp& bo = get<BinOp>(e.data);
@@ -1064,10 +1085,10 @@ public:
         }
         max_locals = nextLocal;
         
-        // Build parameter types map for genStmt (use return type for params)
+        // Build parameter types map for genStmt (use ACTUAL inferred types)
         map<string, Type> localTypes;
         for (const auto& param : fd.params) {
-            localTypes[param.name] = fd.returnType;  // Assume same type as return
+            localTypes[param.name] = param.type;  // Use actual inferred type!
         }
         
         // Set current local types for load() to access
@@ -1093,13 +1114,19 @@ public:
             ireturn();
         }
         
-        // Build method descriptor using return type as param type (simple inference)
+        // Build method descriptor using ACTUAL parameter types
         string descriptor = "(";
         for (const auto& param : fd.params) {
-            // Use return type for parameters (simple inference for now)
-            if (fd.returnType == Type::Int || fd.returnType == Type::Bool) descriptor += "I";
-            else if (fd.returnType == Type::Float) descriptor += "F";
-            else if (fd.returnType == Type::String) descriptor += "Ljava/lang/String;";
+            Type ptype = param.type;
+            // Arrays use [ prefix
+            if (ptype == Type::IntArray) descriptor += "[I";
+            else if (ptype == Type::FloatArray) descriptor += "[F";
+            else if (ptype == Type::StringArray) descriptor += "[Ljava/lang/String;";
+            else if (ptype == Type::BoolArray) descriptor += "[Z";
+            // Scalars
+            else if (ptype == Type::Int || ptype == Type::Bool) descriptor += "I";
+            else if (ptype == Type::Float) descriptor += "F";
+            else if (ptype == Type::String) descriptor += "Ljava/lang/String;";
         }
         descriptor += ")";
         if (fd.returnType == Type::Int || fd.returnType == Type::Bool) descriptor += "I";
@@ -1184,6 +1211,16 @@ public:
     }
 
     void generate(const vector<DeclPtr>& declarations, const vector<StmtPtr>& program, const map<string, Type>& knownTypes) {
+        // Build userFunctions map from declarations for use in load()
+        for (const auto& decl : declarations) {
+            if (decl->kind == DeclKind::Function) {
+                const FunctionDecl& fd = get<FunctionDecl>(decl->data);
+                vector<Type> paramTypes;
+                for (const auto& p : fd.params) paramTypes.push_back(p.type);
+                userFunctions[fd.name] = {paramTypes, fd.returnType};
+            }
+        }
+        
         // Generate methods for user-defined functions and subs
         for (const auto& decl : declarations) {
             if (decl->kind == DeclKind::Function) {
@@ -1283,6 +1320,9 @@ public:
     }
 
 private:
+    // User-defined function signatures (filled during generate())
+    map<string, pair<vector<Type>, Type>> userFunctions;
+    
     void writeU2(ostream& o, u2 v) {
         o.put(static_cast<char>(v >> 8));
         o.put(static_cast<char>(v & 0xFF));

@@ -352,9 +352,9 @@ private:
                 index = parseExpr();
                 expect(TokenType::RPAREN);
                 
-                // Check variable is defined and is an array
+                // Check variable is defined
                 auto it = knownTypes.find(name);
-                if (it == knownTypes.end()) error("Undefined array: " + name);
+                if (it == knownTypes.end()) error("Undefined variable: " + name);
                 
                 Type arrType = it->second;
                 // Get element type from array type
@@ -362,6 +362,14 @@ private:
                 else if (arrType == Type::FloatArray) varType = Type::Float;
                 else if (arrType == Type::StringArray) varType = Type::String;
                 else if (arrType == Type::BoolArray) varType = Type::Bool;
+                else if (arrType == Type::Float) {
+                    // Parameter typed as Float during parsing, might be array
+                    // Assume Float element, will be refined by type inference
+                    varType = Type::Float;
+                }
+                else if (arrType == Type::Int) {
+                    varType = Type::Int;  // Might be array parameter
+                }
                 else error("Variable is not an array: " + name);
             } else {
                 // Scalar variable access (or array reference for function calls)
@@ -476,9 +484,9 @@ private:
             
             // Save current known types and create new scope
             map<string, Type> savedTypes = knownTypes;
-            // Register parameters in function scope
+            // Register parameters in function scope as Float (scalar default)
             for (const auto& param : params) {
-                knownTypes[param.name] = Type::Float;  // Default to Float for flexibility
+                knownTypes[param.name] = Type::Float;  // Will be inferred correctly later
             }
             
             // Parse body
@@ -527,9 +535,9 @@ private:
             
             // Save current known types and create new scope
             map<string, Type> savedTypes = knownTypes;
-            // Register parameters in function scope
+            // Register parameters in function scope as Float (scalar default)
             for (const auto& param : params) {
-                knownTypes[param.name] = Type::Float;  // Default to Float for flexibility
+                knownTypes[param.name] = Type::Float;  // Will be inferred correctly later
             }
             
             // Parse body
