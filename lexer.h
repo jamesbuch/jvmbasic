@@ -10,7 +10,7 @@ using namespace std;
 enum class TokenType { 
     END, NUMBER, STRING, ID, 
     PLUS, MINUS, MUL, DIV, MOD, 
-    ASSIGN, SEMI, COMMA, LPAREN, RPAREN, 
+    ASSIGN, SEMI, COMMA, LPAREN, RPAREN, DOT,
     PRINT, LET, INPUT, DIM, 
     LT, GT, LE, GE, EQ, NE, 
     TRUE, FALSE, 
@@ -18,7 +18,8 @@ enum class TokenType {
     FOR, TO, STEP, NEXT, 
     WHILE, ENDWHILE, WEND, 
     DO, UNTIL,
-    FUNCTION, ENDFUNCTION, SUB, ENDSUB, RETURN, CALL 
+    FUNCTION, ENDFUNCTION, SUB, ENDSUB, RETURN, CALL,
+    TYPE, ENDTYPE, AS
 };
 
 // Token structure

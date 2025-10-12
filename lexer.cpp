@@ -31,21 +31,13 @@ Token Lexer::nextToken() {
     if (eof) return {TokenType::END, "", 0.0, tokenLine};
 
     // Number literals
-    if (isdigit(ch) || ch == '.') {
+    if (isdigit(ch)) {
         string s;
-        bool hasDot = false;
-        if (ch == '.') {
-            hasDot = true;
-            s += ch;
-            read();
-        }
         while (!eof && isdigit(ch)) {
             s += ch;
             read();
         }
         if (!eof && ch == '.') {
-            if (hasDot) error("Invalid number: multiple decimal points");
-            hasDot = true;
             s += ch;
             read();
             while (!eof && isdigit(ch)) {
@@ -53,7 +45,7 @@ Token Lexer::nextToken() {
                 read();
             }
         }
-        Token t{TokenType::NUMBER, s, s.empty() ? 0.0 : stod(s), tokenLine};
+        Token t{TokenType::NUMBER, s, stod(s), tokenLine};
         return t;
     }
     
@@ -108,6 +100,9 @@ Token Lexer::nextToken() {
         if (upper == "ENDSUB") return {TokenType::ENDSUB, s, 0.0, tokenLine};
         if (upper == "RETURN") return {TokenType::RETURN, s, 0.0, tokenLine};
         if (upper == "CALL") return {TokenType::CALL, s, 0.0, tokenLine};
+        if (upper == "TYPE") return {TokenType::TYPE, s, 0.0, tokenLine};
+        if (upper == "ENDTYPE") return {TokenType::ENDTYPE, s, 0.0, tokenLine};
+        if (upper == "AS") return {TokenType::AS, s, 0.0, tokenLine};
         
         // Handle END IF
         if (upper == "END") {
@@ -161,6 +156,7 @@ Token Lexer::nextToken() {
         if (ch == ',') { read(); return {TokenType::COMMA, ",", 0.0, tokenLine}; }
         if (ch == '(') { read(); return {TokenType::LPAREN, "(", 0.0, tokenLine}; }
         if (ch == ')') { read(); return {TokenType::RPAREN, ")", 0.0, tokenLine}; }
+        if (ch == '.') { read(); return {TokenType::DOT, ".", 0.0, tokenLine}; }
         
         char c = ch;
         read();
