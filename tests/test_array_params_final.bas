@@ -1,4 +1,4 @@
-FUNCTION sumArray(arr, size)
+FUNCTION sumArrayCustom(arr, size)
     LET total = 0.0
     LET i = 0.0
     WHILE i < size
@@ -9,7 +9,7 @@ FUNCTION sumArray(arr, size)
 ENDFUNCTION
 
 FUNCTION average(arr, size)
-    RETURN sumArray(arr, size) / size
+    RETURN sumArrayCustom(arr, size) / size
 ENDFUNCTION
 
 FUNCTION findMax(arr, size)
@@ -35,7 +35,7 @@ LET data(3) = 33.0
 LET data(4) = 27.0
 
 PRINT "Array: 12, 45, 8, 33, 27"
-PRINT "Sum:", sumArray(data, 5.0)
+PRINT "Sum:", sumArrayCustom(data, 5.0)
 PRINT "Average:", average(data, 5.0)
 PRINT "Max:", findMax(data, 5.0)
 PRINT ""

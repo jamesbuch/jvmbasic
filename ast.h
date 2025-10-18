@@ -26,7 +26,9 @@ using StmtPtr = unique_ptr<Stmt>;
 using DeclPtr = unique_ptr<Decl>;
 
 // Expression kinds
-enum class ExprKind { Num, Str, Var, Bin, BoolLit, Cmp, Call, Unary, MemberAccess };
+enum class ExprKind { Num, Str, Var, Bin, BoolLit, Cmp, Call, Unary, MemberAccess, 
+                      // Phase 7: OOP expressions
+                      NewExpr, MethodCall, Me };
 
 // Unary operators
 enum class UnaryOp { Neg };
@@ -74,11 +76,28 @@ struct MemberAccessExpr {
     string member;
 };
 
+// Phase 7: OOP expression structures
+struct NewExpr {
+    string className;
+    vector<ExprPtr> args;
+};
+
+struct MethodCallExpr {
+    ExprPtr object;
+    string methodName;
+    vector<ExprPtr> args;
+};
+
+struct MeExpr {
+    // No data - just a marker for ME/this reference
+};
+
 struct Expr {
     ExprKind kind;
     Type type;
     string typeName;  // For UserDefined types, stores the type name
-    variant<NumLit, StrLit, VarRef, BinOp, BoolLit, CmpOp, CallExpr, UnaryExpr, MemberAccessExpr> data;
+    variant<NumLit, StrLit, VarRef, BinOp, BoolLit, CmpOp, CallExpr, UnaryExpr, MemberAccessExpr,
+            NewExpr, MethodCallExpr, MeExpr> data;
 
     Expr(ExprKind k, Type t, NumLit n) : kind(k), type(t), data(n) {}
     Expr(ExprKind k, Type t, StrLit s) : kind(k), type(t), data(s) {}
@@ -89,11 +108,17 @@ struct Expr {
     Expr(ExprKind k, Type t, CallExpr c) : kind(k), type(t), data(std::move(c)) {}
     Expr(ExprKind k, Type t, UnaryExpr u) : kind(k), type(t), data(std::move(u)) {}
     Expr(ExprKind k, Type t, MemberAccessExpr m) : kind(k), type(t), data(std::move(m)) {}
+    // Phase 7: OOP constructors
+    Expr(ExprKind k, Type t, NewExpr n) : kind(k), type(t), data(std::move(n)) {}
+    Expr(ExprKind k, Type t, MethodCallExpr mc) : kind(k), type(t), data(std::move(mc)) {}
+    Expr(ExprKind k, Type t, MeExpr me) : kind(k), type(t), data(me) {}
 };
 
 // Statement kinds
 enum class StmtKind { 
-    Print, Let, Input, Dim, If, For, While, DoWhile, Return, CallStmt 
+    Print, Let, Input, Dim, If, For, While, DoWhile, Return, CallStmt,
+    // Phase 7: OOP statements
+    MethodCallStmt
 };
 
 // Statement structures
@@ -163,10 +188,17 @@ struct CallStmtNode {
     vector<ExprPtr> args;
 };
 
+// Phase 7: Method call statement (CALL obj.method(args))
+struct MethodCallStmtNode {
+    ExprPtr object;
+    string methodName;
+    vector<ExprPtr> args;
+};
+
 struct Stmt {
     StmtKind kind;
     variant<PrintStmt, LetStmt, InputStmt, DimStmt, IfStmt, ForStmt, 
-            WhileStmt, DoWhileStmt, ReturnStmt, CallStmtNode> data;
+            WhileStmt, DoWhileStmt, ReturnStmt, CallStmtNode, MethodCallStmtNode> data;
 
     Stmt(StmtKind k, PrintStmt p) : kind(k), data(std::move(p)) {}
     Stmt(StmtKind k, LetStmt l) : kind(k), data(std::move(l)) {}
@@ -178,10 +210,11 @@ struct Stmt {
     Stmt(StmtKind k, DoWhileStmt dws) : kind(k), data(std::move(dws)) {}
     Stmt(StmtKind k, ReturnStmt rs) : kind(k), data(std::move(rs)) {}
     Stmt(StmtKind k, CallStmtNode cs) : kind(k), data(std::move(cs)) {}
+    Stmt(StmtKind k, MethodCallStmtNode mcs) : kind(k), data(std::move(mcs)) {}  // Phase 7
 };
 
 // Declaration kinds
-enum class DeclKind { Function, Sub, TypeDef };
+enum class DeclKind { Function, Sub, TypeDef, Class };
 
 // Parameter for functions/subs
 struct Param {
@@ -190,11 +223,12 @@ struct Param {
     string typeName;  // For UserDefined types
 };
 
-// Field definition for TYPE declarations
+// Field definition for TYPE and CLASS declarations
 struct Field {
     string name;
     Type type;
     string typeName;  // For UserDefined field types
+    bool isPublic = true;  // Phase 7: For CLASS fields (default PUBLIC)
 };
 
 // Function/Sub declarations
@@ -217,13 +251,31 @@ struct TypeDefDecl {
     vector<Field> fields;
 };
 
+// Phase 7: Method declaration (for methods within classes)
+struct MethodDecl {
+    string name;
+    bool isPublic;
+    bool isConstructor;  // true if name == "New"
+    vector<Param> params;
+    Type returnType;
+    vector<StmtPtr> body;
+};
+
+// Phase 7: CLASS declaration
+struct ClassDecl {
+    string name;
+    vector<Field> fields;
+    vector<MethodDecl> methods;
+};
+
 struct Decl {
     DeclKind kind;
-    variant<FunctionDecl, SubDecl, TypeDefDecl> data;
+    variant<FunctionDecl, SubDecl, TypeDefDecl, ClassDecl> data;
 
     Decl(DeclKind k, FunctionDecl f) : kind(k), data(std::move(f)) {}
     Decl(DeclKind k, SubDecl s) : kind(k), data(std::move(s)) {}
     Decl(DeclKind k, TypeDefDecl t) : kind(k), data(std::move(t)) {}
+    Decl(DeclKind k, ClassDecl c) : kind(k), data(std::move(c)) {}  // Phase 7
 };
 
 // Program structure

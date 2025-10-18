@@ -84,6 +84,35 @@ void ASTPrinter::printExpr(const Expr& expr) {
             out << "." << mae.member;
             break;
         }
+        
+        // Phase 7: OOP expressions
+        case ExprKind::NewExpr: {
+            const NewExpr& ne = get<NewExpr>(expr.data);
+            out << "NEW " << ne.className << "(";
+            for (size_t i = 0; i < ne.args.size(); ++i) {
+                if (i > 0) out << ", ";
+                printExpr(*ne.args[i]);
+            }
+            out << ")";
+            break;
+        }
+        
+        case ExprKind::MethodCall: {
+            const MethodCallExpr& mce = get<MethodCallExpr>(expr.data);
+            printExpr(*mce.object);
+            out << "." << mce.methodName << "(";
+            for (size_t i = 0; i < mce.args.size(); ++i) {
+                if (i > 0) out << ", ";
+                printExpr(*mce.args[i]);
+            }
+            out << ")";
+            break;
+        }
+        
+        case ExprKind::Me: {
+            out << "ME";
+            break;
+        }
     }
 }
 
@@ -139,13 +168,20 @@ void ASTPrinter::printStmt(const Stmt& stmt) {
             if (!ds.typeName.empty()) {
                 // User-defined type: DIM var AS TypeName
                 out << " AS " << ds.typeName << "\n";
-            } else {
+            } else if (ds.initVal && ds.initVal->kind == ExprKind::NewExpr) {
+                // Phase 7: DIM var AS NEW ClassName(args)
+                out << " AS ";
+                printExpr(*ds.initVal);
+                out << "\n";
+            } else if (ds.size && ds.initVal) {
                 // Array: DIM var(size) = initVal
                 out << "(";
                 printExpr(*ds.size);
                 out << ") = ";
                 printExpr(*ds.initVal);
                 out << "\n";
+            } else {
+                out << " (incomplete DIM)\n";
             }
             break;
         }
@@ -260,6 +296,20 @@ void ASTPrinter::printStmt(const Stmt& stmt) {
             out << ")\n";
             break;
         }
+        
+        // Phase 7: Method call statement
+        case StmtKind::MethodCallStmt: {
+            const MethodCallStmtNode& mcs = get<MethodCallStmtNode>(stmt.data);
+            out << "CALL ";
+            printExpr(*mcs.object);
+            out << "." << mcs.methodName << "(";
+            for (size_t i = 0; i < mcs.args.size(); ++i) {
+                if (i > 0) out << ", ";
+                printExpr(*mcs.args[i]);
+            }
+            out << ")\n";
+            break;
+        }
     }
 }
 
@@ -306,6 +356,50 @@ void ASTPrinter::printDecl(const Decl& decl) {
         }
         indent--;
         out << "ENDSUB\n\n";
+    } else if (decl.kind == DeclKind::Class) {
+        // Phase 7: CLASS declarations
+        const ClassDecl& cd = get<ClassDecl>(decl.data);
+        out << "CLASS " << cd.name << "\n";
+        indent++;
+        
+        // Print fields
+        for (const Field& field : cd.fields) {
+            printIndent();
+            out << (field.isPublic ? "PUBLIC " : "PRIVATE ");
+            out << field.name << " AS " << typeToString(field.type);
+            if (!field.typeName.empty()) {
+                out << " (" << field.typeName << ")";
+            }
+            out << "\n";
+        }
+        
+        // Print methods
+        for (const MethodDecl& method : cd.methods) {
+            out << "\n";
+            printIndent();
+            out << (method.isPublic ? "PUBLIC " : "PRIVATE ");
+            out << (method.isConstructor ? "SUB New(" : 
+                    (method.returnType == Type::Float ? "SUB " : "FUNCTION ") + method.name + "(");
+            for (size_t i = 0; i < method.params.size(); ++i) {
+                if (i > 0) out << ", ";
+                out << method.params[i].name << ":" << typeToString(method.params[i].type);
+            }
+            out << ")";
+            if (!method.isConstructor && method.returnType != Type::Float) {
+                out << " -> " << typeToString(method.returnType);
+            }
+            out << "\n";
+            indent++;
+            for (const auto& s : method.body) {
+                printStmt(*s);
+            }
+            indent--;
+            printIndent();
+            out << (method.isConstructor || method.returnType == Type::Float ? "END SUB" : "END FUNCTION") << "\n";
+        }
+        
+        indent--;
+        out << "END CLASS\n\n";
     }
 }
 

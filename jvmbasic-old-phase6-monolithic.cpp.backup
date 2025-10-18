@@ -15,7 +15,8 @@ enum class TokenType { END, NUMBER, STRING, ID, PLUS, MINUS, MUL, DIV, MOD, ASSI
                        TRUE, FALSE, IF, THEN, ELSE, ENDIF, ELSEIF,
                        FOR, TO, STEP, NEXT, WHILE, ENDWHILE, WEND, DO, UNTIL,
                        FUNCTION, ENDFUNCTION, SUB, ENDSUB, RETURN, CALL, REM,
-                       TYPE, ENDTYPE, AS };
+                       TYPE, ENDTYPE, AS,
+                       CLASS, ENDCLASS, PUBLIC, PRIVATE, NEW, ME, INTEGER };
 
 // Token (Lexer-specific)
 struct Token {
@@ -150,6 +151,13 @@ public:
             if (upper == "TYPE") return {TokenType::TYPE, s, 0.0, tokenLine};
             if (upper == "ENDTYPE") return {TokenType::ENDTYPE, s, 0.0, tokenLine};
             if (upper == "AS") return {TokenType::AS, s, 0.0, tokenLine};
+            if (upper == "CLASS") return {TokenType::CLASS, s, 0.0, tokenLine};
+            if (upper == "ENDCLASS") return {TokenType::ENDCLASS, s, 0.0, tokenLine};
+            if (upper == "PUBLIC") return {TokenType::PUBLIC, s, 0.0, tokenLine};
+            if (upper == "PRIVATE") return {TokenType::PRIVATE, s, 0.0, tokenLine};
+            if (upper == "NEW") return {TokenType::NEW, s, 0.0, tokenLine};
+            if (upper == "ME") return {TokenType::ME, s, 0.0, tokenLine};
+            if (upper == "INTEGER") return {TokenType::INTEGER, s, 0.0, tokenLine};
             if (upper == "REM") {
                 // Comment - skip rest of line
                 while (!eof && ch != '\n') read();

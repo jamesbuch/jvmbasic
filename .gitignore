@@ -1,9 +1,22 @@
-BasicProgram.class
-basicrt/*.class
+# Compiled class files
+*.class
+!basicrt/BasicRuntime.class
+
+# Object files and binaries
 *.o
 *.out
 jvmbasic
 jvmbasic-new
 jvmbasic-modular
+
+# Test output artifacts
+test_output/
+
+# Temporary files
+*.tmp
+*.temp
+*.swp
+*~
+
 # User reference files (not for repo)
 Defining*.txt
