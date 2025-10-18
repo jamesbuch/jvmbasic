@@ -29,6 +29,10 @@ private:
     ExprPtr parseMul();
     ExprPtr parseAdd();
     ExprPtr parseEq();
+    ExprPtr parseNot();      // Phase 8: Logical NOT
+    ExprPtr parseAnd();      // Phase 8: Logical AND
+    ExprPtr parseXor();      // Phase 8: Logical XOR
+    ExprPtr parseOr();       // Phase 8: Logical OR
     ExprPtr parseExpr();
     
     // Statement parsing

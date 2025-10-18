@@ -320,3 +320,4 @@ PRINT "Class generated!"
 Expected bytecode: Nested static class Point with two public float fields.
 
 
+

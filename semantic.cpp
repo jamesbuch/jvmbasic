@@ -150,6 +150,10 @@ Type SemanticAnalyzer::inferExprType(const Expr& expr, const SymbolTable& symbol
         case ExprKind::MethodCall:
         case ExprKind::Me:
             return Type::Float;  // Default return type for now
+        
+        // Phase 8: Logical expressions
+        case ExprKind::Logical:
+            return Type::Bool;  // Logical operations always return Bool
     }
     
     return Type::Int;
@@ -247,6 +251,18 @@ void SemanticAnalyzer::analyzeExpr(Expr& expr, const SymbolTable& symbols) {
             // Nothing to analyze for these
             break;
         
+        // Phase 8: Logical expressions
+        case ExprKind::Logical: {
+            LogicalExpr& le = get<LogicalExpr>(expr.data);
+            if (le.left) {
+                analyzeExpr(*le.left, symbols);
+            }
+            if (le.right) {
+                analyzeExpr(*le.right, symbols);
+            }
+            break;
+        }
+        
         default:
             break;
     }
@@ -325,20 +341,33 @@ void SemanticAnalyzer::analyzeStmt(Stmt& stmt, SymbolTable& symbols) {
                     // Phase 6: DIM var AS TypeName (struct)
                     symbols.define(ds.var, Type::UserDefined);
                 }
-            } else {
+            } else if (ds.initVal && ds.initVal->kind == ExprKind::NewExpr) {
+                // Phase 7: DIM var AS NEW ClassName() - size is nullptr!
+                if (symbols.isDefined(ds.var)) {
+                    error("Variable already defined: " + ds.var);
+                }
+                analyzeExpr(*ds.initVal, symbols);
+                symbols.define(ds.var, Type::UserDefined);
+            } else if (ds.size) {
                 // Regular array: DIM arr(size) = initVal
                 analyzeExpr(*ds.size, symbols);
-                analyzeExpr(*ds.initVal, symbols);
+                if (ds.initVal) {
+                    analyzeExpr(*ds.initVal, symbols);
+                }
                 
                 if (ds.size->type != Type::Int) {
                     error("Array size must be Int");
                 }
                 
-                Type arrType = makeArrayType(ds.initVal->type);
-                if (symbols.isDefined(ds.var)) {
-                    error("Variable already defined: " + ds.var);
+                if (ds.initVal) {
+                    Type arrType = makeArrayType(ds.initVal->type);
+                    if (symbols.isDefined(ds.var)) {
+                        error("Variable already defined: " + ds.var);
+                    }
+                    symbols.define(ds.var, arrType);
                 }
-                symbols.define(ds.var, arrType);
+            } else {
+                error("Invalid DIM statement");
             }
             break;
         }
@@ -435,6 +464,13 @@ void SemanticAnalyzer::analyzeStmt(Stmt& stmt, SymbolTable& symbols) {
             }
             break;
         }
+        
+        // Phase 8: Control flow statements
+        case StmtKind::ExitFor:
+        case StmtKind::ExitWhile:
+        case StmtKind::Continue:
+            // No analysis needed for these
+            break;
     }
 }
 

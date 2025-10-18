@@ -17,6 +17,9 @@ enum class Type {
 // Operators
 enum class Op { Add, Sub, Mul, Div, Mod, Lt, Gt, Le, Ge, Eq, Ne };
 
+// Phase 8: Logical operators
+enum class LogicalOp { And, Or, Xor, Not };
+
 // Forward declarations
 struct Expr;
 struct Stmt;
@@ -28,7 +31,9 @@ using DeclPtr = unique_ptr<Decl>;
 // Expression kinds
 enum class ExprKind { Num, Str, Var, Bin, BoolLit, Cmp, Call, Unary, MemberAccess, 
                       // Phase 7: OOP expressions
-                      NewExpr, MethodCall, Me };
+                      NewExpr, MethodCall, Me,
+                      // Phase 8: Logical expressions
+                      Logical };
 
 // Unary operators
 enum class UnaryOp { Neg };
@@ -92,12 +97,19 @@ struct MeExpr {
     // No data - just a marker for ME/this reference
 };
 
+// Phase 8: Logical expression (AND, OR, XOR, NOT)
+struct LogicalExpr {
+    LogicalOp op;
+    ExprPtr left;   // nullptr for NOT (unary operator)
+    ExprPtr right;
+};
+
 struct Expr {
     ExprKind kind;
     Type type;
     string typeName;  // For UserDefined types, stores the type name
     variant<NumLit, StrLit, VarRef, BinOp, BoolLit, CmpOp, CallExpr, UnaryExpr, MemberAccessExpr,
-            NewExpr, MethodCallExpr, MeExpr> data;
+            NewExpr, MethodCallExpr, MeExpr, LogicalExpr> data;
 
     Expr(ExprKind k, Type t, NumLit n) : kind(k), type(t), data(n) {}
     Expr(ExprKind k, Type t, StrLit s) : kind(k), type(t), data(s) {}
@@ -112,13 +124,17 @@ struct Expr {
     Expr(ExprKind k, Type t, NewExpr n) : kind(k), type(t), data(std::move(n)) {}
     Expr(ExprKind k, Type t, MethodCallExpr mc) : kind(k), type(t), data(std::move(mc)) {}
     Expr(ExprKind k, Type t, MeExpr me) : kind(k), type(t), data(me) {}
+    // Phase 8: Logical expression constructor
+    Expr(ExprKind k, Type t, LogicalExpr l) : kind(k), type(t), data(std::move(l)) {}
 };
 
 // Statement kinds
 enum class StmtKind { 
     Print, Let, Input, Dim, If, For, While, DoWhile, Return, CallStmt,
     // Phase 7: OOP statements
-    MethodCallStmt
+    MethodCallStmt,
+    // Phase 8: Advanced control flow
+    ExitFor, ExitWhile, Continue
 };
 
 // Statement structures
@@ -195,10 +211,16 @@ struct MethodCallStmtNode {
     vector<ExprPtr> args;
 };
 
+// Phase 8: Simple control flow statements (no data needed)
+struct ExitForStmt {};
+struct ExitWhileStmt {};
+struct ContinueStmt {};
+
 struct Stmt {
     StmtKind kind;
     variant<PrintStmt, LetStmt, InputStmt, DimStmt, IfStmt, ForStmt, 
-            WhileStmt, DoWhileStmt, ReturnStmt, CallStmtNode, MethodCallStmtNode> data;
+            WhileStmt, DoWhileStmt, ReturnStmt, CallStmtNode, MethodCallStmtNode,
+            ExitForStmt, ExitWhileStmt, ContinueStmt> data;
 
     Stmt(StmtKind k, PrintStmt p) : kind(k), data(std::move(p)) {}
     Stmt(StmtKind k, LetStmt l) : kind(k), data(std::move(l)) {}
@@ -211,6 +233,10 @@ struct Stmt {
     Stmt(StmtKind k, ReturnStmt rs) : kind(k), data(std::move(rs)) {}
     Stmt(StmtKind k, CallStmtNode cs) : kind(k), data(std::move(cs)) {}
     Stmt(StmtKind k, MethodCallStmtNode mcs) : kind(k), data(std::move(mcs)) {}  // Phase 7
+    // Phase 8: Control flow statement constructors
+    Stmt(StmtKind k, ExitForStmt efs) : kind(k), data(efs) {}
+    Stmt(StmtKind k, ExitWhileStmt ews) : kind(k), data(ews) {}
+    Stmt(StmtKind k, ContinueStmt cs) : kind(k), data(cs) {}
 };
 
 // Declaration kinds

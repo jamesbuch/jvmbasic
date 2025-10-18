@@ -484,8 +484,55 @@ ExprPtr Parser::parseEq() {
     return left;
 }
 
+// Phase 8: Parse NOT (prefix operator)
+ExprPtr Parser::parseNot() {
+    if (tok.type == TokenType::NOT) {
+        next();
+        ExprPtr operand = parseNot();  // Allow chaining: NOT NOT x
+        return make_unique<Expr>(ExprKind::Logical, Type::Bool,
+                               LogicalExpr{LogicalOp::Not, nullptr, move(operand)});
+    }
+    return parseEq();  // Parse comparisons
+}
+
+// Phase 8: Parse AND
+ExprPtr Parser::parseAnd() {
+    ExprPtr left = parseNot();
+    while (tok.type == TokenType::AND) {
+        next();
+        ExprPtr right = parseNot();
+        left = make_unique<Expr>(ExprKind::Logical, Type::Bool,
+                                LogicalExpr{LogicalOp::And, move(left), move(right)});
+    }
+    return left;
+}
+
+// Phase 8: Parse XOR
+ExprPtr Parser::parseXor() {
+    ExprPtr left = parseAnd();
+    while (tok.type == TokenType::XOR) {
+        next();
+        ExprPtr right = parseAnd();
+        left = make_unique<Expr>(ExprKind::Logical, Type::Bool,
+                                LogicalExpr{LogicalOp::Xor, move(left), move(right)});
+    }
+    return left;
+}
+
+// Phase 8: Parse OR (lowest precedence logical operator)
+ExprPtr Parser::parseOr() {
+    ExprPtr left = parseXor();
+    while (tok.type == TokenType::OR) {
+        next();
+        ExprPtr right = parseXor();
+        left = make_unique<Expr>(ExprKind::Logical, Type::Bool,
+                                LogicalExpr{LogicalOp::Or, move(left), move(right)});
+    }
+    return left;
+}
+
 ExprPtr Parser::parseExpr() {
-    return parseEq();
+    return parseOr();  // Start with lowest precedence (OR)
 }
 
 StmtPtr Parser::parseStmt() {
@@ -753,6 +800,26 @@ StmtPtr Parser::parseStmt() {
             auto expr = parseExpr();
             return make_unique<Stmt>(StmtKind::Return, ReturnStmt{move(expr)});
         }
+    }
+    
+    // Phase 8: EXIT FOR, EXIT WHILE, CONTINUE
+    if (tok.type == TokenType::EXIT) {
+        next();
+        if (tok.type == TokenType::FOR) {
+            next();
+            return make_unique<Stmt>(StmtKind::ExitFor, ExitForStmt{});
+        } else if (tok.type == TokenType::WHILE) {
+            next();
+            return make_unique<Stmt>(StmtKind::ExitWhile, ExitWhileStmt{});
+        } else {
+            error("Expected FOR or WHILE after EXIT");
+            return make_unique<Stmt>(StmtKind::ExitFor, ExitForStmt{});
+        }
+    }
+    
+    if (tok.type == TokenType::CONTINUE) {
+        next();
+        return make_unique<Stmt>(StmtKind::Continue, ContinueStmt{});
     }
     
     if (tok.type == TokenType::CALL) {

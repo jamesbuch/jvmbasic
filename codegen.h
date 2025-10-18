@@ -930,6 +930,31 @@ public:
         } else if (e.kind == ExprKind::Me) {
             // Phase 7: ME reference - load 'this' (local 0)
             aload(0);
+        } else if (e.kind == ExprKind::Logical) {
+            // Phase 8: Logical expressions (AND, OR, XOR, NOT)
+            const LogicalExpr& le = get<LogicalExpr>(e.data);
+            
+            if (le.op == LogicalOp::Not) {
+                // NOT: load operand, XOR with 1
+                load(*le.right, varIdx);
+                iconst(1);
+                emit(0x82); // ixor
+            } else if (le.op == LogicalOp::And) {
+                // AND: load left, load right, iand
+                load(*le.left, varIdx);
+                load(*le.right, varIdx);
+                emit(0x7E); // iand
+            } else if (le.op == LogicalOp::Or) {
+                // OR: load left, load right, ior
+                load(*le.left, varIdx);
+                load(*le.right, varIdx);
+                emit(0x80); // ior
+            } else if (le.op == LogicalOp::Xor) {
+                // XOR: load left, load right, ixor
+                load(*le.left, varIdx);
+                load(*le.right, varIdx);
+                emit(0x82); // ixor
+            }
         }
     }
 
@@ -1550,6 +1575,12 @@ public:
             u2 method_nat = cp.addNameAndType(method_name_idx, method_desc_idx);
             u2 method_ref = cp.addMethodRef(class_idx, method_nat);
             invokevirtual(method_ref);
+        } else if (s.kind == StmtKind::ExitFor || s.kind == StmtKind::ExitWhile || s.kind == StmtKind::Continue) {
+            // Phase 8: EXIT FOR, EXIT WHILE, CONTINUE
+            // TODO: Proper implementation requires maintaining loop label stack
+            // For now, these are parsed but don't generate code (placeholder)
+            // Full implementation will use goto to loop end (EXIT) or loop start (CONTINUE)
+            emit(0x00); // nop - placeholder
         }
     }
 

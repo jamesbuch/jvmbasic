@@ -170,7 +170,7 @@ CLASS FileHandler
     
     PUBLIC SUB Delete()
         IF handle >= 0 THEN
-            LET dummy = CLOSEFILE(handle)
+            CALL CLOSEFILE(handle)
         ENDIF
     END SUB
 END CLASS
@@ -605,7 +605,7 @@ CLASS FileLogger
     
     PUBLIC SUB Delete()
         IF handle >= 0 THEN
-            LET dummy = CLOSEFILE(handle)
+            CALL CLOSEFILE(handle)
             LET handle = -1
         ENDIF
     END SUB
@@ -830,7 +830,7 @@ CLASS FileWriter
     
     PUBLIC SUB Delete()
         IF handle >= 0 THEN
-            LET dummy = CLOSEFILE(handle)
+            CALL CLOSEFILE(handle)
             LET handle = -1
         ENDIF
     END SUB

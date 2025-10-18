@@ -118,6 +118,16 @@ Token Lexer::nextToken() {
         if (upper == "ME") return {TokenType::ME, s, 0.0, tokenLine};
         if (upper == "INTEGER") return {TokenType::INTEGER, s, 0.0, tokenLine};
         
+        // Phase 8: Logical operators and control flow
+        if (upper == "AND") return {TokenType::AND, s, 0.0, tokenLine};
+        if (upper == "OR") return {TokenType::OR, s, 0.0, tokenLine};
+        if (upper == "NOT") return {TokenType::NOT, s, 0.0, tokenLine};
+        if (upper == "XOR") return {TokenType::XOR, s, 0.0, tokenLine};
+        if (upper == "EXIT") return {TokenType::EXIT, s, 0.0, tokenLine};
+        if (upper == "CONTINUE") return {TokenType::CONTINUE, s, 0.0, tokenLine};
+        if (upper == "SELECT") return {TokenType::SELECT, s, 0.0, tokenLine};
+        if (upper == "CASE") return {TokenType::CASE, s, 0.0, tokenLine};
+        
         if (upper == "REM") {
             // Comment - consume rest of line and return next token
             while (!eof && ch != '\n') {

@@ -704,7 +704,7 @@ PRINT "done"
 #### `OPENINPUT(filename)` - Open for Reading
 ```basic
 LET handle = OPENINPUT("data.txt")
-IF handle >= 0.0 THEN
+IF handle >= 0 THEN
     PRINT "File opened successfully"
 ELSE
     PRINT "Error opening file"
@@ -714,7 +714,7 @@ ENDIF
 #### `OPENOUTPUT(filename)` - Open for Writing
 ```basic
 LET handle = OPENOUTPUT("output.txt")
-IF handle >= 0.0 THEN
+IF handle >= 0 THEN
     PRINT "File created successfully"
 ENDIF
 ```
@@ -724,13 +724,13 @@ ENDIF
 #### `READLINE(handle)` - Read Single Line
 ```basic
 LET handle = OPENINPUT("data.txt")
-IF handle >= 0.0 THEN
+IF handle >= 0 THEN
     LET line = READLINE(handle)
-    WHILE LEN(line) > 0.0
+    WHILE LEN(line) > 0
         PRINT line
         LET line = READLINE(handle)
     ENDWHILE
-    LET dummy = CLOSEFILE(handle)
+    CALL CLOSEFILE(handle)
 ENDIF
 ```
 
@@ -739,20 +739,20 @@ ENDIF
 #### `WRITELINE(handle, text)` - Write Line with Newline
 ```basic
 LET handle = OPENOUTPUT("log.txt")
-IF handle >= 0.0 THEN
+IF handle >= 0 THEN
     CALL WRITELINE(handle, "First line")
     CALL WRITELINE(handle, "Second line")
-    LET dummy = CLOSEFILE(handle)
+    CALL CLOSEFILE(handle)
 ENDIF
 ```
 
 #### `WRITETEXT(handle, text)` - Write Text Without Newline
 ```basic
 LET handle = OPENOUTPUT("output.txt")
-IF handle >= 0.0 THEN
+IF handle >= 0 THEN
     CALL WRITETEXT(handle, "Hello ")
     CALL WRITETEXT(handle, "World")
-    LET dummy = CLOSEFILE(handle)
+    CALL CLOSEFILE(handle)
     REM File contains: "Hello World"
 ENDIF
 ```
@@ -763,7 +763,7 @@ ENDIF
 ```basic
 LET handle = OPENINPUT("data.txt")
 REM ... do file operations ...
-LET dummy = CLOSEFILE(handle)
+CALL CLOSEFILE(handle)
 ```
 
 ### File Management
@@ -793,23 +793,23 @@ ENDIF
 ```basic
 REM Write to file
 LET out = OPENOUTPUT("numbers.txt")
-IF out >= 0.0 THEN
-    FOR i = 1.0 TO 10.0
+IF out >= 0 THEN
+    FOR i = 1 TO 10
         CALL WRITELINE(out, STR(i))
     NEXT i
-    LET dummy = CLOSEFILE(out)
+    CALL CLOSEFILE(out)
     PRINT "File written"
 ENDIF
 
 REM Read from file
 LET in = OPENINPUT("numbers.txt")
-IF in >= 0.0 THEN
+IF in >= 0 THEN
     LET line = READLINE(in)
-    WHILE LEN(line) > 0.0
+    WHILE LEN(line) > 0
         PRINT "Read: "; line
         LET line = READLINE(in)
     ENDWHILE
-    LET dummy = CLOSEFILE(in)
+    CALL CLOSEFILE(in)
 ENDIF
 ```
 
@@ -1018,18 +1018,18 @@ CALL printStats(numbers, 10.0)
 ```basic
 REM Count words in a file
 FUNCTION countWords(filename)
-    LET count = 0.0
+    LET count = 0
     LET handle = OPENINPUT(filename)
     
-    IF handle >= 0.0 THEN
+    IF handle >= 0 THEN
         LET line = READLINE(handle)
-        WHILE LEN(line) > 0.0
+        WHILE LEN(line) > 0
             REM Split line into words
             LET words = SPLIT(line, " ")
-            LET count = count + FLOAT(ARRAYLEN(words))
+            LET count = count + ARRAYLEN(words)
             LET line = READLINE(handle)
         ENDWHILE
-        LET dummy = CLOSEFILE(handle)
+        CALL CLOSEFILE(handle)
     ENDIF
     
     RETURN count
@@ -1203,9 +1203,9 @@ ENDIF
 ### 5. Close Files After Use
 ```basic
 LET handle = OPENINPUT("data.txt")
-IF handle >= 0.0 THEN
+IF handle >= 0 THEN
     REM ... process file ...
-    LET dummy = CLOSEFILE(handle)
+    CALL CLOSEFILE(handle)
 ENDIF
 ```
 
