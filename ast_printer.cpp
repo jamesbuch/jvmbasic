@@ -113,6 +113,25 @@ void ASTPrinter::printExpr(const Expr& expr) {
             out << "ME";
             break;
         }
+        
+        // Phase 8: Logical expressions
+        case ExprKind::Logical: {
+            const LogicalExpr& le = get<LogicalExpr>(expr.data);
+            if (le.op == LogicalOp::Not) {
+                out << "(NOT ";
+                printExpr(*le.right);
+                out << ")";
+            } else {
+                out << "(";
+                printExpr(*le.left);
+                if (le.op == LogicalOp::And) out << " AND ";
+                else if (le.op == LogicalOp::Or) out << " OR ";
+                else if (le.op == LogicalOp::Xor) out << " XOR ";
+                printExpr(*le.right);
+                out << ")";
+            }
+            break;
+        }
     }
 }
 
@@ -310,6 +329,19 @@ void ASTPrinter::printStmt(const Stmt& stmt) {
             out << ")\n";
             break;
         }
+        
+        // Phase 8: Control flow statements
+        case StmtKind::ExitFor:
+            out << "EXIT FOR\n";
+            break;
+            
+        case StmtKind::ExitWhile:
+            out << "EXIT WHILE\n";
+            break;
+            
+        case StmtKind::Continue:
+            out << "CONTINUE\n";
+            break;
     }
 }
 

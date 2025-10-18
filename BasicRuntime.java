@@ -285,6 +285,445 @@ public class BasicRuntime {
         }
     }
     
+    // ===== PHASE 8: ADVANCED STRING FUNCTIONS =====
+    
+    /**
+     * Replace first occurrence of oldStr with newStr
+     */
+    public static String replace(String text, String oldStr, String newStr) {
+        if (text == null || oldStr == null || newStr == null) return text;
+        if (oldStr.isEmpty()) return text;
+        int index = text.indexOf(oldStr);
+        if (index == -1) return text;
+        return text.substring(0, index) + newStr + text.substring(index + oldStr.length());
+    }
+    
+    /**
+     * Replace all occurrences of oldStr with newStr
+     */
+    public static String replaceAll(String text, String oldStr, String newStr) {
+        if (text == null || oldStr == null || newStr == null) return text;
+        if (oldStr.isEmpty()) return text;
+        return text.replace(oldStr, newStr);
+    }
+    
+    /**
+     * Check if string starts with prefix
+     */
+    public static boolean startsWith(String text, String prefix) {
+        if (text == null || prefix == null) return false;
+        return text.startsWith(prefix);
+    }
+    
+    /**
+     * Check if string ends with suffix
+     */
+    public static boolean endsWith(String text, String suffix) {
+        if (text == null || suffix == null) return false;
+        return text.endsWith(suffix);
+    }
+    
+    /**
+     * Find index of substring (alias for instr, but returns -1 if not found)
+     */
+    public static int indexOf(String text, String search) {
+        if (text == null || search == null) return -1;
+        return text.indexOf(search);
+    }
+    
+    /**
+     * Find last index of substring
+     */
+    public static int lastIndexOf(String text, String search) {
+        if (text == null || search == null) return -1;
+        return text.lastIndexOf(search);
+    }
+    
+    /**
+     * Concatenate two strings
+     */
+    public static String concat(String s1, String s2) {
+        if (s1 == null) s1 = "";
+        if (s2 == null) s2 = "";
+        return s1 + s2;
+    }
+    
+    /**
+     * Concatenate three strings
+     */
+    public static String concat3(String s1, String s2, String s3) {
+        if (s1 == null) s1 = "";
+        if (s2 == null) s2 = "";
+        if (s3 == null) s3 = "";
+        return s1 + s2 + s3;
+    }
+    
+    /**
+     * Repeat string n times
+     */
+    public static String repeat(String text, int count) {
+        if (text == null || count <= 0) return "";
+        StringBuilder sb = new StringBuilder(text.length() * count);
+        for (int i = 0; i < count; i++) {
+            sb.append(text);
+        }
+        return sb.toString();
+    }
+    
+    /**
+     * Pad string on left to given width with spaces
+     */
+    public static String padLeft(String text, int width) {
+        return padLeft(text, width, ' ');
+    }
+    
+    /**
+     * Pad string on left to given width with specified character
+     */
+    public static String padLeft(String text, int width, char padChar) {
+        if (text == null) text = "";
+        if (text.length() >= width) return text;
+        StringBuilder sb = new StringBuilder(width);
+        for (int i = text.length(); i < width; i++) {
+            sb.append(padChar);
+        }
+        sb.append(text);
+        return sb.toString();
+    }
+    
+    /**
+     * Pad string on right to given width with spaces
+     */
+    public static String padRight(String text, int width) {
+        return padRight(text, width, ' ');
+    }
+    
+    /**
+     * Pad string on right to given width with specified character
+     */
+    public static String padRight(String text, int width, char padChar) {
+        if (text == null) text = "";
+        if (text.length() >= width) return text;
+        StringBuilder sb = new StringBuilder(width);
+        sb.append(text);
+        for (int i = text.length(); i < width; i++) {
+            sb.append(padChar);
+        }
+        return sb.toString();
+    }
+    
+    /**
+     * Substring from start to end of string
+     */
+    public static String substring(String text, int start) {
+        if (text == null) return "";
+        if (start < 0) start = 0;
+        if (start >= text.length()) return "";
+        return text.substring(start);
+    }
+    
+    /**
+     * Substring with start and length
+     */
+    public static String substringLen(String text, int start, int length) {
+        if (text == null) return "";
+        if (start < 0) start = 0;
+        if (length < 0) length = 0;
+        if (start >= text.length()) return "";
+        int end = Math.min(start + length, text.length());
+        return text.substring(start, end);
+    }
+    
+    /**
+     * Compare two strings (returns -1, 0, or 1)
+     */
+    public static int strcmp(String s1, String s2) {
+        if (s1 == null) s1 = "";
+        if (s2 == null) s2 = "";
+        return Integer.compare(s1.compareTo(s2), 0);
+    }
+    
+    /**
+     * Compare two strings case-insensitive (returns -1, 0, or 1)
+     */
+    public static int stricmp(String s1, String s2) {
+        if (s1 == null) s1 = "";
+        if (s2 == null) s2 = "";
+        return Integer.compare(s1.compareToIgnoreCase(s2), 0);
+    }
+    
+    /**
+     * Check if two strings are equal
+     */
+    public static boolean equals(String s1, String s2) {
+        if (s1 == null && s2 == null) return true;
+        if (s1 == null || s2 == null) return false;
+        return s1.equals(s2);
+    }
+    
+    /**
+     * Check if two strings are equal (case-insensitive)
+     */
+    public static boolean equalsIgnoreCase(String s1, String s2) {
+        if (s1 == null && s2 == null) return true;
+        if (s1 == null || s2 == null) return false;
+        return s1.equalsIgnoreCase(s2);
+    }
+    
+    /**
+     * Get character at index as string
+     */
+    public static String charAt(String text, int index) {
+        if (text == null || index < 0 || index >= text.length()) return "";
+        return String.valueOf(text.charAt(index));
+    }
+    
+    /**
+     * Get character at index as ASCII code
+     */
+    public static int charCodeAt(String text, int index) {
+        if (text == null || index < 0 || index >= text.length()) return 0;
+        return (int) text.charAt(index);
+    }
+    
+    /**
+     * Split string into lines
+     */
+    public static String[] splitLines(String text) {
+        if (text == null) return new String[0];
+        return text.split("\\r?\\n");
+    }
+    
+    // ===== PHASE 8: DATE/TIME FUNCTIONS =====
+    
+    /**
+     * Get current time in milliseconds since epoch (as float for larger range)
+     */
+    public static float now() {
+        return (float) System.currentTimeMillis();
+    }
+    
+    /**
+     * Get current date as string (YYYY-MM-DD)
+     */
+    public static String date() {
+        return new java.text.SimpleDateFormat("yyyy-MM-dd").format(new java.util.Date());
+    }
+    
+    /**
+     * Get current time as string (HH:mm:ss)
+     */
+    public static String time() {
+        return new java.text.SimpleDateFormat("HH:mm:ss").format(new java.util.Date());
+    }
+    
+    /**
+     * Get current date and time as string (YYYY-MM-DD HH:mm:ss)
+     */
+    public static String datetime() {
+        return new java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(new java.util.Date());
+    }
+    
+    /**
+     * Get year from milliseconds
+     */
+    public static int year(float millis) {
+        java.util.Calendar cal = java.util.Calendar.getInstance();
+        cal.setTimeInMillis((long) millis);
+        return cal.get(java.util.Calendar.YEAR);
+    }
+    
+    /**
+     * Get month from milliseconds (1-12)
+     */
+    public static int month(float millis) {
+        java.util.Calendar cal = java.util.Calendar.getInstance();
+        cal.setTimeInMillis((long) millis);
+        return cal.get(java.util.Calendar.MONTH) + 1;  // 0-indexed to 1-indexed
+    }
+    
+    /**
+     * Get day of month from milliseconds (1-31)
+     */
+    public static int day(float millis) {
+        java.util.Calendar cal = java.util.Calendar.getInstance();
+        cal.setTimeInMillis((long) millis);
+        return cal.get(java.util.Calendar.DAY_OF_MONTH);
+    }
+    
+    /**
+     * Get day of week from milliseconds (0=Sunday, 6=Saturday)
+     */
+    public static int dayOfWeek(float millis) {
+        java.util.Calendar cal = java.util.Calendar.getInstance();
+        cal.setTimeInMillis((long) millis);
+        return cal.get(java.util.Calendar.DAY_OF_WEEK) - 1;  // Make 0-indexed
+    }
+    
+    /**
+     * Get day of year from milliseconds (1-366)
+     */
+    public static int dayOfYear(float millis) {
+        java.util.Calendar cal = java.util.Calendar.getInstance();
+        cal.setTimeInMillis((long) millis);
+        return cal.get(java.util.Calendar.DAY_OF_YEAR);
+    }
+    
+    /**
+     * Get hour from milliseconds (0-23)
+     */
+    public static int hour(float millis) {
+        java.util.Calendar cal = java.util.Calendar.getInstance();
+        cal.setTimeInMillis((long) millis);
+        return cal.get(java.util.Calendar.HOUR_OF_DAY);
+    }
+    
+    /**
+     * Get minute from milliseconds (0-59)
+     */
+    public static int minute(float millis) {
+        java.util.Calendar cal = java.util.Calendar.getInstance();
+        cal.setTimeInMillis((long) millis);
+        return cal.get(java.util.Calendar.MINUTE);
+    }
+    
+    /**
+     * Get second from milliseconds (0-59)
+     */
+    public static int second(float millis) {
+        java.util.Calendar cal = java.util.Calendar.getInstance();
+        cal.setTimeInMillis((long) millis);
+        return cal.get(java.util.Calendar.SECOND);
+    }
+    
+    /**
+     * Get millisecond component (0-999)
+     */
+    public static int millisecond(float millis) {
+        java.util.Calendar cal = java.util.Calendar.getInstance();
+        cal.setTimeInMillis((long) millis);
+        return cal.get(java.util.Calendar.MILLISECOND);
+    }
+    
+    /**
+     * Add days to a date
+     */
+    public static float addDays(float millis, int days) {
+        java.util.Calendar cal = java.util.Calendar.getInstance();
+        cal.setTimeInMillis((long) millis);
+        cal.add(java.util.Calendar.DAY_OF_MONTH, days);
+        return (float) cal.getTimeInMillis();
+    }
+    
+    /**
+     * Add hours to a date
+     */
+    public static float addHours(float millis, int hours) {
+        java.util.Calendar cal = java.util.Calendar.getInstance();
+        cal.setTimeInMillis((long) millis);
+        cal.add(java.util.Calendar.HOUR_OF_DAY, hours);
+        return (float) cal.getTimeInMillis();
+    }
+    
+    /**
+     * Add minutes to a date
+     */
+    public static float addMinutes(float millis, int minutes) {
+        java.util.Calendar cal = java.util.Calendar.getInstance();
+        cal.setTimeInMillis((long) millis);
+        cal.add(java.util.Calendar.MINUTE, minutes);
+        return (float) cal.getTimeInMillis();
+    }
+    
+    /**
+     * Add seconds to a date
+     */
+    public static float addSeconds(float millis, int seconds) {
+        java.util.Calendar cal = java.util.Calendar.getInstance();
+        cal.setTimeInMillis((long) millis);
+        cal.add(java.util.Calendar.SECOND, seconds);
+        return (float) cal.getTimeInMillis();
+    }
+    
+    /**
+     * Add months to a date
+     */
+    public static float addMonths(float millis, int months) {
+        java.util.Calendar cal = java.util.Calendar.getInstance();
+        cal.setTimeInMillis((long) millis);
+        cal.add(java.util.Calendar.MONTH, months);
+        return (float) cal.getTimeInMillis();
+    }
+    
+    /**
+     * Add years to a date
+     */
+    public static float addYears(float millis, int years) {
+        java.util.Calendar cal = java.util.Calendar.getInstance();
+        cal.setTimeInMillis((long) millis);
+        cal.add(java.util.Calendar.YEAR, years);
+        return (float) cal.getTimeInMillis();
+    }
+    
+    /**
+     * Get difference between two dates in days
+     */
+    public static int dateDiff(float millis1, float millis2) {
+        long diff = (long) millis2 - (long) millis1;
+        return (int) (diff / (1000 * 60 * 60 * 24));
+    }
+    
+    /**
+     * Format date with pattern
+     */
+    public static String formatDate(float millis, String pattern) {
+        try {
+            return new java.text.SimpleDateFormat(pattern).format(new java.util.Date((long) millis));
+        } catch (Exception e) {
+            return "";
+        }
+    }
+    
+    // ===== PHASE 8: TIMING FUNCTIONS =====
+    
+    /**
+     * Get timer (seconds since midnight)
+     */
+    public static float timer() {
+        java.util.Calendar cal = java.util.Calendar.getInstance();
+        int hour = cal.get(java.util.Calendar.HOUR_OF_DAY);
+        int minute = cal.get(java.util.Calendar.MINUTE);
+        int second = cal.get(java.util.Calendar.SECOND);
+        int millis = cal.get(java.util.Calendar.MILLISECOND);
+        return hour * 3600.0f + minute * 60.0f + second + millis / 1000.0f;
+    }
+    
+    /**
+     * Get high-precision nanosecond timer (as float for BASIC compatibility)
+     */
+    public static float nanoseconds() {
+        return (float) System.nanoTime();
+    }
+    
+    /**
+     * Sleep for specified milliseconds
+     */
+    public static void sleep(int milliseconds) {
+        try {
+            Thread.sleep(milliseconds);
+        } catch (InterruptedException e) {
+            // Ignore interruption
+        }
+    }
+    
+    /**
+     * Sleep for specified milliseconds (returns 0 for BASIC compatibility)
+     */
+    public static int sleep_i(int milliseconds) {
+        sleep(milliseconds);
+        return 0;
+    }
+    
     // ===== ARRAY ALGORITHMS =====
     
     /**
@@ -588,6 +1027,210 @@ public class BasicRuntime {
         return new java.io.File(filename).delete();
     }
     
+    // ===== PHASE 8: CHARACTER I/O =====
+    
+    /**
+     * Read single character from file (returns ASCII code, -1 on EOF)
+     */
+    public static int readChar(int handle) {
+        try {
+            java.io.BufferedReader reader = inputFiles.get(handle);
+            if (reader == null) return -1;
+            int ch = reader.read();
+            return ch;
+        } catch (java.io.IOException e) {
+            return -1;
+        }
+    }
+    
+    /**
+     * Write single character to file
+     */
+    public static void writeChar(int handle, int charCode) {
+        try {
+            java.io.PrintWriter writer = outputFiles.get(handle);
+            if (writer != null) {
+                writer.write((char) charCode);
+            }
+        } catch (Exception e) {
+            // Silently fail
+        }
+    }
+    
+    /**
+     * Write single character to file (returns 0 for BASIC compatibility)
+     */
+    public static int writeChar_i(int handle, int charCode) {
+        writeChar(handle, charCode);
+        return 0;
+    }
+    
+    /**
+     * Check if file has more data (not EOF)
+     */
+    public static boolean hasMore(int handle) {
+        try {
+            java.io.BufferedReader reader = inputFiles.get(handle);
+            if (reader == null) return false;
+            reader.mark(1);
+            int ch = reader.read();
+            reader.reset();
+            return ch != -1;
+        } catch (java.io.IOException e) {
+            return false;
+        }
+    }
+    
+    /**
+     * Check if at end of file
+     */
+    public static boolean isEof(int handle) {
+        return !hasMore(handle);
+    }
+    
+    /**
+     * Flush output stream
+     */
+    public static void flush(int handle) {
+        try {
+            java.io.PrintWriter writer = outputFiles.get(handle);
+            if (writer != null) {
+                writer.flush();
+            }
+        } catch (Exception e) {
+            // Silently fail
+        }
+    }
+    
+    /**
+     * Flush output stream (returns 0 for BASIC compatibility)
+     */
+    public static int flush_i(int handle) {
+        flush(handle);
+        return 0;
+    }
+    
+    // ===== PHASE 8: ADVANCED FILE I/O =====
+    
+    /**
+     * Get file size in bytes (as float for large files)
+     */
+    public static float fileSize(String filename) {
+        java.io.File file = new java.io.File(filename);
+        return file.exists() ? (float) file.length() : -1.0f;
+    }
+    
+    /**
+     * Rename or move file
+     */
+    public static boolean rename(String oldName, String newName) {
+        java.io.File oldFile = new java.io.File(oldName);
+        java.io.File newFile = new java.io.File(newName);
+        return oldFile.renameTo(newFile);
+    }
+    
+    /**
+     * Copy file
+     */
+    public static boolean copy(String source, String dest) {
+        try {
+            java.io.FileInputStream in = new java.io.FileInputStream(source);
+            java.io.FileOutputStream out = new java.io.FileOutputStream(dest);
+            byte[] buffer = new byte[8192];
+            int bytesRead;
+            while ((bytesRead = in.read(buffer)) != -1) {
+                out.write(buffer, 0, bytesRead);
+            }
+            in.close();
+            out.close();
+            return true;
+        } catch (java.io.IOException e) {
+            return false;
+        }
+    }
+    
+    /**
+     * Move file (rename with fallback to copy+delete)
+     */
+    public static boolean move(String source, String dest) {
+        if (rename(source, dest)) {
+            return true;
+        }
+        // Fallback: copy then delete
+        if (copy(source, dest)) {
+            return deleteFile(source);
+        }
+        return false;
+    }
+    
+    /**
+     * Check if path is a file
+     */
+    public static boolean isFile(String path) {
+        java.io.File file = new java.io.File(path);
+        return file.isFile();
+    }
+    
+    /**
+     * Check if path is a directory
+     */
+    public static boolean isDir(String path) {
+        java.io.File file = new java.io.File(path);
+        return file.isDirectory();
+    }
+    
+    /**
+     * Create directory
+     */
+    public static boolean mkdir(String path) {
+        java.io.File file = new java.io.File(path);
+        return file.mkdir();
+    }
+    
+    /**
+     * Create directory and all parent directories
+     */
+    public static boolean mkdirs(String path) {
+        java.io.File file = new java.io.File(path);
+        return file.mkdirs();
+    }
+    
+    /**
+     * Remove directory (must be empty)
+     */
+    public static boolean rmdir(String path) {
+        java.io.File file = new java.io.File(path);
+        return file.delete();
+    }
+    
+    /**
+     * List directory contents
+     */
+    public static String[] listDir(String path) {
+        java.io.File file = new java.io.File(path);
+        String[] files = file.list();
+        return files != null ? files : new String[0];
+    }
+    
+    /**
+     * Get current working directory
+     */
+    public static String currentDir() {
+        return System.getProperty("user.dir");
+    }
+    
+    /**
+     * Get absolute path
+     */
+    public static String absolutePath(String path) {
+        java.io.File file = new java.io.File(path);
+        try {
+            return file.getCanonicalPath();
+        } catch (java.io.IOException e) {
+            return file.getAbsolutePath();
+        }
+    }
+    
     // ===== REGULAR EXPRESSIONS =====
     
     /**
@@ -696,6 +1339,317 @@ public class BasicRuntime {
     public static String format1_i(String template, int arg) {
         if (template == null) return "";
         return template.replace("{0}", String.valueOf(arg));
+    }
+    
+    // ===== PHASE 8.2: COLLECTIONS =====
+    
+    // Storage for collections (using IDs to avoid object type issues in BASIC)
+    private static java.util.Map<Integer, java.util.ArrayList<Integer>> intLists = 
+        new java.util.HashMap<>();
+    private static int nextIntListId = 1;
+    
+    private static java.util.Map<Integer, java.util.ArrayList<String>> stringLists = 
+        new java.util.HashMap<>();
+    private static int nextStringListId = 1000000;  // Start at 1M to avoid ID conflicts
+    
+    private static java.util.Map<Integer, java.util.HashMap<String, String>> maps = 
+        new java.util.HashMap<>();
+    private static int nextMapId = 2000000;  // Start at 2M
+    
+    private static java.util.Map<Integer, java.util.Stack<String>> stacks = 
+        new java.util.HashMap<>();
+    private static int nextStackId = 3000000;  // Start at 3M
+    
+    private static java.util.Map<Integer, java.util.LinkedList<String>> queues = 
+        new java.util.HashMap<>();
+    private static int nextQueueId = 4000000;  // Start at 4M
+    
+    // ===== INT LIST =====
+    
+    public static int intListNew() {
+        int id = nextIntListId++;
+        intLists.put(id, new java.util.ArrayList<Integer>());
+        return id;
+    }
+    
+    public static int intListAdd(int listId, int value) {
+        java.util.ArrayList<Integer> list = intLists.get(listId);
+        if (list == null) return -1;
+        list.add(value);
+        return list.size();
+    }
+    
+    public static int intListGet(int listId, int index) {
+        java.util.ArrayList<Integer> list = intLists.get(listId);
+        if (list == null || index < 0 || index >= list.size()) return 0;
+        return list.get(index);
+    }
+    
+    public static int intListSet(int listId, int index, int value) {
+        java.util.ArrayList<Integer> list = intLists.get(listId);
+        if (list == null || index < 0 || index >= list.size()) return 0;
+        int oldValue = list.get(index);
+        list.set(index, value);
+        return oldValue;
+    }
+    
+    public static int intListSize(int listId) {
+        java.util.ArrayList<Integer> list = intLists.get(listId);
+        return list == null ? 0 : list.size();
+    }
+    
+    public static int intListRemove(int listId, int index) {
+        java.util.ArrayList<Integer> list = intLists.get(listId);
+        if (list == null || index < 0 || index >= list.size()) return 0;
+        return list.remove(index);
+    }
+    
+    public static boolean intListContains(int listId, int value) {
+        java.util.ArrayList<Integer> list = intLists.get(listId);
+        if (list == null) return false;
+        return list.contains(value);
+    }
+    
+    public static int intListIndexOf(int listId, int value) {
+        java.util.ArrayList<Integer> list = intLists.get(listId);
+        if (list == null) return -1;
+        return list.indexOf(value);
+    }
+    
+    public static int intListClear(int listId) {
+        java.util.ArrayList<Integer> list = intLists.get(listId);
+        if (list != null) {
+            list.clear();
+        }
+        return 0;
+    }
+    
+    public static int[] intListToArray(int listId) {
+        java.util.ArrayList<Integer> list = intLists.get(listId);
+        if (list == null) return new int[0];
+        int[] arr = new int[list.size()];
+        for (int i = 0; i < list.size(); i++) {
+            arr[i] = list.get(i);
+        }
+        return arr;
+    }
+    
+    // ===== STRING LIST =====
+    
+    public static int stringListNew() {
+        int id = nextStringListId++;
+        stringLists.put(id, new java.util.ArrayList<String>());
+        return id;
+    }
+    
+    public static int stringListAdd(int listId, String value) {
+        java.util.ArrayList<String> list = stringLists.get(listId);
+        if (list == null) return -1;
+        list.add(value);
+        return list.size();
+    }
+    
+    public static String stringListGet(int listId, int index) {
+        java.util.ArrayList<String> list = stringLists.get(listId);
+        if (list == null || index < 0 || index >= list.size()) return "";
+        String result = list.get(index);
+        return result != null ? result : "";
+    }
+    
+    public static String stringListSet(int listId, int index, String value) {
+        java.util.ArrayList<String> list = stringLists.get(listId);
+        if (list == null || index < 0 || index >= list.size()) return "";
+        String oldValue = list.get(index);
+        list.set(index, value);
+        return oldValue != null ? oldValue : "";
+    }
+    
+    public static int stringListSize(int listId) {
+        java.util.ArrayList<String> list = stringLists.get(listId);
+        return list == null ? 0 : list.size();
+    }
+    
+    public static String stringListRemove(int listId, int index) {
+        java.util.ArrayList<String> list = stringLists.get(listId);
+        if (list == null || index < 0 || index >= list.size()) return "";
+        String removed = list.remove(index);
+        return removed != null ? removed : "";
+    }
+    
+    public static boolean stringListContains(int listId, String value) {
+        java.util.ArrayList<String> list = stringLists.get(listId);
+        if (list == null) return false;
+        return list.contains(value);
+    }
+    
+    public static int stringListIndexOf(int listId, String value) {
+        java.util.ArrayList<String> list = stringLists.get(listId);
+        if (list == null) return -1;
+        return list.indexOf(value);
+    }
+    
+    public static int stringListClear(int listId) {
+        java.util.ArrayList<String> list = stringLists.get(listId);
+        if (list != null) {
+            list.clear();
+        }
+        return 0;
+    }
+    
+    public static String[] stringListToArray(int listId) {
+        java.util.ArrayList<String> list = stringLists.get(listId);
+        if (list == null) return new String[0];
+        return list.toArray(new String[0]);
+    }
+    
+    // ===== MAP (String -> String) =====
+    
+    public static int mapNew() {
+        int id = nextMapId++;
+        maps.put(id, new java.util.HashMap<String, String>());
+        return id;
+    }
+    
+    public static String mapPut(int mapId, String key, String value) {
+        java.util.HashMap<String, String> map = maps.get(mapId);
+        if (map == null || key == null) return "";
+        String oldValue = map.put(key, value);
+        return oldValue != null ? oldValue : "";
+    }
+    
+    public static String mapGet(int mapId, String key) {
+        java.util.HashMap<String, String> map = maps.get(mapId);
+        if (map == null || key == null) return "";
+        String value = map.get(key);
+        return value != null ? value : "";
+    }
+    
+    public static boolean mapContainsKey(int mapId, String key) {
+        java.util.HashMap<String, String> map = maps.get(mapId);
+        if (map == null || key == null) return false;
+        return map.containsKey(key);
+    }
+    
+    public static String mapRemove(int mapId, String key) {
+        java.util.HashMap<String, String> map = maps.get(mapId);
+        if (map == null || key == null) return "";
+        String removed = map.remove(key);
+        return removed != null ? removed : "";
+    }
+    
+    public static int mapSize(int mapId) {
+        java.util.HashMap<String, String> map = maps.get(mapId);
+        return map == null ? 0 : map.size();
+    }
+    
+    public static int mapClear(int mapId) {
+        java.util.HashMap<String, String> map = maps.get(mapId);
+        if (map != null) {
+            map.clear();
+        }
+        return 0;
+    }
+    
+    public static String[] mapKeys(int mapId) {
+        java.util.HashMap<String, String> map = maps.get(mapId);
+        if (map == null) return new String[0];
+        return map.keySet().toArray(new String[0]);
+    }
+    
+    public static String[] mapValues(int mapId) {
+        java.util.HashMap<String, String> map = maps.get(mapId);
+        if (map == null) return new String[0];
+        return map.values().toArray(new String[0]);
+    }
+    
+    // ===== STACK =====
+    
+    public static int stackNew() {
+        int id = nextStackId++;
+        stacks.put(id, new java.util.Stack<String>());
+        return id;
+    }
+    
+    public static int stackPush(int stackId, String value) {
+        java.util.Stack<String> stack = stacks.get(stackId);
+        if (stack == null) return -1;
+        stack.push(value);
+        return stack.size();
+    }
+    
+    public static String stackPop(int stackId) {
+        java.util.Stack<String> stack = stacks.get(stackId);
+        if (stack == null || stack.isEmpty()) return "";
+        return stack.pop();
+    }
+    
+    public static String stackPeek(int stackId) {
+        java.util.Stack<String> stack = stacks.get(stackId);
+        if (stack == null || stack.isEmpty()) return "";
+        return stack.peek();
+    }
+    
+    public static boolean stackIsEmpty(int stackId) {
+        java.util.Stack<String> stack = stacks.get(stackId);
+        return stack == null || stack.isEmpty();
+    }
+    
+    public static int stackSize(int stackId) {
+        java.util.Stack<String> stack = stacks.get(stackId);
+        return stack == null ? 0 : stack.size();
+    }
+    
+    public static int stackClear(int stackId) {
+        java.util.Stack<String> stack = stacks.get(stackId);
+        if (stack != null) {
+            stack.clear();
+        }
+        return 0;
+    }
+    
+    // ===== QUEUE =====
+    
+    public static int queueNew() {
+        int id = nextQueueId++;
+        queues.put(id, new java.util.LinkedList<String>());
+        return id;
+    }
+    
+    public static int queueEnqueue(int queueId, String value) {
+        java.util.LinkedList<String> queue = queues.get(queueId);
+        if (queue == null) return -1;
+        queue.addLast(value);
+        return queue.size();
+    }
+    
+    public static String queueDequeue(int queueId) {
+        java.util.LinkedList<String> queue = queues.get(queueId);
+        if (queue == null || queue.isEmpty()) return "";
+        return queue.removeFirst();
+    }
+    
+    public static String queuePeek(int queueId) {
+        java.util.LinkedList<String> queue = queues.get(queueId);
+        if (queue == null || queue.isEmpty()) return "";
+        return queue.peekFirst();
+    }
+    
+    public static boolean queueIsEmpty(int queueId) {
+        java.util.LinkedList<String> queue = queues.get(queueId);
+        return queue == null || queue.isEmpty();
+    }
+    
+    public static int queueSize(int queueId) {
+        java.util.LinkedList<String> queue = queues.get(queueId);
+        return queue == null ? 0 : queue.size();
+    }
+    
+    public static int queueClear(int queueId) {
+        java.util.LinkedList<String> queue = queues.get(queueId);
+        if (queue != null) {
+            queue.clear();
+        }
+        return 0;
     }
 }
 

@@ -21,7 +21,10 @@ enum class TokenType {
     FUNCTION, ENDFUNCTION, SUB, ENDSUB, RETURN, CALL,
     TYPE, ENDTYPE, AS, REM,
     // Phase 7: OOP keywords
-    CLASS, ENDCLASS, PUBLIC, PRIVATE, NEW, ME, INTEGER
+    CLASS, ENDCLASS, PUBLIC, PRIVATE, NEW, ME, INTEGER,
+    // Phase 8: Logical operators and control flow
+    AND, OR, NOT, XOR,
+    EXIT, CONTINUE, SELECT, CASE
 };
 
 // Token structure
