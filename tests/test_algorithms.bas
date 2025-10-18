@@ -9,7 +9,7 @@ FUNCTION linearSearch(arr, size, target)
     RETURN -1.0
 ENDFUNCTION
 
-FUNCTION sumArray(arr, size)
+FUNCTION sumArrayCustom(arr, size)
     LET total = 0.0
     LET i = 0.0
     WHILE i < size
@@ -20,7 +20,7 @@ FUNCTION sumArray(arr, size)
 ENDFUNCTION
 
 FUNCTION average(arr, size)
-    RETURN sumArray(arr, size) / size
+    RETURN sumArrayCustom(arr, size) / size
 ENDFUNCTION
 
 SUB printFibonacci(n)
@@ -135,7 +135,7 @@ LET values(3) = 40.0
 LET values(4) = 50.0
 
 PRINT "Values:", values(0), values(1), values(2), values(3), values(4)
-PRINT "Sum:", sumArray(values, 5.0)
+PRINT "Sum:", sumArrayCustom(values, 5.0)
 PRINT "Average:", average(values, 5.0)
 PRINT ""
 

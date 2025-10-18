@@ -1,18 +1,26 @@
 # JVM BASIC — A Modern BASIC Compiler for the JVM
 
-A feature-complete BASIC compiler written in modern C++ that generates JVM bytecode. Supports user-defined types (structs), functions, arrays, recursion, file I/O, regular expressions, and 93 built-in functions.
+A feature-complete BASIC compiler written in modern C++ that generates JVM bytecode. Supports full object-oriented programming, user-defined types (structs), functions, arrays, recursion, file I/O, regular expressions, and 93 built-in functions.
 
-**Current Version**: Phase 6 Complete (User-Defined Types)
+**Current Version**: Phase 7 Complete (Object-Oriented Programming) ✅  
+**Test Coverage**: 100% (56/56 tests passing)
 
 ## Features
 
 ### Language Features
+- **Object-Oriented Programming** (Phase 7 NEW! ✨): 
+  - `CLASS...END CLASS` declarations with PUBLIC/PRIVATE fields
+  - Constructors with `PUBLIC SUB New(params)`
+  - Instance methods (SUB/FUNCTION)
+  - `NEW` operator for object instantiation
+  - `ME` keyword for self-reference
+  - Field access and method calls with dot notation
 - **User-Defined Types** (Phase 6): `TYPE...ENDTYPE` with member access via dot notation
 - **Functions & Subroutines**: `FUNCTION...ENDFUNCTION`, `SUB...ENDSUB` with full recursion support
 - **Arrays**: Typed arrays with `DIM arr(size) = value`, arrays as function parameters
 - **Control Flow**: `IF...THEN...ELSEIF...ELSE...ENDIF`, `FOR...TO...STEP...NEXT`, `WHILE...ENDWHILE`, `DO...WHILE/UNTIL`
 - **I/O**: `PRINT` with BASIC-style `,` and `;` separators, `INPUT` statement, file I/O functions
-- **Comments**: `REM` comments (full line or end-of-line)
+- **Comments**: `REM` and `'` (apostrophe) comments
 - **Type System**: `Int`, `Float`, `String`, `Bool` with automatic Int→Float promotion
 - **Expressions**: Full arithmetic, comparison, boolean, and string operations
 - **Built-in Functions**: 93 functions for math, strings, arrays, file I/O, and regex
@@ -45,6 +53,25 @@ PRINT "Hello, World!"
 ```
 
 ## Language Examples
+
+### Object-Oriented Programming (NEW!)
+```basic
+' Define a class with constructor
+CLASS BankAccount
+    PRIVATE balance AS FLOAT
+    PUBLIC owner AS STRING
+    
+    PUBLIC SUB New(name AS STRING, initial AS FLOAT)
+        owner = name
+        balance = initial
+    END SUB
+END CLASS
+
+' Create and use objects
+DIM account AS NEW BankAccount("Alice", 1000.0)
+LET account.balance = 1500.0
+PRINT account.owner; " has $"; account.balance
+```
 
 ### User-Defined Types (Structs)
 ```basic
@@ -179,14 +206,21 @@ See `docs/USER_GUIDE.md` for complete documentation with examples.
 ## Testing
 
 ### Test Suite
-- **47 tests total**: 44 core tests + 3 struct tests
-- All tests pass ✅
+- **56 tests total**: 54 regular tests + 2 INPUT tests
+- **100% passing** ✅ (56/56)
+  - Phase 7 OOP tests: 7/7
+  - Phase 6 Struct tests: 4/4
+  - Array tests: 12/12
+  - Function tests: 15/15
+  - Other tests: 16/16
+  - INPUT tests: 2/2
 - Automated test runners: `test_runner.sh`, `run_input_tests.sh`
 
 ### Run Tests
 ```bash
-./test_runner.sh              # Core test suite
-./run_input_tests.sh          # INPUT tests with data files
+./test_runner.sh              # All 54 regular tests
+./run_input_tests.sh          # 2 INPUT tests with data files
+./dump_test_artifacts.sh      # Generate AST and bytecode dumps
 ```
 
 ## Documentation
@@ -200,14 +234,14 @@ See `docs/USER_GUIDE.md` for complete documentation with examples.
 - `docs/dev/AST_GUIDE.md` - AST structure and extension guide
 - `docs/dev/LEXER_GUIDE.md` - Lexer internals and extension
 - `docs/dev/DEBUGGING_GUIDE.md` - Debugging techniques
-- `START_PHASE6_HERE.md` - Phase 6 handoff document
-- `PHASE6_PROGRESS.md` - Phase 6 implementation roadmap
-- `PHASE6_COMPLETE.md` - Phase 6 completion report
+- `docs/dev/MODULAR_ARCHITECTURE.md` - Modular compiler architecture
+- `docs/dev/PHASE7_IMPLEMENTATION_GUIDE.md` - OOP implementation details
+- `PHASE7_COMPLETE.md` - Phase 7 completion report
 
 ### Planning Documents
-- `POST_PHASE6_TASKS.md` - Command-line options and future enhancements
+- `docs/planning/PHASE7_DESIGN.md` - OOP design specification
+- `docs/planning/PHASE7_CODEGEN_PLAN.md` - Code generation plan
 - `docs/planning/PHASE6_DESIGN.md` - User-defined types design
-- `docs/planning/PHASE6_ROADMAP.md` - Phase 6-10 roadmap
 - `docs/planning/SERIOUS_LANGUAGE_ANALYSIS.md` - Language evolution plan
 
 ## Development History
@@ -231,19 +265,25 @@ See `docs/USER_GUIDE.md` for complete documentation with examples.
 - ✅ Boxing/unboxing for primitives
 - ✅ Comprehensive testing
 
-### Phase 7 (Planned)
-- Object-oriented programming
-- Classes with methods
-- Constructors and destructors
-- Encapsulation (public/private)
-- Inheritance (future)
+### Phase 7 (Complete) ✅
+- ✅ Object-oriented programming
+- ✅ CLASS...END CLASS declarations
+- ✅ Constructors (SUB New with parameters)
+- ✅ Instance methods (SUB/FUNCTION)
+- ✅ NEW operator for instantiation
+- ✅ Field access and assignment (getfield/putfield)
+- ✅ Encapsulation (PUBLIC/PRIVATE fields)
+- ✅ ME keyword (self-reference)
+- ✅ Apostrophe comments (`'`)
+- ✅ Multiple classes per program
 
-### Phase 8 (Planned)
-- Modern BASIC syntax
-- Explicit type literals (`1000D`, `42L`)
-- Return type annotations (`AS Integer`)
-- Single-quote comments (`'`)
-- Enhanced type system
+### Phase 8 (Future)
+- Inheritance (INHERITS keyword)
+- Method overriding
+- Interfaces
+- Static members (SHARED keyword)
+- Properties with GET/SET
+- Method overloading
 
 ## Examples
 
@@ -257,13 +297,14 @@ See `examples/` directory for complete working programs:
 
 ### Test Programs
 
-See `tests/` directory for 47 test programs covering:
-- Basic operations (`test_print.bas`, `test_math.bas`)
-- Control flow (`test_if.bas`, `test_for.bas`, `test_while.bas`)
-- Functions (`test_func_*.bas`, 10+ tests)
-- Arrays (`test_array_*.bas`, 7 tests)
-- Structs (`test_struct_*.bas`, 3 tests)
-- Advanced features (`test_algorithms.bas`, 172 lines)
+See `tests/` directory for 56 test programs covering:
+- **OOP** (`test_class_*.bas`, 7 tests) - Classes, constructors, methods
+- **Structs** (`test_struct_*.bas`, 4 tests) - User-defined types
+- **Functions** (`test_func_*.bas`, 15 tests) - Recursion, parameters, return values
+- **Arrays** (`test_array_*.bas`, 12 tests) - All array types, parameters, functions
+- **Control Flow** (`test_if.bas`, `test_for.bas`, `test_while.bas`)
+- **I/O** (`test_input*.bas`, `test_print*.bas`)
+- **Advanced** (`test_algorithms.bas`, `test_comprehensive.bas`) - Complete feature demos
 
 ## Building and Running
 

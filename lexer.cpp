@@ -94,15 +94,30 @@ Token Lexer::nextToken() {
         if (upper == "WEND") return {TokenType::WEND, s, 0.0, tokenLine};
         if (upper == "DO") return {TokenType::DO, s, 0.0, tokenLine};
         if (upper == "UNTIL") return {TokenType::UNTIL, s, 0.0, tokenLine};
-        if (upper == "FUNCTION") return {TokenType::FUNCTION, s, 0.0, tokenLine};
+        
+        // Check for END* keywords BEFORE checking for standalone END
         if (upper == "ENDFUNCTION") return {TokenType::ENDFUNCTION, s, 0.0, tokenLine};
-        if (upper == "SUB") return {TokenType::SUB, s, 0.0, tokenLine};
         if (upper == "ENDSUB") return {TokenType::ENDSUB, s, 0.0, tokenLine};
+        if (upper == "ENDTYPE") return {TokenType::ENDTYPE, s, 0.0, tokenLine};
+        if (upper == "ENDCLASS") return {TokenType::ENDCLASS, s, 0.0, tokenLine};
+        if (upper == "ENDIF") return {TokenType::ENDIF, s, 0.0, tokenLine};
+        
+        if (upper == "FUNCTION") return {TokenType::FUNCTION, s, 0.0, tokenLine};
+        if (upper == "SUB") return {TokenType::SUB, s, 0.0, tokenLine};
         if (upper == "RETURN") return {TokenType::RETURN, s, 0.0, tokenLine};
         if (upper == "CALL") return {TokenType::CALL, s, 0.0, tokenLine};
         if (upper == "TYPE") return {TokenType::TYPE, s, 0.0, tokenLine};
-        if (upper == "ENDTYPE") return {TokenType::ENDTYPE, s, 0.0, tokenLine};
         if (upper == "AS") return {TokenType::AS, s, 0.0, tokenLine};
+        
+        // Phase 7: OOP keywords
+        if (upper == "CLASS") return {TokenType::CLASS, s, 0.0, tokenLine};
+        if (upper == "ENDCLASS") return {TokenType::ENDCLASS, s, 0.0, tokenLine};
+        if (upper == "PUBLIC") return {TokenType::PUBLIC, s, 0.0, tokenLine};
+        if (upper == "PRIVATE") return {TokenType::PRIVATE, s, 0.0, tokenLine};
+        if (upper == "NEW") return {TokenType::NEW, s, 0.0, tokenLine};
+        if (upper == "ME") return {TokenType::ME, s, 0.0, tokenLine};
+        if (upper == "INTEGER") return {TokenType::INTEGER, s, 0.0, tokenLine};
+        
         if (upper == "REM") {
             // Comment - consume rest of line and return next token
             while (!eof && ch != '\n') {
@@ -111,7 +126,7 @@ Token Lexer::nextToken() {
             return nextToken();
         }
         
-        // Handle END IF
+        // Handle END + keyword (VB-style: "END SUB", "END FUNCTION", etc.)
         if (upper == "END") {
             skipWhite();
             if (!eof && isalpha(ch)) {
@@ -122,10 +137,18 @@ Token Lexer::nextToken() {
                 }
                 string nextUpper = next;
                 for (auto& c : nextUpper) c = toupper(c);
+                
                 if (nextUpper == "IF") return {TokenType::ENDIF, "ENDIF", 0.0, tokenLine};
-                error("Expected IF after END at line " + to_string(tokenLine));
+                if (nextUpper == "SUB") return {TokenType::ENDSUB, "ENDSUB", 0.0, tokenLine};
+                if (nextUpper == "FUNCTION") return {TokenType::ENDFUNCTION, "ENDFUNCTION", 0.0, tokenLine};
+                if (nextUpper == "TYPE") return {TokenType::ENDTYPE, "ENDTYPE", 0.0, tokenLine};
+                if (nextUpper == "CLASS") return {TokenType::ENDCLASS, "ENDCLASS", 0.0, tokenLine};
+                if (nextUpper == "WHILE") return {TokenType::ENDWHILE, "ENDWHILE", 0.0, tokenLine};
+                
+                error("Unknown END keyword: END " + next + " at line " + to_string(tokenLine));
             }
-            error("Expected IF after END at line " + to_string(tokenLine));
+            // Bare END is also used to mark end of file in some tests
+            return {TokenType::END, "END", 0.0, tokenLine};
         }
         
         // Boolean literals
@@ -164,6 +187,15 @@ Token Lexer::nextToken() {
         if (ch == '(') { read(); return {TokenType::LPAREN, "(", 0.0, tokenLine}; }
         if (ch == ')') { read(); return {TokenType::RPAREN, ")", 0.0, tokenLine}; }
         if (ch == '.') { read(); return {TokenType::DOT, ".", 0.0, tokenLine}; }
+        
+        // Phase 7: Apostrophe comment (VB-style)
+        if (ch == '\'') {
+            // Comment - consume rest of line and return next token
+            while (!eof && ch != '\n') {
+                read();
+            }
+            return nextToken();
+        }
         
         char c = ch;
         read();

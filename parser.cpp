@@ -1,6 +1,8 @@
 #include "parser.h"
 #include "builtin_functions.h"
 #include <cctype>
+#include <cmath>
+#include <algorithm>
 
 Parser::Parser(Lexer& l) : lex(l) {
     next();
@@ -46,17 +48,275 @@ string Parser::tokenTypeName(TokenType tt) {
     }
 }
 
+// Resolve type name to Type enum
+Type Parser::resolveTypeName(const string& typeName) {
+    string upper = typeName;
+    transform(upper.begin(), upper.end(), upper.begin(), ::toupper);
+    
+    if (upper == "INT") return Type::Int;
+    if (upper == "FLOAT") return Type::Float;
+    if (upper == "STRING") return Type::String;
+    if (upper == "BOOL") return Type::Bool;
+    if (upper == "INTARRAY") return Type::IntArray;
+    if (upper == "FLOATARRAY") return Type::FloatArray;
+    if (upper == "STRINGARRAY") return Type::StringArray;
+    if (upper == "BOOLARRAY") return Type::BoolArray;
+    
+    // Check if it's a user-defined type (TYPE)
+    if (userTypes.count(upper)) {
+        return Type::UserDefined;
+    }
+    
+    // Phase 7: Check if it's a user-defined class (CLASS)
+    if (userClassNames.count(upper)) {
+        return Type::UserDefined;
+    }
+    
+    // Unknown type - default to UserDefined and store name for later
+    return Type::UserDefined;
+}
+
+// Parse user-defined type (TYPE...ENDTYPE)
+DeclPtr Parser::parseTypeDecl() {
+    expect(TokenType::TYPE);
+    string typeName = expect(TokenType::ID).val;
+    
+    // Normalize type name to uppercase for consistent lookup
+    string typeNameUpper = typeName;
+    transform(typeNameUpper.begin(), typeNameUpper.end(), typeNameUpper.begin(), ::toupper);
+    
+    vector<Field> fields;
+    while (tok.type != TokenType::ENDTYPE && tok.type != TokenType::END) {
+        string fieldName = expect(TokenType::ID).val;
+        expect(TokenType::AS);
+        string fieldTypeName = expect(TokenType::ID).val;
+        
+        // Resolve field type
+        Type fieldType = resolveTypeName(fieldTypeName);
+        fields.push_back(Field{fieldName, fieldType, fieldTypeName});
+    }
+    expect(TokenType::ENDTYPE);
+    
+    // Store with uppercase name for consistent lookup
+    return make_unique<Decl>(DeclKind::TypeDef, TypeDefDecl{typeNameUpper, fields});
+}
+
+// Phase 7: Parse method declaration within a class
+MethodDecl Parser::parseMethodDecl(bool isPublic) {
+    bool isConstructor = false;
+    Type returnType = Type::Float;  // Default for SUB
+    string name;
+    
+    if (tok.type == TokenType::SUB) {
+        next();
+        
+        // Special case: "SUB New" - NEW is a keyword but also the constructor name
+        if (tok.type == TokenType::NEW) {
+            name = "New";
+            isConstructor = true;
+            next();
+        } else {
+            name = expect(TokenType::ID).val;
+            
+            // Check if it's a constructor (SUB New - if it wasn't tokenized as NEW)
+            string nameUpper = name;
+            transform(nameUpper.begin(), nameUpper.end(), nameUpper.begin(), ::toupper);
+            if (nameUpper == "NEW") {
+                isConstructor = true;
+            }
+        }
+    } else if (tok.type == TokenType::FUNCTION) {
+        next();
+        name = expect(TokenType::ID).val;
+        // Return type will be determined from AS clause or inferred from RETURN
+    } else {
+        error("Expected SUB or FUNCTION in method declaration");
+    }
+    
+    // Parse parameters
+    expect(TokenType::LPAREN);
+    vector<Param> params;
+    if (tok.type != TokenType::RPAREN) {
+        do {
+            if (tok.type == TokenType::COMMA) next();
+            
+            string paramName = expect(TokenType::ID).val;
+            Type paramType = Type::Float;  // Default
+            string paramTypeName;
+            
+            // Check for AS Type
+            if (tok.type == TokenType::AS) {
+                next();
+                paramTypeName = expect(TokenType::ID).val;
+                paramType = resolveTypeName(paramTypeName);
+            }
+            
+            params.push_back(Param{paramName, paramType, paramTypeName});
+        } while (tok.type == TokenType::COMMA);
+    }
+    expect(TokenType::RPAREN);
+    
+    // Check for return type on FUNCTION
+    if (!isConstructor && tok.type == TokenType::AS) {
+        next();
+        string returnTypeName = expect(TokenType::ID).val;
+        returnType = resolveTypeName(returnTypeName);
+    }
+    
+    // Parse method body
+    vector<StmtPtr> body;
+    while (tok.type != TokenType::ENDSUB && 
+           tok.type != TokenType::ENDFUNCTION && 
+           tok.type != TokenType::END &&
+           tok.type != TokenType::PUBLIC &&
+           tok.type != TokenType::PRIVATE &&
+           tok.type != TokenType::ENDCLASS) {
+        body.push_back(parseStmt());
+    }
+    
+    // Expect END SUB or END FUNCTION
+    if (tok.type == TokenType::ENDSUB || tok.type == TokenType::ENDFUNCTION) {
+        next();
+    } else {
+        error("Expected ENDSUB or ENDFUNCTION");
+    }
+    
+    MethodDecl method;
+    method.name = name;
+    method.isPublic = isPublic;
+    method.isConstructor = isConstructor;
+    method.params = move(params);
+    method.returnType = returnType;
+    method.body = move(body);
+    
+    return method;
+}
+
+// Phase 7: Parse CLASS...END CLASS
+DeclPtr Parser::parseClassDecl() {
+    expect(TokenType::CLASS);
+    string className = expect(TokenType::ID).val;
+    
+    // Normalize class name to uppercase for consistent lookup
+    string classNameUpper = className;
+    transform(classNameUpper.begin(), classNameUpper.end(), classNameUpper.begin(), ::toupper);
+    
+    vector<Field> fields;
+    vector<MethodDecl> methods;
+    
+    while (tok.type != TokenType::ENDCLASS && tok.type != TokenType::END) {
+        bool isPublic = true;  // Default
+        
+        // Check for access modifier
+        if (tok.type == TokenType::PUBLIC) {
+            isPublic = true;
+            next();
+        } else if (tok.type == TokenType::PRIVATE) {
+            isPublic = false;
+            next();
+        }
+        
+        // Check what follows the modifier
+        if (tok.type == TokenType::SUB || tok.type == TokenType::FUNCTION) {
+            // It's a method
+            methods.push_back(move(parseMethodDecl(isPublic)));
+        } else if (tok.type == TokenType::ID) {
+            // It's a field declaration: PUBLIC/PRIVATE name AS Type
+            string fieldName = expect(TokenType::ID).val;
+            expect(TokenType::AS);
+            string fieldTypeName = expect(TokenType::ID).val;
+            
+            Type fieldType = resolveTypeName(fieldTypeName);
+            fields.push_back(Field{fieldName, fieldType, fieldTypeName, isPublic});
+        } else {
+            error("Expected field or method declaration in CLASS");
+        }
+    }
+    
+    expect(TokenType::ENDCLASS);
+    
+    return make_unique<Decl>(DeclKind::Class, ClassDecl{classNameUpper, move(fields), move(methods)});
+}
+
 ExprPtr Parser::parsePrimary() {
     // Handle unary minus
     if (tok.type == TokenType::MINUS) {
         next();
         auto operand = parsePrimary();
-        return make_unique<Expr>(ExprKind::Unary, operand->type, UnaryExpr{UnaryOp::Neg, move(operand)});
+        if (!operand) {
+            error("Expected expression after '-'");
+            return make_unique<Expr>(ExprKind::Num, Type::Int, NumLit{0});
+        }
+        Type opType = operand->type;
+        auto unaryExpr = UnaryExpr{UnaryOp::Neg, move(operand)};
+        return make_unique<Expr>(ExprKind::Unary, opType, move(unaryExpr));
+    }
+    
+    // Phase 7: NEW expression for object creation
+    if (tok.type == TokenType::NEW) {
+        next();
+        string className = expect(TokenType::ID).val;
+        
+        // Normalize class name
+        string classNameUpper = className;
+        transform(classNameUpper.begin(), classNameUpper.end(), classNameUpper.begin(), ::toupper);
+        
+        expect(TokenType::LPAREN);
+        vector<ExprPtr> args;
+        if (tok.type != TokenType::RPAREN) {
+            args.push_back(parseExpr());
+            while (tok.type == TokenType::COMMA) {
+                next();
+                args.push_back(parseExpr());
+            }
+        }
+        expect(TokenType::RPAREN);
+        
+        // Return UserDefined type for class instances
+        return make_unique<Expr>(ExprKind::NewExpr, Type::UserDefined, NewExpr{classNameUpper, move(args)});
+    }
+    
+    // Phase 7: ME expression (self reference)
+    if (tok.type == TokenType::ME) {
+        next();
+        // Create ME expression
+        ExprPtr expr = make_unique<Expr>(ExprKind::Me, Type::UserDefined, MeExpr{});
+        
+        // Check for member access: ME.field or ME.method()
+        while (tok.type == TokenType::DOT) {
+            next();
+            string member = expect(TokenType::ID).val;
+            
+            // Check if it's a method call (followed by parentheses)
+            if (tok.type == TokenType::LPAREN) {
+                next();
+                vector<ExprPtr> args;
+                if (tok.type != TokenType::RPAREN) {
+                    args.push_back(parseExpr());
+                    while (tok.type == TokenType::COMMA) {
+                        next();
+                        args.push_back(parseExpr());
+                    }
+                }
+                expect(TokenType::RPAREN);
+                
+                // Method call: ME.method(args)
+                expr = make_unique<Expr>(ExprKind::MethodCall, Type::Float,
+                                       MethodCallExpr{move(expr), member, move(args)});
+            } else {
+                // Property/field access: ME.field
+                expr = make_unique<Expr>(ExprKind::MemberAccess, Type::Float, 
+                                       MemberAccessExpr{move(expr), member});
+            }
+        }
+        
+        return expr;
     }
     
     if (tok.type == TokenType::NUMBER) {
         Token nt = expect(TokenType::NUMBER);
-        bool isFloat = nt.val.find('.') != string::npos;
+        // A number is Float if it has a decimal point in the original string
+        bool isFloat = (nt.val.find('.') != string::npos);
         Type ty = isFloat ? Type::Float : Type::Int;
         return make_unique<Expr>(ExprKind::Num, ty, NumLit{nt.num});
     }
@@ -133,7 +393,37 @@ ExprPtr Parser::parsePrimary() {
         }
         
         // Variable or array access - type unknown until semantic analysis
-        return make_unique<Expr>(ExprKind::Var, Type::Float, VarRef{name, move(index)});
+        ExprPtr expr = make_unique<Expr>(ExprKind::Var, Type::Float, VarRef{name, move(index)});
+        
+        // Check for member access (dot operator) - Phase 6 structs & Phase 7 classes
+        while (tok.type == TokenType::DOT) {
+            next();
+            string member = expect(TokenType::ID).val;
+            
+            // Phase 7: Check if it's a method call (followed by parentheses)
+            if (tok.type == TokenType::LPAREN) {
+                next();
+                vector<ExprPtr> args;
+                if (tok.type != TokenType::RPAREN) {
+                    args.push_back(parseExpr());
+                    while (tok.type == TokenType::COMMA) {
+                        next();
+                        args.push_back(parseExpr());
+                    }
+                }
+                expect(TokenType::RPAREN);
+                
+                // Method call: obj.method(args)
+                expr = make_unique<Expr>(ExprKind::MethodCall, Type::Float,
+                                       MethodCallExpr{move(expr), member, move(args)});
+            } else {
+                // Property/field access: obj.field
+                expr = make_unique<Expr>(ExprKind::MemberAccess, Type::Float, 
+                                       MemberAccessExpr{move(expr), member});
+            }
+        }
+        
+        return expr;
     }
     
     if (tok.type == TokenType::LPAREN) {
@@ -259,6 +549,29 @@ StmtPtr Parser::parseStmt() {
         next();
         string var = expect(TokenType::ID).val;
         
+        // Check for member access: LET var.member = value (Phase 6)
+        if (tok.type == TokenType::DOT) {
+            // Member assignment
+            vector<string> memberPath;
+            while (tok.type == TokenType::DOT) {
+                next();
+                memberPath.push_back(expect(TokenType::ID).val);
+            }
+            
+            expect(TokenType::ASSIGN);
+            auto expr = parseExpr();
+            
+            // For now, handle single-level member access
+            if (memberPath.size() == 1) {
+                // Store as "var.member" in the var field (hack for Phase 6)
+                string fullPath = var + "." + memberPath[0];
+                return make_unique<Stmt>(StmtKind::Let, LetStmt{fullPath, move(expr), nullptr});
+            } else {
+                error("Nested member access in assignment not yet supported");
+            }
+        }
+        
+        // Check for array assignment: LET arr(index) = value
         ExprPtr index = nullptr;
         if (tok.type == TokenType::LPAREN) {
             next();
@@ -287,6 +600,37 @@ StmtPtr Parser::parseStmt() {
     if (tok.type == TokenType::DIM) {
         next();
         string var = expect(TokenType::ID).val;
+        
+        // Check if it's "DIM var AS TypeName" or "DIM var AS NEW ClassName(args)"
+        if (tok.type == TokenType::AS) {
+            next();
+            
+            // Phase 7: Check for "AS NEW ClassName(args)" syntax
+            if (tok.type == TokenType::NEW) {
+                // DIM obj AS NEW ClassName(args) - creates and initializes object
+                // We'll treat this as DIM followed by assignment of NEW expression
+                // For now, parse the NEW expression and store it in initVal
+                auto newExpr = parsePrimary();  // This will parse the NEW expression
+                
+                // Store in DimStmt with special handling
+                knownTypes[var] = Type::UserDefined;
+                return make_unique<Stmt>(StmtKind::Dim, DimStmt{var, nullptr, move(newExpr), ""});
+            } else {
+                // Regular "DIM var AS TypeName" (Phase 6 struct)
+                string typeName = expect(TokenType::ID).val;
+                
+                // Normalize type name to uppercase for consistent lookup
+                string typeNameUpper = typeName;
+                transform(typeNameUpper.begin(), typeNameUpper.end(), typeNameUpper.begin(), ::toupper);
+                
+                // Store type name for this variable
+                knownTypes[var] = Type::UserDefined;
+                
+                return make_unique<Stmt>(StmtKind::Dim, DimStmt{var, nullptr, nullptr, typeNameUpper});
+            }
+        }
+        
+        // Otherwise it's an array: DIM array(size) = initValue
         expect(TokenType::LPAREN);
         auto size = parseExpr();
         expect(TokenType::RPAREN);
@@ -413,19 +757,96 @@ StmtPtr Parser::parseStmt() {
     
     if (tok.type == TokenType::CALL) {
         next();
-        string name = expect(TokenType::ID).val;
-        expect(TokenType::LPAREN);
-        vector<ExprPtr> args;
-        if (tok.type != TokenType::RPAREN) {
-            args.push_back(parseExpr());
-            while (tok.type == TokenType::COMMA) {
+        
+        // Phase 7: CALL can now be "CALL func(args)" or "CALL obj.method(args)"
+        // Parse as an expression which handles both cases
+        auto expr = parseExpr();
+        
+        // The expression should be either Call or MethodCall
+        if (expr->kind == ExprKind::Call) {
+            const CallExpr& ce = get<CallExpr>(expr->data);
+            // Convert to CallStmt
+            // Note: We need to extract args from the CallExpr
+            // For now, just store the expression and handle in codegen
+            // Actually, CallStmt expects name and args separately
+            // This is a limitation - let me extract them
+            CallExpr& ce_mut = get<CallExpr>(expr->data);
+            return make_unique<Stmt>(StmtKind::CallStmt, CallStmtNode{ce_mut.name, move(ce_mut.args)});
+        } else if (expr->kind == ExprKind::MethodCall) {
+            // Phase 7: Method call - extract object, method name, and args
+            MethodCallExpr& mce = get<MethodCallExpr>(expr->data);
+            return make_unique<Stmt>(StmtKind::MethodCallStmt, 
+                                    MethodCallStmtNode{move(mce.object), mce.methodName, move(mce.args)});
+        } else {
+            error("CALL must be followed by a function or method call");
+        }
+    }
+    
+    // Phase 7: ME.field = value assignment
+    if (tok.type == TokenType::ME) {
+        next();
+        if (tok.type == TokenType::DOT) {
+            vector<string> memberPath;
+            while (tok.type == TokenType::DOT) {
                 next();
-                args.push_back(parseExpr());
+                memberPath.push_back(expect(TokenType::ID).val);
+            }
+            
+            expect(TokenType::ASSIGN);
+            auto expr = parseExpr();
+            
+            // Store as "ME.member" for codegen to handle
+            if (memberPath.size() == 1) {
+                string fullPath = "ME." + memberPath[0];
+                return make_unique<Stmt>(StmtKind::Let, LetStmt{fullPath, move(expr), nullptr});
+            } else {
+                error("Nested member access in assignment not yet supported");
             }
         }
-        expect(TokenType::RPAREN);
+        error("Expected . after ME");
+    }
+    
+    // Phase 7: Bare assignment (without LET) - for modern VB style in methods
+    if (tok.type == TokenType::ID) {
+        string var = tok.val;
+        next();
         
-        return make_unique<Stmt>(StmtKind::CallStmt, CallStmtNode{name, move(args)});
+        // Check for member access: var.member = value
+        if (tok.type == TokenType::DOT) {
+            vector<string> memberPath;
+            while (tok.type == TokenType::DOT) {
+                next();
+                memberPath.push_back(expect(TokenType::ID).val);
+            }
+            
+            expect(TokenType::ASSIGN);
+            auto expr = parseExpr();
+            
+            // Handle single-level member access
+            if (memberPath.size() == 1) {
+                string fullPath = var + "." + memberPath[0];
+                return make_unique<Stmt>(StmtKind::Let, LetStmt{fullPath, move(expr), nullptr});
+            } else {
+                error("Nested member access in assignment not yet supported");
+            }
+        }
+        
+        // Check for array assignment: var(index) = value
+        ExprPtr index = nullptr;
+        if (tok.type == TokenType::LPAREN) {
+            next();
+            index = parseExpr();
+            expect(TokenType::RPAREN);
+        }
+        
+        // Must be followed by assignment
+        if (tok.type == TokenType::ASSIGN) {
+            next();
+            auto expr = parseExpr();
+            return make_unique<Stmt>(StmtKind::Let, LetStmt{var, move(expr), move(index)});
+        }
+        
+        error("Expected = after variable name");
     }
     
     error("Unexpected token in statement: '" + tok.val + "'");
@@ -492,6 +913,24 @@ DeclPtr Parser::parseDecl() {
 
 Program Parser::parse() {
     Program prog;
+    
+    // Phase 6: First, parse all TYPE declarations (user-defined types)
+    while (tok.type == TokenType::TYPE) {
+        auto typeDecl = parseTypeDecl();
+        // Register the type for later reference (name is already uppercase from parseTypeDecl)
+        const TypeDefDecl& td = get<TypeDefDecl>(typeDecl->data);
+        userTypes[td.name] = td;  // td.name is uppercase
+        prog.declarations.push_back(move(typeDecl));
+    }
+    
+    // Phase 7: Parse all CLASS declarations
+    while (tok.type == TokenType::CLASS) {
+        auto classDecl = parseClassDecl();
+        // Register the class name for type resolution (can't copy ClassDecl due to unique_ptr)
+        const ClassDecl& cd = get<ClassDecl>(classDecl->data);
+        userClassNames.insert(cd.name);  // cd.name is uppercase
+        prog.declarations.push_back(move(classDecl));
+    }
     
     // Parse all function/sub declarations
     while (tok.type == TokenType::FUNCTION || tok.type == TokenType::SUB) {

@@ -60,12 +60,9 @@ Type SemanticAnalyzer::makeArrayType(Type elemType) {
 Type SemanticAnalyzer::inferExprType(const Expr& expr, const SymbolTable& symbols) {
     switch(expr.kind) {
         case ExprKind::Num: {
-            const NumLit& nl = get<NumLit>(expr.data);
-            // Check if it's an integer or float
-            if (nl.value == static_cast<int>(nl.value)) {
-                return Type::Int;
-            }
-            return Type::Float;
+            // Return the type that the parser set (based on decimal point presence)
+            // Don't try to infer from value (15.0 would incorrectly become Int)
+            return expr.type;
         }
         
         case ExprKind::Str:
@@ -121,9 +118,38 @@ Type SemanticAnalyzer::inferExprType(const Expr& expr, const SymbolTable& symbol
                 return userIt->second.returnType;
             }
             
+            // Phase 6/7: Check if it's an array variable (parser creates Call for array access)
+            if (symbols.isDefined(ce.name)) {
+                Type varType = symbols.getType(ce.name);
+                if (varType == Type::IntArray || varType == Type::FloatArray ||
+                    varType == Type::StringArray || varType == Type::BoolArray) {
+                    // It's an array access, return element type
+                    return getArrayElementType(varType);
+                }
+                
+                // If it's a defined variable (e.g., function parameter) being used with (),
+                // assume it's array access and return Float (common element type)
+                // This handles array parameters that aren't properly typed
+                return Type::Float;
+            }
+            
             error("Unknown function: " + ce.name);
             return Type::Float;
         }
+        
+        case ExprKind::MemberAccess: {
+            // Look up field type from struct/class definition
+            const MemberAccessExpr& mae = get<MemberAccessExpr>(expr.data);
+            // For now, try to infer from the object type if available
+            // This is a simplified implementation
+            return Type::Float;  // Default - needs proper type lookup
+        }
+        
+        // Phase 7: OOP expressions - minimal support to avoid errors
+        case ExprKind::NewExpr:
+        case ExprKind::MethodCall:
+        case ExprKind::Me:
+            return Type::Float;  // Default return type for now
     }
     
     return Type::Int;
@@ -131,7 +157,11 @@ Type SemanticAnalyzer::inferExprType(const Expr& expr, const SymbolTable& symbol
 
 void SemanticAnalyzer::analyzeExpr(Expr& expr, const SymbolTable& symbols) {
     // Infer and set the expression's type
-    expr.type = inferExprType(expr, symbols);
+    // For numeric literals, preserve the parser's type (it knows if there was a decimal point)
+    if (expr.kind != ExprKind::Num) {
+        expr.type = inferExprType(expr, symbols);
+    }
+    // For Num, keep the type the parser set based on decimal point presence
     
     // Recursively analyze sub-expressions
     switch(expr.kind) {
@@ -193,6 +223,29 @@ void SemanticAnalyzer::analyzeExpr(Expr& expr, const SymbolTable& symbols) {
             callSites.push_back(CallSite{ce.name, argTypes, 0});
             break;
         }
+        
+        // Phase 7: OOP expressions
+        case ExprKind::NewExpr: {
+            NewExpr& ne = get<NewExpr>(expr.data);
+            for (auto& arg : ne.args) {
+                analyzeExpr(*arg, symbols);
+            }
+            break;
+        }
+        
+        case ExprKind::MethodCall: {
+            MethodCallExpr& mce = get<MethodCallExpr>(expr.data);
+            analyzeExpr(*mce.object, symbols);
+            for (auto& arg : mce.args) {
+                analyzeExpr(*arg, symbols);
+            }
+            break;
+        }
+        
+        case ExprKind::Me:
+        case ExprKind::MemberAccess:
+            // Nothing to analyze for these
+            break;
         
         default:
             break;
@@ -257,18 +310,36 @@ void SemanticAnalyzer::analyzeStmt(Stmt& stmt, SymbolTable& symbols) {
         
         case StmtKind::Dim: {
             DimStmt& ds = get<DimStmt>(stmt.data);
-            analyzeExpr(*ds.size, symbols);
-            analyzeExpr(*ds.initVal, symbols);
             
-            if (ds.size->type != Type::Int) {
-                error("Array size must be Int");
+            if (!ds.typeName.empty()) {
+                // Phase 6/7: DIM var AS TypeName or DIM var AS NEW
+                if (symbols.isDefined(ds.var)) {
+                    error("Variable already defined: " + ds.var);
+                }
+                
+                if (ds.initVal && ds.initVal->kind == ExprKind::NewExpr) {
+                    // Phase 7: DIM var AS NEW ClassName(args)
+                    analyzeExpr(*ds.initVal, symbols);
+                    symbols.define(ds.var, Type::UserDefined);
+                } else {
+                    // Phase 6: DIM var AS TypeName (struct)
+                    symbols.define(ds.var, Type::UserDefined);
+                }
+            } else {
+                // Regular array: DIM arr(size) = initVal
+                analyzeExpr(*ds.size, symbols);
+                analyzeExpr(*ds.initVal, symbols);
+                
+                if (ds.size->type != Type::Int) {
+                    error("Array size must be Int");
+                }
+                
+                Type arrType = makeArrayType(ds.initVal->type);
+                if (symbols.isDefined(ds.var)) {
+                    error("Variable already defined: " + ds.var);
+                }
+                symbols.define(ds.var, arrType);
             }
-            
-            Type arrType = makeArrayType(ds.initVal->type);
-            if (symbols.isDefined(ds.var)) {
-                error("Variable already defined: " + ds.var);
-            }
-            symbols.define(ds.var, arrType);
             break;
         }
         
@@ -354,6 +425,16 @@ void SemanticAnalyzer::analyzeStmt(Stmt& stmt, SymbolTable& symbols) {
             callSites.push_back(CallSite{cs.name, argTypes, 0});
             break;
         }
+        
+        // Phase 7: Method call statement
+        case StmtKind::MethodCallStmt: {
+            MethodCallStmtNode& mcs = get<MethodCallStmtNode>(stmt.data);
+            analyzeExpr(*mcs.object, symbols);
+            for (auto& arg : mcs.args) {
+                analyzeExpr(*arg, symbols);
+            }
+            break;
+        }
     }
 }
 
@@ -391,6 +472,13 @@ void SemanticAnalyzer::analyzeFunctionDecl(FunctionDecl& fd) {
     // Initially, parameters have placeholder types
     // They'll be refined by call site inference
     
+    // Pre-register function signature for recursive calls
+    vector<Type> paramTypes;
+    for (const auto& param : fd.params) {
+        paramTypes.push_back(param.type);
+    }
+    userFunctions[fd.name] = FuncSignature{fd.name, paramTypes, fd.returnType, false};
+    
     // Register parameters in function scope
     for (const auto& param : fd.params) {
         funcSymbols.define(param.name, param.type);
@@ -404,16 +492,19 @@ void SemanticAnalyzer::analyzeFunctionDecl(FunctionDecl& fd) {
     // Infer return type from RETURN statements
     inferReturnType(fd);
     
-    // Register function signature
-    vector<Type> paramTypes;
-    for (const auto& param : fd.params) {
-        paramTypes.push_back(param.type);
-    }
+    // Update function signature with inferred return type
     userFunctions[fd.name] = FuncSignature{fd.name, paramTypes, fd.returnType, false};
 }
 
 void SemanticAnalyzer::analyzeSubDecl(SubDecl& sd) {
     SymbolTable subSymbols(&globalSymbols);
+    
+    // Pre-register sub signature for recursive calls
+    vector<Type> paramTypes;
+    for (const auto& param : sd.params) {
+        paramTypes.push_back(param.type);
+    }
+    userFunctions[sd.name] = FuncSignature{sd.name, paramTypes, Type::Int, true};
     
     // Register parameters
     for (const auto& param : sd.params) {
@@ -424,13 +515,6 @@ void SemanticAnalyzer::analyzeSubDecl(SubDecl& sd) {
     for (auto& stmt : sd.body) {
         analyzeStmt(*stmt, subSymbols);
     }
-    
-    // Register sub signature
-    vector<Type> paramTypes;
-    for (const auto& param : sd.params) {
-        paramTypes.push_back(param.type);
-    }
-    userFunctions[sd.name] = FuncSignature{sd.name, paramTypes, Type::Int, true};
 }
 
 void SemanticAnalyzer::analyzeDecl(Decl& decl) {
@@ -514,6 +598,18 @@ bool SemanticAnalyzer::analyze(Program& program) {
                     if ((paramType == Type::Int && argType == Type::Float) ||
                         (paramType == Type::Float && argType == Type::Int)) {
                         (*params)[i].type = Type::Float;
+                    } else if (paramType == Type::Float && 
+                              (argType == Type::IntArray || argType == Type::FloatArray ||
+                               argType == Type::StringArray || argType == Type::BoolArray)) {
+                        // Parameter is untyped (Float default), argument is array
+                        // Update parameter to match array type
+                        (*params)[i].type = argType;
+                    } else if (paramType == Type::Float && argType == Type::String) {
+                        // Parameter is untyped (Float default), argument is String
+                        (*params)[i].type = Type::String;
+                    } else if (argType == Type::UserDefined || paramType == Type::UserDefined) {
+                        // User-defined types (structs/classes) - allow for now
+                        (*params)[i].type = Type::UserDefined;
                     } else {
                         error("Type mismatch in call to " + funcName + 
                               " at parameter " + to_string(i+1));

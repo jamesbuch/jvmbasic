@@ -1,4 +1,4 @@
-FUNCTION sumArray(arr, size)
+FUNCTION sumArrayCustom(arr, size)
     LET total = 0.0
     LET i = 0.0
     WHILE i < size
@@ -33,7 +33,7 @@ LET numbers(2) = 8.0
 LET numbers(3) = 23.0
 LET numbers(4) = 37.0
 
-PRINT "Sum:", sumArray(numbers, 5.0)
+PRINT "Sum:", sumArrayCustom(numbers, 5.0)
 PRINT "Max:", findMax(numbers, 5.0)
 PRINT "Element 2:", getElement(numbers, 2.0)
 

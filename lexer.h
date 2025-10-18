@@ -19,7 +19,9 @@ enum class TokenType {
     WHILE, ENDWHILE, WEND, 
     DO, UNTIL,
     FUNCTION, ENDFUNCTION, SUB, ENDSUB, RETURN, CALL,
-    TYPE, ENDTYPE, AS, REM
+    TYPE, ENDTYPE, AS, REM,
+    // Phase 7: OOP keywords
+    CLASS, ENDCLASS, PUBLIC, PRIVATE, NEW, ME, INTEGER
 };
 
 // Token structure
