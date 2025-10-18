@@ -104,40 +104,46 @@ LET item = STACKPOP(stack)
 
 ## 🎯 Ready for Phase 9
 
-### Recommended: JSON + Networking
+### Phase 9 Has TWO Major Goals:
 
-**Why**: These are the most impactful features for modern applications.
+#### Goal 1: Modernize Syntax (Visual Basic-like) ⭐
+Transform JVM BASIC from classic BASIC to modern Visual Basic-style syntax:
 
-**What to Add**:
-1. **JSON Functions** (~15 functions)
-   - JSONPARSE - Parse JSON string
-   - JSONGET - Get value by path
-   - JSONGETINT, JSONGETFLOAT, JSONGETBOOL
-   - JSONNEW - Create JSON object
-   - JSONPUT - Set value
-   - JSONTOSTRING - Convert to JSON string
-   - JSONPRETTY - Pretty-print JSON
+**Old BASIC** → **Modern VB**:
+```basic
+' Old (Phase 1-8)                ' New (Phase 9)
+LET x = 10                        Dim x As Integer = 10
+FUNCTION Add(a, b)                Function Add(a As Integer, b As Integer) As Integer
+    RETURN a + b                      Return a + b
+ENDFUNCTION                       End Function
+PRINT "Hello"                     Console.WriteLine("Hello")
+```
 
-2. **HTTP Functions** (~10 functions)
-   - HTTPGET - HTTP GET request
-   - HTTPPOST - HTTP POST request
-   - HTTPSTATUS - Get HTTP status code
-   - HTTPHEAD - HTTP HEAD request
-   - URLENCODE - URL encode string
-   - URLDECODE - URL decode string
+**Why**: Modern syntax is more readable, professional, and familiar to VB developers.
 
-3. **Networking** (~8 functions)
-   - SOCKCONNECT - Connect to socket
-   - SOCKSEND - Send data
-   - SOCKRECV - Receive data
-   - SOCKCLOSE - Close socket
+**Strategy**: Phase 9 supports BOTH syntaxes (backward compatible).  
+**Phase 10**: Remove old syntax completely.
 
-**Impact**: With JSON + HTTP, you can build:
-- Web scrapers
+#### Goal 2: Internet Capabilities 🌐
+
+**JSON Support** (~15 functions):
+- JSONPARSE, JSONGET, JSONGETINT, JSONNEW, JSONPUT, JSONTOSTRING
+- Parse and generate JSON for web APIs
+
+**HTTP Client** (~12 functions):
+- HTTPGET, HTTPPOST, URLENCODE, URLDECODE
+- Make HTTP requests to REST APIs
+
+**XML Support** (~10 functions):
+- XMLPARSE, XMLGET, XMLNEW, XMLTOSTRING
+- Parse and generate XML
+
+**Impact**: With modern syntax + JSON + HTTP, you can build:
+- Web scrapers using modern, readable code
 - REST API clients
-- Data fetchers
-- Web automation tools
 - Cloud integrations
+- Data interchange applications
+- Modern command-line tools
 
 ---
 
