@@ -1823,23 +1823,22 @@ public class BasicRuntime {
         return java.nio.file.Files.isDirectory(java.nio.file.Paths.get(path)) ? 1 : 0;
     }
     
-    // ===== Phase 9: Http Namespace =====
+    // ===== Phase 9: Http Namespace (Modern HttpClient) =====
     
     public static String http_Get(String url) {
         try {
-            java.net.URL urlObj = new java.net.URL(url);
-            java.net.HttpURLConnection conn = (java.net.HttpURLConnection) urlObj.openConnection();
-            conn.setRequestMethod("GET");
+            java.net.http.HttpClient client = java.net.http.HttpClient.newHttpClient();
+            java.net.http.HttpRequest request = java.net.http.HttpRequest.newBuilder()
+                .uri(java.net.URI.create(url))
+                .GET()
+                .build();
             
-            java.io.BufferedReader reader = new java.io.BufferedReader(
-                new java.io.InputStreamReader(conn.getInputStream()));
-            StringBuilder response = new StringBuilder();
-            String line;
-            while ((line = reader.readLine()) != null) {
-                response.append(line).append("\n");
-            }
-            reader.close();
-            return response.toString();
+            java.net.http.HttpResponse<String> response = client.send(
+                request, 
+                java.net.http.HttpResponse.BodyHandlers.ofString()
+            );
+            
+            return response.body();
         } catch (Exception e) {
             return "";
         }
@@ -1847,25 +1846,19 @@ public class BasicRuntime {
     
     public static String http_Post(String url, String data) {
         try {
-            java.net.URL urlObj = new java.net.URL(url);
-            java.net.HttpURLConnection conn = (java.net.HttpURLConnection) urlObj.openConnection();
-            conn.setRequestMethod("POST");
-            conn.setDoOutput(true);
+            java.net.http.HttpClient client = java.net.http.HttpClient.newHttpClient();
+            java.net.http.HttpRequest request = java.net.http.HttpRequest.newBuilder()
+                .uri(java.net.URI.create(url))
+                .POST(java.net.http.HttpRequest.BodyPublishers.ofString(data))
+                .header("Content-Type", "application/json")
+                .build();
             
-            java.io.OutputStream os = conn.getOutputStream();
-            os.write(data.getBytes());
-            os.flush();
-            os.close();
+            java.net.http.HttpResponse<String> response = client.send(
+                request,
+                java.net.http.HttpResponse.BodyHandlers.ofString()
+            );
             
-            java.io.BufferedReader reader = new java.io.BufferedReader(
-                new java.io.InputStreamReader(conn.getInputStream()));
-            StringBuilder response = new StringBuilder();
-            String line;
-            while ((line = reader.readLine()) != null) {
-                response.append(line).append("\n");
-            }
-            reader.close();
-            return response.toString();
+            return response.body();
         } catch (Exception e) {
             return "";
         }
