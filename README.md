@@ -2,24 +2,34 @@
 
 A modern, professional BASIC compiler with Visual Basic-style syntax that generates JVM bytecode. Supports full object-oriented programming, modern type system (Decimal, BigInt), web capabilities (JSON, HTTP), database connectivity, and 255 built-in functions with namespace syntax.
 
-**Current Version**: Phase 9 Complete (Modern VB Syntax + Web Capabilities) ✅  
-**Test Coverage**: 100% (72/72 tests passing, plus 2 INPUT tests)  
-**Function Count**: 255 functions across 7 namespaces
+**Current Version**: Phase 9 Complete (Modern VB Syntax + Enterprise Libraries) ✅  
+**Test Coverage**: 100% (81/81 tests passing + 3 stdin tests skipped)  
+**Function Count**: 255 functions across 7 namespaces  
+**Libraries**: 16 professional JARs (22MB) - Gson, JDBC, Apache Commons, ANTLR4, Bouncy Castle, Jetty
 
 ## Features
 
-### Phase 9: Modern Syntax & Web Capabilities ✨ NEW!
+### Phase 9: Modern Syntax & Enterprise Libraries ✨ NEW!
 - **Modern VB-Style Syntax**: `Dim x As Integer = 10`, `Function Add(a As Integer) As Integer`
 - **Fully Case-Insensitive**: All keywords work in any case (Dim/DIM/dim, If/IF/if, Function/FUNCTION/function, etc.)
+- **Expression Statements**: Call functions without dummy variables: `Console.WriteLine("text")`
 - **Expanded Type System**: Integer, Single, Double, Long, Boolean, String, Decimal, BigInt
 - **Namespace/OO Syntax**: Console.WriteLine(), Math.Sin(), File.ReadAllText()
-- **Web Capabilities**: 
-  - HTTP Client: Http.Get(), Http.Post(), Http.UrlEncode()
-  - JSON Support: Json.Parse(), Json.ToString(), Json.Put()
-  - File I/O: File.ReadAllText(), File.WriteAllText(), File.Exists()
-  - Database: Db.Connect(), Db.Query() (PostgreSQL/MariaDB ready)
-- **Bitwise Operators**: `<<` (shift left), `>>` (shift right)
-- **255 Functions** across 7 namespaces (+56 from Phase 8)
+- **Professional Libraries** (16 JARs - 22MB):
+  - **JSON**: Google Gson 2.10.1 for robust JSON parsing/generation
+  - **Databases**: PostgreSQL JDBC 42.7.1 + MariaDB JDBC 3.3.2
+  - **HTTP**: Modern `java.net.http.HttpClient` (Java 11+)
+  - **XML**: javax.xml DOM + XPath support
+  - **Utilities**: Apache Commons (IO, Lang3, Text, Math3, Codec), Google Guava
+  - **Crypto**: Bouncy Castle 1.77 (future)
+  - **Web Server**: Jetty 11.0.19 (future)
+  - **Parsers**: ANTLR4 4.13.1 (self-hosting goal!)
+- **Complete Operators**: 
+  - Bitwise: `&` (AND), `|` (OR), `^` (XOR), `<<` (SHL), `>>` (SHR)
+  - Logical: `AND`, `OR`, `NOT`, `XOR`
+  - Arithmetic: `+`, `-`, `*`, `/`, `%`
+  - Comparison: `<`, `>`, `<=`, `>=`, `=`, `<>`
+- **255 Functions** across 7 namespaces (Console, Math, File, Http, Json, Xml, Db)
 
 ### Object-Oriented Programming (Phase 7)
 - `CLASS...END CLASS` with PUBLIC/PRIVATE fields and methods
@@ -218,11 +228,17 @@ See `docs/USER_GUIDE.md` for complete documentation with examples.
 4. **Code Generation** - JVM bytecode emission to `.class` file
 
 ### Files
-- `jvmbasic.cpp` - Main compiler (1,376 lines) with embedded lexer/parser
-- `codegen.h` - JVM bytecode generator (1,400+ lines)
-- `ast.h` - Abstract Syntax Tree definitions
-- `builtin_functions.cpp/h` - Built-in function registry
-- `BasicRuntime.java` - Runtime library (93 function implementations)
+- **Compiler** (8,782 lines C++):
+  - `main.cpp` - Entry point and CLI
+  - `lexer.cpp/.h` - Tokenization
+  - `parser.cpp/.h` - Recursive descent parser
+  - `ast.cpp/.h` - Abstract Syntax Tree definitions
+  - `semantic.cpp/.h` - Type inference and analysis
+  - `codegen.h` - JVM bytecode generator
+  - `ast_printer.cpp/.h` - Pretty-printing for debugging
+  - `builtin_functions.cpp/.h` - Built-in function registry
+- **Runtime** (2,108 lines Java):
+  - `BasicRuntime.java` - All 255 functions + namespace implementations
 
 ### Code Generation
 - **Target**: JVM bytecode (Java 5 / version 49)
@@ -234,21 +250,25 @@ See `docs/USER_GUIDE.md` for complete documentation with examples.
 ## Testing
 
 ### Test Suite
-- **74 tests total**: 72 regular tests + 2 INPUT tests
-- **100% passing** ✅ (72/72 regular, 2/2 INPUT)
-  - Phase 9 Modern Syntax tests: 8/8
-  - Phase 7 OOP tests: 7/7
-  - Phase 6 Struct tests: 4/4
-  - Array tests: 12/12
-  - Function tests: 15/15
-  - Other feature tests: 26/26
-- Automated test runners: `test_runner.sh`, `run_input_tests.sh`
+- **81 tests passing** ✅ (100% automated success rate)
+  - **Phase 9 tests (9)**: XML parsing, JSON (Gson), PostgreSQL, MariaDB, all types, bitwise ops, namespaces
+  - **Phase 8 tests (56)**: Built-in functions, string operations, math, file I/O, collections
+  - **Phase 7 OOP tests (7)**: Classes, inheritance, methods, constructors
+  - **Phase 6 tests (4)**: User-defined types (structs)
+  - **Core tests (5+)**: Variables, arrays, control flow, operators, functions
+  - **Stdin tests (3)**: Skipped in automation (test_input.bas, test_input_simple.bas, input.bas)
+- Automated test runner: `./test_runner.sh`
 
 ### Run Tests
 ```bash
-./test_runner.sh              # All 72 regular tests
-./run_input_tests.sh          # 2 INPUT tests with data files
-./dump_test_artifacts.sh      # Generate AST and bytecode dumps
+./test_runner.sh              # All 81 automated tests
+./dump_test_artifacts.sh      # Generate AST and bytecode dumps for debugging
+
+# Test results show:
+# Passed:  81
+# Failed:  0
+# Skipped: 3 (require stdin)
+# Total:   84
 ```
 
 ## Documentation
@@ -337,34 +357,56 @@ See `docs/USER_GUIDE.md` for complete documentation with examples.
 
 ### Complete Programs
 
-See the `examples/` directory (17 programs) for complete working examples:
+**17 examples in `examples/latest/`** - All using modern VB-style syntax:
 
-**Modern Syntax & Web**:
-- `examples/modern_syntax_demo.bas` - Showcase of Phase 9 modern VB syntax
-- `examples/modern_web_app.bas` - Full-featured web application demo
+**Algorithms:**
+- `fibonacci_sequence.bas` - Recursive Fibonacci implementation
+- `math_algorithms.bas` - GCD, LCM, factorial algorithms
+- `sorting_algorithms.bas` - Bubble and selection sort
+- `prime_numbers.bas` - Prime number finder with optimization
+- `password_generator.bas` - Secure random password generation
 
-**Classic Programs**:
-- `examples/math_algorithms.bas` - GCD, factorial, Fibonacci, primes
-- `examples/sorting_algorithms.bas` - Bubble sort, selection sort
-- `examples/password_generator.bas` - Random password generation
-- `examples/lotto_improved.bas` - Lottery number generator
-- `examples/text_analyzer.bas` - String processing and analysis
-- `examples/file_backup_utility.bas` - File operations demo
-- `examples/log_processor.bas` - Log file processing
+**Data & Statistics:**
+- `statistics.bas` - Mean, median, mode, standard deviation
+- `text_analyzer.bas` - Word frequency, text statistics
+- `log_processor.bas` - Log file parsing and analysis
 
-**Object-Oriented**:
-- `examples/oop_bank_account.bas` - Banking system with classes
-- `examples/oop_contact_manager.bas` - Contact management system
-- `examples/oop_geometry.bas` - Geometric shapes with OOP
+**Object-Oriented:**
+- `oop_bank_account.bas` - Banking system with classes and methods
+- `oop_geometry.bas` - Shape hierarchy with inheritance
+- `oop_contact_manager.bas` - Contact management with classes
+
+**File & Web:**
+- `file_backup_utility.bas` - File backup and restoration utility
+- `modern_web_app.bas` - Web API integration with JSON
+
+**Games & Utilities:**
+- `lotto.bas` - Lottery number generator
+- `lotto_improved.bas` - Advanced lottery with statistics
+
+**Demonstrations:**
+- `comprehensive_demo.bas` - All Phase 9 features in one program
+- `modern_syntax_demo.bas` - Modern VB syntax showcase
 
 ### Test Programs
 
-See the `tests/` directory for 74 comprehensive test programs:
-- **Modern Syntax** (`test_modern_*.bas`, `test_namespace_*.bas`, 8 tests) - Phase 9 features
-- **OOP** (`test_class_*.bas`, 7 tests) - Classes, constructors, methods
-- **Structs** (`test_struct_*.bas`, 4 tests) - User-defined types
-- **Functions** (`test_func_*.bas`, 15 tests) - Recursion, parameters, return values
-- **Arrays** (`test_array_*.bas`, 12 tests) - All array types, parameters, functions
+**81 tests in `tests/` directory** - All automated:
+
+**Phase 9 Tests (9):**
+- `test_xml_namespace.bas` - XML parsing with javax.xml and XPath
+- `test_json_real.bas` - JSON with Google Gson library
+- `test_postgres.bas` - PostgreSQL database connectivity
+- `test_mariadb.bas` - MariaDB database connectivity
+- `test_db_namespace.bas` - Database wrapper functions
+- `test_all_types.bas` - All 8 type keywords
+- `test_bitwise_complete.bas` - All 5 bitwise operators
+- `test_console_readkey.bas` - Console namespace
+- `test_all_namespaces.bas` - Integration test for all 7 namespaces
+
+**Phase 8 Tests (56):** Built-in functions, string ops, math, file I/O  
+**Phase 7 OOP Tests (7):** Classes, inheritance, constructors  
+**Phase 6 Tests (4):** User-defined types (structs)  
+**Core Tests:** Variables, arrays, control flow, operators, functions
 - **Control Flow** (`test_if.bas`, `test_for.bas`, `test_while.bas`)
 - **I/O** (`test_input*.bas`, `test_print*.bas`)
 - **Advanced** (`test_algorithms.bas`, `test_comprehensive.bas`) - Complete feature demos
@@ -375,12 +417,26 @@ See the `tests/` directory for 74 comprehensive test programs:
 - C++20 compiler (g++ 10+, clang 12+)
 - JDK/JRE 11+ (for running compiled programs)
 - Make (optional, for build system)
-- Libraries (included in `lib/` directory):
-  - Google Gson 2.10.1 (JSON)
-  - PostgreSQL JDBC 42.7.1
-  - MariaDB JDBC 3.3.2
-  - Apache Commons IO 2.15.1
-  - Google Guava 33.0.0
+
+**Integrated Professional Libraries** (16 JARs - 22MB in `lib/`):
+- **Google Gson 2.10.1** - JSON parsing/generation
+- **PostgreSQL JDBC 42.7.1** - PostgreSQL database driver
+- **MariaDB JDBC 3.3.2** - MariaDB/MySQL database driver
+- **Apache Commons IO 2.15.1** - File I/O utilities
+- **Apache Commons Lang3 3.14.0** - String/Array utilities
+- **Apache Commons Text 1.11.0** - Advanced text processing
+- **Apache Commons Math3 3.6.1** - Mathematical algorithms
+- **Apache Commons Codec 1.16.0** - Encoding/decoding utilities
+- **Google Guava 33.0.0** - Collections and utilities
+- **Bouncy Castle Provider 1.77** - Comprehensive cryptography
+- **Bouncy Castle PKIX 1.77** - Certificate validation
+- **Jetty Server 11.0.19** - Embedded HTTP server
+- **Jetty Servlet 11.0.19** - Servlet support
+- **Jetty Util 11.0.19** - Web utilities
+- **ANTLR4 Complete 4.13.1** - Parser generation (self-hosting goal!)
+- **ANTLR4 Runtime 4.13.1** - Parser runtime
+
+📖 See `lib/README.md` and `PROFESSIONAL_CAPABILITIES.md` for full details.
 
 ### Build Options
 ```bash
