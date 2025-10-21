@@ -1651,6 +1651,441 @@ public class BasicRuntime {
         }
         return 0;
     }
+    
+    // ===== Phase 9: Console I/O (Modern VB-style) =====
+    
+    /**
+     * Console.WriteLine - Write a line to console with newline
+     */
+    public static int consoleWriteLine(String text) {
+        System.out.println(text);
+        return 0;
+    }
+    
+    /**
+     * Console.Write - Write to console without newline
+     */
+    public static int consoleWrite(String text) {
+        System.out.print(text);
+        return 0;
+    }
+    
+    /**
+     * Console.ReadLine - Read a line from console
+     */
+    public static String consoleReadLine() {
+        try {
+            java.io.BufferedReader reader = new java.io.BufferedReader(
+                new java.io.InputStreamReader(System.in));
+            return reader.readLine();
+        } catch (java.io.IOException e) {
+            return "";
+        }
+    }
+    
+    /**
+     * Console.ReadKey - Read a single character from console
+     */
+    public static String consoleReadKey() {
+        try {
+            int ch = System.in.read();
+            return String.valueOf((char)ch);
+        } catch (java.io.IOException e) {
+            return "";
+        }
+    }
+    
+    // ===== Phase 9: Console Namespace (OO-style dot syntax) =====
+    
+    /**
+     * Console.WriteLine via namespace syntax
+     */
+    public static int console_WriteLine(String text) {
+        System.out.println(text);
+        return 0;
+    }
+    
+    public static int console_Write(String text) {
+        System.out.print(text);
+        return 0;
+    }
+    
+    public static String console_ReadLine() {
+        try {
+            java.io.BufferedReader reader = new java.io.BufferedReader(
+                new java.io.InputStreamReader(System.in));
+            String line = reader.readLine();
+            return line == null ? "" : line;
+        } catch (java.io.IOException e) {
+            return "";
+        }
+    }
+    
+    public static String console_ReadKey() {
+        try {
+            int ch = System.in.read();
+            return ch == -1 ? "" : String.valueOf((char)ch);
+        } catch (java.io.IOException e) {
+            return "";
+        }
+    }
+    
+    // ===== Phase 9: Math Namespace =====
+    
+    public static float math_Sin(float x) { return (float) Math.sin(x); }
+    public static float math_Cos(float x) { return (float) Math.cos(x); }
+    public static float math_Tan(float x) { return (float) Math.tan(x); }
+    public static float math_Asin(float x) { return (float) Math.asin(x); }
+    public static float math_Acos(float x) { return (float) Math.acos(x); }
+    public static float math_Atan(float x) { return (float) Math.atan(x); }
+    public static float math_Atan2(float y, float x) { return (float) Math.atan2(y, x); }
+    public static float math_Sqrt(float x) { return (float) Math.sqrt(x); }
+    public static float math_Pow(float x, float y) { return (float) Math.pow(x, y); }
+    public static float math_Exp(float x) { return (float) Math.exp(x); }
+    public static float math_Log(float x) { return (float) Math.log(x); }
+    public static float math_Log10(float x) { return (float) Math.log10(x); }
+    public static float math_Abs(float x) { return Math.abs(x); }
+    public static float math_Ceil(float x) { return (float) Math.ceil(x); }
+    public static float math_Floor(float x) { return (float) Math.floor(x); }
+    public static int math_Round(float x) { return Math.round(x); }
+    public static float math_Min(float a, float b) { return Math.min(a, b); }
+    public static float math_Max(float a, float b) { return Math.max(a, b); }
+    public static float math_PI() { return (float) Math.PI; }
+    public static float math_E() { return (float) Math.E; }
+    
+    // ===== Phase 9: File Namespace =====
+    
+    public static String file_ReadAllText(String filename) {
+        try {
+            return new String(java.nio.file.Files.readAllBytes(
+                java.nio.file.Paths.get(filename)));
+        } catch (Exception e) {
+            return "";
+        }
+    }
+    
+    public static int file_WriteAllText(String filename, String content) {
+        try {
+            java.nio.file.Files.write(java.nio.file.Paths.get(filename), 
+                content.getBytes());
+            return 0;
+        } catch (Exception e) {
+            return -1;
+        }
+    }
+    
+    public static int file_Exists(String filename) {
+        return java.nio.file.Files.exists(java.nio.file.Paths.get(filename)) ? 1 : 0;
+    }
+    
+    public static int file_Delete(String filename) {
+        try {
+            java.nio.file.Files.deleteIfExists(java.nio.file.Paths.get(filename));
+            return 0;
+        } catch (Exception e) {
+            return -1;
+        }
+    }
+    
+    public static int file_Copy(String source, String dest) {
+        try {
+            java.nio.file.Files.copy(
+                java.nio.file.Paths.get(source),
+                java.nio.file.Paths.get(dest),
+                java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+            return 0;
+        } catch (Exception e) {
+            return -1;
+        }
+    }
+    
+    public static int file_Move(String source, String dest) {
+        try {
+            java.nio.file.Files.move(
+                java.nio.file.Paths.get(source),
+                java.nio.file.Paths.get(dest),
+                java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+            return 0;
+        } catch (Exception e) {
+            return -1;
+        }
+    }
+    
+    public static float file_Size(String filename) {
+        try {
+            return (float) java.nio.file.Files.size(java.nio.file.Paths.get(filename));
+        } catch (Exception e) {
+            return -1.0f;
+        }
+    }
+    
+    public static int file_IsDirectory(String path) {
+        return java.nio.file.Files.isDirectory(java.nio.file.Paths.get(path)) ? 1 : 0;
+    }
+    
+    // ===== Phase 9: Http Namespace =====
+    
+    public static String http_Get(String url) {
+        try {
+            java.net.URL urlObj = new java.net.URL(url);
+            java.net.HttpURLConnection conn = (java.net.HttpURLConnection) urlObj.openConnection();
+            conn.setRequestMethod("GET");
+            
+            java.io.BufferedReader reader = new java.io.BufferedReader(
+                new java.io.InputStreamReader(conn.getInputStream()));
+            StringBuilder response = new StringBuilder();
+            String line;
+            while ((line = reader.readLine()) != null) {
+                response.append(line).append("\n");
+            }
+            reader.close();
+            return response.toString();
+        } catch (Exception e) {
+            return "";
+        }
+    }
+    
+    public static String http_Post(String url, String data) {
+        try {
+            java.net.URL urlObj = new java.net.URL(url);
+            java.net.HttpURLConnection conn = (java.net.HttpURLConnection) urlObj.openConnection();
+            conn.setRequestMethod("POST");
+            conn.setDoOutput(true);
+            
+            java.io.OutputStream os = conn.getOutputStream();
+            os.write(data.getBytes());
+            os.flush();
+            os.close();
+            
+            java.io.BufferedReader reader = new java.io.BufferedReader(
+                new java.io.InputStreamReader(conn.getInputStream()));
+            StringBuilder response = new StringBuilder();
+            String line;
+            while ((line = reader.readLine()) != null) {
+                response.append(line).append("\n");
+            }
+            reader.close();
+            return response.toString();
+        } catch (Exception e) {
+            return "";
+        }
+    }
+    
+    public static String http_UrlEncode(String text) {
+        try {
+            return java.net.URLEncoder.encode(text, "UTF-8");
+        } catch (Exception e) {
+            return text;
+        }
+    }
+    
+    public static String http_UrlDecode(String text) {
+        try {
+            return java.net.URLDecoder.decode(text, "UTF-8");
+        } catch (Exception e) {
+            return text;
+        }
+    }
+    
+    // ===== Phase 9: Json Namespace =====
+    // Simple JSON implementation using Map (no external dependencies)
+    
+    private static java.util.Map<Integer, java.util.Map<String, Object>> jsonObjects = new java.util.HashMap<>();
+    private static int nextJsonId = 1;
+    
+    public static int json_Parse(String jsonString) {
+        // Simple JSON parser - handles basic {"key":"value"} format
+        try {
+            java.util.Map<String, Object> map = new java.util.HashMap<>();
+            // Remove outer braces and whitespace
+            String content = jsonString.trim();
+            if (content.startsWith("{")) content = content.substring(1);
+            if (content.endsWith("}")) content = content.substring(0, content.length() - 1);
+            
+            // Parse key-value pairs (simplified - no nested objects for now)
+            String[] pairs = content.split(",");
+            for (String pair : pairs) {
+                String[] kv = pair.split(":");
+                if (kv.length == 2) {
+                    String key = kv[0].trim().replaceAll("\"", "");
+                    String value = kv[1].trim().replaceAll("\"", "");
+                    map.put(key, value);
+                }
+            }
+            
+            int id = nextJsonId++;
+            jsonObjects.put(id, map);
+            return id;
+        } catch (Exception e) {
+            return -1;
+        }
+    }
+    
+    public static String json_GetString(int objId, String key) {
+        java.util.Map<String, Object> obj = jsonObjects.get(objId);
+        if (obj != null && obj.containsKey(key)) {
+            return obj.get(key).toString();
+        }
+        return "";
+    }
+    
+    public static int json_GetInt(int objId, String key) {
+        java.util.Map<String, Object> obj = jsonObjects.get(objId);
+        if (obj != null && obj.containsKey(key)) {
+            try {
+                return Integer.parseInt(obj.get(key).toString());
+            } catch (Exception e) {
+                return 0;
+            }
+        }
+        return 0;
+    }
+    
+    public static float json_GetFloat(int objId, String key) {
+        java.util.Map<String, Object> obj = jsonObjects.get(objId);
+        if (obj != null && obj.containsKey(key)) {
+            try {
+                return Float.parseFloat(obj.get(key).toString());
+            } catch (Exception e) {
+                return 0.0f;
+            }
+        }
+        return 0.0f;
+    }
+    
+    public static int json_NewObject() {
+        int id = nextJsonId++;
+        jsonObjects.put(id, new java.util.HashMap<>());
+        return id;
+    }
+    
+    public static int json_Put(int objId, String key, String value) {
+        java.util.Map<String, Object> obj = jsonObjects.get(objId);
+        if (obj != null) {
+            obj.put(key, value);
+            return 0;
+        }
+        return -1;
+    }
+    
+    public static int json_PutInt(int objId, String key, int value) {
+        java.util.Map<String, Object> obj = jsonObjects.get(objId);
+        if (obj != null) {
+            obj.put(key, value);
+            return 0;
+        }
+        return -1;
+    }
+    
+    public static String json_ToString(int objId) {
+        java.util.Map<String, Object> obj = jsonObjects.get(objId);
+        if (obj == null) return "";
+        
+        StringBuilder sb = new StringBuilder("{");
+        boolean first = true;
+        for (java.util.Map.Entry<String, Object> entry : obj.entrySet()) {
+            if (!first) sb.append(",");
+            sb.append("\"").append(entry.getKey()).append("\":");
+            Object value = entry.getValue();
+            if (value instanceof String) {
+                sb.append("\"").append(value).append("\"");
+            } else {
+                sb.append(value);
+            }
+            first = false;
+        }
+        sb.append("}");
+        return sb.toString();
+    }
+    
+    // ===== Phase 9: Xml Namespace =====
+    // Placeholder implementations (will use Java's built-in XML APIs)
+    
+    public static int xml_Parse(String xmlString) {
+        // TODO: Implement XML parsing
+        return -1;
+    }
+    
+    public static String xml_GetText(int docId, String xpath) {
+        // TODO: Implement XPath query
+        return "";
+    }
+    
+    // ===== Phase 9: Db Namespace =====
+    // Database connection management
+    
+    private static java.util.Map<Integer, java.sql.Connection> dbConnections = new java.util.HashMap<>();
+    private static java.util.Map<Integer, java.sql.ResultSet> dbResults = new java.util.HashMap<>();
+    private static int nextDbId = 1;
+    
+    public static int db_Connect(String url, String user, String password) {
+        try {
+            java.sql.Connection conn = java.sql.DriverManager.getConnection(url, user, password);
+            int id = nextDbId++;
+            dbConnections.put(id, conn);
+            return id;
+        } catch (Exception e) {
+            System.err.println("DB Error: " + e.getMessage());
+            return -1;
+        }
+    }
+    
+    public static int db_Query(int connId, String sql) {
+        try {
+            java.sql.Connection conn = dbConnections.get(connId);
+            if (conn != null) {
+                java.sql.Statement stmt = conn.createStatement();
+                java.sql.ResultSet rs = stmt.executeQuery(sql);
+                int id = nextDbId++;
+                dbResults.put(id, rs);
+                return id;
+            }
+            return -1;
+        } catch (Exception e) {
+            System.err.println("DB Error: " + e.getMessage());
+            return -1;
+        }
+    }
+    
+    public static int db_Next(int resultId) {
+        try {
+            java.sql.ResultSet rs = dbResults.get(resultId);
+            return (rs != null && rs.next()) ? 1 : 0;
+        } catch (Exception e) {
+            return 0;
+        }
+    }
+    
+    public static String db_GetString(int resultId, String columnName) {
+        try {
+            java.sql.ResultSet rs = dbResults.get(resultId);
+            return rs != null ? rs.getString(columnName) : "";
+        } catch (Exception e) {
+            return "";
+        }
+    }
+    
+    public static int db_GetInt(int resultId, String columnName) {
+        try {
+            java.sql.ResultSet rs = dbResults.get(resultId);
+            return rs != null ? rs.getInt(columnName) : 0;
+        } catch (Exception e) {
+            return 0;
+        }
+    }
+    
+    public static int db_Close(int connId) {
+        try {
+            java.sql.Connection conn = dbConnections.get(connId);
+            if (conn != null) {
+                conn.close();
+                dbConnections.remove(connId);
+            }
+            return 0;
+        } catch (Exception e) {
+            return -1;
+        }
+    }
 }
 
 

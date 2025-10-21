@@ -325,6 +325,7 @@ public:
         else if (i >= -128 && i <= 127) emit(0x10, static_cast<u1>(i));
         else emit(0x11, static_cast<u2>(i));
     }
+    void aconst_null() { emit(0x01); }  // Phase 9: Load null reference
     void fconst(float f) {
         if (f == 0.0f) emit(0x0B);
         else if (f == 1.0f) emit(0x0C);
@@ -362,6 +363,8 @@ public:
     void iadd() { emit(0x60); }
     void isub() { emit(0x64); }
     void imul() { emit(0x68); }
+    void ishl() { emit(0x78); }  // Phase 9: Shift left
+    void ishr() { emit(0x7a); }  // Phase 9: Arithmetic shift right
     void idiv() { emit(0x6C); }
     void fadd() { emit(0x62); }
     void fsub() { emit(0x66); }
@@ -830,6 +833,9 @@ public:
                     case Op::Mul: imul(); break;
                     case Op::Div: idiv(); break;
                     case Op::Mod: irem(); break;
+                    case Op::Shl: ishl(); break;  // Phase 9: Left shift
+                    case Op::Shr: ishr(); break;  // Phase 9: Right shift (arithmetic)
+                    default: break;
                 }
             } else if (e.type == Type::Float) {
                 switch (bo.op) {
@@ -955,6 +961,44 @@ public:
                 load(*le.right, varIdx);
                 emit(0x82); // ixor
             }
+        } else if (e.kind == ExprKind::NamespaceCall) {
+            // Phase 9: Namespace calls (Console.WriteLine, Math.Sin, etc.)
+            const NamespaceCallExpr& nce = get<NamespaceCallExpr>(e.data);
+            
+            // Load arguments
+            for (const auto& arg : nce.args) {
+                load(*arg, varIdx);
+            }
+            
+            // Call the namespace method: invokestatic basicrt/BasicRuntime.method
+            // Build the method descriptor
+            string descriptor = "(";
+            for (const auto& arg : nce.args) {
+                if (arg->type == Type::Int || arg->type == Type::Bool) descriptor += "I";
+                else if (arg->type == Type::Float) descriptor += "F";
+                else if (arg->type == Type::String) descriptor += "Ljava/lang/String;";
+                else descriptor += "Ljava/lang/Object;";  // For Decimal, BigInt, etc.
+            }
+            descriptor += ")";
+            
+            // Determine return type (simplified - assumes Int for now)
+            if (e.type == Type::Int || e.type == Type::Bool) descriptor += "I";
+            else if (e.type == Type::Float) descriptor += "F";
+            else if (e.type == Type::String) descriptor += "Ljava/lang/String;";
+            else descriptor += "Ljava/lang/Object;";
+            
+            // Create the method call: Convert CONSOLE + WriteLine to console_WriteLine
+            // Preserve method name casing from source (WriteLine stays WriteLine)
+            string namespaceLower = nce.namespaceName;
+            for (auto& c : namespaceLower) c = tolower(c);
+            
+            string fullMethodName = namespaceLower + "_" + nce.methodName;
+            
+            u2 method_name_idx = cp.addUtf8(fullMethodName);
+            u2 method_desc_idx = cp.addUtf8(descriptor);
+            u2 nat_idx = cp.addNameAndType(method_name_idx, method_desc_idx);
+            u2 method_ref = cp.addMethodRef(basicruntime_class_idx, nat_idx);
+            invokestatic(method_ref);
         }
     }
 
@@ -1256,28 +1300,75 @@ public:
                 const NewExpr& ne = get<NewExpr>(ds.initVal->data);
                 varTypeNames[ds.var] = ne.className;
             } else if (!ds.typeName.empty()) {
-                // DIM var AS TypeName - allocate Object[] for struct (Phase 6)
-                varIdx[ds.var] = nextLocal++;
-                max_locals = max(max_locals, static_cast<u2>(nextLocal));
-                u1 idx = varIdx[ds.var];
+                // Phase 9: Check if it's a built-in type or user-defined type
+                bool isBuiltInType = (ds.typeName == "INTEGER" || ds.typeName == "SINGLE" || 
+                                     ds.typeName == "DOUBLE" || ds.typeName == "LONG" || 
+                                     ds.typeName == "BOOLEAN" || ds.typeName == "STRING" ||
+                                     ds.typeName == "DECIMAL" || ds.typeName == "BIGINT");
                 
-                // Get field count for this type
-                int fieldCount = static_cast<int>(structFields[ds.typeName].size());
-                
-                // Create Object array: new Object[fieldCount]
-                iconst(fieldCount);
-                
-                u2 objectClass = cp.addClass(cp.addUtf8("java/lang/Object"));
-                anewarray(objectClass);
-                
-                // Store array reference
-                astore(idx);
-                
-                // Store type name for later field lookups
-                varTypeNames[ds.var] = ds.typeName;
-                
-                // Initialize all fields to null/zero (arrays are already null by default)
-                // We could add default initialization here if needed
+                if (isBuiltInType) {
+                    // Phase 9: DIM var AS Integer = value (scalar typed variable)
+                    varIdx[ds.var] = nextLocal++;
+                    max_locals = max(max_locals, static_cast<u2>(nextLocal));
+                    u1 idx = varIdx[ds.var];
+                    
+                    if (ds.initVal) {
+                        // Initialize with provided value
+                        load(*ds.initVal, varIdx);
+                        
+                        // Store based on type
+                        if (ds.typeName == "INTEGER" || ds.typeName == "LONG" || ds.typeName == "BOOLEAN") {
+                            istore(idx);
+                        } else if (ds.typeName == "SINGLE" || ds.typeName == "DOUBLE") {
+                            fstore(idx);
+                        } else {  // STRING, DECIMAL, BIGINT (Object types)
+                            astore(idx);
+                        }
+                    } else {
+                        // Initialize with default value (0, 0.0, false, "", null for Decimal/BigInt)
+                        if (ds.typeName == "INTEGER" || ds.typeName == "LONG") {
+                            iconst(0);
+                            istore(idx);
+                        } else if (ds.typeName == "BOOLEAN") {
+                            iconst(0);  // false
+                            istore(idx);
+                        } else if (ds.typeName == "SINGLE" || ds.typeName == "DOUBLE") {
+                            fconst(0.0f);
+                            fstore(idx);
+                        } else if (ds.typeName == "STRING") {
+                            u2 emptyStrIdx = cp.addUtf8("");
+                            ldc(cp.addString(emptyStrIdx));
+                            astore(idx);
+                        } else if (ds.typeName == "DECIMAL" || ds.typeName == "BIGINT") {
+                            // Initialize to null for now (TODO: create zero value)
+                            aconst_null();
+                            astore(idx);
+                        }
+                    }
+                } else {
+                    // User-defined type (struct) - allocate Object[] for struct (Phase 6)
+                    varIdx[ds.var] = nextLocal++;
+                    max_locals = max(max_locals, static_cast<u2>(nextLocal));
+                    u1 idx = varIdx[ds.var];
+                    
+                    // Get field count for this type
+                    int fieldCount = static_cast<int>(structFields[ds.typeName].size());
+                    
+                    // Create Object array: new Object[fieldCount]
+                    iconst(fieldCount);
+                    
+                    u2 objectClass = cp.addClass(cp.addUtf8("java/lang/Object"));
+                    anewarray(objectClass);
+                    
+                    // Store array reference
+                    astore(idx);
+                    
+                    // Store type name for later field lookups
+                    varTypeNames[ds.var] = ds.typeName;
+                    
+                    // Initialize all fields to null/zero (arrays are already null by default)
+                    // We could add default initialization here if needed
+                }
             } else {
                 // Regular array: DIM arr(size) = initVal
                 // Allocate local variable for array

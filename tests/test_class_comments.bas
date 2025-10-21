@@ -10,7 +10,7 @@ CLASS Example
         value = v  ' Inline comment
     END SUB
     
-    PUBLIC FUNCTION Double() AS FLOAT
+    PUBLIC FUNCTION GetDouble() AS FLOAT
         ' Return double the value
         RETURN value * 2.0
     END FUNCTION

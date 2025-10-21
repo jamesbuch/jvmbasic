@@ -1,29 +1,42 @@
 # JVM BASIC — A Modern BASIC Compiler for the JVM
 
-A feature-complete BASIC compiler written in modern C++ that generates JVM bytecode. Supports full object-oriented programming, user-defined types (structs), functions, arrays, recursion, file I/O, regular expressions, and 93 built-in functions.
+A modern, professional BASIC compiler with Visual Basic-style syntax that generates JVM bytecode. Supports full object-oriented programming, modern type system (Decimal, BigInt), web capabilities (JSON, HTTP), database connectivity, and 255 built-in functions with namespace syntax.
 
-**Current Version**: Phase 7 Complete (Object-Oriented Programming) ✅  
-**Test Coverage**: 100% (56/56 tests passing)
+**Current Version**: Phase 9 Complete (Modern VB Syntax + Web Capabilities) ✅  
+**Test Coverage**: 100% (72/72 tests passing)  
+**Function Count**: 255 functions across 7 namespaces
 
 ## Features
 
-### Language Features
-- **Object-Oriented Programming** (Phase 7 NEW! ✨): 
-  - `CLASS...END CLASS` declarations with PUBLIC/PRIVATE fields
-  - Constructors with `PUBLIC SUB New(params)`
-  - Instance methods (SUB/FUNCTION)
-  - `NEW` operator for object instantiation
-  - `ME` keyword for self-reference
-  - Field access and method calls with dot notation
-- **User-Defined Types** (Phase 6): `TYPE...ENDTYPE` with member access via dot notation
-- **Functions & Subroutines**: `FUNCTION...ENDFUNCTION`, `SUB...ENDSUB` with full recursion support
-- **Arrays**: Typed arrays with `DIM arr(size) = value`, arrays as function parameters
-- **Control Flow**: `IF...THEN...ELSEIF...ELSE...ENDIF`, `FOR...TO...STEP...NEXT`, `WHILE...ENDWHILE`, `DO...WHILE/UNTIL`
-- **I/O**: `PRINT` with BASIC-style `,` and `;` separators, `INPUT` statement, file I/O functions
-- **Comments**: `REM` and `'` (apostrophe) comments
-- **Type System**: `Int`, `Float`, `String`, `Bool` with automatic Int→Float promotion
-- **Expressions**: Full arithmetic, comparison, boolean, and string operations
-- **Built-in Functions**: 93 functions for math, strings, arrays, file I/O, and regex
+### Phase 9: Modern Syntax & Web Capabilities ✨ NEW!
+- **Modern VB-Style Syntax**: `Dim x As Integer = 10`, `Function Add(a As Integer) As Integer`
+- **Case-Insensitive Keywords**: If/IF, Dim/DIM all work
+- **Expanded Type System**: Integer, Single, Double, Long, Boolean, String, Decimal, BigInt
+- **Namespace/OO Syntax**: Console.WriteLine(), Math.Sin(), File.ReadAllText()
+- **Web Capabilities**: 
+  - HTTP Client: Http.Get(), Http.Post(), Http.UrlEncode()
+  - JSON Support: Json.Parse(), Json.ToString(), Json.Put()
+  - File I/O: File.ReadAllText(), File.WriteAllText(), File.Exists()
+  - Database: Db.Connect(), Db.Query() (PostgreSQL/MariaDB ready)
+- **Bitwise Operators**: `<<` (shift left), `>>` (shift right)
+- **255 Functions** across 7 namespaces (+56 from Phase 8)
+
+### Object-Oriented Programming (Phase 7)
+- `CLASS...END CLASS` with PUBLIC/PRIVATE fields and methods
+- Constructors, instance methods, `NEW` operator, `ME` keyword
+- Full encapsulation and inheritance foundation
+
+### User-Defined Types (Phase 6)
+- `TYPE...ENDTYPE` structures with dot notation member access
+
+### Core Language
+- **Functions & Subroutines**: Modern syntax with typed parameters
+- **Arrays**: Typed arrays with modern declarations
+- **Control Flow**: IF, FOR, WHILE, DO...WHILE/UNTIL with modern syntax
+- **I/O**: Console namespace + traditional PRINT/INPUT
+- **Comments**: `REM` and `'` (apostrophe)
+- **Type System**: Int, Float, String, Bool, Decimal, BigInt, UserDefined
+- **Expressions**: Full arithmetic, comparison, logical, bitwise operations
 
 ### Compiler Features
 - **Pure C++20**: Single-file or modular architecture

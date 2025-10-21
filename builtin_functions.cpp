@@ -217,5 +217,11 @@ const map<string, FunctionSig> builtinFunctions = {
     {"QUEUEISEMPTY", {{Type::Int}, Type::Bool, "queueIsEmpty", "(I)Z"}},
     {"QUEUESIZE", {{Type::Int}, Type::Int, "queueSize", "(I)I"}},
     {"QUEUECLEAR", {{Type::Int}, Type::Int, "queueClear", "(I)I"}},
+    
+    // Phase 9: Console I/O (modern VB-style)
+    {"CONSOLEWRITELINE", {{Type::String}, Type::Int, "consoleWriteLine", "(Ljava/lang/String;)I"}},
+    {"CONSOLEWRITE", {{Type::String}, Type::Int, "consoleWrite", "(Ljava/lang/String;)I"}},
+    {"CONSOLEREADLINE", {{}, Type::String, "consoleReadLine", "()Ljava/lang/String;"}},
+    {"CONSOLEREADKEY", {{}, Type::String, "consoleReadKey", "()Ljava/lang/String;"}},
 };
 

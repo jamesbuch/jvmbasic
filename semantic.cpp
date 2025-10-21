@@ -154,6 +154,69 @@ Type SemanticAnalyzer::inferExprType(const Expr& expr, const SymbolTable& symbol
         // Phase 8: Logical expressions
         case ExprKind::Logical:
             return Type::Bool;  // Logical operations always return Bool
+        
+        // Phase 9: Namespace calls
+        case ExprKind::NamespaceCall: {
+            const NamespaceCallExpr& nce = get<NamespaceCallExpr>(expr.data);
+            // Determine return type based on namespace and method
+            // Compare uppercase version for case-insensitivity
+            string methodUpper = nce.methodName;
+            for (auto& c : methodUpper) c = toupper(c);
+            
+            if (nce.namespaceName == "CONSOLE") {
+                if (methodUpper == "WRITELINE" || methodUpper == "WRITE") {
+                    return Type::Int;
+                } else if (methodUpper == "READLINE" || methodUpper == "READKEY") {
+                    return Type::String;
+                }
+            } else if (nce.namespaceName == "MATH") {
+                if (methodUpper == "ROUND") {
+                    return Type::Int;
+                }
+                return Type::Float;
+            } else if (nce.namespaceName == "FILE") {
+                if (methodUpper == "READALLTEXT") {
+                    return Type::String;
+                } else if (methodUpper == "EXISTS" || methodUpper == "DELETE" || 
+                          methodUpper == "WRITEALLTEXT" || methodUpper == "COPY" || 
+                          methodUpper == "MOVE" || methodUpper == "ISDIRECTORY") {
+                    return Type::Int;
+                } else if (methodUpper == "SIZE") {
+                    return Type::Float;
+                }
+            } else if (nce.namespaceName == "HTTP") {
+                if (methodUpper == "GET" || methodUpper == "POST" || 
+                    methodUpper == "URLENCODE" || methodUpper == "URLDECODE") {
+                    return Type::String;
+                }
+            } else if (nce.namespaceName == "JSON") {
+                if (methodUpper == "PARSE" || methodUpper == "NEWOBJECT" || 
+                    methodUpper == "PUT" || methodUpper == "PUTINT") {
+                    return Type::Int;  // Returns object ID
+                } else if (methodUpper == "GETSTRING" || methodUpper == "TOSTRING") {
+                    return Type::String;
+                } else if (methodUpper == "GETINT") {
+                    return Type::Int;
+                } else if (methodUpper == "GETFLOAT") {
+                    return Type::Float;
+                }
+            } else if (nce.namespaceName == "DB") {
+                if (methodUpper == "CONNECT" || methodUpper == "QUERY" || 
+                    methodUpper == "NEXT" || methodUpper == "CLOSE" || 
+                    methodUpper == "GETINT") {
+                    return Type::Int;
+                } else if (methodUpper == "GETSTRING") {
+                    return Type::String;
+                }
+            } else if (nce.namespaceName == "XML") {
+                if (methodUpper == "PARSE") {
+                    return Type::Int;
+                } else if (methodUpper == "GETTEXT") {
+                    return Type::String;
+                }
+            }
+            return Type::Float;  // Default
+        }
     }
     
     return Type::Int;
@@ -263,6 +326,17 @@ void SemanticAnalyzer::analyzeExpr(Expr& expr, const SymbolTable& symbols) {
             break;
         }
         
+        // Phase 9: Namespace calls
+        case ExprKind::NamespaceCall: {
+            NamespaceCallExpr& nce = get<NamespaceCallExpr>(expr.data);
+            // Analyze arguments
+            for (auto& arg : nce.args) {
+                analyzeExpr(*arg, symbols);
+            }
+            // Type will be determined by the specific namespace method
+            break;
+        }
+        
         default:
             break;
     }
@@ -328,7 +402,12 @@ void SemanticAnalyzer::analyzeStmt(Stmt& stmt, SymbolTable& symbols) {
             DimStmt& ds = get<DimStmt>(stmt.data);
             
             if (!ds.typeName.empty()) {
-                // Phase 6/7: DIM var AS TypeName or DIM var AS NEW
+                // Phase 9: Check if it's a built-in type or user-defined type
+                bool isBuiltInType = (ds.typeName == "INTEGER" || ds.typeName == "SINGLE" || 
+                                     ds.typeName == "DOUBLE" || ds.typeName == "LONG" || 
+                                     ds.typeName == "BOOLEAN" || ds.typeName == "STRING" ||
+                                     ds.typeName == "DECIMAL" || ds.typeName == "BIGINT");
+                
                 if (symbols.isDefined(ds.var)) {
                     error("Variable already defined: " + ds.var);
                 }
@@ -337,8 +416,31 @@ void SemanticAnalyzer::analyzeStmt(Stmt& stmt, SymbolTable& symbols) {
                     // Phase 7: DIM var AS NEW ClassName(args)
                     analyzeExpr(*ds.initVal, symbols);
                     symbols.define(ds.var, Type::UserDefined);
+                } else if (isBuiltInType) {
+                    // Phase 9: DIM var AS Integer = value (typed scalar variable)
+                    if (ds.initVal) {
+                        analyzeExpr(*ds.initVal, symbols);
+                    }
+                    
+                    // Map type name to Type enum
+                    Type varType;
+                    if (ds.typeName == "INTEGER" || ds.typeName == "LONG") {
+                        varType = Type::Int;
+                    } else if (ds.typeName == "SINGLE" || ds.typeName == "DOUBLE") {
+                        varType = Type::Float;
+                    } else if (ds.typeName == "BOOLEAN") {
+                        varType = Type::Bool;
+                    } else if (ds.typeName == "STRING") {
+                        varType = Type::String;
+                    } else if (ds.typeName == "DECIMAL") {
+                        varType = Type::Decimal;
+                    } else {  // BIGINT
+                        varType = Type::BigInt;
+                    }
+                    
+                    symbols.define(ds.var, varType);
                 } else {
-                    // Phase 6: DIM var AS TypeName (struct)
+                    // Phase 6: DIM var AS TypeName (user-defined struct/class)
                     symbols.define(ds.var, Type::UserDefined);
                 }
             } else if (ds.initVal && ds.initVal->kind == ExprKind::NewExpr) {
