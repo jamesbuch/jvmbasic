@@ -11,11 +11,13 @@ using namespace std;
 enum class Type { 
     Int, Float, String, Bool, 
     IntArray, FloatArray, StringArray, BoolArray,
-    UserDefined  // For user-defined types (structs)
+    UserDefined,  // For user-defined types (structs)
+    Decimal,      // Phase 9: java.math.BigDecimal (arbitrary precision)
+    BigInt        // Phase 9: java.math.BigInteger (arbitrary precision integers)
 };
 
 // Operators
-enum class Op { Add, Sub, Mul, Div, Mod, Lt, Gt, Le, Ge, Eq, Ne };
+enum class Op { Add, Sub, Mul, Div, Mod, Lt, Gt, Le, Ge, Eq, Ne, Shl, Shr };
 
 // Phase 8: Logical operators
 enum class LogicalOp { And, Or, Xor, Not };
@@ -33,7 +35,9 @@ enum class ExprKind { Num, Str, Var, Bin, BoolLit, Cmp, Call, Unary, MemberAcces
                       // Phase 7: OOP expressions
                       NewExpr, MethodCall, Me,
                       // Phase 8: Logical expressions
-                      Logical };
+                      Logical,
+                      // Phase 9: Namespace calls
+                      NamespaceCall };
 
 // Unary operators
 enum class UnaryOp { Neg };
@@ -93,6 +97,13 @@ struct MethodCallExpr {
     vector<ExprPtr> args;
 };
 
+// Phase 9: Namespace call (e.g., Console.WriteLine, Math.Sin)
+struct NamespaceCallExpr {
+    string namespaceName;  // "Console", "Math", "File", etc.
+    string methodName;
+    vector<ExprPtr> args;
+};
+
 struct MeExpr {
     // No data - just a marker for ME/this reference
 };
@@ -109,7 +120,7 @@ struct Expr {
     Type type;
     string typeName;  // For UserDefined types, stores the type name
     variant<NumLit, StrLit, VarRef, BinOp, BoolLit, CmpOp, CallExpr, UnaryExpr, MemberAccessExpr,
-            NewExpr, MethodCallExpr, MeExpr, LogicalExpr> data;
+            NewExpr, MethodCallExpr, MeExpr, LogicalExpr, NamespaceCallExpr> data;
 
     Expr(ExprKind k, Type t, NumLit n) : kind(k), type(t), data(n) {}
     Expr(ExprKind k, Type t, StrLit s) : kind(k), type(t), data(s) {}
@@ -126,6 +137,8 @@ struct Expr {
     Expr(ExprKind k, Type t, MeExpr me) : kind(k), type(t), data(me) {}
     // Phase 8: Logical expression constructor
     Expr(ExprKind k, Type t, LogicalExpr l) : kind(k), type(t), data(std::move(l)) {}
+    // Phase 9: Namespace call constructor
+    Expr(ExprKind k, Type t, NamespaceCallExpr nc) : kind(k), type(t), data(std::move(nc)) {}
 };
 
 // Statement kinds

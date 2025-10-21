@@ -27,6 +27,7 @@ private:
     // Expression parsing (no type checking)
     ExprPtr parsePrimary();
     ExprPtr parseMul();
+    ExprPtr parseShift();    // Phase 9: Bitwise shift (<< >>)
     ExprPtr parseAdd();
     ExprPtr parseEq();
     ExprPtr parseNot();      // Phase 8: Logical NOT

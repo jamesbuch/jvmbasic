@@ -128,6 +128,24 @@ Token Lexer::nextToken() {
         if (upper == "SELECT") return {TokenType::SELECT, s, 0.0, tokenLine};
         if (upper == "CASE") return {TokenType::CASE, s, 0.0, tokenLine};
         
+        // Phase 9: Modern VB-style type keywords
+        if (upper == "SINGLE") return {TokenType::SINGLE, s, 0.0, tokenLine};
+        if (upper == "DOUBLE") return {TokenType::DOUBLE, s, 0.0, tokenLine};
+        if (upper == "LONG") return {TokenType::LONG, s, 0.0, tokenLine};
+        if (upper == "BOOLEAN") return {TokenType::BOOLEAN, s, 0.0, tokenLine};
+        if (upper == "STRING") return {TokenType::STRINGTYPE, s, 0.0, tokenLine};
+        if (upper == "DECIMAL") return {TokenType::DECIMAL, s, 0.0, tokenLine};
+        if (upper == "BIGINT") return {TokenType::BIGINT, s, 0.0, tokenLine};
+        
+        // Phase 9: Modern keywords
+        if (upper == "CONSOLE") return {TokenType::CONSOLE, s, 0.0, tokenLine};
+        if (upper == "IMPORT") return {TokenType::IMPORT, s, 0.0, tokenLine};
+        if (upper == "IMPORTS") return {TokenType::IMPORTS, s, 0.0, tokenLine};
+        if (upper == "SHARED") return {TokenType::SHARED, s, 0.0, tokenLine};
+        if (upper == "STATIC") return {TokenType::STATIC, s, 0.0, tokenLine};
+        if (upper == "BYVAL") return {TokenType::BYVAL, s, 0.0, tokenLine};
+        if (upper == "BYREF") return {TokenType::BYREF, s, 0.0, tokenLine};
+        
         if (upper == "REM") {
             // Comment - consume rest of line and return next token
             while (!eof && ch != '\n') {
@@ -185,11 +203,13 @@ Token Lexer::nextToken() {
             read();
             if (!eof && ch == '=') { read(); return {TokenType::LE, "<=", 0.0, tokenLine}; }
             if (!eof && ch == '>') { read(); return {TokenType::NE, "<>", 0.0, tokenLine}; }
+            if (!eof && ch == '<') { read(); return {TokenType::SHL, "<<", 0.0, tokenLine}; }
             return {TokenType::LT, "<", 0.0, tokenLine};
         }
         if (ch == '>') {
             read();
             if (!eof && ch == '=') { read(); return {TokenType::GE, ">=", 0.0, tokenLine}; }
+            if (!eof && ch == '>') { read(); return {TokenType::SHR, ">>", 0.0, tokenLine}; }
             return {TokenType::GT, ">", 0.0, tokenLine};
         }
         if (ch == ';') { read(); return {TokenType::SEMI, ";", 0.0, tokenLine}; }
@@ -197,6 +217,7 @@ Token Lexer::nextToken() {
         if (ch == '(') { read(); return {TokenType::LPAREN, "(", 0.0, tokenLine}; }
         if (ch == ')') { read(); return {TokenType::RPAREN, ")", 0.0, tokenLine}; }
         if (ch == '.') { read(); return {TokenType::DOT, ".", 0.0, tokenLine}; }
+        if (ch == '&') { read(); return {TokenType::AMPERSAND, "&", 0.0, tokenLine}; }
         
         // Phase 7: Apostrophe comment (VB-style)
         if (ch == '\'') {

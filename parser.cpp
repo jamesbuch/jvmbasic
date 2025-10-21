@@ -53,10 +53,12 @@ Type Parser::resolveTypeName(const string& typeName) {
     string upper = typeName;
     transform(upper.begin(), upper.end(), upper.begin(), ::toupper);
     
-    if (upper == "INT") return Type::Int;
-    if (upper == "FLOAT") return Type::Float;
+    if (upper == "INT" || upper == "INTEGER") return Type::Int;
+    if (upper == "FLOAT" || upper == "SINGLE") return Type::Float;
     if (upper == "STRING") return Type::String;
-    if (upper == "BOOL") return Type::Bool;
+    if (upper == "BOOL" || upper == "BOOLEAN") return Type::Bool;
+    if (upper == "DECIMAL") return Type::Decimal;
+    if (upper == "BIGINT") return Type::BigInt;
     if (upper == "INTARRAY") return Type::IntArray;
     if (upper == "FLOATARRAY") return Type::FloatArray;
     if (upper == "STRINGARRAY") return Type::StringArray;
@@ -89,7 +91,36 @@ DeclPtr Parser::parseTypeDecl() {
     while (tok.type != TokenType::ENDTYPE && tok.type != TokenType::END) {
         string fieldName = expect(TokenType::ID).val;
         expect(TokenType::AS);
-        string fieldTypeName = expect(TokenType::ID).val;
+        
+        // Phase 9: Accept both old-style ID and new-style type keywords
+        string fieldTypeName;
+        if (tok.type == TokenType::INTEGER) {
+            fieldTypeName = "INTEGER";
+            next();
+        } else if (tok.type == TokenType::SINGLE) {
+            fieldTypeName = "SINGLE";
+            next();
+        } else if (tok.type == TokenType::DOUBLE) {
+            fieldTypeName = "DOUBLE";
+            next();
+        } else if (tok.type == TokenType::LONG) {
+            fieldTypeName = "LONG";
+            next();
+        } else if (tok.type == TokenType::BOOLEAN) {
+            fieldTypeName = "BOOLEAN";
+            next();
+        } else if (tok.type == TokenType::STRINGTYPE) {
+            fieldTypeName = "STRING";
+            next();
+        } else if (tok.type == TokenType::DECIMAL) {
+            fieldTypeName = "DECIMAL";
+            next();
+        } else if (tok.type == TokenType::BIGINT) {
+            fieldTypeName = "BIGINT";
+            next();
+        } else {
+            fieldTypeName = expect(TokenType::ID).val;
+        }
         
         // Resolve field type
         Type fieldType = resolveTypeName(fieldTypeName);
@@ -144,11 +175,45 @@ MethodDecl Parser::parseMethodDecl(bool isPublic) {
             Type paramType = Type::Float;  // Default
             string paramTypeName;
             
-            // Check for AS Type
+            // Phase 9: Check for AS Type (accepting type keywords)
             if (tok.type == TokenType::AS) {
                 next();
-                paramTypeName = expect(TokenType::ID).val;
-                paramType = resolveTypeName(paramTypeName);
+                if (tok.type == TokenType::INTEGER) {
+                    paramTypeName = "INTEGER";
+                    paramType = Type::Int;
+                    next();
+                } else if (tok.type == TokenType::SINGLE) {
+                    paramTypeName = "SINGLE";
+                    paramType = Type::Float;
+                    next();
+                } else if (tok.type == TokenType::DOUBLE) {
+                    paramTypeName = "DOUBLE";
+                    paramType = Type::Float;
+                    next();
+                } else if (tok.type == TokenType::LONG) {
+                    paramTypeName = "LONG";
+                    paramType = Type::Int;
+                    next();
+                } else if (tok.type == TokenType::BOOLEAN) {
+                    paramTypeName = "BOOLEAN";
+                    paramType = Type::Bool;
+                    next();
+                } else if (tok.type == TokenType::STRINGTYPE) {
+                    paramTypeName = "STRING";
+                    paramType = Type::String;
+                    next();
+                } else if (tok.type == TokenType::DECIMAL) {
+                    paramTypeName = "DECIMAL";
+                    paramType = Type::Decimal;
+                    next();
+                } else if (tok.type == TokenType::BIGINT) {
+                    paramTypeName = "BIGINT";
+                    paramType = Type::BigInt;
+                    next();
+                } else {
+                    paramTypeName = expect(TokenType::ID).val;
+                    paramType = resolveTypeName(paramTypeName);
+                }
             }
             
             params.push_back(Param{paramName, paramType, paramTypeName});
@@ -156,11 +221,37 @@ MethodDecl Parser::parseMethodDecl(bool isPublic) {
     }
     expect(TokenType::RPAREN);
     
-    // Check for return type on FUNCTION
+    // Phase 9: Check for return type on FUNCTION (accepting type keywords)
     if (!isConstructor && tok.type == TokenType::AS) {
         next();
-        string returnTypeName = expect(TokenType::ID).val;
-        returnType = resolveTypeName(returnTypeName);
+        if (tok.type == TokenType::INTEGER) {
+            returnType = Type::Int;
+            next();
+        } else if (tok.type == TokenType::SINGLE) {
+            returnType = Type::Float;
+            next();
+        } else if (tok.type == TokenType::DOUBLE) {
+            returnType = Type::Float;
+            next();
+        } else if (tok.type == TokenType::LONG) {
+            returnType = Type::Int;
+            next();
+        } else if (tok.type == TokenType::BOOLEAN) {
+            returnType = Type::Bool;
+            next();
+        } else if (tok.type == TokenType::STRINGTYPE) {
+            returnType = Type::String;
+            next();
+        } else if (tok.type == TokenType::DECIMAL) {
+            returnType = Type::Decimal;
+            next();
+        } else if (tok.type == TokenType::BIGINT) {
+            returnType = Type::BigInt;
+            next();
+        } else {
+            string returnTypeName = expect(TokenType::ID).val;
+            returnType = resolveTypeName(returnTypeName);
+        }
     }
     
     // Parse method body
@@ -224,7 +315,36 @@ DeclPtr Parser::parseClassDecl() {
             // It's a field declaration: PUBLIC/PRIVATE name AS Type
             string fieldName = expect(TokenType::ID).val;
             expect(TokenType::AS);
-            string fieldTypeName = expect(TokenType::ID).val;
+            
+            // Phase 9: Accept both old-style ID and new-style type keywords
+            string fieldTypeName;
+            if (tok.type == TokenType::INTEGER) {
+                fieldTypeName = "INTEGER";
+                next();
+            } else if (tok.type == TokenType::SINGLE) {
+                fieldTypeName = "SINGLE";
+                next();
+            } else if (tok.type == TokenType::DOUBLE) {
+                fieldTypeName = "DOUBLE";
+                next();
+            } else if (tok.type == TokenType::LONG) {
+                fieldTypeName = "LONG";
+                next();
+            } else if (tok.type == TokenType::BOOLEAN) {
+                fieldTypeName = "BOOLEAN";
+                next();
+            } else if (tok.type == TokenType::STRINGTYPE) {
+                fieldTypeName = "STRING";
+                next();
+            } else if (tok.type == TokenType::DECIMAL) {
+                fieldTypeName = "DECIMAL";
+                next();
+            } else if (tok.type == TokenType::BIGINT) {
+                fieldTypeName = "BIGINT";
+                next();
+            } else {
+                fieldTypeName = expect(TokenType::ID).val;
+            }
             
             Type fieldType = resolveTypeName(fieldTypeName);
             fields.push_back(Field{fieldName, fieldType, fieldTypeName, isPublic});
@@ -336,11 +456,77 @@ ExprPtr Parser::parsePrimary() {
         return make_unique<Expr>(ExprKind::BoolLit, Type::Bool, BoolLit{false});
     }
     
+    // Phase 9: Check for namespace keyword tokens (CONSOLE, etc.)
+    if (tok.type == TokenType::CONSOLE) {
+        string namespaceName = "CONSOLE";
+        next();
+        if (tok.type == TokenType::DOT) {
+            next();  // Consume DOT
+            string methodName = expect(TokenType::ID).val;
+            string methodUpper = methodName;
+            for (auto& c : methodUpper) c = toupper(c);
+            
+            // Parse arguments
+            expect(TokenType::LPAREN);
+            vector<ExprPtr> args;
+            if (tok.type != TokenType::RPAREN) {
+                args.push_back(parseExpr());
+                while (tok.type == TokenType::COMMA) {
+                    next();
+                    args.push_back(parseExpr());
+                }
+            }
+            expect(TokenType::RPAREN);
+            
+            // Create namespace call expression
+            // Store original methodName to preserve casing (WriteLine not WRITELINE)
+            return make_unique<Expr>(ExprKind::NamespaceCall, Type::Float,
+                                   NamespaceCallExpr{namespaceName, methodName, move(args)});
+        }
+        // If not followed by DOT, error
+        error("Expected '.' after Console");
+    }
+    
     if (tok.type == TokenType::ID) {
         string name = tok.val;
         string nameUpper = name;
         for (auto& c : nameUpper) c = toupper(c);
         next();
+        
+        // Phase 9: Check for namespace call: Namespace.Method()
+        if (tok.type == TokenType::DOT) {
+            // Check if it's a known namespace
+            bool isNamespace = (nameUpper == "MATH" || 
+                               nameUpper == "FILE" || nameUpper == "HTTP" || 
+                               nameUpper == "JSON" || nameUpper == "XML" || 
+                               nameUpper == "DB");
+            
+            if (isNamespace) {
+                // Parse Namespace.Method(args)
+                next();  // Consume DOT
+                string methodName = expect(TokenType::ID).val;
+                // Store original method name for proper camelCase generation
+                
+                // Parse arguments
+                expect(TokenType::LPAREN);
+                vector<ExprPtr> args;
+                if (tok.type != TokenType::RPAREN) {
+                    args.push_back(parseExpr());
+                    while (tok.type == TokenType::COMMA) {
+                        next();
+                        args.push_back(parseExpr());
+                    }
+                }
+                expect(TokenType::RPAREN);
+                
+                // Create namespace call expression
+                // Store original method name (preserves casing like WriteLine)
+                return make_unique<Expr>(ExprKind::NamespaceCall, Type::Float,
+                                       NamespaceCallExpr{nameUpper, methodName, move(args)});
+            }
+            // If not a namespace, fall through to normal member access handling
+            // (will be handled later for variable.Method() syntax)
+        }
         
         // Check if it's a built-in function call
         auto funcIt = builtinFunctions.find(nameUpper);
@@ -450,12 +636,26 @@ ExprPtr Parser::parseMul() {
     return left;
 }
 
-ExprPtr Parser::parseAdd() {
+// Phase 9: Parse shift operators (<< >>)
+ExprPtr Parser::parseShift() {
     auto left = parseMul();
+    while (tok.type == TokenType::SHL || tok.type == TokenType::SHR) {
+        Op op = (tok.type == TokenType::SHL) ? Op::Shl : Op::Shr;
+        next();
+        auto right = parseMul();
+        // Shift operations work on integers
+        auto bin = make_unique<Expr>(ExprKind::Bin, Type::Int, BinOp{op, move(left), move(right)});
+        left = move(bin);
+    }
+    return left;
+}
+
+ExprPtr Parser::parseAdd() {
+    auto left = parseShift();  // Shifts bind tighter than addition
     while (tok.type == TokenType::PLUS || tok.type == TokenType::MINUS) {
         Op op = (tok.type == TokenType::PLUS) ? Op::Add : Op::Sub;
         next();
-        auto right = parseMul();
+        auto right = parseShift();
         // Type unknown - semantic analysis will determine
         auto bin = make_unique<Expr>(ExprKind::Bin, Type::Float, BinOp{op, move(left), move(right)});
         left = move(bin);
@@ -648,6 +848,60 @@ StmtPtr Parser::parseStmt() {
         next();
         string var = expect(TokenType::ID).val;
         
+        // Check for array syntax: DIM var(size)
+        if (tok.type == TokenType::LPAREN) {
+            next();
+            auto size = parseExpr();
+            expect(TokenType::RPAREN);
+            
+            // Phase 9: Modern syntax - DIM arr(10) As Integer
+            string typeNameUpper = "";
+            if (tok.type == TokenType::AS) {
+                next();
+                string typeName;
+                if (tok.type == TokenType::INTEGER) {
+                    typeName = "INTEGER";
+                    next();
+                } else if (tok.type == TokenType::SINGLE) {
+                    typeName = "SINGLE";
+                    next();
+                } else if (tok.type == TokenType::DOUBLE) {
+                    typeName = "DOUBLE";
+                    next();
+                } else if (tok.type == TokenType::LONG) {
+                    typeName = "LONG";
+                    next();
+                } else if (tok.type == TokenType::BOOLEAN) {
+                    typeName = "BOOLEAN";
+                    next();
+                } else if (tok.type == TokenType::STRINGTYPE) {
+                    typeName = "STRING";
+                    next();
+                } else if (tok.type == TokenType::DECIMAL) {
+                    typeName = "DECIMAL";
+                    next();
+                } else if (tok.type == TokenType::BIGINT) {
+                    typeName = "BIGINT";
+                    next();
+                } else {
+                    typeName = expect(TokenType::ID).val;
+                }
+                
+                transform(typeName.begin(), typeName.end(), typeName.begin(), ::toupper);
+                typeNameUpper = typeName;
+            }
+            
+            // Old syntax still requires = initValue
+            if (tok.type == TokenType::ASSIGN) {
+                next();
+                auto initVal = parseExpr();
+                return make_unique<Stmt>(StmtKind::Dim, DimStmt{var, move(size), move(initVal), typeNameUpper});
+            }
+            
+            // New syntax allows omitting initialization (defaults to 0 for numeric, "" for string)
+            return make_unique<Stmt>(StmtKind::Dim, DimStmt{var, move(size), nullptr, typeNameUpper});
+        }
+        
         // Check if it's "DIM var AS TypeName" or "DIM var AS NEW ClassName(args)"
         if (tok.type == TokenType::AS) {
             next();
@@ -663,28 +917,65 @@ StmtPtr Parser::parseStmt() {
                 knownTypes[var] = Type::UserDefined;
                 return make_unique<Stmt>(StmtKind::Dim, DimStmt{var, nullptr, move(newExpr), ""});
             } else {
-                // Regular "DIM var AS TypeName" (Phase 6 struct)
-                string typeName = expect(TokenType::ID).val;
+                // Phase 9: Modern typed variable declaration
+                string typeName;
+                if (tok.type == TokenType::INTEGER) {
+                    typeName = "INTEGER";
+                    next();
+                    knownTypes[var] = Type::Int;
+                } else if (tok.type == TokenType::SINGLE) {
+                    typeName = "SINGLE";
+                    next();
+                    knownTypes[var] = Type::Float;
+                } else if (tok.type == TokenType::DOUBLE) {
+                    typeName = "DOUBLE";
+                    next();
+                    knownTypes[var] = Type::Float;  // Map to Float for now
+                } else if (tok.type == TokenType::LONG) {
+                    typeName = "LONG";
+                    next();
+                    knownTypes[var] = Type::Int;  // Map to Int for now
+                } else if (tok.type == TokenType::BOOLEAN) {
+                    typeName = "BOOLEAN";
+                    next();
+                    knownTypes[var] = Type::Bool;
+                } else if (tok.type == TokenType::STRINGTYPE) {
+                    typeName = "STRING";
+                    next();
+                    knownTypes[var] = Type::String;
+                } else if (tok.type == TokenType::DECIMAL) {
+                    typeName = "DECIMAL";
+                    next();
+                    knownTypes[var] = Type::Decimal;
+                } else if (tok.type == TokenType::BIGINT) {
+                    typeName = "BIGINT";
+                    next();
+                    knownTypes[var] = Type::BigInt;
+                } else {
+                    // User-defined type or class name
+                    typeName = expect(TokenType::ID).val;
+                    knownTypes[var] = Type::UserDefined;
+                }
                 
                 // Normalize type name to uppercase for consistent lookup
                 string typeNameUpper = typeName;
                 transform(typeNameUpper.begin(), typeNameUpper.end(), typeNameUpper.begin(), ::toupper);
                 
-                // Store type name for this variable
-                knownTypes[var] = Type::UserDefined;
+                // Phase 9: Check for initialization: Dim x As Integer = 10
+                if (tok.type == TokenType::ASSIGN) {
+                    next();
+                    auto initVal = parseExpr();
+                    return make_unique<Stmt>(StmtKind::Dim, DimStmt{var, nullptr, move(initVal), typeNameUpper});
+                }
                 
+                // No initialization - return DIM with just type
                 return make_unique<Stmt>(StmtKind::Dim, DimStmt{var, nullptr, nullptr, typeNameUpper});
             }
         }
         
-        // Otherwise it's an array: DIM array(size) = initValue
-        expect(TokenType::LPAREN);
-        auto size = parseExpr();
-        expect(TokenType::RPAREN);
-        expect(TokenType::ASSIGN);
-        auto initVal = parseExpr();
-        
-        return make_unique<Stmt>(StmtKind::Dim, DimStmt{var, move(size), move(initVal)});
+        // Old syntax without AS: Should not reach here normally
+        error("Expected AS after variable name in DIM statement");
+        return nullptr;
     }
     
     if (tok.type == TokenType::FOR) {
@@ -926,26 +1217,108 @@ DeclPtr Parser::parseDecl() {
         string name = expect(TokenType::ID).val;
         expect(TokenType::LPAREN);
         
+        // Phase 9: Parse parameters with optional types
         vector<Param> params;
         if (tok.type != TokenType::RPAREN) {
-            string paramName = expect(TokenType::ID).val;
-            params.push_back(Param{paramName, Type::Float});  // Type will be inferred
-            while (tok.type == TokenType::COMMA) {
-                next();
-                paramName = expect(TokenType::ID).val;
-                params.push_back(Param{paramName, Type::Float});
-            }
+            do {
+                if (tok.type == TokenType::COMMA) next();
+                
+                string paramName = expect(TokenType::ID).val;
+                Type paramType = Type::Float;  // Default
+                string paramTypeName;
+                
+                // Phase 9: Check for AS Type
+                if (tok.type == TokenType::AS) {
+                    next();
+                    if (tok.type == TokenType::INTEGER) {
+                        paramTypeName = "INTEGER";
+                        paramType = Type::Int;
+                        next();
+                    } else if (tok.type == TokenType::SINGLE) {
+                        paramTypeName = "SINGLE";
+                        paramType = Type::Float;
+                        next();
+                    } else if (tok.type == TokenType::DOUBLE) {
+                        paramTypeName = "DOUBLE";
+                        paramType = Type::Float;
+                        next();
+                    } else if (tok.type == TokenType::LONG) {
+                        paramTypeName = "LONG";
+                        paramType = Type::Int;
+                        next();
+                    } else if (tok.type == TokenType::BOOLEAN) {
+                        paramTypeName = "BOOLEAN";
+                        paramType = Type::Bool;
+                        next();
+                    } else if (tok.type == TokenType::STRINGTYPE) {
+                        paramTypeName = "STRING";
+                        paramType = Type::String;
+                        next();
+                    } else if (tok.type == TokenType::DECIMAL) {
+                        paramTypeName = "DECIMAL";
+                        paramType = Type::Decimal;
+                        next();
+                    } else if (tok.type == TokenType::BIGINT) {
+                        paramTypeName = "BIGINT";
+                        paramType = Type::BigInt;
+                        next();
+                    } else {
+                        paramTypeName = expect(TokenType::ID).val;
+                        paramType = resolveTypeName(paramTypeName);
+                    }
+                }
+                
+                params.push_back(Param{paramName, paramType, paramTypeName});
+            } while (tok.type == TokenType::COMMA);
         }
         expect(TokenType::RPAREN);
+        
+        // Phase 9: Check for return type: Function Add(...) As Integer
+        Type returnType = Type::Float;  // Default
+        if (tok.type == TokenType::AS) {
+            next();
+            if (tok.type == TokenType::INTEGER) {
+                returnType = Type::Int;
+                next();
+            } else if (tok.type == TokenType::SINGLE) {
+                returnType = Type::Float;
+                next();
+            } else if (tok.type == TokenType::DOUBLE) {
+                returnType = Type::Float;
+                next();
+            } else if (tok.type == TokenType::LONG) {
+                returnType = Type::Int;
+                next();
+            } else if (tok.type == TokenType::BOOLEAN) {
+                returnType = Type::Bool;
+                next();
+            } else if (tok.type == TokenType::STRINGTYPE) {
+                returnType = Type::String;
+                next();
+            } else if (tok.type == TokenType::DECIMAL) {
+                returnType = Type::Decimal;
+                next();
+            } else if (tok.type == TokenType::BIGINT) {
+                returnType = Type::BigInt;
+                next();
+            } else {
+                string returnTypeName = expect(TokenType::ID).val;
+                returnType = resolveTypeName(returnTypeName);
+            }
+        }
         
         vector<StmtPtr> body;
         while (tok.type != TokenType::ENDFUNCTION && tok.type != TokenType::END) {
             body.push_back(parseStmt());
         }
-        expect(TokenType::ENDFUNCTION);
         
-        // Return type will be inferred from RETURN statements
-        return make_unique<Decl>(DeclKind::Function, FunctionDecl{name, params, Type::Float, move(body)});
+        if (tok.type == TokenType::ENDFUNCTION) {
+            next();
+        } else {
+            error("Expected ENDFUNCTION or END FUNCTION");
+        }
+        
+        return make_unique<Decl>(DeclKind::Function, FunctionDecl{name, params, returnType, move(body)});
     }
     
     if (tok.type == TokenType::SUB) {
@@ -953,15 +1326,59 @@ DeclPtr Parser::parseDecl() {
         string name = expect(TokenType::ID).val;
         expect(TokenType::LPAREN);
         
+        // Phase 9: Parse parameters with optional types
         vector<Param> params;
         if (tok.type != TokenType::RPAREN) {
-            string paramName = expect(TokenType::ID).val;
-            params.push_back(Param{paramName, Type::Float});  // Type will be inferred
-            while (tok.type == TokenType::COMMA) {
-                next();
-                paramName = expect(TokenType::ID).val;
-                params.push_back(Param{paramName, Type::Float});
-            }
+            do {
+                if (tok.type == TokenType::COMMA) next();
+                
+                string paramName = expect(TokenType::ID).val;
+                Type paramType = Type::Float;  // Default
+                string paramTypeName;
+                
+                // Phase 9: Check for AS Type
+                if (tok.type == TokenType::AS) {
+                    next();
+                    if (tok.type == TokenType::INTEGER) {
+                        paramTypeName = "INTEGER";
+                        paramType = Type::Int;
+                        next();
+                    } else if (tok.type == TokenType::SINGLE) {
+                        paramTypeName = "SINGLE";
+                        paramType = Type::Float;
+                        next();
+                    } else if (tok.type == TokenType::DOUBLE) {
+                        paramTypeName = "DOUBLE";
+                        paramType = Type::Float;
+                        next();
+                    } else if (tok.type == TokenType::LONG) {
+                        paramTypeName = "LONG";
+                        paramType = Type::Int;
+                        next();
+                    } else if (tok.type == TokenType::BOOLEAN) {
+                        paramTypeName = "BOOLEAN";
+                        paramType = Type::Bool;
+                        next();
+                    } else if (tok.type == TokenType::STRINGTYPE) {
+                        paramTypeName = "STRING";
+                        paramType = Type::String;
+                        next();
+                    } else if (tok.type == TokenType::DECIMAL) {
+                        paramTypeName = "DECIMAL";
+                        paramType = Type::Decimal;
+                        next();
+                    } else if (tok.type == TokenType::BIGINT) {
+                        paramTypeName = "BIGINT";
+                        paramType = Type::BigInt;
+                        next();
+                    } else {
+                        paramTypeName = expect(TokenType::ID).val;
+                        paramType = resolveTypeName(paramTypeName);
+                    }
+                }
+                
+                params.push_back(Param{paramName, paramType, paramTypeName});
+            } while (tok.type == TokenType::COMMA);
         }
         expect(TokenType::RPAREN);
         
@@ -969,7 +1386,12 @@ DeclPtr Parser::parseDecl() {
         while (tok.type != TokenType::ENDSUB && tok.type != TokenType::END) {
             body.push_back(parseStmt());
         }
-        expect(TokenType::ENDSUB);
+        
+        if (tok.type == TokenType::ENDSUB) {
+            next();
+        } else {
+            error("Expected ENDSUB or END SUB");
+        }
         
         return make_unique<Decl>(DeclKind::Sub, SubDecl{name, params, move(body)});
     }
