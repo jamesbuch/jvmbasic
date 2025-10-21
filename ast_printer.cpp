@@ -132,6 +132,18 @@ void ASTPrinter::printExpr(const Expr& expr) {
             }
             break;
         }
+        
+        // Phase 9: Namespace call expressions
+        case ExprKind::NamespaceCall: {
+            const NamespaceCallExpr& nce = get<NamespaceCallExpr>(expr.data);
+            out << nce.namespaceName << "." << nce.methodName << "(";
+            for (size_t i = 0; i < nce.args.size(); ++i) {
+                if (i > 0) out << ", ";
+                printExpr(*nce.args[i]);
+            }
+            out << ")";
+            break;
+        }
     }
 }
 
@@ -342,6 +354,14 @@ void ASTPrinter::printStmt(const Stmt& stmt) {
         case StmtKind::Continue:
             out << "CONTINUE\n";
             break;
+        
+        // Phase 9: Expression statement
+        case StmtKind::ExprStmt: {
+            const ExprStmtNode& es = get<ExprStmtNode>(stmt.data);
+            printExpr(*es.expr);
+            out << "  ' (result discarded)\n";
+            break;
+        }
     }
 }
 

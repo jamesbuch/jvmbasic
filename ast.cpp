@@ -10,6 +10,9 @@ string typeToString(Type t) {
         case Type::FloatArray: return "FloatArray";
         case Type::StringArray: return "StringArray";
         case Type::BoolArray: return "BoolArray";
+        case Type::UserDefined: return "UserDefined";
+        case Type::Decimal: return "Decimal";  // Phase 9
+        case Type::BigInt: return "BigInt";    // Phase 9
         default: return "Unknown";
     }
 }
@@ -27,6 +30,11 @@ string opToString(Op op) {
         case Op::Ge: return ">=";
         case Op::Eq: return "==";
         case Op::Ne: return "<>";
+        case Op::Shl: return "<<";      // Phase 9
+        case Op::Shr: return ">>";      // Phase 9
+        case Op::BitAnd: return "&";    // Phase 9
+        case Op::BitOr: return "|";     // Phase 9
+        case Op::BitXor: return "^";    // Phase 9
         default: return "?";
     }
 }

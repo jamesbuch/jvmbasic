@@ -3,14 +3,14 @@
 A modern, professional BASIC compiler with Visual Basic-style syntax that generates JVM bytecode. Supports full object-oriented programming, modern type system (Decimal, BigInt), web capabilities (JSON, HTTP), database connectivity, and 255 built-in functions with namespace syntax.
 
 **Current Version**: Phase 9 Complete (Modern VB Syntax + Web Capabilities) ✅  
-**Test Coverage**: 100% (72/72 tests passing)  
+**Test Coverage**: 100% (72/72 tests passing, plus 2 INPUT tests)  
 **Function Count**: 255 functions across 7 namespaces
 
 ## Features
 
 ### Phase 9: Modern Syntax & Web Capabilities ✨ NEW!
 - **Modern VB-Style Syntax**: `Dim x As Integer = 10`, `Function Add(a As Integer) As Integer`
-- **Case-Insensitive Keywords**: If/IF, Dim/DIM all work
+- **Fully Case-Insensitive**: All keywords work in any case (Dim/DIM/dim, If/IF/if, Function/FUNCTION/function, etc.)
 - **Expanded Type System**: Integer, Single, Double, Long, Boolean, String, Decimal, BigInt
 - **Namespace/OO Syntax**: Console.WriteLine(), Math.Sin(), File.ReadAllText()
 - **Web Capabilities**: 
@@ -50,149 +50,164 @@ A modern, professional BASIC compiler with Visual Basic-style syntax that genera
 ### Build
 ```bash
 make
-# or manually:
-g++ -std=gnu++20 -O2 jvmbasic.cpp builtin_functions.o -o jvmbasic
+
+# Compile runtime with libraries
+javac -cp "lib/*" BasicRuntime.java
+cp BasicRuntime.class basicrt/
 ```
 
 ### Compile and Run
 ```bash
 ./jvmbasic < program.bas
-java BasicProgram
+java -cp ".:lib/*:basicrt" BasicProgram
+
+# Or use build script
+./buildrun.sh program.bas
 ```
 
 ### Hello World
 ```basic
-PRINT "Hello, World!"
+' Modern syntax
+Console.WriteLine("Hello, World!")
+
+' Classic syntax (also works)
+Print "Hello, World!"
 ```
 
 ## Language Examples
 
-### Object-Oriented Programming (NEW!)
+### Object-Oriented Programming
 ```basic
 ' Define a class with constructor
 CLASS BankAccount
-    PRIVATE balance AS FLOAT
+    PRIVATE balance AS SINGLE
     PUBLIC owner AS STRING
     
-    PUBLIC SUB New(name AS STRING, initial AS FLOAT)
+    PUBLIC SUB New(name AS STRING, initial AS SINGLE)
         owner = name
         balance = initial
     END SUB
 END CLASS
 
 ' Create and use objects
-DIM account AS NEW BankAccount("Alice", 1000.0)
-LET account.balance = 1500.0
-PRINT account.owner; " has $"; account.balance
+Dim account As New BankAccount("Alice", 1000.0)
+account.balance = 1500.0
+Print account.owner; " has $"; account.balance
 ```
 
 ### User-Defined Types (Structs)
 ```basic
 TYPE Person
     name AS STRING
-    age AS FLOAT
+    age AS SINGLE
 ENDTYPE
 
-DIM p AS Person
-LET p.name = "Alice"
-LET p.age = 30.0
-PRINT "Person: "; p.name; ", age "; p.age
+Dim p As Person
+p.name = "Alice"
+p.age = 30.0
+Print "Person: "; p.name; ", age "; p.age
 ```
 
 ### Functions with Recursion
 ```basic
-FUNCTION factorial(n)
-    IF n <= 1.0 THEN
-        RETURN 1.0
-    ELSE
-        RETURN n * factorial(n - 1.0)
-    ENDIF
+FUNCTION Factorial(n AS SINGLE) AS SINGLE
+    If n <= 1.0 Then
+        Return 1.0
+    Else
+        Return n * Factorial(n - 1.0)
+    EndIf
 ENDFUNCTION
 
-PRINT "5! = "; factorial(5.0)  REM Output: 120.0
+Print "5! = "; Factorial(5.0)  ' Output: 120.0
 ```
 
 ### Arrays and Array Functions
 ```basic
-DIM numbers(10) = 0.0
-FOR i = 0.0 TO 9.0
-    LET numbers(INT(i)) = RNDINT(1, 100)
-NEXT i
+Dim numbers(10) = 0.0
+For i = 0.0 To 9.0
+    numbers(Int(i)) = RNDINT(1, 100)
+Next i
 
-CALL ARRAYSORT(numbers)
-PRINT "Min: "; ARRAYMIN(numbers)
-PRINT "Max: "; ARRAYMAX(numbers)
-PRINT "Average: "; ARRAYAVG(numbers)
+Call ARRAYSORT(numbers)
+Print "Min: "; ARRAYMIN(numbers)
+Print "Max: "; ARRAYMAX(numbers)
+Print "Average: "; ARRAYAVG(numbers)
 ```
 
 ### File I/O
 ```basic
-LET out = OPENOUTPUT("data.txt")
-IF out >= 0.0 THEN
-    CALL WRITELINE(out, "Hello from JVM BASIC!")
-    LET dummy = CLOSEFILE(out)
-ENDIF
+' Modern namespace syntax
+Dim dummy As Integer
+Let dummy = File.WriteAllText("data.txt", "Hello from JVM BASIC!")
+Dim content As String = File.ReadAllText("data.txt")
+Let dummy = Console.WriteLine(content)
 
-LET in = OPENINPUT("data.txt")
-IF in >= 0.0 THEN
-    LET line = READLINE(in)
-    PRINT line
-    LET dummy = CLOSEFILE(in)
-ENDIF
+' Classic syntax (also works)
+Dim out = OPENOUTPUT("data.txt")
+If out >= 0.0 Then
+    Call WRITELINE(out, "Hello from JVM BASIC!")
+    Let dummy = CLOSEFILE(out)
+EndIf
 ```
 
 ### Regular Expressions
 ```basic
-LET email = "user@example.com"
-IF REGEXMATCH(email, "\\w+@\\w+\\.\\w+") THEN
-    LET user = REGEXGROUP(email, "(\\w+)@(\\w+\\.\\w+)", 1)
-    LET domain = REGEXGROUP(email, "(\\w+)@(\\w+\\.\\w+)", 2)
-    PRINT "User: "; user
-    PRINT "Domain: "; domain
-ENDIF
+Dim email = "user@example.com"
+If REGEXMATCH(email, "\\w+@\\w+\\.\\w+") Then
+    Dim user = REGEXGROUP(email, "(\\w+)@(\\w+\\.\\w+)", 1)
+    Dim domain = REGEXGROUP(email, "(\\w+)@(\\w+\\.\\w+)", 2)
+    Print "User: "; user
+    Print "Domain: "; domain
+EndIf
 ```
 
 ## Complete Feature List
 
-### Statements
-- `PRINT [expr [, | ;] ...] [, | ;]` - Output with optional separators
-- `LET var = expr` - Variable assignment
-- `LET var(index) = expr` - Array element assignment
-- `LET var.member = expr` - Struct member assignment (Phase 6)
-- `INPUT var` - Read input (auto type conversion)
-- `DIM var(size) = init` - Array declaration
-- `DIM var AS TypeName` - Struct declaration (Phase 6)
-- `IF cond THEN ... [ELSEIF cond THEN ...] [ELSE ...] ENDIF`
-- `FOR var = start TO end [STEP step] ... NEXT var`
-- `WHILE cond ... ENDWHILE` (or `WEND`)
-- `DO ... WHILE cond` - Post-test loop
-- `DO ... UNTIL cond` - Post-test until loop
-- `RETURN [expr]` - Return from function
-- `CALL name(args)` - Call subroutine
-- `REM comment` - Comment line
+### Statements (Case-Insensitive)
+- `Print [expr [, | ;] ...] [, | ;]` - Output with optional separators
+- `Console.WriteLine(expr)` / `Console.Write(expr)` - Modern I/O
+- `Dim var = expr` - Variable assignment (modern) or `Let var = expr` (classic)
+- `var(index) = expr` - Array element assignment
+- `var.member = expr` - Struct/object member assignment
+- `Input var` - Read input (auto type conversion)
+- `Dim var(size) = init` - Array declaration
+- `Dim var As TypeName` - Typed variable declaration
+- `Dim var As New ClassName(args)` - Object instantiation
+- `If cond Then ... [ElseIf cond Then ...] [Else ...] EndIf`
+- `For var = start To end [Step step] ... Next var`
+- `While cond ... EndWhile` (or `Wend`)
+- `Do ... While cond` - Post-test loop
+- `Do ... Until cond` - Post-test until loop
+- `Return [expr]` - Return from function
+- `Call name(args)` - Call subroutine
+- `Rem comment` - Comment line
+- `' comment` - Apostrophe comment
 
-### Declarations
-- `FUNCTION name(params) ... RETURN expr ... ENDFUNCTION`
-- `SUB name(params) ... ENDSUB`
-- `TYPE name ... field AS type ... ENDTYPE` (Phase 6)
+### Declarations (Case-Insensitive)
+- `Function name(params [As Type]) [As ReturnType] ... Return expr ... End Function`
+- `Sub name(params [As Type]) ... End Sub`
+- `Type name ... field As type ... EndType` - User-defined types
+- `Class name ... [Public/Private] fields/methods ... End Class` - Object-oriented
 
-### Built-in Functions (93 Total)
+### Built-in Functions (255 Total - All Case-Insensitive)
 
 See `docs/USER_GUIDE.md` for complete documentation with examples.
 
-**Math** (25): `ABS`, `SQRT`, `POW`, `SIN`, `COS`, `TAN`, `ASIN`, `ACOS`, `ATAN`, `ATAN2`, `LOG`, `LOG10`, `EXP`, `FLOOR`, `CEIL`, `ROUND`, `MIN`, `MAX`, `PI`, `E`, `SIGN`, `HYPOT`, `INT`, `FLOAT`, `BOOL`
+**Console Namespace** (4): `Console.WriteLine()`, `Console.Write()`, `Console.ReadLine()`, `Console.ReadKey()`
 
-**Random** (3): `RND`, `RNDINT`, `RANDOMSEED`
+**Math Namespace** (20): `Math.Sin()`, `Math.Cos()`, `Math.Tan()`, `Math.Sqrt()`, `Math.Abs()`, `Math.Min()`, `Math.Max()`, `Math.Pow()`, `Math.Log()`, `Math.Exp()`, `Math.Floor()`, `Math.Ceil()`, `Math.Round()`, `Math.PI()`, `Math.E()`, etc.
 
-**String** (20): `LEN`, `LEFT`, `RIGHT`, `MID`, `UPPER`, `LOWER`, `TRIM`, `REPLACE`, `INDEXOF`, `SUBSTRING`, `STARTSWITH`, `ENDSWITH`, `CONTAINS`, `CHR`, `ASC`, `SPLIT`, `JOIN`, `FORMAT`, `STR`, `VAL`
+**File Namespace** (8): `File.ReadAllText()`, `File.WriteAllText()`, `File.Exists()`, `File.Delete()`, `File.Copy()`, `File.Move()`, `File.Size()`, `File.IsDirectory()`
 
-**Array** (13): `ARRAYLEN`, `ARRAYGET`, `ARRAYSET`, `ARRAYSORT`, `ARRAYSORTSTR`, `ARRAYSUM`, `ARRAYMIN`, `ARRAYMAX`, `ARRAYAVG`, `ARRAYREVERSE`, `ARRAYFIND`, `ARRAYCOPY`, `ARRAYFILL`
+**Http Namespace** (4): `Http.Get()`, `Http.Post()`, `Http.UrlEncode()`, `Http.UrlDecode()`
 
-**File I/O** (8): `OPENINPUT`, `OPENOUTPUT`, `READLINE`, `WRITELINE`, `WRITETEXT`, `CLOSEFILE`, `FILEEXISTS`, `DELETEFILE`
+**Json Namespace** (8): `Json.Parse()`, `Json.NewObject()`, `Json.Put()`, `Json.PutInt()`, `Json.GetString()`, `Json.GetInt()`, `Json.GetFloat()`, `Json.ToString()`
 
-**Regular Expressions** (4): `REGEXMATCH`, `REGEXFIND`, `REGEXREPLACE`, `REGEXGROUP`
+**Xml Namespace** (2): `Xml.Parse()`, `Xml.GetText()`
 
-**I/O** (2): `INPUT`, `PRINT`
+**Db Namespace** (6): `Db.Connect()`, `Db.Query()`, `Db.Next()`, `Db.GetString()`, `Db.GetInt()`, `Db.Close()`
+
+**Classic Functions**: 199 additional functions including Math, String, Array, File I/O, Regex, Collections, Date/Time, and more
 
 ## Architecture
 
@@ -219,43 +234,42 @@ See `docs/USER_GUIDE.md` for complete documentation with examples.
 ## Testing
 
 ### Test Suite
-- **56 tests total**: 54 regular tests + 2 INPUT tests
-- **100% passing** ✅ (56/56)
+- **74 tests total**: 72 regular tests + 2 INPUT tests
+- **100% passing** ✅ (72/72 regular, 2/2 INPUT)
+  - Phase 9 Modern Syntax tests: 8/8
   - Phase 7 OOP tests: 7/7
   - Phase 6 Struct tests: 4/4
   - Array tests: 12/12
   - Function tests: 15/15
-  - Other tests: 16/16
-  - INPUT tests: 2/2
+  - Other feature tests: 26/26
 - Automated test runners: `test_runner.sh`, `run_input_tests.sh`
 
 ### Run Tests
 ```bash
-./test_runner.sh              # All 54 regular tests
+./test_runner.sh              # All 72 regular tests
 ./run_input_tests.sh          # 2 INPUT tests with data files
 ./dump_test_artifacts.sh      # Generate AST and bytecode dumps
 ```
 
 ## Documentation
 
-### User Documentation
-- `docs/USER_GUIDE.md` - Complete guide with all 93 built-in functions and examples (1,351 lines)
+### User Documentation (`docs/`)
+- `docs/USER_GUIDE.md` - Complete user guide with all 255 functions and examples
+- `docs/user/` - User example programs and showcases
 - `README.md` - This file (quick start and overview)
 
-### Developer Documentation
+### Developer Documentation (`docs/dev/`)
 - `docs/dev/CODE_GUIDE.md` - Complete developer guide
 - `docs/dev/AST_GUIDE.md` - AST structure and extension guide
 - `docs/dev/LEXER_GUIDE.md` - Lexer internals and extension
 - `docs/dev/DEBUGGING_GUIDE.md` - Debugging techniques
 - `docs/dev/MODULAR_ARCHITECTURE.md` - Modular compiler architecture
 - `docs/dev/PHASE7_IMPLEMENTATION_GUIDE.md` - OOP implementation details
-- `PHASE7_COMPLETE.md` - Phase 7 completion report
 
-### Planning Documents
-- `docs/planning/PHASE7_DESIGN.md` - OOP design specification
-- `docs/planning/PHASE7_CODEGEN_PLAN.md` - Code generation plan
-- `docs/planning/PHASE6_DESIGN.md` - User-defined types design
-- `docs/planning/SERIOUS_LANGUAGE_ANALYSIS.md` - Language evolution plan
+### Planning & Phase Documentation
+- `docs/planning/` - Design documents for each phase
+- `docs/phase9/` - Phase 9 (Modern Syntax) completion reports and progress
+- `docs/sessions/` - Historical session summaries
 
 ## Development History
 
@@ -290,27 +304,63 @@ See `docs/USER_GUIDE.md` for complete documentation with examples.
 - ✅ Apostrophe comments (`'`)
 - ✅ Multiple classes per program
 
-### Phase 8 (Future)
-- Inheritance (INHERITS keyword)
+### Phase 8 (Complete) ✅
+- ✅ 199 built-in functions (+106 from Phase 7)
+- ✅ Logical operators (AND, OR, NOT, XOR)
+- ✅ Collections (IntList, StringList, Map, Stack, Queue)
+- ✅ Date/Time functions (21 functions)
+- ✅ Enhanced string and file I/O
+
+### Phase 9 (Complete) ✅
+- ✅ Modern VB-style syntax (Dim x As Integer = 10)
+- ✅ Fully case-insensitive keywords
+- ✅ Modern function syntax (Function Add() As Integer)
+- ✅ Namespace/OO syntax (Console.WriteLine, Math.Sin)
+- ✅ Web capabilities (Http.Get, Http.Post)
+- ✅ JSON support (Json.Parse, Json.ToString)
+- ✅ File namespace (File.ReadAllText, File.WriteAllText)
+- ✅ Database support (Db.Connect, Db.Query)
+- ✅ Bitwise operators (<< >>)
+- ✅ Decimal and BigInt types
+- ✅ 255 total functions (+56 from Phase 8)
+
+### Phase 10 (Future)
+- Inheritance (Inherits keyword)
 - Method overriding
 - Interfaces
-- Static members (SHARED keyword)
-- Properties with GET/SET
-- Method overloading
+- Static members (Shared keyword)
+- Module system and imports
+- String instance methods
+- Enhanced collections with generics
 
 ## Examples
 
 ### Complete Programs
 
-See `examples/` directory for complete working programs:
+See the `examples/` directory (17 programs) for complete working examples:
+
+**Modern Syntax & Web**:
+- `examples/modern_syntax_demo.bas` - Showcase of Phase 9 modern VB syntax
+- `examples/modern_web_app.bas` - Full-featured web application demo
+
+**Classic Programs**:
 - `examples/math_algorithms.bas` - GCD, factorial, Fibonacci, primes
 - `examples/sorting_algorithms.bas` - Bubble sort, selection sort
 - `examples/password_generator.bas` - Random password generation
 - `examples/lotto_improved.bas` - Lottery number generator
+- `examples/text_analyzer.bas` - String processing and analysis
+- `examples/file_backup_utility.bas` - File operations demo
+- `examples/log_processor.bas` - Log file processing
+
+**Object-Oriented**:
+- `examples/oop_bank_account.bas` - Banking system with classes
+- `examples/oop_contact_manager.bas` - Contact management system
+- `examples/oop_geometry.bas` - Geometric shapes with OOP
 
 ### Test Programs
 
-See `tests/` directory for 56 test programs covering:
+See the `tests/` directory for 74 comprehensive test programs:
+- **Modern Syntax** (`test_modern_*.bas`, `test_namespace_*.bas`, 8 tests) - Phase 9 features
 - **OOP** (`test_class_*.bas`, 7 tests) - Classes, constructors, methods
 - **Structs** (`test_struct_*.bas`, 4 tests) - User-defined types
 - **Functions** (`test_func_*.bas`, 15 tests) - Recursion, parameters, return values
@@ -323,8 +373,14 @@ See `tests/` directory for 56 test programs covering:
 
 ### Requirements
 - C++20 compiler (g++ 10+, clang 12+)
-- JDK/JRE 8+ (for running compiled programs)
+- JDK/JRE 11+ (for running compiled programs)
 - Make (optional, for build system)
+- Libraries (included in `lib/` directory):
+  - Google Gson 2.10.1 (JSON)
+  - PostgreSQL JDBC 42.7.1
+  - MariaDB JDBC 3.3.2
+  - Apache Commons IO 2.15.1
+  - Google Guava 33.0.0
 
 ### Build Options
 ```bash
@@ -378,8 +434,8 @@ This is an educational project demonstrating compiler construction. Feel free to
 ## Repository
 
 **GitHub**: `git@github.com:jamesbuch/jvmbasic.git`  
-**Branch**: `main` (Phase 6 complete)  
-**Development**: `phase7-oop` (next phase)
+**Branch**: `phase9-modern-syntax` (Phase 9 complete)  
+**Development**: Ready for Phase 10
 
 ## License
 
@@ -387,4 +443,4 @@ Public domain / MIT - choose what fits your needs.
 
 ---
 
-**JVM BASIC** - A modern BASIC compiler for the JVM, bridging classic BASIC syntax with modern language features. Phase 6 complete with user-defined types! 🚀
+**JVM BASIC** - A modern BASIC compiler for the JVM with Visual Basic-style syntax, web capabilities (HTTP, JSON), database support, and 255 built-in functions. Phase 9 complete! 🚀

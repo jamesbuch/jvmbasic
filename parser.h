@@ -29,6 +29,9 @@ private:
     ExprPtr parseMul();
     ExprPtr parseShift();    // Phase 9: Bitwise shift (<< >>)
     ExprPtr parseAdd();
+    ExprPtr parseBitAnd();   // Phase 9: Bitwise AND (&)
+    ExprPtr parseBitXor();   // Phase 9: Bitwise XOR (^)
+    ExprPtr parseBitOr();    // Phase 9: Bitwise OR (|)
     ExprPtr parseEq();
     ExprPtr parseNot();      // Phase 8: Logical NOT
     ExprPtr parseAnd();      // Phase 8: Logical AND

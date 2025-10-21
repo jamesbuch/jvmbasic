@@ -152,7 +152,8 @@ PRINT "Hello"                     Console.WriteLine("Hello")
 ### Design Documents
 - `docs/planning/PHASE8_DESIGN.md` - Complete Phase 8 roadmap
 - `docs/planning/COLLECTIONS_DESIGN.md` - Collections API
-- `PHASE8_COMPLETE.md` - This session's comprehensive summary
+- `docs/sessions/PHASE8_COMPLETE.md` - Phase 8 comprehensive summary
+- `docs/phase9/` - Phase 9 documentation (after completion)
 
 ### Examples & Tests
 - `examples/text_analyzer.bas` - String functions
@@ -206,7 +207,7 @@ grep -c '{"' builtin_functions.cpp  # Shows: 199
 
 ## 💭 What to Tell AI in Next Chat
 
-"Continue with Phase 9 - we just completed Phase 8 with 199 built-in functions! Read PHASE8_COMPLETE.md and START_HERE_PHASE9.md. We have:
+"Continue with Phase 9 - we just completed Phase 8 with 199 built-in functions! Read docs/sessions/PHASE8_COMPLETE.md and START_HERE_PHASE9.md. We have:
 - 199 built-in functions (+106 new)
 - Full logical operators (AND, OR, NOT, XOR)
 - Complete collections (IntList, StringList, Map, Stack, Queue)

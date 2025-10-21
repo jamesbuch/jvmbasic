@@ -17,7 +17,9 @@ enum class Type {
 };
 
 // Operators
-enum class Op { Add, Sub, Mul, Div, Mod, Lt, Gt, Le, Ge, Eq, Ne, Shl, Shr };
+enum class Op { Add, Sub, Mul, Div, Mod, Lt, Gt, Le, Ge, Eq, Ne, Shl, Shr,
+                // Phase 9: Bitwise operators
+                BitAnd, BitOr, BitXor };
 
 // Phase 8: Logical operators
 enum class LogicalOp { And, Or, Xor, Not };
@@ -147,7 +149,9 @@ enum class StmtKind {
     // Phase 7: OOP statements
     MethodCallStmt,
     // Phase 8: Advanced control flow
-    ExitFor, ExitWhile, Continue
+    ExitFor, ExitWhile, Continue,
+    // Phase 9: Expression as statement
+    ExprStmt
 };
 
 // Statement structures
@@ -229,11 +233,16 @@ struct ExitForStmt {};
 struct ExitWhileStmt {};
 struct ContinueStmt {};
 
+// Phase 9: Expression statement (evaluate expression and discard result)
+struct ExprStmtNode {
+    ExprPtr expr;
+};
+
 struct Stmt {
     StmtKind kind;
     variant<PrintStmt, LetStmt, InputStmt, DimStmt, IfStmt, ForStmt, 
             WhileStmt, DoWhileStmt, ReturnStmt, CallStmtNode, MethodCallStmtNode,
-            ExitForStmt, ExitWhileStmt, ContinueStmt> data;
+            ExitForStmt, ExitWhileStmt, ContinueStmt, ExprStmtNode> data;
 
     Stmt(StmtKind k, PrintStmt p) : kind(k), data(std::move(p)) {}
     Stmt(StmtKind k, LetStmt l) : kind(k), data(std::move(l)) {}
@@ -247,6 +256,7 @@ struct Stmt {
     Stmt(StmtKind k, CallStmtNode cs) : kind(k), data(std::move(cs)) {}
     Stmt(StmtKind k, MethodCallStmtNode mcs) : kind(k), data(std::move(mcs)) {}  // Phase 7
     // Phase 8: Control flow statement constructors
+    Stmt(StmtKind k, ExprStmtNode es) : kind(k), data(std::move(es)) {}  // Phase 9
     Stmt(StmtKind k, ExitForStmt efs) : kind(k), data(efs) {}
     Stmt(StmtKind k, ExitWhileStmt ews) : kind(k), data(ews) {}
     Stmt(StmtKind k, ContinueStmt cs) : kind(k), data(cs) {}

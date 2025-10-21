@@ -1,18 +1,16 @@
-#!/bin/zsh
-# Use g++-15 wrapper to avoid Cursor AppImage environment issues
-if [ -x ./g++-15-wrapper ]; then
-    ./g++-15-wrapper -std=gnu++20 -O2 -g jvmbasic.cpp -o jvmbasic
-else
-    g++ -std=gnu++20 -O2 -g jvmbasic.cpp -o jvmbasic
-fi
+#!/bin/bash
+# Build and run JVM BASIC programs with library support
 
-# Compile BasicRuntime if needed
+# Compile BasicRuntime with libraries if needed
 if [ ! -f basicrt/BasicRuntime.class ] || [ BasicRuntime.java -nt basicrt/BasicRuntime.class ]; then
-    echo "Compiling BasicRuntime..."
-    javac -d . BasicRuntime.java
+    echo "Compiling BasicRuntime with libraries..."
+    javac -cp "lib/*" BasicRuntime.java
+    cp BasicRuntime.class basicrt/
 fi
 
-./jvmbasic < tests/input.bas
-javap -c BasicProgram
-java -cp . BasicProgram
+# Compile BASIC program
+./jvmbasic < $1
+
+# Run with full classpath
+java -cp ".:lib/*:basicrt" BasicProgram
 

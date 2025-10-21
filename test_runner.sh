@@ -8,17 +8,17 @@ passed=0
 failed=0
 skipped=0
 
-# Tests that require stdin (will be skipped in main runner)
-input_tests=("test_input.bas" "test_input_simple.bas")
+# Tests that require stdin (cannot run automatically)
+skip_tests=("test_input.bas" "test_input_simple.bas" "input.bas")
 
 run_test() {
     local test_file=$1
     local test_name=$(basename "$test_file" .bas)
     
-    # Check if this is an INPUT test
-    for input_test in "${input_tests[@]}"; do
-        if [[ "$test_file" == *"$input_test" ]]; then
-            printf "%-50s ⊘ SKIP (use run_input_tests.sh)\n" "$test_name..."
+    # Check if this test should be skipped
+    for skip_test in "${skip_tests[@]}"; do
+        if [[ "$test_file" == *"$skip_test" ]]; then
+            printf "%-50s ⊘ SKIP (requires stdin)\n" "$test_name..."
             ((skipped++))
             return
         fi
@@ -26,7 +26,7 @@ run_test() {
     
     printf "%-50s" "$test_name..."
     
-    if ./jvmbasic < "$test_file" > /dev/null 2>&1 && java -cp . BasicProgram > /dev/null 2>&1; then
+    if ./jvmbasic < "$test_file" > /dev/null 2>&1 && java -cp ".:lib/*:basicrt" BasicProgram > /dev/null 2>&1; then
         echo "✓ PASS"
         ((passed++))
     else
@@ -46,11 +46,13 @@ echo ""
 echo "=== Results ==="
 echo "Passed:  $passed"
 echo "Failed:  $failed"
-echo "Skipped: $skipped (INPUT tests - run with ./run_input_tests.sh)"
+if [ $skipped -gt 0 ]; then
+    echo "Skipped: $skipped (require stdin)"
+fi
 echo "Total:   $((passed + failed + skipped))"
 
 if [ $failed -eq 0 ]; then
-    echo "✓ All non-INPUT tests passed!"
+    echo "✓ All automated tests passed!"
     exit 0
 else
     echo "⚠ Some tests failed"
