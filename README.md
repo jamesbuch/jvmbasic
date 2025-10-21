@@ -590,16 +590,68 @@ java BasicProgram
 java -cp .:basicrt BasicProgram
 ```
 
+### Web Capabilities (Phase 9)
+```basic
+' HTTP GET request with modern HttpClient (Java 11+)
+Dim response As String = Http.Get("https://api.github.com/zen")
+Console.WriteLine("GitHub Zen: " + response)
+
+' JSON parsing with Google Gson
+Dim jsonStr As String = "{\"name\":\"Alice\",\"age\":30}"
+Dim obj As Integer = Json.Parse(jsonStr)
+Dim name As String = Json.GetString(obj, "name")
+Dim age As Integer = Json.GetInt(obj, "age")
+Console.WriteLine("Name: " + name + ", Age: " + Str(age))
+
+' Create and serialize JSON
+Dim newObj As Integer = Json.NewObject()
+Json.Put(newObj, "status", "success")
+Json.PutInt(newObj, "code", 200)
+Dim output As String = Json.ToString(newObj)
+Console.WriteLine("JSON: " + output)
+```
+
+### Database Access (Phase 9)
+```basic
+' Connect to PostgreSQL or MariaDB
+Dim conn As Integer = Db.Connect("jdbc:postgresql://localhost:5432/mydb", "user", "password")
+If conn >= 0 Then
+    Console.WriteLine("Connected to database!")
+    
+    ' Execute query
+    Dim result As Integer = Db.Query(conn, "SELECT name, age FROM users WHERE active = true")
+    While Db.Next(result)
+        Dim name As String = Db.GetString(result, "name")
+        Dim age As Integer = Db.GetInt(result, "age")
+        Console.WriteLine("User: " + name + ", Age: " + Str(age))
+    End While
+    
+    ' Close connection
+    Db.Close(conn)
+    Console.WriteLine("Connection closed")
+End If
+```
+
+### XML Processing (Phase 9)
+```basic
+' Parse XML with javax.xml DOM
+Dim xml As String = "<root><user name='Alice' age='30'/></root>"
+Dim doc As Integer = Xml.Parse(xml)
+
+' XPath queries
+Dim userName As String = Xml.GetText(doc, "/root/user/@name")
+Dim userAge As String = Xml.GetText(doc, "/root/user/@age")
+Console.WriteLine("User: " + userName + ", Age: " + userAge)
+```
+
 ## Current Limitations
 
-These are intentional design decisions for simplicity:
-
-- **One class file**: Generates single `BasicProgram.class`
-- **No module system**: Single file programs only (for now)
-- **Simple type system**: No user-defined generic types yet
-- **Basic inheritance**: Classes planned for Phase 7
-- **File I/O**: Text files only (binary I/O future)
-- **Arrays**: One-dimensional (multi-dimensional planned)
+- **Arrays**: One-dimensional only (multi-dimensional planned for Phase 10+)
+- **Binary I/O**: Not yet implemented (text files work with File namespace)
+- **Networking**: Limited to HTTP GET/POST (WebSockets planned)
+- **Concurrency**: No threading support yet
+- **Generics**: Not implemented (collections are untyped)
+- **Module System**: Single file programs only (imports planned for Phase 11)
 
 ## Contributing
 
