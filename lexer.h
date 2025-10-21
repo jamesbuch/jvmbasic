@@ -2,6 +2,7 @@
 
 #include <iostream>
 #include <string>
+#include <vector>
 #include <stdexcept>
 
 using namespace std;
@@ -9,6 +10,7 @@ using namespace std;
 // Token types
 enum class TokenType { 
     END, NUMBER, STRING, ID, 
+    INTERPOLATED_STRING,  // Phase 10: $"text {var} more"
     PLUS, MINUS, MUL, DIV, MOD, 
     ASSIGN, SEMI, COMMA, LPAREN, RPAREN, DOT, AMPERSAND,
     PRINT, LET, INPUT, DIM, 
@@ -35,12 +37,20 @@ enum class TokenType {
     SHARED, STATIC, BYVAL, BYREF
 };
 
+// Interpolation part for interpolated strings
+struct InterpolationPart {
+    enum class Type { TEXT, VARIABLE };
+    Type type;
+    string value;
+};
+
 // Token structure
 struct Token {
     TokenType type;
     string val;
     double num = 0.0;
     int line = 1;
+    vector<InterpolationPart> interpolationParts;  // For INTERPOLATED_STRING tokens
 };
 
 // Lexer/Scanner

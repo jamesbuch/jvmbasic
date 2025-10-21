@@ -446,6 +446,47 @@ ExprPtr Parser::parsePrimary() {
         return make_unique<Expr>(ExprKind::Str, Type::String, StrLit{st.val});
     }
     
+    // Phase 10: Interpolated strings ($"text {var} more")
+    if (tok.type == TokenType::INTERPOLATED_STRING) {
+        vector<InterpolationPart> parts = tok.interpolationParts;
+        next();
+        
+        // If no interpolation parts, return empty string
+        if (parts.empty()) {
+            return make_unique<Expr>(ExprKind::Str, Type::String, StrLit{""});
+        }
+        
+        // Build string concatenation expression
+        ExprPtr result = nullptr;
+        
+        for (size_t i = 0; i < parts.size(); i++) {
+            const auto& part = parts[i];
+            ExprPtr partExpr;
+            
+            if (part.type == InterpolationPart::Type::TEXT) {
+                // Text literal
+                partExpr = make_unique<Expr>(ExprKind::Str, Type::String, StrLit{part.value});
+            } else {
+                // Variable reference
+                // For interpolation, we just use the variable directly
+                // The code generator will handle type conversion during string concatenation
+                string varName = part.value;
+                partExpr = make_unique<Expr>(ExprKind::Var, Type::String, VarRef{varName, nullptr});
+            }
+            
+            // Concatenate with result
+            if (result == nullptr) {
+                result = move(partExpr);
+            } else {
+                // result + partExpr
+                result = make_unique<Expr>(ExprKind::Bin, Type::String, 
+                                         BinOp{Op::Add, move(result), move(partExpr)});
+            }
+        }
+        
+        return result ? move(result) : make_unique<Expr>(ExprKind::Str, Type::String, StrLit{""});
+    }
+    
     if (tok.type == TokenType::TRUE) {
         next();
         return make_unique<Expr>(ExprKind::BoolLit, Type::Bool, BoolLit{true});

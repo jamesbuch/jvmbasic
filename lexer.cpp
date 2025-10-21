@@ -49,7 +49,72 @@ Token Lexer::nextToken() {
         return t;
     }
     
-    // String literals
+    // Interpolated strings ($"...")
+    if (ch == '$' && !eof) {
+        char next = 0;
+        if (in.peek() == '"') {
+            read(); // consume $
+            read(); // consume "
+            
+            vector<InterpolationPart> parts;
+            string currentText;
+            
+            while (!eof && ch != '"') {
+                if (ch == '{') {
+                    // Save accumulated text
+                    if (!currentText.empty()) {
+                        parts.push_back({InterpolationPart::Type::TEXT, currentText});
+                        currentText.clear();
+                    }
+                    
+                    // Read variable name
+                    read(); // consume {
+                    string varName;
+                    while (!eof && ch != '}') {
+                        if (ch == '"') error("Unexpected \" inside interpolation placeholder at line " + to_string(tokenLine));
+                        varName += ch;
+                        read();
+                    }
+                    if (ch != '}') error("Unterminated interpolation placeholder at line " + to_string(tokenLine));
+                    read(); // consume }
+                    
+                    parts.push_back({InterpolationPart::Type::VARIABLE, varName});
+                } else if (ch == '\\') {
+                    // Escape sequences
+                    read();
+                    if (!eof) {
+                        if (ch == '{' || ch == '}' || ch == '\\' || ch == '"' || ch == 'n' || ch == 't') {
+                            if (ch == 'n') currentText += '\n';
+                            else if (ch == 't') currentText += '\t';
+                            else currentText += ch;
+                            read();
+                        } else {
+                            currentText += '\\';
+                            currentText += ch;
+                            read();
+                        }
+                    }
+                } else {
+                    currentText += ch;
+                    read();
+                }
+            }
+            
+            // Save final text
+            if (!currentText.empty()) {
+                parts.push_back({InterpolationPart::Type::TEXT, currentText});
+            }
+            
+            if (ch == '"') read(); // consume closing "
+            else error("Unterminated interpolated string at line " + to_string(tokenLine));
+            
+            Token t{TokenType::INTERPOLATED_STRING, "", 0.0, tokenLine};
+            t.interpolationParts = parts;
+            return t;
+        }
+    }
+    
+    // Regular string literals
     if (ch == '"') {
         read();
         string s;

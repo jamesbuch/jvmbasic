@@ -227,6 +227,23 @@ public class BasicRuntime {
         return String.valueOf(b);
     }
     
+    // Phase 10: Generic valueOf for string interpolation
+    public static String valueOf_i(int n) {
+        return String.valueOf(n);
+    }
+    
+    public static String valueOf_f(float n) {
+        return String.valueOf(n);
+    }
+    
+    public static String valueOf_s(String s) {
+        return s;  // Already a string
+    }
+    
+    public static String valueOf_b(boolean b) {
+        return String.valueOf(b);
+    }
+    
     public static int val_i(String s) {
         if (s == null) return 0;
         try {

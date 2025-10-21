@@ -249,7 +249,11 @@ void SemanticAnalyzer::analyzeExpr(Expr& expr, const SymbolTable& symbols) {
             analyzeExpr(*bo.right, symbols);
             
             // Check types are compatible
-            if (!isNumericType(bo.left->type) || !isNumericType(bo.right->type)) {
+            // Phase 10: Allow string concatenation (String + any type)
+            if (bo.op == Op::Add && (bo.left->type == Type::String || bo.right->type == Type::String)) {
+                // String concatenation is allowed with any type
+                // Code generator will handle type conversion
+            } else if (!isNumericType(bo.left->type) || !isNumericType(bo.right->type)) {
                 if (bo.left->type != bo.right->type) {
                     error("Type mismatch in binary operation: " + 
                           typeToString(bo.left->type) + " vs " + typeToString(bo.right->type));

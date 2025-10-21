@@ -9,7 +9,14 @@ A modern, professional BASIC compiler with Visual Basic-style syntax that genera
 
 ## Features
 
-### Phase 9: Modern Syntax & Enterprise Libraries ✨ NEW!
+### Phase 10: String Interpolation ✨ NEW!
+- **String Interpolation**: `$"Hello {name}, you are {age} years old!"`
+  - Python f-string / C# interpolated string style
+  - Works with all types: Integer, Single, Double, Long, Boolean, String
+  - Automatic type conversion to string
+  - Escape sequences: `\\{`, `\\}`, `\\n`, `\\t`
+
+### Phase 9: Modern Syntax & Enterprise Libraries
 - **Modern VB-Style Syntax**: `Dim x As Integer = 10`, `Function Add(a As Integer) As Integer`
 - **Fully Case-Insensitive**: All keywords work in any case (Dim/DIM/dim, If/IF/if, Function/FUNCTION/function, etc.)
 - **Expression Statements**: Call functions without dummy variables: `Console.WriteLine("text")`
@@ -174,15 +181,20 @@ java -cp ".:lib/*:basicrt" BasicProgram
 
 ### Hello World
 
-**Modern Syntax (Recommended):**
+**With String Interpolation (Phase 10):**
 ```basic
-' hello_world.bas - Modern VB-style syntax
-Console.WriteLine("Hello, World!")
-Console.WriteLine("Welcome to JVM BASIC!")
+' Modern string interpolation
+Dim name As String = "Alice"
+Dim age As Integer = 30
+Console.WriteLine($"Hello {name}, you are {age} years old!")
 ```
 
-**With Variables:**
+**Modern Syntax:**
 ```basic
+Console.WriteLine("Hello, World!")
+Console.WriteLine("Welcome to JVM BASIC!")
+
+' With variables
 Dim name As String = "Alice"
 Console.WriteLine("Hello, " + name + "!")
 ```

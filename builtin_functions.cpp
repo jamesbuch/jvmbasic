@@ -63,6 +63,9 @@ const map<string, FunctionSig> builtinFunctions = {
     {"CHR", {{Type::Int}, Type::String, "chr", "(I)Ljava/lang/String;"}},
     {"VAL", {{Type::String}, Type::Float, "val_f", "(Ljava/lang/String;)F"}},
     
+    // Phase 10: String interpolation support
+    {"VALUEOF", {{Type::Float}, Type::String, "valueOf_f", "(F)Ljava/lang/String;"}},
+    
     // Type checking
     {"ISNUM", {{Type::String}, Type::Bool, "isnum", "(Ljava/lang/String;)Z"}},
     {"ISINT", {{Type::String}, Type::Bool, "isint", "(Ljava/lang/String;)Z"}},

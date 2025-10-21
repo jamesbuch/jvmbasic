@@ -816,37 +816,95 @@ public:
             }
         } else if (e.kind == ExprKind::Bin) {
             const BinOp& bo = get<BinOp>(e.data);
-            load(*bo.left, varIdx);
-            // If binary op is Float but left operand is Int, convert
-            if (e.type == Type::Float && bo.left->type == Type::Int) {
-                i2f();
-            }
-            load(*bo.right, varIdx);
-            // If binary op is Float but right operand is Int, convert
-            if (e.type == Type::Float && bo.right->type == Type::Int) {
-                i2f();
-            }
-            if (e.type == Type::Int) {
-                switch (bo.op) {
-                    case Op::Add: iadd(); break;
-                    case Op::Sub: isub(); break;
-                    case Op::Mul: imul(); break;
-                    case Op::Div: idiv(); break;
-                    case Op::Mod: irem(); break;
-                    case Op::Shl: ishl(); break;  // Phase 9: Left shift
-                    case Op::Shr: ishr(); break;  // Phase 9: Right shift (arithmetic)
-                    case Op::BitAnd: emit(0x7E); break;  // Phase 9: Bitwise AND (iand)
-                    case Op::BitOr: emit(0x80); break;   // Phase 9: Bitwise OR (ior)
-                    case Op::BitXor: emit(0x82); break;  // Phase 9: Bitwise XOR (ixor)
-                    default: break;
+            
+            // Phase 10: String concatenation
+            if (e.type == Type::String && bo.op == Op::Add) {
+                // Use StringBuilder for efficient string concatenation
+                // new StringBuilder()
+                u2 sb_class_utf8 = cp.addUtf8("java/lang/StringBuilder");
+                u2 sb_class_idx = cp.addClass(sb_class_utf8);
+                new_(sb_class_idx);
+                dup();
+                
+                // <init>()
+                u2 init_utf8 = cp.addUtf8("<init>");
+                u2 init_desc = cp.addUtf8("()V");
+                u2 init_nat = cp.addNameAndType(init_utf8, init_desc);
+                u2 init_methodref = cp.addMethodRef(sb_class_idx, init_nat);
+                invokespecial(init_methodref);
+                
+                // append(left)
+                load(*bo.left, varIdx);
+                u2 append_utf8 = cp.addUtf8("append");
+                u2 append_desc;
+                if (bo.left->type == Type::Int) {
+                    append_desc = cp.addUtf8("(I)Ljava/lang/StringBuilder;");
+                } else if (bo.left->type == Type::Float) {
+                    append_desc = cp.addUtf8("(F)Ljava/lang/StringBuilder;");
+                } else if (bo.left->type == Type::Bool) {
+                    append_desc = cp.addUtf8("(Z)Ljava/lang/StringBuilder;");
+                } else {
+                    append_desc = cp.addUtf8("(Ljava/lang/String;)Ljava/lang/StringBuilder;");
                 }
-            } else if (e.type == Type::Float) {
-                switch (bo.op) {
-                    case Op::Add: fadd(); break;
-                    case Op::Sub: fsub(); break;
-                    case Op::Mul: fmul(); break;
-                    case Op::Div: fdiv(); break;
-                    case Op::Mod: frem(); break;
+                u2 append_nat = cp.addNameAndType(append_utf8, append_desc);
+                u2 append_methodref = cp.addMethodRef(sb_class_idx, append_nat);
+                invokevirtual(append_methodref);
+                
+                // append(right)
+                load(*bo.right, varIdx);
+                if (bo.right->type == Type::Int) {
+                    append_desc = cp.addUtf8("(I)Ljava/lang/StringBuilder;");
+                } else if (bo.right->type == Type::Float) {
+                    append_desc = cp.addUtf8("(F)Ljava/lang/StringBuilder;");
+                } else if (bo.right->type == Type::Bool) {
+                    append_desc = cp.addUtf8("(Z)Ljava/lang/StringBuilder;");
+                } else {
+                    append_desc = cp.addUtf8("(Ljava/lang/String;)Ljava/lang/StringBuilder;");
+                }
+                append_nat = cp.addNameAndType(append_utf8, append_desc);
+                append_methodref = cp.addMethodRef(sb_class_idx, append_nat);
+                invokevirtual(append_methodref);
+                
+                // toString()
+                u2 tostring_utf8 = cp.addUtf8("toString");
+                u2 tostring_desc = cp.addUtf8("()Ljava/lang/String;");
+                u2 tostring_nat = cp.addNameAndType(tostring_utf8, tostring_desc);
+                u2 tostring_methodref = cp.addMethodRef(sb_class_idx, tostring_nat);
+                invokevirtual(tostring_methodref);
+            } else {
+                // Numeric operations
+                load(*bo.left, varIdx);
+                // If binary op is Float but left operand is Int, convert
+                if (e.type == Type::Float && bo.left->type == Type::Int) {
+                    i2f();
+                }
+                load(*bo.right, varIdx);
+                // If binary op is Float but right operand is Int, convert
+                if (e.type == Type::Float && bo.right->type == Type::Int) {
+                    i2f();
+                }
+                if (e.type == Type::Int) {
+                    switch (bo.op) {
+                        case Op::Add: iadd(); break;
+                        case Op::Sub: isub(); break;
+                        case Op::Mul: imul(); break;
+                        case Op::Div: idiv(); break;
+                        case Op::Mod: irem(); break;
+                        case Op::Shl: ishl(); break;  // Phase 9: Left shift
+                        case Op::Shr: ishr(); break;  // Phase 9: Right shift (arithmetic)
+                        case Op::BitAnd: emit(0x7E); break;  // Phase 9: Bitwise AND (iand)
+                        case Op::BitOr: emit(0x80); break;   // Phase 9: Bitwise OR (ior)
+                        case Op::BitXor: emit(0x82); break;  // Phase 9: Bitwise XOR (ixor)
+                        default: break;
+                    }
+                } else if (e.type == Type::Float) {
+                    switch (bo.op) {
+                        case Op::Add: fadd(); break;
+                        case Op::Sub: fsub(); break;
+                        case Op::Mul: fmul(); break;
+                        case Op::Div: fdiv(); break;
+                        case Op::Mod: frem(); break;
+                    }
                 }
             }
         } else if (e.kind == ExprKind::NewExpr) {
