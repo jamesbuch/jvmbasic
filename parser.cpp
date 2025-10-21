@@ -663,8 +663,47 @@ ExprPtr Parser::parseAdd() {
     return left;
 }
 
-ExprPtr Parser::parseEq() {
+// Phase 9: Parse bitwise AND
+ExprPtr Parser::parseBitAnd() {
     auto left = parseAdd();
+    while (tok.type == TokenType::BITAND) {
+        next();
+        auto right = parseAdd();
+        // Bitwise operations work on integers
+        auto bin = make_unique<Expr>(ExprKind::Bin, Type::Int, BinOp{Op::BitAnd, move(left), move(right)});
+        left = move(bin);
+    }
+    return left;
+}
+
+// Phase 9: Parse bitwise XOR
+ExprPtr Parser::parseBitXor() {
+    auto left = parseBitAnd();
+    while (tok.type == TokenType::BITXOR) {
+        next();
+        auto right = parseBitAnd();
+        // Bitwise operations work on integers
+        auto bin = make_unique<Expr>(ExprKind::Bin, Type::Int, BinOp{Op::BitXor, move(left), move(right)});
+        left = move(bin);
+    }
+    return left;
+}
+
+// Phase 9: Parse bitwise OR
+ExprPtr Parser::parseBitOr() {
+    auto left = parseBitXor();
+    while (tok.type == TokenType::BITOR) {
+        next();
+        auto right = parseBitXor();
+        // Bitwise operations work on integers
+        auto bin = make_unique<Expr>(ExprKind::Bin, Type::Int, BinOp{Op::BitOr, move(left), move(right)});
+        left = move(bin);
+    }
+    return left;
+}
+
+ExprPtr Parser::parseEq() {
+    auto left = parseBitOr();  // Bitwise operators bind tighter than comparisons
     while (tok.type == TokenType::LT || tok.type == TokenType::GT || 
            tok.type == TokenType::LE || tok.type == TokenType::GE ||
            tok.type == TokenType::EQ || tok.type == TokenType::NE) {
@@ -677,7 +716,7 @@ ExprPtr Parser::parseEq() {
         else op = Op::Ne;
         
         next();
-        auto right = parseAdd();
+        auto right = parseBitOr();
         auto cmp = make_unique<Expr>(ExprKind::Cmp, Type::Bool, CmpOp{op, move(left), move(right)});
         left = move(cmp);
     }
@@ -1164,14 +1203,45 @@ StmtPtr Parser::parseStmt() {
         error("Expected . after ME");
     }
     
-    // Phase 7: Bare assignment (without LET) - for modern VB style in methods
+    // Phase 7/9: Bare assignment (without LET) or expression statement
     if (tok.type == TokenType::ID) {
         string var = tok.val;
+        string varUpper = var;
+        for (auto& c : varUpper) c = toupper(c);
+        
+        // Phase 9: Check if it's a namespace
+        bool isNamespace = (varUpper == "MATH" || varUpper == "FILE" || 
+                           varUpper == "HTTP" || varUpper == "JSON" || 
+                           varUpper == "XML" || varUpper == "DB");
+        
         next();
         
-        // Check for member access: var.member = value
+        // Check for member access: var.member or Namespace.Method
         if (tok.type == TokenType::DOT) {
+            // Phase 9: If it's a namespace, parse as expression statement (not assignment)
+            if (isNamespace) {
+                next();  // Consume DOT
+                string methodName = expect(TokenType::ID).val;
+                expect(TokenType::LPAREN);
+                vector<ExprPtr> args;
+                if (tok.type != TokenType::RPAREN) {
+                    args.push_back(parseExpr());
+                    while (tok.type == TokenType::COMMA) {
+                        next();
+                        args.push_back(parseExpr());
+                    }
+                }
+                expect(TokenType::RPAREN);
+                
+                // Create namespace call expression and wrap in ExprStmt
+                auto expr = make_unique<Expr>(ExprKind::NamespaceCall, Type::Float,
+                                            NamespaceCallExpr{varUpper, methodName, move(args)});
+                return make_unique<Stmt>(StmtKind::ExprStmt, ExprStmtNode{move(expr)});
+            }
+            
+            // Not a namespace - parse as member access assignment
             vector<string> memberPath;
+            memberPath.push_back(expect(TokenType::ID).val);  // First member already consumed
             while (tok.type == TokenType::DOT) {
                 next();
                 memberPath.push_back(expect(TokenType::ID).val);
@@ -1189,12 +1259,30 @@ StmtPtr Parser::parseStmt() {
             }
         }
         
-        // Check for array assignment: var(index) = value
+        // Check for array assignment or function call: var(index) = value or func(args)
         ExprPtr index = nullptr;
         if (tok.type == TokenType::LPAREN) {
+            // Could be array assignment or function call as expression statement
             next();
+            if (tok.type == TokenType::RPAREN) {
+                // Empty parens - function call with no args
+                next();
+                // Create call expression and wrap in ExprStmt
+                auto expr = make_unique<Expr>(ExprKind::Call, Type::Float, CallExpr{var, {}});
+                return make_unique<Stmt>(StmtKind::ExprStmt, ExprStmtNode{move(expr)});
+            }
+            
             index = parseExpr();
             expect(TokenType::RPAREN);
+            
+            // If followed by =, it's array assignment; otherwise expression statement
+            if (tok.type != TokenType::ASSIGN) {
+                // It's a function call with one arg - wrap in ExprStmt
+                vector<ExprPtr> args;
+                args.push_back(move(index));
+                auto expr = make_unique<Expr>(ExprKind::Call, Type::Float, CallExpr{var, move(args)});
+                return make_unique<Stmt>(StmtKind::ExprStmt, ExprStmtNode{move(expr)});
+            }
         }
         
         // Must be followed by assignment
@@ -1205,6 +1293,15 @@ StmtPtr Parser::parseStmt() {
         }
         
         error("Expected = after variable name");
+    }
+    
+    // Phase 9: Try to parse as expression statement (e.g., Console.WriteLine(...))
+    // This allows function/method calls as statements without LET
+    if (tok.type == TokenType::ID || tok.type == TokenType::CONSOLE) {
+        // Try to parse as expression
+        auto expr = parseExpr();
+        // Expression statement - the result will be discarded (pop instruction added in codegen)
+        return make_unique<Stmt>(StmtKind::ExprStmt, ExprStmtNode{move(expr)});
     }
     
     error("Unexpected token in statement: '" + tok.val + "'");

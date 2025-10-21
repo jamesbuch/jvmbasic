@@ -1,0 +1,277 @@
+public class WebApp {
+  public static float CalculateTotal(float, float);
+    Code:
+         0: fload_0
+         1: fconst_1
+         2: fload_1
+         3: fadd
+         4: fmul
+         5: freturn
+         6: fconst_0
+         7: freturn
+
+  public static java.lang.String FormatCurrency(float);
+    Code:
+         0: ldc           #81                 // String $
+         2: ldc           #83                 // String %.2f
+         4: fload_0
+         5: invokestatic  #87                 // Method basicrt/BasicRuntime.format1_f:(Ljava/lang/String;F)Ljava/lang/String;
+         8: areturn
+         9: ldc           #89                 // String
+        11: areturn
+
+  public static void DisplayBanner();
+    Code:
+         0: getstatic     #13                 // Field java/lang/System.out:Ljava/io/PrintStream;
+         3: ldc           #93                 // String =====================================
+         5: invokevirtual #26                 // Method java/io/PrintStream.println:(Ljava/lang/String;)V
+         8: getstatic     #13                 // Field java/lang/System.out:Ljava/io/PrintStream;
+        11: ldc           #95                 // String   Modern JVM BASIC Web Application
+        13: invokevirtual #26                 // Method java/io/PrintStream.println:(Ljava/lang/String;)V
+        16: getstatic     #13                 // Field java/lang/System.out:Ljava/io/PrintStream;
+        19: ldc           #97                 // String   Phase 9 - VB-Style Syntax Demo
+        21: invokevirtual #26                 // Method java/io/PrintStream.println:(Ljava/lang/String;)V
+        24: getstatic     #13                 // Field java/lang/System.out:Ljava/io/PrintStream;
+        27: ldc           #99                 // String =====================================
+        29: invokevirtual #26                 // Method java/io/PrintStream.println:(Ljava/lang/String;)V
+        32: return
+
+  public static void main(java.lang.String[]);
+    Code:
+         0: new           #50                 // class java/util/Scanner
+         3: dup
+         4: getstatic     #62                 // Field java/lang/System.in:Ljava/io/InputStream;
+         7: invokespecial #54                 // Method java/util/Scanner."<init>":(Ljava/io/InputStream;)V
+        10: astore_1
+        11: invokestatic  #105                // Method DisplayBanner:()V
+        14: ldc           #107                // String WebApp Demo
+        16: astore_2
+        17: fconst_1
+        18: fstore_3
+        19: iconst_1
+        20: istore        4
+        22: getstatic     #13                 // Field java/lang/System.out:Ljava/io/PrintStream;
+        25: ldc           #109                // String
+        27: invokevirtual #26                 // Method java/io/PrintStream.println:(Ljava/lang/String;)V
+        30: getstatic     #13                 // Field java/lang/System.out:Ljava/io/PrintStream;
+        33: ldc           #111                // String Application:
+        35: invokevirtual #38                 // Method java/io/PrintStream.print:(Ljava/lang/String;)V
+        38: getstatic     #13                 // Field java/lang/System.out:Ljava/io/PrintStream;
+        41: aload_2
+        42: invokevirtual #26                 // Method java/io/PrintStream.println:(Ljava/lang/String;)V
+        45: getstatic     #13                 // Field java/lang/System.out:Ljava/io/PrintStream;
+        48: ldc           #113                // String Version:
+        50: invokevirtual #38                 // Method java/io/PrintStream.print:(Ljava/lang/String;)V
+        53: getstatic     #13                 // Field java/lang/System.out:Ljava/io/PrintStream;
+        56: fload_3
+        57: invokevirtual #23                 // Method java/io/PrintStream.println:(F)V
+        60: ldc           #115                // String app_data.txt
+        62: astore        5
+        64: ldc           #117                // String AppName:
+        66: aload_2
+        67: ldc           #119                // String , Version:
+        69: ldc           #121                // String %.1f
+        71: fload_3
+        72: invokestatic  #87                 // Method basicrt/BasicRuntime.format1_f:(Ljava/lang/String;F)Ljava/lang/String;
+        75: astore        6
+        77: aload         5
+        79: aload         6
+        81: invokestatic  #125                // Method basicrt/BasicRuntime.file_WriteAllText:(Ljava/lang/String;Ljava/lang/String;)I
+        84: pop
+        85: aload         5
+        87: invokestatic  #129                // Method basicrt/BasicRuntime.file_Exists:(Ljava/lang/String;)I
+        90: iconst_1
+        91: if_icmpeq     98
+        94: iconst_0
+        95: goto          99
+        98: iconst_1
+        99: ifeq          136
+       102: getstatic     #13                 // Field java/lang/System.out:Ljava/io/PrintStream;
+       105: ldc           #131                // String Data file created successfully
+       107: invokevirtual #26                 // Method java/io/PrintStream.println:(Ljava/lang/String;)V
+       110: aload         5
+       112: invokestatic  #135                // Method basicrt/BasicRuntime.file_ReadAllText:(Ljava/lang/String;)Ljava/lang/String;
+       115: astore        7
+       117: getstatic     #13                 // Field java/lang/System.out:Ljava/io/PrintStream;
+       120: ldc           #137                // String Content:
+       122: invokevirtual #38                 // Method java/io/PrintStream.print:(Ljava/lang/String;)V
+       125: getstatic     #13                 // Field java/lang/System.out:Ljava/io/PrintStream;
+       128: aload         7
+       130: invokevirtual #26                 // Method java/io/PrintStream.println:(Ljava/lang/String;)V
+       133: goto          144
+       136: getstatic     #13                 // Field java/lang/System.out:Ljava/io/PrintStream;
+       139: ldc           #139                // String Failed to create data file
+       141: invokevirtual #26                 // Method java/io/PrintStream.println:(Ljava/lang/String;)V
+       144: getstatic     #13                 // Field java/lang/System.out:Ljava/io/PrintStream;
+       147: ldc           #141                // String
+       149: invokevirtual #26                 // Method java/io/PrintStream.println:(Ljava/lang/String;)V
+       152: getstatic     #13                 // Field java/lang/System.out:Ljava/io/PrintStream;
+       155: ldc           #143                // String Creating JSON data...
+       157: invokevirtual #26                 // Method java/io/PrintStream.println:(Ljava/lang/String;)V
+       160: invokestatic  #147                // Method basicrt/BasicRuntime.json_NewObject:()I
+       163: istore        8
+       165: iload         8
+       167: ldc           #149                // String app
+       169: aload_2
+       170: invokestatic  #153                // Method basicrt/BasicRuntime.json_Put:(ILjava/lang/String;Ljava/lang/String;)I
+       173: pop
+       174: iload         8
+       176: ldc           #155                // String users
+       178: bipush        42
+       180: invokestatic  #159                // Method basicrt/BasicRuntime.json_PutInt:(ILjava/lang/String;I)I
+       183: pop
+       184: iload         8
+       186: invokestatic  #163                // Method basicrt/BasicRuntime.json_ToString:(I)Ljava/lang/String;
+       189: astore        9
+       191: getstatic     #13                 // Field java/lang/System.out:Ljava/io/PrintStream;
+       194: ldc           #165                // String JSON:
+       196: invokevirtual #38                 // Method java/io/PrintStream.print:(Ljava/lang/String;)V
+       199: getstatic     #13                 // Field java/lang/System.out:Ljava/io/PrintStream;
+       202: aload         9
+       204: invokevirtual #26                 // Method java/io/PrintStream.println:(Ljava/lang/String;)V
+       207: getstatic     #13                 // Field java/lang/System.out:Ljava/io/PrintStream;
+       210: ldc           #167                // String
+       212: invokevirtual #26                 // Method java/io/PrintStream.println:(Ljava/lang/String;)V
+       215: getstatic     #13                 // Field java/lang/System.out:Ljava/io/PrintStream;
+       218: ldc           #169                // String Math calculations...
+       220: invokevirtual #26                 // Method java/io/PrintStream.println:(Ljava/lang/String;)V
+       223: ldc           #170                // float 99.99f
+       225: fstore        10
+       227: ldc           #171                // float 0.08f
+       229: fstore        11
+       231: fload         10
+       233: fload         11
+       235: invokestatic  #175                // Method CalculateTotal:(FF)F
+       238: fstore        12
+       240: getstatic     #13                 // Field java/lang/System.out:Ljava/io/PrintStream;
+       243: ldc           #177                // String Price:
+       245: invokevirtual #38                 // Method java/io/PrintStream.print:(Ljava/lang/String;)V
+       248: getstatic     #13                 // Field java/lang/System.out:Ljava/io/PrintStream;
+       251: fload         10
+       253: invokestatic  #181                // Method FormatCurrency:(F)Ljava/lang/String;
+       256: invokevirtual #26                 // Method java/io/PrintStream.println:(Ljava/lang/String;)V
+       259: getstatic     #13                 // Field java/lang/System.out:Ljava/io/PrintStream;
+       262: ldc           #183                // String Tax Rate:
+       264: invokevirtual #38                 // Method java/io/PrintStream.print:(Ljava/lang/String;)V
+       267: getstatic     #13                 // Field java/lang/System.out:Ljava/io/PrintStream;
+       270: ldc           #185                // String %.0f
+       272: fload         11
+       274: ldc           #186                // float 100.0f
+       276: fmul
+       277: invokestatic  #87                 // Method basicrt/BasicRuntime.format1_f:(Ljava/lang/String;F)Ljava/lang/String;
+       280: invokevirtual #38                 // Method java/io/PrintStream.print:(Ljava/lang/String;)V
+       283: getstatic     #13                 // Field java/lang/System.out:Ljava/io/PrintStream;
+       286: ldc           #188                // String %
+       288: invokevirtual #26                 // Method java/io/PrintStream.println:(Ljava/lang/String;)V
+       291: getstatic     #13                 // Field java/lang/System.out:Ljava/io/PrintStream;
+       294: ldc           #190                // String Total:
+       296: invokevirtual #38                 // Method java/io/PrintStream.print:(Ljava/lang/String;)V
+       299: getstatic     #13                 // Field java/lang/System.out:Ljava/io/PrintStream;
+       302: fload         12
+       304: invokestatic  #181                // Method FormatCurrency:(F)Ljava/lang/String;
+       307: invokevirtual #26                 // Method java/io/PrintStream.println:(Ljava/lang/String;)V
+       310: getstatic     #13                 // Field java/lang/System.out:Ljava/io/PrintStream;
+       313: ldc           #192                // String
+       315: invokevirtual #26                 // Method java/io/PrintStream.println:(Ljava/lang/String;)V
+       318: getstatic     #13                 // Field java/lang/System.out:Ljava/io/PrintStream;
+       321: ldc           #194                // String Bitwise operations...
+       323: invokevirtual #26                 // Method java/io/PrintStream.println:(Ljava/lang/String;)V
+       326: iconst_5
+       327: istore        13
+       329: iload         13
+       331: iconst_2
+       332: ishl
+       333: istore        14
+       335: iload         13
+       337: iconst_3
+       338: iand
+       339: istore        15
+       341: iconst_1
+       342: iconst_2
+       343: ior
+       344: iconst_4
+       345: ior
+       346: istore        16
+       348: iload         13
+       350: iconst_3
+       351: ixor
+       352: istore        17
+       354: getstatic     #13                 // Field java/lang/System.out:Ljava/io/PrintStream;
+       357: ldc           #196                // String Flags:
+       359: invokevirtual #38                 // Method java/io/PrintStream.print:(Ljava/lang/String;)V
+       362: getstatic     #13                 // Field java/lang/System.out:Ljava/io/PrintStream;
+       365: iload         13
+       367: invokevirtual #34                 // Method java/io/PrintStream.print:(I)V
+       370: getstatic     #13                 // Field java/lang/System.out:Ljava/io/PrintStream;
+       373: ldc           #198                // String  << 2 =
+       375: invokevirtual #38                 // Method java/io/PrintStream.print:(Ljava/lang/String;)V
+       378: getstatic     #13                 // Field java/lang/System.out:Ljava/io/PrintStream;
+       381: iload         14
+       383: invokevirtual #20                 // Method java/io/PrintStream.println:(I)V
+       386: getstatic     #13                 // Field java/lang/System.out:Ljava/io/PrintStream;
+       389: ldc           #200                // String Bitwise AND:
+       391: invokevirtual #38                 // Method java/io/PrintStream.print:(Ljava/lang/String;)V
+       394: getstatic     #13                 // Field java/lang/System.out:Ljava/io/PrintStream;
+       397: iload         13
+       399: invokevirtual #34                 // Method java/io/PrintStream.print:(I)V
+       402: getstatic     #13                 // Field java/lang/System.out:Ljava/io/PrintStream;
+       405: ldc           #202                // String  & 3 =
+       407: invokevirtual #38                 // Method java/io/PrintStream.print:(Ljava/lang/String;)V
+       410: getstatic     #13                 // Field java/lang/System.out:Ljava/io/PrintStream;
+       413: iload         15
+       415: invokevirtual #20                 // Method java/io/PrintStream.println:(I)V
+       418: getstatic     #13                 // Field java/lang/System.out:Ljava/io/PrintStream;
+       421: ldc           #204                // String Bitwise OR: 1 | 2 | 4 =
+       423: invokevirtual #38                 // Method java/io/PrintStream.print:(Ljava/lang/String;)V
+       426: getstatic     #13                 // Field java/lang/System.out:Ljava/io/PrintStream;
+       429: iload         16
+       431: invokevirtual #20                 // Method java/io/PrintStream.println:(I)V
+       434: getstatic     #13                 // Field java/lang/System.out:Ljava/io/PrintStream;
+       437: ldc           #206                // String Bitwise XOR:
+       439: invokevirtual #38                 // Method java/io/PrintStream.print:(Ljava/lang/String;)V
+       442: getstatic     #13                 // Field java/lang/System.out:Ljava/io/PrintStream;
+       445: iload         13
+       447: invokevirtual #34                 // Method java/io/PrintStream.print:(I)V
+       450: getstatic     #13                 // Field java/lang/System.out:Ljava/io/PrintStream;
+       453: ldc           #208                // String  ^ 3 =
+       455: invokevirtual #38                 // Method java/io/PrintStream.print:(Ljava/lang/String;)V
+       458: getstatic     #13                 // Field java/lang/System.out:Ljava/io/PrintStream;
+       461: iload         17
+       463: invokevirtual #20                 // Method java/io/PrintStream.println:(I)V
+       466: getstatic     #13                 // Field java/lang/System.out:Ljava/io/PrintStream;
+       469: ldc           #210                // String
+       471: invokevirtual #26                 // Method java/io/PrintStream.println:(Ljava/lang/String;)V
+       474: getstatic     #13                 // Field java/lang/System.out:Ljava/io/PrintStream;
+       477: ldc           #212                // String URL encoding...
+       479: invokevirtual #26                 // Method java/io/PrintStream.println:(Ljava/lang/String;)V
+       482: ldc           #214                // String Hello World
+       484: astore        18
+       486: aload         18
+       488: invokestatic  #218                // Method basicrt/BasicRuntime.http_UrlEncode:(Ljava/lang/String;)Ljava/lang/String;
+       491: astore        19
+       493: getstatic     #13                 // Field java/lang/System.out:Ljava/io/PrintStream;
+       496: ldc           #220                // String Original:
+       498: invokevirtual #38                 // Method java/io/PrintStream.print:(Ljava/lang/String;)V
+       501: getstatic     #13                 // Field java/lang/System.out:Ljava/io/PrintStream;
+       504: aload         18
+       506: invokevirtual #26                 // Method java/io/PrintStream.println:(Ljava/lang/String;)V
+       509: getstatic     #13                 // Field java/lang/System.out:Ljava/io/PrintStream;
+       512: ldc           #222                // String Encoded:
+       514: invokevirtual #38                 // Method java/io/PrintStream.print:(Ljava/lang/String;)V
+       517: getstatic     #13                 // Field java/lang/System.out:Ljava/io/PrintStream;
+       520: aload         19
+       522: invokevirtual #26                 // Method java/io/PrintStream.println:(Ljava/lang/String;)V
+       525: aload         5
+       527: invokestatic  #226                // Method basicrt/BasicRuntime.file_Delete:(Ljava/lang/String;)I
+       530: pop
+       531: getstatic     #13                 // Field java/lang/System.out:Ljava/io/PrintStream;
+       534: ldc           #228                // String
+       536: invokevirtual #26                 // Method java/io/PrintStream.println:(Ljava/lang/String;)V
+       539: getstatic     #13                 // Field java/lang/System.out:Ljava/io/PrintStream;
+       542: ldc           #230                // String Demo complete!
+       544: invokevirtual #26                 // Method java/io/PrintStream.println:(Ljava/lang/String;)V
+       547: getstatic     #13                 // Field java/lang/System.out:Ljava/io/PrintStream;
+       550: ldc           #232                // String JVM BASIC is now a modern, professional language!
+       552: invokevirtual #26                 // Method java/io/PrintStream.println:(Ljava/lang/String;)V
+       555: return
+}

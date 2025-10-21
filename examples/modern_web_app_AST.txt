@@ -1,0 +1,74 @@
+=== AST Dump ===
+
+--- Declarations ---
+FUNCTION CalculateTotal(price:Float, taxRate:Float) -> Float
+  RETURN [Float] ([Float] price * [Float] ([Float] 1 + [Float] taxRate))
+ENDFUNCTION
+
+FUNCTION FormatCurrency(amount:Float) -> String
+  RETURN [String] ([String] "$" + [String] FORMATF([String] "%.2f", [Float] amount))
+ENDFUNCTION
+
+SUB DisplayBanner()
+  PRINT [String] "====================================="
+  PRINT [String] "  Modern JVM BASIC Web Application  "
+  PRINT [String] "  Phase 9 - VB-Style Syntax Demo    "
+  PRINT [String] "====================================="
+ENDSUB
+
+--- Main Program ---
+CALL DisplayBanner()
+DIM appName AS STRING
+DIM version AS SINGLE
+DIM active AS BOOLEAN
+PRINT [String] ""
+PRINT [String] "Application: "; [String] appName
+PRINT [String] "Version: "; [Float] version
+DIM dataFile AS STRING
+DIM appData AS STRING
+[Int] FILE.WriteAllText([String] dataFile, [String] appData)  ' (result discarded)
+IF [Bool] ([Int] FILE.Exists([String] dataFile) == [Int] 1) THEN
+  PRINT [String] "Data file created successfully"
+  DIM content AS STRING
+  PRINT [String] "Content: "; [String] content
+ELSE
+  PRINT [String] "Failed to create data file"
+ENDIF
+PRINT [String] ""
+PRINT [String] "Creating JSON data..."
+DIM jsonObj AS INTEGER
+[Int] JSON.Put([Int] jsonObj, [String] "app", [String] appName)  ' (result discarded)
+[Int] JSON.PutInt([Int] jsonObj, [String] "users", [Int] 42)  ' (result discarded)
+DIM jsonString AS STRING
+PRINT [String] "JSON: "; [String] jsonString
+PRINT [String] ""
+PRINT [String] "Math calculations..."
+DIM price AS SINGLE
+DIM tax AS SINGLE
+DIM total AS SINGLE
+PRINT [String] "Price: "; [String] FormatCurrency([Float] price)
+PRINT [String] "Tax Rate: "; [String] FORMATF([String] "%.0f", [Float] ([Float] tax * [Float] 100)); [String] "%"
+PRINT [String] "Total: "; [String] FormatCurrency([Float] total)
+PRINT [String] ""
+PRINT [String] "Bitwise operations..."
+DIM flags AS INTEGER
+DIM shifted AS INTEGER
+DIM masked AS INTEGER
+DIM combined AS INTEGER
+DIM toggled AS INTEGER
+PRINT [String] "Flags: "; [Int] flags; [String] " << 2 = "; [Int] shifted
+PRINT [String] "Bitwise AND: "; [Int] flags; [String] " & 3 = "; [Int] masked
+PRINT [String] "Bitwise OR: 1 | 2 | 4 = "; [Int] combined
+PRINT [String] "Bitwise XOR: "; [Int] flags; [String] " ^ 3 = "; [Int] toggled
+PRINT [String] ""
+PRINT [String] "URL encoding..."
+DIM query AS STRING
+DIM encoded AS STRING
+PRINT [String] "Original: "; [String] query
+PRINT [String] "Encoded: "; [String] encoded
+[Int] FILE.Delete([String] dataFile)  ' (result discarded)
+PRINT [String] ""
+PRINT [String] "Demo complete!"
+PRINT [String] "JVM BASIC is now a modern, professional language!"
+
+=== End AST ===

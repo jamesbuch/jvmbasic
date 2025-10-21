@@ -571,24 +571,43 @@ void SemanticAnalyzer::analyzeStmt(Stmt& stmt, SymbolTable& symbols) {
         case StmtKind::ExitFor:
         case StmtKind::ExitWhile:
         case StmtKind::Continue:
-            // No analysis needed for these
+            // Phase 8/9: Control flow statements - no semantic analysis needed
             break;
+        
+        case StmtKind::ExprStmt: {
+            // Phase 9: Expression statement - analyze the expression
+            ExprStmtNode& es = get<ExprStmtNode>(stmt.data);
+            analyzeExpr(*es.expr, symbols);
+            // Note: Result is discarded, but expression must be valid
+            break;
+        }
     }
 }
 
 void SemanticAnalyzer::inferReturnType(FunctionDecl& fd) {
-    // Find RETURN statements and infer return type
+    // Phase 9: Only infer return type if it wasn't explicitly specified
+    // If function declared as "Function Name() As Type", don't override
+    // Default returnType is Float, so if it's anything else, it was explicitly set
+    bool wasExplicitlyTyped = (fd.returnType != Type::Float);
+    
+    // Find RETURN statements
     for (const auto& stmt : fd.body) {
         if (stmt->kind == StmtKind::Return) {
             const ReturnStmt& rs = get<ReturnStmt>(stmt->data);
             if (rs.expr) {
-                fd.returnType = rs.expr->type;
+                // Only override if not explicitly typed
+                if (!wasExplicitlyTyped) {
+                    fd.returnType = rs.expr->type;
+                }
                 return;
             }
         }
     }
-    // Default to Float if no explicit return
-    fd.returnType = Type::Float;
+    
+    // Default to Float if no explicit return found and no explicit type
+    if (!wasExplicitlyTyped) {
+        fd.returnType = Type::Float;
+    }
 }
 
 void SemanticAnalyzer::inferParameterTypes() {

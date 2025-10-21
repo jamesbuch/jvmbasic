@@ -1888,127 +1888,143 @@ public class BasicRuntime {
     }
     
     // ===== Phase 9: Json Namespace =====
-    // Simple JSON implementation using Map (no external dependencies)
+    // JSON implementation using Google Gson library
     
-    private static java.util.Map<Integer, java.util.Map<String, Object>> jsonObjects = new java.util.HashMap<>();
+    private static java.util.Map<Integer, com.google.gson.JsonObject> jsonObjects = new java.util.HashMap<>();
     private static int nextJsonId = 1;
+    private static com.google.gson.Gson gson = new com.google.gson.Gson();
     
     public static int json_Parse(String jsonString) {
-        // Simple JSON parser - handles basic {"key":"value"} format
         try {
-            java.util.Map<String, Object> map = new java.util.HashMap<>();
-            // Remove outer braces and whitespace
-            String content = jsonString.trim();
-            if (content.startsWith("{")) content = content.substring(1);
-            if (content.endsWith("}")) content = content.substring(0, content.length() - 1);
-            
-            // Parse key-value pairs (simplified - no nested objects for now)
-            String[] pairs = content.split(",");
-            for (String pair : pairs) {
-                String[] kv = pair.split(":");
-                if (kv.length == 2) {
-                    String key = kv[0].trim().replaceAll("\"", "");
-                    String value = kv[1].trim().replaceAll("\"", "");
-                    map.put(key, value);
-                }
-            }
-            
+            com.google.gson.JsonObject obj = gson.fromJson(jsonString, com.google.gson.JsonObject.class);
             int id = nextJsonId++;
-            jsonObjects.put(id, map);
+            jsonObjects.put(id, obj);
             return id;
         } catch (Exception e) {
+            System.err.println("JSON Parse Error: " + e.getMessage());
             return -1;
         }
     }
     
     public static String json_GetString(int objId, String key) {
-        java.util.Map<String, Object> obj = jsonObjects.get(objId);
-        if (obj != null && obj.containsKey(key)) {
-            return obj.get(key).toString();
+        try {
+            com.google.gson.JsonObject obj = jsonObjects.get(objId);
+            if (obj != null && obj.has(key)) {
+                com.google.gson.JsonElement elem = obj.get(key);
+                if (elem.isJsonPrimitive()) {
+                    return elem.getAsString();
+                }
+                return elem.toString();
+            }
+        } catch (Exception e) {
+            System.err.println("JSON GetString Error: " + e.getMessage());
         }
         return "";
     }
     
     public static int json_GetInt(int objId, String key) {
-        java.util.Map<String, Object> obj = jsonObjects.get(objId);
-        if (obj != null && obj.containsKey(key)) {
-            try {
-                return Integer.parseInt(obj.get(key).toString());
-            } catch (Exception e) {
-                return 0;
+        try {
+            com.google.gson.JsonObject obj = jsonObjects.get(objId);
+            if (obj != null && obj.has(key)) {
+                return obj.get(key).getAsInt();
             }
+        } catch (Exception e) {
+            System.err.println("JSON GetInt Error: " + e.getMessage());
         }
         return 0;
     }
     
     public static float json_GetFloat(int objId, String key) {
-        java.util.Map<String, Object> obj = jsonObjects.get(objId);
-        if (obj != null && obj.containsKey(key)) {
-            try {
-                return Float.parseFloat(obj.get(key).toString());
-            } catch (Exception e) {
-                return 0.0f;
+        try {
+            com.google.gson.JsonObject obj = jsonObjects.get(objId);
+            if (obj != null && obj.has(key)) {
+                return obj.get(key).getAsFloat();
             }
+        } catch (Exception e) {
+            System.err.println("JSON GetFloat Error: " + e.getMessage());
         }
         return 0.0f;
     }
     
     public static int json_NewObject() {
         int id = nextJsonId++;
-        jsonObjects.put(id, new java.util.HashMap<>());
+        jsonObjects.put(id, new com.google.gson.JsonObject());
         return id;
     }
     
     public static int json_Put(int objId, String key, String value) {
-        java.util.Map<String, Object> obj = jsonObjects.get(objId);
-        if (obj != null) {
-            obj.put(key, value);
-            return 0;
+        try {
+            com.google.gson.JsonObject obj = jsonObjects.get(objId);
+            if (obj != null) {
+                obj.addProperty(key, value);
+                return 0;
+            }
+        } catch (Exception e) {
+            System.err.println("JSON Put Error: " + e.getMessage());
         }
         return -1;
     }
     
     public static int json_PutInt(int objId, String key, int value) {
-        java.util.Map<String, Object> obj = jsonObjects.get(objId);
-        if (obj != null) {
-            obj.put(key, value);
-            return 0;
+        try {
+            com.google.gson.JsonObject obj = jsonObjects.get(objId);
+            if (obj != null) {
+                obj.addProperty(key, value);
+                return 0;
+            }
+        } catch (Exception e) {
+            System.err.println("JSON PutInt Error: " + e.getMessage());
         }
         return -1;
     }
     
     public static String json_ToString(int objId) {
-        java.util.Map<String, Object> obj = jsonObjects.get(objId);
-        if (obj == null) return "";
-        
-        StringBuilder sb = new StringBuilder("{");
-        boolean first = true;
-        for (java.util.Map.Entry<String, Object> entry : obj.entrySet()) {
-            if (!first) sb.append(",");
-            sb.append("\"").append(entry.getKey()).append("\":");
-            Object value = entry.getValue();
-            if (value instanceof String) {
-                sb.append("\"").append(value).append("\"");
-            } else {
-                sb.append(value);
+        try {
+            com.google.gson.JsonObject obj = jsonObjects.get(objId);
+            if (obj != null) {
+                return gson.toJson(obj);
             }
-            first = false;
+        } catch (Exception e) {
+            System.err.println("JSON ToString Error: " + e.getMessage());
         }
-        sb.append("}");
-        return sb.toString();
+        return "";
     }
     
     // ===== Phase 9: Xml Namespace =====
-    // Placeholder implementations (will use Java's built-in XML APIs)
+    // XML parsing using Java's built-in DOM APIs
+    
+    private static java.util.Map<Integer, org.w3c.dom.Document> xmlDocuments = new java.util.HashMap<>();
+    private static int nextXmlId = 1;
     
     public static int xml_Parse(String xmlString) {
-        // TODO: Implement XML parsing
-        return -1;
+        try {
+            javax.xml.parsers.DocumentBuilderFactory factory = javax.xml.parsers.DocumentBuilderFactory.newInstance();
+            javax.xml.parsers.DocumentBuilder builder = factory.newDocumentBuilder();
+            java.io.ByteArrayInputStream input = new java.io.ByteArrayInputStream(xmlString.getBytes("UTF-8"));
+            org.w3c.dom.Document doc = builder.parse(input);
+            doc.getDocumentElement().normalize();
+            
+            int id = nextXmlId++;
+            xmlDocuments.put(id, doc);
+            return id;
+        } catch (Exception e) {
+            System.err.println("XML Parse Error: " + e.getMessage());
+            return -1;
+        }
     }
     
     public static String xml_GetText(int docId, String xpath) {
-        // TODO: Implement XPath query
-        return "";
+        try {
+            org.w3c.dom.Document doc = xmlDocuments.get(docId);
+            if (doc == null) return "";
+            
+            javax.xml.xpath.XPathFactory xpathFactory = javax.xml.xpath.XPathFactory.newInstance();
+            javax.xml.xpath.XPath xpathObj = xpathFactory.newXPath();
+            return xpathObj.evaluate(xpath, doc);
+        } catch (Exception e) {
+            System.err.println("XPath Error: " + e.getMessage());
+            return "";
+        }
     }
     
     // ===== Phase 9: Db Namespace =====

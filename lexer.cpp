@@ -217,7 +217,11 @@ Token Lexer::nextToken() {
         if (ch == '(') { read(); return {TokenType::LPAREN, "(", 0.0, tokenLine}; }
         if (ch == ')') { read(); return {TokenType::RPAREN, ")", 0.0, tokenLine}; }
         if (ch == '.') { read(); return {TokenType::DOT, ".", 0.0, tokenLine}; }
-        if (ch == '&') { read(); return {TokenType::AMPERSAND, "&", 0.0, tokenLine}; }
+        
+        // Phase 9: Bitwise operators
+        if (ch == '&') { read(); return {TokenType::BITAND, "&", 0.0, tokenLine}; }
+        if (ch == '|') { read(); return {TokenType::BITOR, "|", 0.0, tokenLine}; }
+        if (ch == '^') { read(); return {TokenType::BITXOR, "^", 0.0, tokenLine}; }
         
         // Phase 7: Apostrophe comment (VB-style)
         if (ch == '\'') {

@@ -190,9 +190,10 @@ Dim nodes = Xml.GetAll(doc, "//item")
 ## 📁 Key Files to Review
 
 ### Completion Documents
-- `PHASE9_COMPLETE.md` - **READ THIS FIRST!**
-- `PHASE9_PROGRESS.md` - Detailed tracking
-- `PHASE9_SESSION_FINAL_SUMMARY.md` - Session summary
+- `docs/phase9/PHASE9_COMPLETE.md` - **READ THIS FIRST!**
+- `docs/phase9/PHASE9_PROGRESS.md` - Detailed tracking
+- `docs/phase9/PHASE9_SESSION_FINAL_SUMMARY.md` - Session summary
+- `docs/phase9/` - All Phase 9 documentation and progress reports
 
 ### Implementation Files
 - `BasicRuntime.java` - All namespace methods
@@ -234,7 +235,7 @@ grep -c '{"' builtin_functions.cpp  # Shows: 203
 
 "Continue with Phase 10 on branch phase9-modern-syntax (or create new branch phase10-final).
 
-Read START_HERE_PHASE10.md and PHASE9_COMPLETE.md.
+Read START_HERE_PHASE10.md and docs/phase9/PHASE9_COMPLETE.md.
 
 Phase 9 COMPLETE! Accomplished:
 - ✅ Modern VB-style syntax (Dim x As Integer = 10)

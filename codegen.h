@@ -835,6 +835,9 @@ public:
                     case Op::Mod: irem(); break;
                     case Op::Shl: ishl(); break;  // Phase 9: Left shift
                     case Op::Shr: ishr(); break;  // Phase 9: Right shift (arithmetic)
+                    case Op::BitAnd: emit(0x7E); break;  // Phase 9: Bitwise AND (iand)
+                    case Op::BitOr: emit(0x80); break;   // Phase 9: Bitwise OR (ior)
+                    case Op::BitXor: emit(0x82); break;  // Phase 9: Bitwise XOR (ixor)
                     default: break;
                 }
             } else if (e.type == Type::Float) {
@@ -1672,6 +1675,19 @@ public:
             // For now, these are parsed but don't generate code (placeholder)
             // Full implementation will use goto to loop end (EXIT) or loop start (CONTINUE)
             emit(0x00); // nop - placeholder
+        } else if (s.kind == StmtKind::ExprStmt) {
+            // Phase 9: Expression statement - evaluate expression and discard result
+            const ExprStmtNode& es = get<ExprStmtNode>(s.data);
+            load(*es.expr, varIdx);
+            
+            // Pop the result off the stack (we're not using it)
+            if (es.expr->type == Type::Int || es.expr->type == Type::Bool) {
+                emit(0x57); // pop (for single-word types)
+            } else if (es.expr->type == Type::Float) {
+                emit(0x57); // pop (float is also single-word)
+            } else if (es.expr->type == Type::String) {
+                emit(0x57); // pop (reference is single-word)
+            }
         }
     }
 

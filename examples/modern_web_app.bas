@@ -1,8 +1,8 @@
-REM ====================================================
-REM Modern Web Application Demo
-REM Phase 9: Showcasing modern VB-style syntax
-REM Features: Namespaces, typed variables, JSON, HTTP, File I/O
-REM ====================================================
+' ====================================================
+' Modern Web Application Demo - Phase 9
+' Showcasing modern VB-style syntax with expression statements
+' Features: Namespaces, typed variables, JSON, HTTP, File I/O, Bitwise
+' ====================================================
 
 Function CalculateTotal(price As Single, taxRate As Single) As Single
     Return price * (1.0 + taxRate)
@@ -13,76 +13,81 @@ Function FormatCurrency(amount As Single) As String
 End Function
 
 Sub DisplayBanner()
-    Dim dummy As Integer
-    Let dummy = Console.WriteLine("=====================================")
-    Let dummy = Console.WriteLine("  Modern JVM BASIC Web Application  ")
-    Let dummy = Console.WriteLine("  Phase 9 - VB-Style Syntax Demo    ")
-    Let dummy = Console.WriteLine("=====================================")
+    Print "====================================="
+    Print "  Modern JVM BASIC Web Application  "
+    Print "  Phase 9 - VB-Style Syntax Demo    "
+    Print "====================================="
 End Sub
 
-REM ===== Main Program =====
+' ===== Main Program =====
 
 Call DisplayBanner()
 
-REM Typed variable declarations
+' Typed variable declarations
 Dim appName As String = "WebApp Demo"
 Dim version As Single = 1.0
 Dim active As Boolean = True
 
-Dim dummy As Integer = Console.WriteLine("")
-Let dummy = Console.WriteLine("Application: " + appName)
-Let dummy = Console.WriteLine("Version: " + FormatF("%.1f", version))
+Print ""
+Print "Application: "; appName
+Print "Version: "; version
 
-REM File operations
+' File operations using File namespace
 Dim dataFile As String = "app_data.txt"
 Dim appData As String = "AppName: " + appName + ", Version: " + FormatF("%.1f", version)
-Dim writeResult As Integer = File.WriteAllText(dataFile, appData)
+File.WriteAllText(dataFile, appData)
 
 If File.Exists(dataFile) == 1 Then
-    Let dummy = Console.WriteLine("Data file created successfully")
+    Print "Data file created successfully"
     Dim content As String = File.ReadAllText(dataFile)
-    Let dummy = Console.WriteLine("Content: " + content)
+    Print "Content: "; content
 Else
-    Let dummy = Console.WriteLine("Failed to create data file")
+    Print "Failed to create data file"
 End If
 
-REM JSON operations
-Let dummy = Console.WriteLine("")
-Let dummy = Console.WriteLine("Creating JSON data...")
+' JSON operations using Json namespace
+Print ""
+Print "Creating JSON data..."
 Dim jsonObj As Integer = Json.NewObject()
-Let writeResult = Json.Put(jsonObj, "app", appName)
-Let writeResult = Json.PutInt(jsonObj, "users", 42)
+Json.Put(jsonObj, "app", appName)
+Json.PutInt(jsonObj, "users", 42)
 Dim jsonString As String = Json.ToString(jsonObj)
-Let dummy = Console.WriteLine("JSON: " + jsonString)
+Print "JSON: "; jsonString
 
-REM Math calculations
-Let dummy = Console.WriteLine("")
-Let dummy = Console.WriteLine("Math calculations...")
+' Math calculations using Math namespace
+Print ""
+Print "Math calculations..."
 Dim price As Single = 99.99
 Dim tax As Single = 0.08
 Dim total As Single = CalculateTotal(price, tax)
-Let dummy = Console.WriteLine("Price: " + FormatCurrency(price))
-Let dummy = Console.WriteLine("Tax Rate: " + FormatF("%.0f", tax * 100.0) + "%")
-Let dummy = Console.WriteLine("Total: " + FormatCurrency(total))
+Print "Price: "; FormatCurrency(price)
+Print "Tax Rate: "; FormatF("%.0f", tax * 100.0); "%"
+Print "Total: "; FormatCurrency(total)
 
-REM Bitwise operations
-Let dummy = Console.WriteLine("")
-Let dummy = Console.WriteLine("Bitwise operations...")
+' Bitwise operations demonstration
+Print ""
+Print "Bitwise operations..."
 Dim flags As Integer = 5
 Dim shifted As Integer = flags << 2
-Let dummy = Console.WriteLine("Flags: " + FormatI("%d", flags) + " << 2 = " + FormatI("%d", shifted))
+Dim masked As Integer = flags & 3
+Dim combined As Integer = 1 | 2 | 4
+Dim toggled As Integer = flags ^ 3
+Print "Flags: "; flags; " << 2 = "; shifted
+Print "Bitwise AND: "; flags; " & 3 = "; masked
+Print "Bitwise OR: 1 | 2 | 4 = "; combined
+Print "Bitwise XOR: "; flags; " ^ 3 = "; toggled
 
-REM URL encoding (for web requests)
-Let dummy = Console.WriteLine("")
-Let dummy = Console.WriteLine("URL encoding...")
+' URL encoding for web requests using Http namespace
+Print ""
+Print "URL encoding..."
 Dim query As String = "Hello World"
 Dim encoded As String = Http.UrlEncode(query)
-Let dummy = Console.WriteLine("Encoded: " + encoded)
+Print "Original: "; query
+Print "Encoded: "; encoded
 
-REM Clean up
-Let writeResult = File.Delete(dataFile)
+' Clean up
+File.Delete(dataFile)
 
-Let dummy = Console.WriteLine("")
-Let dummy = Console.WriteLine("Demo complete!")
-Let dummy = Console.WriteLine("JVM BASIC is now a modern, professional language!")
-
+Print ""
+Print "Demo complete!"
+Print "JVM BASIC is now a modern, professional language!"
