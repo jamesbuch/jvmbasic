@@ -1,4 +1,0 @@
-Classfile /home/james/Downloads/jvmbasic/TestProgram.class
-  Last modified 22 Oct 2025; size 864 bytes
-  SHA-256 checksum b5f5b33d7b6b1d845e6e19c9dd35233adc3bf4727254fa4014df07117dd26187
-Error: Fatal error: Reading beyond classfile bounds
