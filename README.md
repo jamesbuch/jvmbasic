@@ -57,30 +57,138 @@ A modern, professional BASIC compiler with Visual Basic-style syntax that genera
 
 ## Quick Start
 
-### Build
-```bash
-make
+### Build the Compiler
 
-# Compile runtime with libraries
-javac -cp "lib/*" BasicRuntime.java
-cp BasicRuntime.class basicrt/
+**Using Make:**
+```bash
+# Clean build
+make clean && make
+
+# This compiles all C++ modules and links them into ./jvmbasic
 ```
 
-### Compile and Run
+**Manual Build:**
+```bash
+# Compile individual modules
+g++ -std=gnu++20 -O2 -c ast.cpp
+g++ -std=gnu++20 -O2 -c lexer.cpp
+g++ -std=gnu++20 -O2 -c parser.cpp
+g++ -std=gnu++20 -O2 -c semantic.cpp
+g++ -std=gnu++20 -O2 -c ast_printer.cpp
+g++ -std=gnu++20 -O2 -c builtin_functions.cpp
+g++ -std=gnu++20 -O2 -c main.cpp
+
+# Link all modules
+g++ -std=gnu++20 -O2 *.o -o jvmbasic
+```
+
+**Compile Runtime with Libraries:**
+```bash
+# Compile with all 16 professional libraries
+javac -cp "lib/*" BasicRuntime.java
+cp BasicRuntime.class basicrt/
+
+# Or use the provided script
+./compile_runtime.sh
+```
+
+### Compile a BASIC Program
+
+**Basic Compilation:**
 ```bash
 ./jvmbasic < program.bas
-java -cp ".:lib/*:basicrt" BasicProgram
+# Generates: BasicProgram.class
+```
 
-# Or use build script
+**Custom Class Name:**
+```bash
+./jvmbasic -o MyProgram < program.bas
+# Generates: MyProgram.class
+```
+
+**Debug with AST Dump:**
+```bash
+./jvmbasic --dump-ast < program.bas
+# Prints the Abstract Syntax Tree (pretty-printed)
+```
+
+**Check Syntax Only (No Code Generation):**
+```bash
+./jvmbasic --check-only < program.bas
+# Parse and type-check only, useful for syntax validation
+```
+
+**All Command-Line Options:**
+```bash
+./jvmbasic --help
+
+Options:
+  -o <name>       Output class name (default: BasicProgram)
+  --dump-ast      Print AST and exit (for debugging)
+  --check-only    Parse and type-check, don't generate code
+  --help          Show this help message
+```
+
+### Run a Compiled Program
+
+**With Libraries (Recommended):**
+```bash
+java -cp ".:lib/*:basicrt" BasicProgram
+```
+
+**Without Libraries (Core Features Only):**
+```bash
+java -cp ".:basicrt" BasicProgram
+```
+
+**Windows:**
+```cmd
+java -cp ".;lib/*;basicrt" BasicProgram
+```
+
+**Custom Class Name:**
+```bash
+java -cp ".:lib/*:basicrt" MyProgram
+```
+
+### Complete Workflow
+
+**Using the Build Script (Easiest):**
+```bash
 ./buildrun.sh program.bas
+# Automatically compiles runtime, compiles program, and runs it
+```
+
+**Manual Step-by-Step:**
+```bash
+# 1. Compile runtime (once)
+javac -cp "lib/*" BasicRuntime.java
+cp BasicRuntime.class basicrt/
+
+# 2. Compile your BASIC program
+./jvmbasic < program.bas
+
+# 3. Run it
+java -cp ".:lib/*:basicrt" BasicProgram
 ```
 
 ### Hello World
-```basic
-' Modern syntax
-Console.WriteLine("Hello, World!")
 
-' Classic syntax (also works)
+**Modern Syntax (Recommended):**
+```basic
+' hello_world.bas - Modern VB-style syntax
+Console.WriteLine("Hello, World!")
+Console.WriteLine("Welcome to JVM BASIC!")
+```
+
+**With Variables:**
+```basic
+Dim name As String = "Alice"
+Console.WriteLine("Hello, " + name + "!")
+```
+
+**Classic Syntax (Still Works):**
+```basic
 Print "Hello, World!"
 ```
 
@@ -88,87 +196,101 @@ Print "Hello, World!"
 
 ### Object-Oriented Programming
 ```basic
-' Define a class with constructor
-CLASS BankAccount
-    PRIVATE balance AS SINGLE
-    PUBLIC owner AS STRING
+' Define a class with constructor and methods
+Class BankAccount
+    Private balance As Single
+    Public owner As String
     
-    PUBLIC SUB New(name AS STRING, initial AS SINGLE)
-        owner = name
-        balance = initial
-    END SUB
-END CLASS
+    Public Sub New(name As String, initial As Single)
+        Me.owner = name
+        Me.balance = initial
+    End Sub
+    
+    Public Sub Deposit(amount As Single)
+        If amount > 0.0 Then
+            Me.balance = Me.balance + amount
+            Console.WriteLine("Deposited: " + Str(amount))
+        End If
+    End Sub
+    
+    Public Function GetBalance() As Single
+        Return Me.balance
+    End Function
+End Class
 
 ' Create and use objects
 Dim account As New BankAccount("Alice", 1000.0)
-account.balance = 1500.0
-Print account.owner; " has $"; account.balance
+account.Deposit(500.0)
+Console.WriteLine(account.owner + " has $" + Str(account.GetBalance()))
 ```
 
 ### User-Defined Types (Structs)
 ```basic
-TYPE Person
-    name AS STRING
-    age AS SINGLE
-ENDTYPE
+Type Person
+    name As String
+    age As Single
+End Type
 
-Dim p As Person
-p.name = "Alice"
-p.age = 30.0
-Print "Person: "; p.name; ", age "; p.age
+Dim person As Person
+person.name = "Alice"
+person.age = 30.0
+Console.WriteLine("Person: " + person.name + ", age " + Str(person.age))
 ```
 
 ### Functions with Recursion
 ```basic
-FUNCTION Factorial(n AS SINGLE) AS SINGLE
+Function Factorial(n As Single) As Single
     If n <= 1.0 Then
         Return 1.0
     Else
         Return n * Factorial(n - 1.0)
-    EndIf
-ENDFUNCTION
+    End If
+End Function
 
-Print "5! = "; Factorial(5.0)  ' Output: 120.0
+Console.WriteLine("5! = " + Str(Factorial(5.0)))  ' Output: 120.0
 ```
 
 ### Arrays and Array Functions
 ```basic
-Dim numbers(10) = 0.0
+Dim numbers(10) As Single = 0.0
 For i = 0.0 To 9.0
-    numbers(Int(i)) = RNDINT(1, 100)
+    numbers(Int(i)) = RndInt(1, 100)
 Next i
 
-Call ARRAYSORT(numbers)
-Print "Min: "; ARRAYMIN(numbers)
-Print "Max: "; ARRAYMAX(numbers)
-Print "Average: "; ARRAYAVG(numbers)
+ArraySort(numbers)
+Console.WriteLine("Min: " + Str(ArrayMin(numbers)))
+Console.WriteLine("Max: " + Str(ArrayMax(numbers)))
+Console.WriteLine("Average: " + Str(ArrayAvg(numbers)))
 ```
 
-### File I/O
+### File I/O (Phase 9)
 ```basic
-' Modern namespace syntax
-Dim dummy As Integer
-Let dummy = File.WriteAllText("data.txt", "Hello from JVM BASIC!")
+' Modern namespace syntax with expression statements
+File.WriteAllText("data.txt", "Hello from JVM BASIC!")
 Dim content As String = File.ReadAllText("data.txt")
-Let dummy = Console.WriteLine(content)
+Console.WriteLine(content)
 
-' Classic syntax (also works)
-Dim out = OPENOUTPUT("data.txt")
-If out >= 0.0 Then
-    Call WRITELINE(out, "Hello from JVM BASIC!")
-    Let dummy = CLOSEFILE(out)
-EndIf
+' Check if file exists
+If File.Exists("data.txt") Then
+    Console.WriteLine("File exists!")
+    Console.WriteLine("File size: " + Str(File.Size("data.txt")) + " bytes")
+End If
+
+' File operations
+File.Copy("data.txt", "backup.txt")
+File.Move("backup.txt", "backup2.txt")
+File.Delete("backup2.txt")
 ```
 
 ### Regular Expressions
 ```basic
-Dim email = "user@example.com"
-If REGEXMATCH(email, "\\w+@\\w+\\.\\w+") Then
-    Dim user = REGEXGROUP(email, "(\\w+)@(\\w+\\.\\w+)", 1)
-    Dim domain = REGEXGROUP(email, "(\\w+)@(\\w+\\.\\w+)", 2)
-    Print "User: "; user
-    Print "Domain: "; domain
-EndIf
+Dim email As String = "user@example.com"
+If RegexMatch(email, "\\w+@\\w+\\.\\w+") Then
+    Dim user As String = RegexGroup(email, "(\\w+)@(\\w+\\.\\w+)", 1)
+    Dim domain As String = RegexGroup(email, "(\\w+)@(\\w+\\.\\w+)", 2)
+    Console.WriteLine("User: " + user)
+    Console.WriteLine("Domain: " + domain)
+End If
 ```
 
 ## Complete Feature List
