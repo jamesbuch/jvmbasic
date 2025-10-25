@@ -1772,6 +1772,7 @@ public class BasicRuntime {
     
     // ===== Phase 9: File Namespace =====
     
+    // Enhanced File namespace for compiler development
     public static String file_ReadAllText(String filename) {
         try {
             return new String(java.nio.file.Files.readAllBytes(
@@ -1814,6 +1815,147 @@ public class BasicRuntime {
         } catch (Exception e) {
             return -1;
         }
+    }
+    
+    // Binary I/O for compiler development
+    public static int file_ReadBytes(String filename, int[] buffer) {
+        try {
+            byte[] bytes = java.nio.file.Files.readAllBytes(java.nio.file.Paths.get(filename));
+            int len = Math.min(bytes.length, buffer.length);
+            for (int i = 0; i < len; i++) {
+                buffer[i] = bytes[i] & 0xFF; // Convert to unsigned
+            }
+            return len;
+        } catch (Exception e) {
+            return -1;
+        }
+    }
+    
+    public static int file_WriteBytes(String filename, int[] buffer, int length) {
+        try {
+            byte[] bytes = new byte[length];
+            for (int i = 0; i < length; i++) {
+                bytes[i] = (byte) buffer[i];
+            }
+            java.nio.file.Files.write(java.nio.file.Paths.get(filename), bytes);
+            return 0;
+        } catch (Exception e) {
+            return -1;
+        }
+    }
+    
+    // Stream handle management
+    private static java.util.Map<Integer, java.io.Closeable> streamHandles = new java.util.HashMap<>();
+    private static int nextHandle = 1;
+    
+    // Stream operations
+    public static int file_OpenRead(String filename) {
+        try {
+            java.io.FileInputStream fis = new java.io.FileInputStream(filename);
+            int handle = nextHandle++;
+            streamHandles.put(handle, fis);
+            return handle;
+        } catch (Exception e) {
+            return -1;
+        }
+    }
+    
+    public static int file_OpenWrite(String filename) {
+        try {
+            java.io.FileOutputStream fos = new java.io.FileOutputStream(filename);
+            int handle = nextHandle++;
+            streamHandles.put(handle, fos);
+            return handle;
+        } catch (Exception e) {
+            return -1;
+        }
+    }
+    
+    public static int file_ReadByte(int handle) {
+        try {
+            java.io.FileInputStream fis = (java.io.FileInputStream) streamHandles.get(handle);
+            return fis.read();
+        } catch (Exception e) {
+            return -1;
+        }
+    }
+    
+    public static int file_WriteByte(int handle, int byteValue) {
+        try {
+            java.io.FileOutputStream fos = (java.io.FileOutputStream) streamHandles.get(handle);
+            fos.write(byteValue);
+            return 0;
+        } catch (Exception e) {
+            return -1;
+        }
+    }
+    
+    public static int file_Close(int handle) {
+        try {
+            java.io.Closeable stream = streamHandles.get(handle);
+            if (stream != null) {
+                stream.close();
+                streamHandles.remove(handle);
+            }
+            return 0;
+        } catch (Exception e) {
+            return -1;
+        }
+    }
+    
+    // Directory operations
+    public static int dir_Create(String dirname) {
+        try {
+            java.nio.file.Files.createDirectories(java.nio.file.Paths.get(dirname));
+            return 0;
+        } catch (Exception e) {
+            return -1;
+        }
+    }
+    
+    public static int dir_Exists(String dirname) {
+        return java.nio.file.Files.exists(java.nio.file.Paths.get(dirname)) ? 1 : 0;
+    }
+    
+    public static String dir_GetFiles(String dirname) {
+        try {
+            java.nio.file.Path path = java.nio.file.Paths.get(dirname);
+            java.util.stream.Stream<java.nio.file.Path> files = 
+                java.nio.file.Files.list(path);
+            StringBuilder result = new StringBuilder();
+            files.forEach(p -> {
+                if (result.length() > 0) result.append(";");
+                result.append(p.getFileName().toString());
+            });
+            return result.toString();
+        } catch (Exception e) {
+            return "";
+        }
+    }
+    
+    // Path operations
+    public static String path_Combine(String path1, String path2) {
+        return java.nio.file.Paths.get(path1, path2).toString();
+    }
+    
+    public static String path_GetDirectory(String filename) {
+        return java.nio.file.Paths.get(filename).getParent().toString();
+    }
+    
+    public static String path_GetFileName(String filename) {
+        return java.nio.file.Paths.get(filename).getFileName().toString();
+    }
+    
+    public static String path_GetExtension(String filename) {
+        String name = java.nio.file.Paths.get(filename).getFileName().toString();
+        int lastDot = name.lastIndexOf('.');
+        return lastDot > 0 ? name.substring(lastDot) : "";
+    }
+    
+    public static String path_GetFileNameWithoutExtension(String filename) {
+        String name = java.nio.file.Paths.get(filename).getFileName().toString();
+        int lastDot = name.lastIndexOf('.');
+        return lastDot > 0 ? name.substring(0, lastDot) : name;
     }
     
     public static int file_Move(String source, String dest) {

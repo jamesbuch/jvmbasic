@@ -214,6 +214,18 @@ Type SemanticAnalyzer::inferExprType(const Expr& expr, const SymbolTable& symbol
                 } else if (methodUpper == "GETTEXT") {
                     return Type::String;
                 }
+            } else if (nce.namespaceName == "PATH") {
+                if (methodUpper == "GETFILENAME" || methodUpper == "GETEXTENSION" || 
+                    methodUpper == "GETDIRECTORY" || methodUpper == "COMBINE" ||
+                    methodUpper == "GETFILENAMEWITHOUTEXTENSION") {
+                    return Type::String;
+                }
+            } else if (nce.namespaceName == "DIR") {
+                if (methodUpper == "GETFILES") {
+                    return Type::String;
+                } else if (methodUpper == "EXISTS" || methodUpper == "CREATE") {
+                    return Type::Int;
+                }
             }
             return Type::Float;  // Default
         }
@@ -405,8 +417,48 @@ void SemanticAnalyzer::analyzeStmt(Stmt& stmt, SymbolTable& symbols) {
         case StmtKind::Dim: {
             DimStmt& ds = get<DimStmt>(stmt.data);
             
-            if (!ds.typeName.empty()) {
-                // Phase 9: Check if it's a built-in type or user-defined type
+            if (ds.size) {
+                // Array declaration: DIM arr(size) AS Type or DIM arr(size) = initVal
+                analyzeExpr(*ds.size, symbols);
+                if (ds.initVal) {
+                    analyzeExpr(*ds.initVal, symbols);
+                }
+                
+                if (ds.size->type != Type::Int) {
+                    error("Array size must be Int");
+                }
+                
+                Type elemType;
+                if (!ds.typeName.empty()) {
+                    // DIM arr(size) AS Type - explicit type
+                    if (ds.typeName == "INTEGER" || ds.typeName == "LONG") {
+                        elemType = Type::Int;
+                    } else if (ds.typeName == "SINGLE" || ds.typeName == "DOUBLE") {
+                        elemType = Type::Float;
+                    } else if (ds.typeName == "BOOLEAN") {
+                        elemType = Type::Bool;
+                    } else if (ds.typeName == "STRING") {
+                        elemType = Type::String;
+                    } else if (ds.typeName == "DECIMAL") {
+                        elemType = Type::Decimal;
+                    } else {  // BIGINT
+                        elemType = Type::BigInt;
+                    }
+                } else if (ds.initVal) {
+                    // DIM arr(size) = initVal - infer type from init value
+                    elemType = ds.initVal->type;
+                } else {
+                    error("Array declaration must specify type or initial value");
+                    elemType = Type::Int; // fallback
+                }
+                
+                Type arrType = makeArrayType(elemType);
+                if (symbols.isDefined(ds.var)) {
+                    error("Variable already defined: " + ds.var);
+                }
+                symbols.define(ds.var, arrType);
+            } else if (!ds.typeName.empty()) {
+                // Scalar variable: DIM var AS Type = value
                 bool isBuiltInType = (ds.typeName == "INTEGER" || ds.typeName == "SINGLE" || 
                                      ds.typeName == "DOUBLE" || ds.typeName == "LONG" || 
                                      ds.typeName == "BOOLEAN" || ds.typeName == "STRING" ||
@@ -454,24 +506,6 @@ void SemanticAnalyzer::analyzeStmt(Stmt& stmt, SymbolTable& symbols) {
                 }
                 analyzeExpr(*ds.initVal, symbols);
                 symbols.define(ds.var, Type::UserDefined);
-            } else if (ds.size) {
-                // Regular array: DIM arr(size) = initVal
-                analyzeExpr(*ds.size, symbols);
-                if (ds.initVal) {
-                    analyzeExpr(*ds.initVal, symbols);
-                }
-                
-                if (ds.size->type != Type::Int) {
-                    error("Array size must be Int");
-                }
-                
-                if (ds.initVal) {
-                    Type arrType = makeArrayType(ds.initVal->type);
-                    if (symbols.isDefined(ds.var)) {
-                        error("Variable already defined: " + ds.var);
-                    }
-                    symbols.define(ds.var, arrType);
-                }
             } else {
                 error("Invalid DIM statement");
             }

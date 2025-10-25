@@ -467,11 +467,38 @@ ExprPtr Parser::parsePrimary() {
                 // Text literal
                 partExpr = make_unique<Expr>(ExprKind::Str, Type::String, StrLit{part.value});
             } else {
-                // Variable reference
-                // For interpolation, we just use the variable directly
-                // The code generator will handle type conversion during string concatenation
+                // Variable reference - need to parse array access
                 string varName = part.value;
-                partExpr = make_unique<Expr>(ExprKind::Var, Type::String, VarRef{varName, nullptr});
+                
+                // Check if it's array access (contains parentheses)
+                size_t parenPos = varName.find('(');
+                if (parenPos != string::npos) {
+                    // Array access: varName(index)
+                    string arrayName = varName.substr(0, parenPos);
+                    string indexStr = varName.substr(parenPos + 1);
+                    
+                    // Remove closing parenthesis
+                    if (indexStr.back() == ')') {
+                        indexStr.pop_back();
+                    }
+                    
+                    // Parse the index as an expression
+                    // For now, handle simple integer indices
+                    int index = 0;
+                    try {
+                        index = stoi(indexStr);
+                    } catch (...) {
+                        // If parsing fails, treat as 0
+                        index = 0;
+                    }
+                    
+                    // Create array access expression
+                    auto indexExpr = make_unique<Expr>(ExprKind::Num, Type::Int, NumLit{static_cast<double>(index)});
+                    partExpr = make_unique<Expr>(ExprKind::Var, Type::String, VarRef{arrayName, move(indexExpr)});
+                } else {
+                    // Simple variable reference
+                    partExpr = make_unique<Expr>(ExprKind::Var, Type::String, VarRef{varName, nullptr});
+                }
             }
             
             // Concatenate with result
@@ -540,7 +567,8 @@ ExprPtr Parser::parsePrimary() {
             bool isNamespace = (nameUpper == "MATH" || 
                                nameUpper == "FILE" || nameUpper == "HTTP" || 
                                nameUpper == "JSON" || nameUpper == "XML" || 
-                               nameUpper == "DB");
+                               nameUpper == "DB" || nameUpper == "PATH" || 
+                               nameUpper == "DIR");
             
             if (isNamespace) {
                 // Parse Namespace.Method(args)

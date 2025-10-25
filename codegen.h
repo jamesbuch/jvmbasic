@@ -1042,11 +1042,18 @@ public:
             }
             descriptor += ")";
             
-            // Determine return type (simplified - assumes Int for now)
-            if (e.type == Type::Int || e.type == Type::Bool) descriptor += "I";
-            else if (e.type == Type::Float) descriptor += "F";
-            else if (e.type == Type::String) descriptor += "Ljava/lang/String;";
-            else descriptor += "Ljava/lang/Object;";
+            // Determine return type based on method name
+            string returnType = "I"; // Default to Int
+            if (e.type == Type::String) {
+                returnType = "Ljava/lang/String;";
+            } else if (e.type == Type::Int || e.type == Type::Bool) {
+                returnType = "I";
+            } else if (e.type == Type::Float) {
+                returnType = "F";
+            } else {
+                returnType = "Ljava/lang/Object;";
+            }
+            descriptor += returnType;
             
             // Create the method call: Convert CONSOLE + WriteLine to console_WriteLine
             // Preserve method name casing from source (WriteLine stays WriteLine)
@@ -1060,8 +1067,6 @@ public:
             u2 nat_idx = cp.addNameAndType(method_name_idx, method_desc_idx);
             u2 method_ref = cp.addMethodRef(basicruntime_class_idx, nat_idx);
             invokestatic(method_ref);
-        }
-    }
 
     void genStmt(const Stmt& s, map<string, u1>& varIdx, u1& nextLocal, const map<string, Type>& knownTypes) {
         if (s.kind == StmtKind::Print) {
@@ -1360,8 +1365,67 @@ public:
                 // Store type name for later field/method lookups
                 const NewExpr& ne = get<NewExpr>(ds.initVal->data);
                 varTypeNames[ds.var] = ne.className;
+            } else if (ds.size) {
+                // Array declaration: DIM arr(size) AS Type or DIM arr(size) = initVal
+                varIdx[ds.var] = nextLocal++;
+                max_locals = max(max_locals, static_cast<u2>(nextLocal));
+                u1 idx = varIdx[ds.var];
+                
+                // Load size and create array
+                load(*ds.size, varIdx);
+                
+                // Determine array type
+                Type arrType;
+                if (!ds.typeName.empty()) {
+                    // DIM arr(size) AS Type - explicit type
+                    if (ds.typeName == "INTEGER" || ds.typeName == "LONG") {
+                        arrType = Type::IntArray;
+                        newarray_int();
+                    } else if (ds.typeName == "SINGLE" || ds.typeName == "DOUBLE") {
+                        arrType = Type::FloatArray;
+                        newarray_float();
+                    } else if (ds.typeName == "BOOLEAN") {
+                        arrType = Type::BoolArray;
+                        newarray_bool();
+                    } else if (ds.typeName == "STRING") {
+                        arrType = Type::StringArray;
+                        u2 stringClass = cp.addClass(cp.addUtf8("java/lang/String"));
+                        anewarray(stringClass);
+                    } else {
+                        // DECIMAL, BIGINT, or user-defined - use Object array
+                        arrType = Type::StringArray; // fallback
+                        u2 objectClass = cp.addClass(cp.addUtf8("java/lang/Object"));
+                        anewarray(objectClass);
+                    }
+                } else if (ds.initVal) {
+                    // DIM arr(size) = initVal - infer type from init value
+                    if (ds.initVal->type == Type::Int) {
+                        arrType = Type::IntArray;
+                        newarray_int();
+                    } else if (ds.initVal->type == Type::Float) {
+                        arrType = Type::FloatArray;
+                        newarray_float();
+                    } else if (ds.initVal->type == Type::Bool) {
+                        arrType = Type::BoolArray;
+                        newarray_bool();
+                    } else {
+                        arrType = Type::StringArray;
+                        u2 stringClass = cp.addClass(cp.addUtf8("java/lang/String"));
+                        anewarray(stringClass);
+                    }
+                } else {
+                    // Default to int array
+                    arrType = Type::IntArray;
+                    newarray_int();
+                }
+                
+                // Store array reference
+                astore(idx);
+                
+                // Store type for later use
+                // knownTypes[ds.var] = arrType; // Can't modify const map
             } else if (!ds.typeName.empty()) {
-                // Phase 9: Check if it's a built-in type or user-defined type
+                // Scalar variable: DIM var AS Type = value
                 bool isBuiltInType = (ds.typeName == "INTEGER" || ds.typeName == "SINGLE" || 
                                      ds.typeName == "DOUBLE" || ds.typeName == "LONG" || 
                                      ds.typeName == "BOOLEAN" || ds.typeName == "STRING" ||
@@ -1431,8 +1495,7 @@ public:
                     // We could add default initialization here if needed
                 }
             } else {
-                // Regular array: DIM arr(size) = initVal
-                // Allocate local variable for array
+                // Regular array: DIM arr(size) = initVal (old syntax)
                 varIdx[ds.var] = nextLocal++;
                 max_locals = max(max_locals, static_cast<u2>(nextLocal));
                 u1 idx = varIdx[ds.var];
