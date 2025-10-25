@@ -1,0 +1,146 @@
+Classfile /home/james/Downloads/jvmbasic/BasicProgram.class
+  Last modified 26 Oct 2025; size 1142 bytes
+  SHA-256 checksum 090e842bc2d964b2b31cc386c9ad29a593046da795d18b59f0c22c4eed7ec748
+public class BasicProgram
+  minor version: 0
+  major version: 49
+  flags: (0x0021) ACC_PUBLIC, ACC_SUPER
+  this_class: #6                          // BasicProgram
+  super_class: #7                         // java/lang/Object
+  interfaces: 0, fields: 0, methods: 1, attributes: 0
+Constant pool:
+    #1 = Utf8               BasicProgram
+    #2 = Utf8               java/lang/Object
+    #3 = Utf8               main
+    #4 = Utf8               ([Ljava/lang/String;)V
+    #5 = NameAndType        #3:#4         // main:([Ljava/lang/String;)V
+    #6 = Class              #1            // BasicProgram
+    #7 = Class              #2            // java/lang/Object
+    #8 = Utf8               java/lang/System
+    #9 = Utf8               out
+   #10 = Utf8               Ljava/io/PrintStream;
+   #11 = NameAndType        #9:#10        // out:Ljava/io/PrintStream;
+   #12 = Class              #8            // java/lang/System
+   #13 = Fieldref           #12.#11       // java/lang/System.out:Ljava/io/PrintStream;
+   #14 = Utf8               java/io/PrintStream
+   #15 = Class              #14           // java/io/PrintStream
+   #16 = Utf8               println
+   #17 = Utf8               print
+   #18 = Utf8               (I)V
+   #19 = NameAndType        #16:#18       // println:(I)V
+   #20 = Methodref          #15.#19       // java/io/PrintStream.println:(I)V
+   #21 = Utf8               (F)V
+   #22 = NameAndType        #16:#21       // println:(F)V
+   #23 = Methodref          #15.#22       // java/io/PrintStream.println:(F)V
+   #24 = Utf8               (Ljava/lang/String;)V
+   #25 = NameAndType        #16:#24       // println:(Ljava/lang/String;)V
+   #26 = Methodref          #15.#25       // java/io/PrintStream.println:(Ljava/lang/String;)V
+   #27 = Utf8               (Z)V
+   #28 = NameAndType        #16:#27       // println:(Z)V
+   #29 = Methodref          #15.#28       // java/io/PrintStream.println:(Z)V
+   #30 = Utf8               ()V
+   #31 = NameAndType        #16:#30       // println:()V
+   #32 = Methodref          #15.#31       // java/io/PrintStream.println:()V
+   #33 = NameAndType        #17:#18       // print:(I)V
+   #34 = Methodref          #15.#33       // java/io/PrintStream.print:(I)V
+   #35 = NameAndType        #17:#21       // print:(F)V
+   #36 = Methodref          #15.#35       // java/io/PrintStream.print:(F)V
+   #37 = NameAndType        #17:#24       // print:(Ljava/lang/String;)V
+   #38 = Methodref          #15.#37       // java/io/PrintStream.print:(Ljava/lang/String;)V
+   #39 = NameAndType        #17:#27       // print:(Z)V
+   #40 = Methodref          #15.#39       // java/io/PrintStream.print:(Z)V
+   #41 = Utf8
+   #42 = String             #41           //
+   #43 = Utf8               java/lang/String
+   #44 = Class              #43           // java/lang/String
+   #45 = Utf8               equals
+   #46 = Utf8               (Ljava/lang/Object;)Z
+   #47 = NameAndType        #45:#46       // equals:(Ljava/lang/Object;)Z
+   #48 = Methodref          #44.#47       // java/lang/String.equals:(Ljava/lang/Object;)Z
+   #49 = Utf8               java/util/Scanner
+   #50 = Class              #49           // java/util/Scanner
+   #51 = Utf8               <init>
+   #52 = Utf8               (Ljava/io/InputStream;)V
+   #53 = NameAndType        #51:#52       // "<init>":(Ljava/io/InputStream;)V
+   #54 = Methodref          #50.#53       // java/util/Scanner."<init>":(Ljava/io/InputStream;)V
+   #55 = Utf8               nextLine
+   #56 = Utf8               ()Ljava/lang/String;
+   #57 = NameAndType        #55:#56       // nextLine:()Ljava/lang/String;
+   #58 = Methodref          #50.#57       // java/util/Scanner.nextLine:()Ljava/lang/String;
+   #59 = Utf8               in
+   #60 = Utf8               Ljava/io/InputStream;
+   #61 = NameAndType        #59:#60       // in:Ljava/io/InputStream;
+   #62 = Fieldref           #12.#61       // java/lang/System.in:Ljava/io/InputStream;
+   #63 = Utf8               java/lang/Integer
+   #64 = Class              #63           // java/lang/Integer
+   #65 = Utf8               parseInt
+   #66 = Utf8               (Ljava/lang/String;)I
+   #67 = NameAndType        #65:#66       // parseInt:(Ljava/lang/String;)I
+   #68 = Methodref          #64.#67       // java/lang/Integer.parseInt:(Ljava/lang/String;)I
+   #69 = Utf8               java/lang/Float
+   #70 = Class              #69           // java/lang/Float
+   #71 = Utf8               parseFloat
+   #72 = Utf8               (Ljava/lang/String;)F
+   #73 = NameAndType        #71:#72       // parseFloat:(Ljava/lang/String;)F
+   #74 = Methodref          #70.#73       // java/lang/Float.parseFloat:(Ljava/lang/String;)F
+   #75 = Utf8               basicrt/BasicRuntime
+   #76 = Class              #75           // basicrt/BasicRuntime
+   #77 = Utf8               Code
+   #78 = Utf8               === Command-Line Arguments Test ===
+   #79 = String             #78           // === Command-Line Arguments Test ===
+   #80 = Utf8
+   #81 = String             #80           //
+   #82 = Utf8               java/lang/StringBuilder
+   #83 = Class              #82           // java/lang/StringBuilder
+   #84 = Utf8               <init>
+   #85 = Utf8               ()V
+   #86 = NameAndType        #84:#85       // "<init>":()V
+   #87 = Methodref          #83.#86       // java/lang/StringBuilder."<init>":()V
+   #88 = Utf8               Number of arguments:
+   #89 = String             #88           // Number of arguments:
+   #90 = Utf8               append
+   #91 = Utf8               (Ljava/lang/String;)Ljava/lang/StringBuilder;
+   #92 = NameAndType        #90:#91       // append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+   #93 = Methodref          #83.#92       // java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+   #94 = Utf8               (I)Ljava/lang/StringBuilder;
+   #95 = NameAndType        #90:#94       // append:(I)Ljava/lang/StringBuilder;
+   #96 = Methodref          #83.#95       // java/lang/StringBuilder.append:(I)Ljava/lang/StringBuilder;
+   #97 = Utf8               toString
+   #98 = Utf8               ()Ljava/lang/String;
+   #99 = NameAndType        #97:#98       // toString:()Ljava/lang/String;
+  #100 = Methodref          #83.#99       // java/lang/StringBuilder.toString:()Ljava/lang/String;
+  #101 = Utf8
+  #102 = String             #101          //
+  #103 = Utf8               === Command-Line Arguments Complete ===
+  #104 = String             #103          // === Command-Line Arguments Complete ===
+{
+  public static void main(java.lang.String[]);
+    descriptor: ([Ljava/lang/String;)V
+    flags: (0x0009) ACC_PUBLIC, ACC_STATIC
+    Code:
+      stack=10, locals=3, args_size=1
+         0: new           #50                 // class java/util/Scanner
+         3: dup
+         4: getstatic     #62                 // Field java/lang/System.in:Ljava/io/InputStream;
+         7: invokespecial #54                 // Method java/util/Scanner."<init>":(Ljava/io/InputStream;)V
+        10: astore_1
+        11: ldc           #79                 // String === Command-Line Arguments Test ===
+        13: pop
+        14: ldc           #81                 // String
+        16: pop
+        17: istore_2
+        18: new           #83                 // class java/lang/StringBuilder
+        21: dup
+        22: invokespecial #87                 // Method java/lang/StringBuilder."<init>":()V
+        25: ldc           #89                 // String Number of arguments:
+        27: invokevirtual #93                 // Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+        30: iload_2
+        31: invokevirtual #96                 // Method java/lang/StringBuilder.append:(I)Ljava/lang/StringBuilder;
+        34: invokevirtual #100                // Method java/lang/StringBuilder.toString:()Ljava/lang/String;
+        37: pop
+        38: ldc           #102                // String
+        40: pop
+        41: ldc           #104                // String === Command-Line Arguments Complete ===
+        43: pop
+        44: return
+}
