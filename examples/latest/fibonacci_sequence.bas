@@ -24,35 +24,42 @@ Function FibonacciIterative(n As Single) As Single
 End Function
 
 Sub PrintFibSequence(n As Single)
-    Print "Fibonacci sequence (first "; n; " terms):"
+    Console.WriteLine($"Fibonacci sequence (first {n} terms):")
     Dim i As Single = 0.0
     While i < n
-        Print "  fib("; i; ") = "; FibonacciIterative(i)
+        Dim fibValue As Single = FibonacciIterative(i)
+        Console.WriteLine($"  fib({i}) = {fibValue}")
         i = i + 1.0
     End While
 End Sub
 
 ' Main program
-Print "========================================="
-Print "  FIBONACCI - Recursive & Iterative"
-Print "========================================="
-Print ""
+Console.WriteLine("=========================================")
+Console.WriteLine("  FIBONACCI - Recursive & Iterative")
+Console.WriteLine("=========================================")
+Console.WriteLine("")
 
-Print "Recursive fibonacci:"
-Print "  fib(5) = "; Fibonacci(5.0)
-Print "  fib(10) = "; Fibonacci(10.0)
-Print "  fib(15) = "; Fibonacci(15.0)
-Print ""
+Console.WriteLine("Recursive fibonacci:")
+Dim fib5 As Single = Fibonacci(5.0)
+Dim fib10 As Single = Fibonacci(10.0)
+Dim fib15 As Single = Fibonacci(15.0)
+Console.WriteLine($"  fib(5) = {fib5}")
+Console.WriteLine($"  fib(10) = {fib10}")
+Console.WriteLine($"  fib(15) = {fib15}")
+Console.WriteLine("")
 
-Print "Iterative fibonacci:"
-Print "  fib(20) = "; FibonacciIterative(20.0)
-Print "  fib(25) = "; FibonacciIterative(25.0)
-Print "  fib(30) = "; FibonacciIterative(30.0)
-Print ""
+Console.WriteLine("Iterative fibonacci:")
+Dim fib20 As Single = FibonacciIterative(20.0)
+Dim fib25 As Single = FibonacciIterative(25.0)
+Dim fib30 As Single = FibonacciIterative(30.0)
+Console.WriteLine($"  fib(20) = {fib20}")
+Console.WriteLine($"  fib(25) = {fib25}")
+Console.WriteLine($"  fib(30) = {fib30}")
+Console.WriteLine("")
 
 Call PrintFibSequence(12.0)
 
-Print ""
-Print "========================================="
-Print "  Fibonacci Complete!"
-Print "========================================="
+Console.WriteLine("")
+Console.WriteLine("=========================================")
+Console.WriteLine("  Fibonacci Complete!")
+Console.WriteLine("=========================================")

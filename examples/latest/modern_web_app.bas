@@ -13,11 +13,10 @@ Function FormatCurrency(amount As Single) As String
 End Function
 
 Sub DisplayBanner()
-    Dim dummy As Integer
-    Let dummy = Console.WriteLine("=====================================")
-    Let dummy = Console.WriteLine("  Modern JVM BASIC Web Application  ")
-    Let dummy = Console.WriteLine("  Phase 9 - VB-Style Syntax Demo    ")
-    Let dummy = Console.WriteLine("=====================================")
+    Console.WriteLine("=====================================")
+    Console.WriteLine("  Modern JVM BASIC Web Application  ")
+    Console.WriteLine("  Phase 9 - VB-Style Syntax Demo    ")
+    Console.WriteLine("=====================================")
 End Sub
 
 REM ===== Main Program =====
@@ -30,34 +29,34 @@ Dim version As Single = 1.0
 Dim active As Boolean = True
 
 Dim dummy As Integer = Console.WriteLine("")
-Let dummy = Console.WriteLine("Application: " + appName)
-Let dummy = Console.WriteLine("Version: " + FormatF("%.1f", version))
+Console.WriteLine($"Application: {appName}")
+Console.WriteLine($"Version: {version}")
 
 REM File operations
 Dim dataFile As String = "app_data.txt"
-Dim appData As String = "AppName: " + appName + ", Version: " + FormatF("%.1f", version)
+Dim appData As String = $"AppName: {appName}, Version: {version}"
 Dim writeResult As Integer = File.WriteAllText(dataFile, appData)
 
 If File.Exists(dataFile) == 1 Then
-    Let dummy = Console.WriteLine("Data file created successfully")
+    Console.WriteLine("Data file created successfully")
     Dim content As String = File.ReadAllText(dataFile)
-    Let dummy = Console.WriteLine("Content: " + content)
+    Console.WriteLine($"Content: {content}")
 Else
-    Let dummy = Console.WriteLine("Failed to create data file")
+    Console.WriteLine("Failed to create data file")
 End If
 
 REM JSON operations
-Let dummy = Console.WriteLine("")
-Let dummy = Console.WriteLine("Creating JSON data...")
+Console.WriteLine("")
+Console.WriteLine("Creating JSON data...")
 Dim jsonObj As Integer = Json.NewObject()
 Let writeResult = Json.Put(jsonObj, "app", appName)
 Let writeResult = Json.PutInt(jsonObj, "users", 42)
 Dim jsonString As String = Json.ToString(jsonObj)
-Let dummy = Console.WriteLine("JSON: " + jsonString)
+Console.WriteLine($"JSON: {jsonString}")
 
 REM Math calculations
-Let dummy = Console.WriteLine("")
-Let dummy = Console.WriteLine("Math calculations...")
+Console.WriteLine("")
+Console.WriteLine("Math calculations...")
 Dim price As Single = 99.99
 Dim tax As Single = 0.08
 Dim total As Single = CalculateTotal(price, tax)

@@ -34,30 +34,35 @@ Function CountPrimes(limit As Single) As Single
 End Function
 
 ' Main program
-Print "==========================================="
-Print "  PRIME NUMBERS"
-Print "==========================================="
-Print ""
+Console.WriteLine("===========================================")
+Console.WriteLine("  PRIME NUMBERS")
+Console.WriteLine("===========================================")
+Console.WriteLine("")
 
-Print "Testing individual numbers:"
-Print "  2 is prime: "; IsPrime(2.0)
-Print "  17 is prime: "; IsPrime(17.0)
-Print "  97 is prime: "; IsPrime(97.0)
-Print ""
+Console.WriteLine("Testing individual numbers:")
+Dim isPrime2 As Boolean = IsPrime(2.0)
+Dim isPrime17 As Boolean = IsPrime(17.0)
+Dim isPrime97 As Boolean = IsPrime(97.0)
+Console.WriteLine($"  2 is prime: {isPrime2}")
+Console.WriteLine($"  17 is prime: {isPrime17}")
+Console.WriteLine($"  97 is prime: {isPrime97}")
+Console.WriteLine("")
 
-Print "Counting primes:"
-Print "  Primes up to 50: "; CountPrimes(50.0)
-Print "  Primes up to 100: "; CountPrimes(100.0)
-Print ""
+Console.WriteLine("Counting primes:")
+Dim count50 As Single = CountPrimes(50.0)
+Dim count100 As Single = CountPrimes(100.0)
+Console.WriteLine($"  Primes up to 50: {count50}")
+Console.WriteLine($"  Primes up to 100: {count100}")
+Console.WriteLine("")
 
-Print "Primes up to 50:"
+Console.WriteLine("Primes up to 50:")
 Dim num As Single = 2.0
 While num <= 50.0
     If IsPrime(num) Then
-        Print "  "; num
+        Console.WriteLine($"  {num}")
     End If
     num = num + 1.0
 End While
 
-Print ""
-Print "==========================================="
+Console.WriteLine("")
+Console.WriteLine("===========================================")
