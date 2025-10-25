@@ -196,24 +196,20 @@ void ASTPrinter::printStmt(const Stmt& stmt) {
         case StmtKind::Dim: {
             const DimStmt& ds = get<DimStmt>(stmt.data);
             out << "DIM " << ds.var;
-            if (!ds.typeName.empty()) {
-                // User-defined type: DIM var AS TypeName
-                out << " AS " << ds.typeName << "\n";
-            } else if (ds.initVal && ds.initVal->kind == ExprKind::NewExpr) {
-                // Phase 7: DIM var AS NEW ClassName(args)
-                out << " AS ";
-                printExpr(*ds.initVal);
-                out << "\n";
-            } else if (ds.size && ds.initVal) {
-                // Array: DIM var(size) = initVal
+            if (ds.size) {
+                // Array declaration: DIM arr(size) AS Type
                 out << "(";
                 printExpr(*ds.size);
-                out << ") = ";
-                printExpr(*ds.initVal);
-                out << "\n";
-            } else {
-                out << " (incomplete DIM)\n";
+                out << ")";
             }
+            if (!ds.typeName.empty()) {
+                out << " AS " << ds.typeName;
+            }
+            if (ds.initVal) {
+                out << " = ";
+                printExpr(*ds.initVal);
+            }
+            out << "\n";
             break;
         }
         
