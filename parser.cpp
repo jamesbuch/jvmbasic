@@ -568,7 +568,7 @@ ExprPtr Parser::parsePrimary() {
                                nameUpper == "FILE" || nameUpper == "HTTP" || 
                                nameUpper == "JSON" || nameUpper == "XML" || 
                                nameUpper == "DB" || nameUpper == "PATH" || 
-                               nameUpper == "DIR");
+                               nameUpper == "DIR" || nameUpper == "ARGS");
             
             if (isNamespace) {
                 // Parse Namespace.Method(args)

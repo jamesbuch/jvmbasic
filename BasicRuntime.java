@@ -1770,7 +1770,45 @@ public class BasicRuntime {
     public static float math_PI() { return (float) Math.PI; }
     public static float math_E() { return (float) Math.E; }
     
-    // ===== Phase 9: File Namespace =====
+    // Command-line arguments support
+    private static String[] commandLineArgs = new String[0];
+    
+    public static void setCommandLineArgs(String[] args) {
+        commandLineArgs = args;
+    }
+    
+    public static int args_GetCount() {
+        return commandLineArgs.length;
+    }
+    
+    public static String args_Get(int index) {
+        if (index >= 0 && index < commandLineArgs.length) {
+            return commandLineArgs[index];
+        }
+        return "";
+    }
+    
+    public static String args_GetAll() {
+        return String.join(" ", commandLineArgs);
+    }
+    
+    public static int args_Contains(String value) {
+        for (String arg : commandLineArgs) {
+            if (arg.equals(value)) {
+                return 1;
+            }
+        }
+        return 0;
+    }
+    
+    public static int args_IndexOf(String value) {
+        for (int i = 0; i < commandLineArgs.length; i++) {
+            if (commandLineArgs[i].equals(value)) {
+                return i;
+            }
+        }
+        return -1;
+    }
     
     // Enhanced File namespace for compiler development
     public static String file_ReadAllText(String filename) {

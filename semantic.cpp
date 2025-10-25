@@ -226,6 +226,14 @@ Type SemanticAnalyzer::inferExprType(const Expr& expr, const SymbolTable& symbol
                 } else if (methodUpper == "EXISTS" || methodUpper == "CREATE") {
                     return Type::Int;
                 }
+            } else if (nce.namespaceName == "ARGS") {
+                if (methodUpper == "GETCOUNT") {
+                    return Type::Int;
+                } else if (methodUpper == "GET" || methodUpper == "GETALL") {
+                    return Type::String;
+                } else if (methodUpper == "CONTAINS" || methodUpper == "INDEXOF") {
+                    return Type::Int;
+                }
             }
             return Type::Float;  // Default
         }

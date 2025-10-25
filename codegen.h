@@ -2322,6 +2322,17 @@ public:
         max_locals = 1;
         max_stack = 10;
         
+        // Store args parameter (local 0) as a special variable
+        varIdx["args"] = 0;
+        knownTypes["args"] = Type::StringArray;
+        
+        // Initialize command-line arguments
+        aload(0); // Load args parameter
+        u2 setArgsMethod = cp.addMethodRef(basicruntime_class_idx, 
+            cp.addNameAndType(cp.addUtf8("setCommandLineArgs"), 
+            cp.addUtf8("([Ljava/lang/String;)V")));
+        invokestatic(setArgsMethod);
+        
         // Initialize Scanner for INPUT (allocate before other variables)
         scanner_local = nextLocal++;
         max_locals = max(max_locals, static_cast<u2>(nextLocal));
