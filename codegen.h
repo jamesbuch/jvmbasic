@@ -1067,6 +1067,8 @@ public:
             u2 nat_idx = cp.addNameAndType(method_name_idx, method_desc_idx);
             u2 method_ref = cp.addMethodRef(basicruntime_class_idx, nat_idx);
             invokestatic(method_ref);
+        }
+    }
 
     void genStmt(const Stmt& s, map<string, u1>& varIdx, u1& nextLocal, const map<string, Type>& knownTypes) {
         if (s.kind == StmtKind::Print) {
@@ -2324,7 +2326,7 @@ public:
         
         // Store args parameter (local 0) as a special variable
         varIdx["args"] = 0;
-        knownTypes["args"] = Type::StringArray;
+        currentLocalTypes["args"] = Type::StringArray;
         
         // Initialize command-line arguments
         aload(0); // Load args parameter
