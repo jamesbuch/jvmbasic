@@ -78,10 +78,10 @@ Function IsStrongPassword(pwd As String) As Boolean
 End Function
 
 ' Main program
-Print "================================================"
-Print "  SECURE PASSWORD GENERATOR"
-Print "================================================"
-Print ""
+Console.WriteLine("================================================")
+Console.WriteLine("  SECURE PASSWORD GENERATOR")
+Console.WriteLine("================================================")
+Console.WriteLine("")
 
 Dim attempts As Single = 0.0
 Dim pwd As String = ""
@@ -90,24 +90,31 @@ While attempts < 100.0
     pwd = GeneratePassword(12.0)
     attempts = attempts + 1.0
     If IsStrongPassword(pwd) Then
-        Print "Generated strong password (attempt "; attempts; "):"
-        Print "  "; pwd
-        Print ""
-        Print "Length: "; Len(pwd)
-        Print "Has lowercase: "; HasLowercase(pwd)
-        Print "Has uppercase: "; HasUppercase(pwd)
-        Print "Has digits: "; HasDigit(pwd)
+        Console.WriteLine($"Generated strong password (attempt {attempts}):")
+        Console.WriteLine($"  {pwd}")
+        Console.WriteLine("")
+        
+        Dim pwdLen As Single = Len(pwd)
+        Dim hasLower As Boolean = HasLowercase(pwd)
+        Dim hasUpper As Boolean = HasUppercase(pwd)
+        Dim hasDigits As Boolean = HasDigit(pwd)
+        
+        Console.WriteLine($"Length: {pwdLen}")
+        Console.WriteLine($"Has lowercase: {hasLower}")
+        Console.WriteLine($"Has uppercase: {hasUpper}")
+        Console.WriteLine($"Has digits: {hasDigits}")
         attempts = 1000.0  ' Exit loop
     End If
 End While
 
-Print ""
-Print "Generating 5 random passwords:"
+Console.WriteLine("")
+Console.WriteLine("Generating 5 random passwords:")
 Dim i As Single = 1.0
 While i <= 5.0
-    Print "  "; i; ": "; GeneratePassword(12.0)
+    Dim randomPwd As String = GeneratePassword(12.0)
+    Console.WriteLine($"  Password {i}: {randomPwd}")
     i = i + 1.0
 End While
 
-Print ""
-Print "================================================"
+Console.WriteLine("")
+Console.WriteLine("================================================")

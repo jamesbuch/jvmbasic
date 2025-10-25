@@ -74,6 +74,6 @@ Let dummy = Console.WriteLine("File content: " + readBack)
 Let r = File.Delete("demo.txt")
 
 Let dummy = Console.WriteLine("")
-Let dummy = Console.WriteLine("=== Demo Complete ===")
-Print "JVM BASIC is now a modern, professional language!"
+Console.WriteLine("=== Demo Complete ===")
+Console.WriteLine("JVM BASIC is now a modern, professional language!")
 
