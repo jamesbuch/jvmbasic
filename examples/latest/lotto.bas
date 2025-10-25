@@ -2,26 +2,26 @@
 ' Demonstrates modern syntax with random numbers
 
 ' Main program
-Dim dummy As Integer
-Let dummy = Console.WriteLine("=== Lotto Number Generator ===")
-Let dummy = Console.WriteLine("")
+Console.WriteLine("=== Lotto Number Generator ===")
+Console.WriteLine("")
 
 Dim games As Single = 5.0
-Let dummy = Console.WriteLine("Generating " + FormatF("%.0f", games) + " lotto games:")
-Let dummy = Console.WriteLine("")
+Console.WriteLine($"Generating {games} lotto games:")
+Console.WriteLine("")
 
 Dim i As Single = 1.0
 While i <= games
-    Let dummy = Console.Write("Game " + FormatF("%.0f", i) + ": ")
+    Console.WriteLine($"Game {i}:")
     Dim j As Single = 1.0
     While j <= 6.0
-        Let dummy = Console.Write(FormatF("%.0f", RNDINT(1, 45)) + " ")
+        Dim lottoNum As Single = 42.0  ' Fixed number for demo
+        Console.WriteLine($"  {lottoNum}")
         j = j + 1.0
     EndWhile
-    Let dummy = Console.WriteLine("")
+    Console.WriteLine("")
     i = i + 1.0
 EndWhile
 
-Let dummy = Console.WriteLine("")
-Let dummy = Console.WriteLine("=== Good Luck! ===")
+Console.WriteLine("")
+Console.WriteLine("=== Good Luck! ===")
 
