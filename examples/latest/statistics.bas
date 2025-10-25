@@ -23,16 +23,19 @@ Function StdDev(arr As Single, size As Single) As Single
 End Function
 
 ' Main
-Print "==========================================="
-Print "  STATISTICAL ANALYSIS"
-Print "==========================================="
+Console.WriteLine("===========================================")
+Console.WriteLine("  STATISTICAL ANALYSIS")
+Console.WriteLine("===========================================")
 
-Dim scores(10) = 0.0
-scores(0) = 85.5
-scores(1) = 92.3
-scores(2) = 78.9
-scores(3) = 95.0
-scores(4) = 88.7
+Dim scores(10) As Single
+Let scores(0) = 85.5
+Let scores(1) = 92.3
+Let scores(2) = 78.9
+Let scores(3) = 95.0
+Let scores(4) = 88.7
 
-Print "Mean: "; Mean(scores, 5.0)
-Print "Std Dev: "; StdDev(scores, 5.0)
+Dim meanResult As Single = Mean(scores, 5.0)
+Dim stdDevResult As Single = StdDev(scores, 5.0)
+
+Console.WriteLine($"Mean: {meanResult}")
+Console.WriteLine($"Std Dev: {stdDevResult}")
