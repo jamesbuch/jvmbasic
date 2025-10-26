@@ -1,154 +1,103 @@
-FUNCTION gcd(a, b)
-    WHILE b > 0.0
-        LET temp = b
-        LET b = a MOD b
-        LET a = temp
+FUNCTION gcd(a As Integer, b As Integer) As Integer
+    WHILE b > 0
+        temp = b
+        b = a MOD b
+        a = temp
     ENDWHILE
     RETURN a
 ENDFUNCTION
 
-FUNCTION lcm(a, b)
+FUNCTION lcm(a As Integer, b As Integer) As Integer
     RETURN (a * b) / gcd(a, b)
 ENDFUNCTION
 
-FUNCTION factorial(n)
-    IF n <= 1.0 THEN
-        RETURN 1.0
+FUNCTION factorial(n As Integer) As Integer
+    IF n <= 1 THEN
+        RETURN 1
     ELSE
-        RETURN n * factorial(n - 1.0)
+        RETURN n * factorial(n - 1)
     ENDIF
 ENDFUNCTION
 
-FUNCTION fibonacci(n)
-    IF n <= 1.0 THEN
+FUNCTION fibonacci(n As Integer) As Integer
+    IF n <= 1 THEN
         RETURN n
     ELSE
-        RETURN fibonacci(n - 1.0) + fibonacci(n - 2.0)
+        RETURN fibonacci(n - 1) + fibonacci(n - 2)
     ENDIF
 ENDFUNCTION
 
-FUNCTION fibonacciIterative(n)
-    LET a = 0.0
-    LET b = 1.0
-    LET count = 0.0
+FUNCTION fibonacciIterative(n As Integer) As Integer
+    IF n <= 1 THEN
+        RETURN n
+    ENDIF
     
-    WHILE count < n
-        LET temp = a + b
-        LET a = b
-        LET b = temp
-        LET count = count + 1.0
+    a = 0
+    b = 1
+    i = 2
+    WHILE i <= n
+        temp = a + b
+        a = b
+        b = temp
+        i = i + 1
     ENDWHILE
-    RETURN a
+    RETURN b
 ENDFUNCTION
 
-FUNCTION isPrime(num)
-    IF num <= 1.0 THEN
-        RETURN 0.0
-    ENDIF
-    IF num == 2.0 THEN
-        RETURN 1.0
-    ENDIF
-    IF num MOD 2.0 == 0.0 THEN
-        RETURN 0.0
+FUNCTION isPrime(n As Integer) As Integer
+    IF n < 2 THEN
+        RETURN 0
     ENDIF
     
-    LET divisor = 3.0
-    WHILE divisor * divisor <= num
-        IF num MOD divisor == 0.0 THEN
-            RETURN 0.0
+    i = 2
+    WHILE i * i <= n
+        IF n MOD i == 0 THEN
+            RETURN 0
         ENDIF
-        LET divisor = divisor + 2.0
+        i = i + 1
     ENDWHILE
-    RETURN 1.0
+    RETURN 1
 ENDFUNCTION
 
-FUNCTION power(base, exponent)
-    LET result = 1.0
-    LET count = 0.0
-    WHILE count < exponent
-        LET result = result * base
-        LET count = count + 1.0
-    ENDWHILE
-    RETURN result
-ENDFUNCTION
+Console.WriteLine("================================================")
+Console.WriteLine("  MATHEMATICAL ALGORITHMS DEMONSTRATION")
+Console.WriteLine("================================================")
+Console.WriteLine("")
 
-FUNCTION isPerfectSquare(n)
-    LET root = SQR(n)
-    LET intRoot = INT(root)
-    LET test = intRoot * intRoot
-    IF test == n THEN
-        RETURN 1.0
-    ENDIF
-    RETURN 0.0
-ENDFUNCTION
+Console.WriteLine("1. Greatest Common Divisor (GCD):")
+Console.WriteLine("   GCD(48, 18) = " + gcd(48, 18))
+Console.WriteLine("   GCD(1071, 462) = " + gcd(1071, 462))
+Console.WriteLine("")
 
-PRINT "========================================================"
-PRINT "  MATHEMATICAL ALGORITHMS DEMONSTRATION"
-PRINT "========================================================"
-PRINT ""
+Console.WriteLine("2. Least Common Multiple (LCM):")
+Console.WriteLine("   LCM(12, 18) = " + lcm(12, 18))
+Console.WriteLine("   LCM(15, 25) = " + lcm(15, 25))
+Console.WriteLine("")
 
-PRINT "1. GREATEST COMMON DIVISOR (GCD)"
-PRINT "   GCD(48, 18) =", gcd(48.0, 18.0)
-PRINT "   GCD(100, 75) =", gcd(100.0, 75.0)
-PRINT "   GCD(17, 19) =", gcd(17.0, 19.0)
-PRINT ""
+Console.WriteLine("3. Factorial:")
+Console.WriteLine("   5! = " + factorial(5))
+Console.WriteLine("   7! = " + factorial(7))
+Console.WriteLine("")
 
-PRINT "2. LEAST COMMON MULTIPLE (LCM)"
-PRINT "   LCM(12, 18) =", lcm(12.0, 18.0)
-PRINT "   LCM(21, 6) =", lcm(21.0, 6.0)
-PRINT ""
+Console.WriteLine("4. Fibonacci Sequence:")
+Console.WriteLine("   fib(10) = " + fibonacci(10))
+Console.WriteLine("   fib(20) = " + fibonacciIterative(20))
+Console.WriteLine("")
 
-PRINT "3. FACTORIAL"
-PRINT "   5! =", factorial(5.0)
-PRINT "   10! =", factorial(10.0)
-PRINT "   12! =", factorial(12.0)
-PRINT ""
+Console.WriteLine("5. Prime Number Check:")
+Console.WriteLine("   Is 17 prime? " + isPrime(17))
+Console.WriteLine("   Is 25 prime? " + isPrime(25))
+Console.WriteLine("   Is 29 prime? " + isPrime(29))
+Console.WriteLine("")
 
-PRINT "4. FIBONACCI (Recursive)"
-PRINT "   fib(10) =", fibonacci(10.0)
-PRINT "   fib(15) =", fibonacci(15.0)
-PRINT "   fib(20) =", fibonacci(20.0)
-PRINT ""
+Console.WriteLine("6. Built-in Math Functions:")
+Console.WriteLine("   SQR(144) = " + SQR(144))
+Console.WriteLine("   POW(2, 10) = " + POW(2, 10))
+Console.WriteLine("   ABS(-15) = " + ABS(-15))
+Console.WriteLine("   MIN(5, 3) = " + MIN(5, 3))
+Console.WriteLine("   MAX(5, 3) = " + MAX(5, 3))
+Console.WriteLine("")
 
-PRINT "5. FIBONACCI (Iterative - faster!)"
-PRINT "   fib(25) =", fibonacciIterative(25.0)
-PRINT "   fib(30) =", fibonacciIterative(30.0)
-PRINT "   fib(35) =", fibonacciIterative(35.0)
-PRINT ""
-
-PRINT "6. PRIME TESTING"
-PRINT "   2 is prime:", isPrime(2.0)
-PRINT "   17 is prime:", isPrime(17.0)
-PRINT "   100 is prime:", isPrime(100.0)
-PRINT "   97 is prime:", isPrime(97.0)
-PRINT "   89 is prime:", isPrime(89.0)
-PRINT ""
-
-PRINT "7. PRIME NUMBERS UP TO 50:"
-LET num = 2.0
-WHILE num <= 50.0
-    IF isPrime(num) == 1.0 THEN
-        PRINT "  ", num
-    ENDIF
-    LET num = num + 1.0
-ENDWHILE
-PRINT ""
-PRINT ""
-
-PRINT "8. POWERS"
-PRINT "   2^8 =", power(2.0, 8.0)
-PRINT "   3^4 =", power(3.0, 4.0)
-PRINT "   5^3 =", power(5.0, 3.0)
-PRINT ""
-
-PRINT "9. PERFECT SQUARES"
-PRINT "   16 is perfect square:", isPerfectSquare(16.0)
-PRINT "   25 is perfect square:", isPerfectSquare(25.0)
-PRINT "   26 is perfect square:", isPerfectSquare(26.0)
-PRINT "   100 is perfect square:", isPerfectSquare(100.0)
-PRINT ""
-
-PRINT "========================================================"
-PRINT "  All mathematical tests complete!"
-PRINT "========================================================"
-
+Console.WriteLine("================================================")
+Console.WriteLine("  All mathematical algorithms working!")
+Console.WriteLine("================================================")

@@ -1,104 +1,104 @@
 REM File Backup Utility - Demonstrates Phase 8 File I/O & Date/Time
 REM Creates timestamped backups of files
 
-PRINT "=== File Backup Utility ==="
-PRINT "Showcases: File operations, Date/Time formatting"
-PRINT ""
+Console.WriteLine("=== File Backup Utility ===")
+Console.WriteLine("Showcases: File operations, Date/Time formatting")
+Console.WriteLine("")
 
 REM Create a sample file to backup
-LET original = "important_data.txt"
-LET handle = OPENOUTPUT(original)
+original = "important_data.txt"
+handle = OPENOUTPUT(original)
 IF handle >= 0 THEN
-    LET dummy = WRITELINE(handle, "This is important data")
-    LET dummy = WRITELINE(handle, "Created: " + DATETIME())
-    LET dummy = WRITELINE(handle, "Version: 1.0")
-    LET dummy = CLOSEFILE(handle)
-    PRINT "Created "; original
+    dummy = WRITELINE(handle, "This is important data")
+    dummy = WRITELINE(handle, "Created: " + DATETIME())
+    dummy = WRITELINE(handle, "Version: 1.0")
+    dummy = CLOSEFILE(handle)
+    Console.WriteLine("Created " + original)
 ENDIF
 
 REM Check if file exists
 IF FILEEXISTS(original) THEN
-    PRINT "File exists: "; original
-    LET size = FILESIZE(original)
-    PRINT "File size: "; size; " bytes"
+    Console.WriteLine("File exists: " + original)
+    size = FILESIZE(original)
+    Console.WriteLine("File size: " + size + " bytes")
 ELSE
-    PRINT "ERROR: File not found"
+    Console.WriteLine("ERROR: File not found")
 ENDIF
 
-PRINT ""
+Console.WriteLine("")
 
 REM Create timestamped backup
-LET now = NOW()
-LET timestamp = FORMATDATE(now, "yyyyMMdd_HHmmss")
-LET backupName = CONCAT3("backup_", timestamp, ".txt")
+now = NOW()
+timestamp = FORMATDATE(now, "yyyyMMdd_HHmmss")
+backupName = CONCAT3("backup_", timestamp, ".txt")
 
-PRINT "Creating backup: "; backupName
+Console.WriteLine("Creating backup: " + backupName)
 IF COPY(original, backupName) THEN
-    PRINT "Backup created successfully"
+    Console.WriteLine("Backup created successfully")
     
     REM Verify backup
     IF FILEEXISTS(backupName) THEN
-        LET backupSize = FILESIZE(backupName)
-        PRINT "Backup size: "; backupSize; " bytes"
+        backupSize = FILESIZE(backupName)
+        Console.WriteLine("Backup size: " + backupSize + " bytes")
         
-        LET origSize = FILESIZE(original)
-        IF backupSize = origSize THEN
-            PRINT "Backup verified: sizes match"
+        origSize = FILESIZE(original)
+        IF backupSize == origSize THEN
+            Console.WriteLine("Backup verified: sizes match")
         ELSE
-            PRINT "WARNING: Backup size mismatch"
+            Console.WriteLine("WARNING: Backup size mismatch")
         ENDIF
     ENDIF
 ELSE
-    PRINT "ERROR: Backup failed"
+    Console.WriteLine("ERROR: Backup failed")
 ENDIF
 
-PRINT ""
-PRINT "Directory Information:"
-PRINT "Current directory: "; CURRENTDIR()
-PRINT "Absolute path: "; ABSOLUTEPATH(".")
+Console.WriteLine("")
+Console.WriteLine("Directory Information:")
+Console.WriteLine("Current directory: " + CURRENTDIR())
+Console.WriteLine("Absolute path: " + ABSOLUTEPATH("."))
 
-PRINT ""
-PRINT "File Type Checks:"
+Console.WriteLine("")
+Console.WriteLine("File Type Checks:")
 IF ISFILE(original) THEN
-    PRINT original; " is a file: YES"
+    Console.WriteLine(original + " is a file: YES")
 ENDIF
 
 IF ISDIR(".") THEN
-    PRINT "Current directory is a dir: YES"
+    Console.WriteLine("Current directory is a dir: YES")
 ENDIF
 
-PRINT ""
-PRINT "Date/Time Demonstrations:"
-PRINT "Current date: "; DATE()
-PRINT "Current time: "; TIME()
-PRINT "Full datetime: "; DATETIME()
-PRINT "Timestamp: "; NOW()
+Console.WriteLine("")
+Console.WriteLine("Date/Time Demonstrations:")
+Console.WriteLine("Current date: " + DATE())
+Console.WriteLine("Current time: " + TIME())
+Console.WriteLine("Full datetime: " + DATETIME())
+Console.WriteLine("Timestamp: " + NOW())
 
-LET yr = YEAR(now)
-LET mo = MONTH(now)
-LET dy = DAY(now)
-PRINT "Parsed date: "; yr; "-"; mo; "-"; dy
+yr = YEAR(now)
+mo = MONTH(now)
+dy = DAY(now)
+Console.WriteLine("Parsed date: " + yr + "-" + mo + "-" + dy)
 
 REM Calculate future dates
-LET oneWeek = ADDDAYS(now, 7)
-LET oneMonth = ADDMONTHS(now, 1)
-LET oneYear = ADDYEARS(now, 1)
+oneWeek = ADDDAYS(now, 7)
+oneMonth = ADDMONTHS(now, 1)
+oneYear = ADDYEARS(now, 1)
 
-PRINT ""
-PRINT "Future Dates:"
-PRINT "One week from now: "; FORMATDATE(oneWeek, "yyyy-MM-dd")
-PRINT "One month from now: "; FORMATDATE(oneMonth, "yyyy-MM-dd")
-PRINT "One year from now: "; FORMATDATE(oneYear, "yyyy-MM-dd")
+Console.WriteLine("")
+Console.WriteLine("Future Dates:")
+Console.WriteLine("One week from now: " + FORMATDATE(oneWeek, "yyyy-MM-dd"))
+Console.WriteLine("One month from now: " + FORMATDATE(oneMonth, "yyyy-MM-dd"))
+Console.WriteLine("One year from now: " + FORMATDATE(oneYear, "yyyy-MM-dd"))
 
-PRINT ""
-PRINT "Cleanup: Deleting backup..."
-LET deleted = DELETEFILE(backupName)
+Console.WriteLine("")
+Console.WriteLine("Cleanup: Deleting backup...")
+deleted = DELETEFILE(backupName)
 IF deleted THEN
-    PRINT "Backup deleted"
+    Console.WriteLine("Backup deleted")
 ELSE
-    PRINT "Could not delete backup"
+    Console.WriteLine("Could not delete backup")
 ENDIF
 
-PRINT ""
-PRINT "=== Backup Utility Complete ==="
+Console.WriteLine("")
+Console.WriteLine("=== Backup Utility Complete ===")
 

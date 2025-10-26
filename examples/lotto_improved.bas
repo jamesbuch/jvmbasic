@@ -1,135 +1,33 @@
-FUNCTION bubbleSort(arr, size)
-    LET n = size
-    LET i = 0.0
-    WHILE i < n - 1.0
-        LET j = 0.0
-        WHILE j < n - i - 1.0
-            IF arr(j) > arr(j + 1.0) THEN
-                LET temp = arr(j)
-                LET arr(j) = arr(j + 1.0)
-                LET arr(j + 1.0) = temp
-            ENDIF
-            LET j = j + 1.0
-        ENDWHILE
-        LET i = i + 1.0
-    ENDWHILE
-    RETURN 0.0
-ENDFUNCTION
+Console.WriteLine("================================================")
+Console.WriteLine("  ADVANCED LOTTO NUMBER GENERATOR")
+Console.WriteLine("  (Numbers 1-45, Pick 6)")
+Console.WriteLine("================================================")
+Console.WriteLine("")
 
-FUNCTION hasDuplicate(arr, size, value)
-    LET i = 0.0
-    WHILE i < size
-        IF arr(i) == value THEN
-            RETURN 1.0
-        ENDIF
-        LET i = i + 1.0
-    ENDWHILE
-    RETURN 0.0
-ENDFUNCTION
-
-SUB generateUniqueNumbers(arr, count, minVal, maxVal)
-    LET i = 0.0
-    WHILE i < count
-        LET num = INT(RNDINT(INT(minVal), INT(maxVal)))
-        
-        IF hasDuplicate(arr, i, num) == 0.0 THEN
-            LET arr(i) = num
-            LET i = i + 1.0
-        ENDIF
-    ENDWHILE
-ENDSUB
-
-SUB printNumbers(arr, size)
-    LET i = 0.0
-    WHILE i < size
-        IF i > 0.0 THEN
-            PRINT " -";
-        ENDIF
-        IF arr(i) < 10.0 THEN
-            PRINT " ";
-        ENDIF
-        PRINT arr(i);
-        LET i = i + 1.0
-    ENDWHILE
-ENDSUB
-
-FUNCTION sumArray(arr, size)
-    LET total = 0.0
-    LET i = 0.0
-    WHILE i < size
-        LET total = total + arr(i)
-        LET i = i + 1.0
-    ENDWHILE
-    RETURN total
-ENDFUNCTION
-
-FUNCTION hasConsecutive(arr, size)
-    LET i = 0.0
-    WHILE i < size - 1.0
-        IF arr(i + 1.0) == arr(i) + 1.0 THEN
-            RETURN 1.0
-        ENDIF
-        LET i = i + 1.0
-    ENDWHILE
-    RETURN 0.0
-ENDFUNCTION
-
-PRINT "================================================"
-PRINT "  ADVANCED LOTTO NUMBER GENERATOR"
-PRINT "  (Numbers 1-45, Pick 6)"
-PRINT "================================================"
-PRINT ""
-
-DIM numbers(6) = 0.0
-
-PRINT "How many games would you like to generate?"
+games = 0
+Console.WriteLine("How many games do you want to generate?")
 INPUT games
 
-PRINT ""
-PRINT "Generating", games, "unique lotto games..."
-PRINT ""
+Console.WriteLine("")
+Console.WriteLine("Generating " + games + " unique lotto games...")
+Console.WriteLine("")
 
-LET gameNum = 1.0
-WHILE gameNum <= games
-    PRINT "Game", gameNum, ": ";
+FOR gameNum = 1 TO games
+    num1 = RNDINT(1, 45)
+    num2 = RNDINT(1, 45)
+    num3 = RNDINT(1, 45)
+    num4 = RNDINT(1, 45)
+    num5 = RNDINT(1, 45)
+    num6 = RNDINT(1, 45)
     
-    CALL generateUniqueNumbers(numbers, 6.0, 1, 45)
+    Console.WriteLine("Game " + gameNum + ": ")
+    Console.WriteLine("  Numbers: " + num1 + " " + num2 + " " + num3 + " " + num4 + " " + num5 + " " + num6)
     
-    LET dummy = bubbleSort(numbers, 6.0)
-    
-    CALL printNumbers(numbers, 6.0)
-    
-    LET sum = sumArray(numbers, 6.0)
-    LET avg = sum / 6.0
-    LET hasConsec = hasConsecutive(numbers, 6.0)
-    
-    PRINT "  (Sum:", sum, "Avg:", avg, "Consec:", hasConsec, ")"
-    
-    LET gameNum = gameNum + 1.0
-ENDWHILE
+    sum = num1 + num2 + num3 + num4 + num5 + num6
+    Console.WriteLine("  Sum: " + sum)
+    Console.WriteLine("")
+NEXT gameNum
 
-PRINT ""
-PRINT "================================================"
-PRINT "  STATISTICS SUMMARY"
-PRINT "================================================"
-PRINT ""
-
-CALL generateUniqueNumbers(numbers, 6.0, 1, 45)
-LET dummy = bubbleSort(numbers, 6.0)
-
-PRINT "Sample game analysis:"
-PRINT "  Numbers: ";
-CALL printNumbers(numbers, 6.0)
-PRINT ""
-PRINT "  Sum:", sumArray(numbers, 6.0)
-PRINT "  Average:", sumArray(numbers, 6.0) / 6.0
-PRINT "  Min:", numbers(0)
-PRINT "  Max:", numbers(5)
-PRINT "  Range:", numbers(5) - numbers(0)
-PRINT "  Has consecutive:", hasConsecutive(numbers, 6.0)
-
-PRINT ""
-PRINT "================================================"
-PRINT "  Good luck with your lotto tickets!"
-PRINT "================================================"
-
+Console.WriteLine("================================================")
+Console.WriteLine("  All games generated successfully!")
+Console.WriteLine("================================================")

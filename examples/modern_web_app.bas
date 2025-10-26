@@ -1,93 +1,91 @@
-' ====================================================
-' Modern Web Application Demo - Phase 9
-' Showcasing modern VB-style syntax with expression statements
-' Features: Namespaces, typed variables, JSON, HTTP, File I/O, Bitwise
-' ====================================================
+REM ====================================================
+REM Modern Web Application Demo - Phase 10
+REM Showcasing modern VB-style syntax with expression statements
+REM Features: Namespaces, typed variables, JSON, HTTP, File I/O, Bitwise
+REM ====================================================
 
-Function CalculateTotal(price As Single, taxRate As Single) As Single
-    Return price * (1.0 + taxRate)
-End Function
+FUNCTION CalculateTotal(price As Float, taxRate As Float) As Float
+    RETURN price * (1.0 + taxRate)
+ENDFUNCTION
 
-Function FormatCurrency(amount As Single) As String
-    Return "$" + FormatF("%.2f", amount)
-End Function
+FUNCTION FormatCurrency(amount As Float) As String
+    RETURN "$" + FormatF("%.2f", amount)
+ENDFUNCTION
 
-Sub DisplayBanner()
-    Print "====================================="
-    Print "  Modern JVM BASIC Web Application  "
-    Print "  Phase 9 - VB-Style Syntax Demo    "
-    Print "====================================="
-End Sub
+SUB DisplayBanner()
+    Console.WriteLine("=====================================")
+    Console.WriteLine("  Modern JVM BASIC Web Application  ")
+    Console.WriteLine("  Phase 10 - VB-Style Syntax Demo    ")
+    Console.WriteLine("=====================================")
+ENDSUB
 
-' ===== Main Program =====
+REM ===== Main Program =====
 
-Call DisplayBanner()
+CALL DisplayBanner()
 
-' Typed variable declarations
-Dim appName As String = "WebApp Demo"
-Dim version As Single = 1.0
-Dim active As Boolean = True
+REM Modern variable declarations
+appName = "WebApp Demo"
+version = 1.0
+active = true
 
-Print ""
-Print "Application: "; appName
-Print "Version: "; version
+Console.WriteLine("Application: " + appName)
+Console.WriteLine("Version: " + version)
+Console.WriteLine("Active: " + active)
+Console.WriteLine("")
 
-' File operations using File namespace
-Dim dataFile As String = "app_data.txt"
-Dim appData As String = "AppName: " + appName + ", Version: " + FormatF("%.1f", version)
-File.WriteAllText(dataFile, appData)
+REM Math operations
+price = 99.99
+taxRate = 0.08
+total = CalculateTotal(price, taxRate)
 
-If File.Exists(dataFile) == 1 Then
-    Print "Data file created successfully"
-    Dim content As String = File.ReadAllText(dataFile)
-    Print "Content: "; content
-Else
-    Print "Failed to create data file"
-End If
+Console.WriteLine("Price: " + FormatCurrency(price))
+Console.WriteLine("Tax Rate: " + FormatF("%.1f%%", taxRate * 100))
+Console.WriteLine("Total: " + FormatCurrency(total))
+Console.WriteLine("")
 
-' JSON operations using Json namespace
-Print ""
-Print "Creating JSON data..."
-Dim jsonObj As Integer = Json.NewObject()
-Json.Put(jsonObj, "app", appName)
-Json.PutInt(jsonObj, "users", 42)
-Dim jsonString As String = Json.ToString(jsonObj)
-Print "JSON: "; jsonString
+REM JSON operations
+obj = Json.NewObject()
+r = Json.Put(obj, "app", appName)
+r = Json.PutInt(obj, "version", 10)
+r = Json.Put(obj, "status", "active")
+jsonStr = Json.ToString(obj)
+Console.WriteLine("JSON Object: " + jsonStr)
+Console.WriteLine("")
 
-' Math calculations using Math namespace
-Print ""
-Print "Math calculations..."
-Dim price As Single = 99.99
-Dim tax As Single = 0.08
-Dim total As Single = CalculateTotal(price, tax)
-Print "Price: "; FormatCurrency(price)
-Print "Tax Rate: "; FormatF("%.0f", tax * 100.0); "%"
-Print "Total: "; FormatCurrency(total)
+REM HTTP operations
+text = "Hello World"
+encoded = Http.UrlEncode(text)
+Console.WriteLine("Original: " + text)
+Console.WriteLine("URL Encoded: " + encoded)
+Console.WriteLine("")
 
-' Bitwise operations demonstration
-Print ""
-Print "Bitwise operations..."
-Dim flags As Integer = 5
-Dim shifted As Integer = flags << 2
-Dim masked As Integer = flags & 3
-Dim combined As Integer = 1 | 2 | 4
-Dim toggled As Integer = flags ^ 3
-Print "Flags: "; flags; " << 2 = "; shifted
-Print "Bitwise AND: "; flags; " & 3 = "; masked
-Print "Bitwise OR: 1 | 2 | 4 = "; combined
-Print "Bitwise XOR: "; flags; " ^ 3 = "; toggled
+REM File operations
+fileContent = "Web application data"
+r = File.WriteAllText("webapp.txt", fileContent)
+readBack = File.ReadAllText("webapp.txt")
+Console.WriteLine("File content: " + readBack)
+r = File.Delete("webapp.txt")
+Console.WriteLine("")
 
-' URL encoding for web requests using Http namespace
-Print ""
-Print "URL encoding..."
-Dim query As String = "Hello World"
-Dim encoded As String = Http.UrlEncode(query)
-Print "Original: "; query
-Print "Encoded: "; encoded
+REM Bitwise operations
+flags = 5
+mask = 3
+result = flags & mask
+Console.WriteLine("Bitwise AND: " + flags + " & " + mask + " = " + result)
 
-' Clean up
-File.Delete(dataFile)
+shifted = flags << 2
+Console.WriteLine("Left shift: " + flags + " << 2 = " + shifted)
+Console.WriteLine("")
 
-Print ""
-Print "Demo complete!"
-Print "JVM BASIC is now a modern, professional language!"
+REM Math namespace
+angle = 1.5708
+sine = Math.Sin(angle)
+Console.WriteLine("Math.Sin(π/2) = " + FormatF("%.4f", sine))
+
+pi = Math.PI()
+Console.WriteLine("Math.PI = " + FormatF("%.5f", pi))
+Console.WriteLine("")
+
+Console.WriteLine("=====================================")
+Console.WriteLine("  Web Application Demo Complete!    ")
+Console.WriteLine("=====================================")
