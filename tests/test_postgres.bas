@@ -1,38 +1,38 @@
-Rem Test PostgreSQL database connectivity
+REM Test PostgreSQL database connectivity
 
-Print "=== PostgreSQL Database Test ==="
-Print ""
+Console.WriteLine("=== PostgreSQL Database Test ===")
+Console.WriteLine("")
 
-' Connect to PostgreSQL
-Dim conn As Integer = Db.Connect("jdbc:postgresql://localhost/postgres", "developer", "test")
-Print "Connection ID: "; conn
+REM Connect to PostgreSQL
+conn = Db.Connect("jdbc:postgresql://localhost/postgres", "developer", "test")
+Console.WriteLine("Connection ID: " + conn)
 
-If conn > 0 Then
-    Print "✓ Connected to PostgreSQL"
-    Print ""
+IF conn > 0 THEN
+    Console.WriteLine("✓ Connected to PostgreSQL")
+    Console.WriteLine("")
     
-    ' Query database version
-    Dim result As Integer = Db.Query(conn, "SELECT version()")
-    Print "Query result ID: "; result
+    REM Query database version
+    result = Db.Query(conn, "SELECT version()")
+    Console.WriteLine("Query result ID: " + result)
     
-    If result > 0 Then
-        Print "✓ Query executed"
-        Print ""
+    IF result > 0 THEN
+        Console.WriteLine("✓ Query executed")
+        Console.WriteLine("")
         
-        ' Note: Db.Next() method conflicts with NEXT keyword
-        ' Using direct query instead
-        Print "Database connected and queryable"
-    Else
-        Print "✗ Query failed"
-    End If
+        REM Note: Db.Next() method conflicts with NEXT keyword
+        REM Using direct query instead
+        Console.WriteLine("Database connected and queryable")
+    ELSE
+        Console.WriteLine("✗ Query failed")
+    ENDIF
     
-    ' Close connection
-    Dim closeResult As Integer = Db.Close(conn)
-    Print "Connection closed: "; closeResult
-Else
-    Print "✗ Connection failed"
-End If
+    REM Close connection
+    closeResult = Db.Close(conn)
+    Console.WriteLine("Connection closed: " + closeResult)
+ELSE
+    Console.WriteLine("✗ Connection failed")
+ENDIF
 
-Print ""
-Print "PostgreSQL test complete!"
+Console.WriteLine("")
+Console.WriteLine("PostgreSQL test complete!")
 

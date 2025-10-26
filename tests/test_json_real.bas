@@ -1,25 +1,25 @@
-Rem Test real JSON with Gson
+REM Test real JSON with Gson
 
-' Test creating and serializing JSON
-Dim newObj As Integer = Json.NewObject()
+REM Test creating and serializing JSON
+newObj = Json.NewObject()
 Json.Put(newObj, "app", "TestApp")
 Json.Put(newObj, "name", "Bob")
 Json.PutInt(newObj, "age", 25)
 Json.PutInt(newObj, "version", 1)
-Dim output As String = Json.ToString(newObj)
-Print "Created JSON: "; output
+output = Json.ToString(newObj)
+Console.WriteLine("Created JSON: " + output)
 
-' Test parsing the JSON we just created
-Dim parsed As Integer = Json.Parse(output)
-Print "Parsed back: "; parsed
+REM Test parsing the JSON we just created
+parsed = Json.Parse(output)
+Console.WriteLine("Parsed back: " + parsed)
 
-Dim appName As String = Json.GetString(parsed, "app")
-Dim userName As String = Json.GetString(parsed, "name")
-Dim userAge As Integer = Json.GetInt(parsed, "age")
+appName = Json.GetString(parsed, "app")
+userName = Json.GetString(parsed, "name")
+userAge = Json.GetInt(parsed, "age")
 
-Print "App: "; appName
-Print "User: "; userName  
-Print "Age: "; userAge
+Console.WriteLine("App: " + appName)
+Console.WriteLine("User: " + userName)
+Console.WriteLine("Age: " + userAge)
 
-Print "JSON test complete!"
+Console.WriteLine("JSON test complete!")
 

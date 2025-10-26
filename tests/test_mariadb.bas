@@ -1,34 +1,34 @@
-Rem Test MariaDB database connectivity
+REM Test MariaDB database connectivity
 
-Print "=== MariaDB Database Test ==="
-Print ""
+Console.WriteLine("=== MariaDB Database Test ===")
+Console.WriteLine("")
 
-' Connect to MariaDB
-Dim conn As Integer = Db.Connect("jdbc:mariadb://localhost/testdb", "developer", "test")
-Print "Connection ID: "; conn
+REM Connect to MariaDB
+conn = Db.Connect("jdbc:mariadb://localhost/testdb", "developer", "test")
+Console.WriteLine("Connection ID: " + conn)
 
-If conn > 0 Then
-    Print "✓ Connected to MariaDB"
-    Print ""
+IF conn > 0 THEN
+    Console.WriteLine("✓ Connected to MariaDB")
+    Console.WriteLine("")
     
-    ' Query database
-    Dim result As Integer = Db.Query(conn, "SELECT DATABASE()")
-    Print "Query result ID: "; result
+    REM Query database
+    result = Db.Query(conn, "SELECT DATABASE()")
+    Console.WriteLine("Query result ID: " + result)
     
-    If result > 0 Then
-        Print "✓ Query executed"
-        Print "Database connected and queryable"
-    Else
-        Print "✗ Query failed"
-    End If
+    IF result > 0 THEN
+        Console.WriteLine("✓ Query executed")
+        Console.WriteLine("Database connected and queryable")
+    ELSE
+        Console.WriteLine("✗ Query failed")
+    ENDIF
     
-    ' Close connection
-    Dim closeResult As Integer = Db.Close(conn)
-    Print "Connection closed: "; closeResult
-Else
-    Print "✗ Connection failed"
-End If
+    REM Close connection
+    closeResult = Db.Close(conn)
+    Console.WriteLine("Connection closed: " + closeResult)
+ELSE
+    Console.WriteLine("✗ Connection failed")
+ENDIF
 
-Print ""
-Print "MariaDB test complete!"
+Console.WriteLine("")
+Console.WriteLine("MariaDB test complete!")
 

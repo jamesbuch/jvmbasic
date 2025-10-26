@@ -1,171 +1,171 @@
-FUNCTION circleArea(radius)
+FUNCTION circleArea(radius As Integer) As Integer
     RETURN PI * radius * radius
 ENDFUNCTION
 
-FUNCTION celsiusToFahrenheit(c)
+FUNCTION celsiusToFahrenheit(c As Integer) As Integer
     RETURN c * 9.0 / 5.0 + 32.0
 ENDFUNCTION
 
-FUNCTION max3(a, b, c)
-    LET temp = a
+FUNCTION max3(a As Integer, b As Integer, c As Integer) As Integer
+    temp = a
     IF b > temp THEN
-        LET temp = b
+        temp = b
     ENDIF
     IF c > temp THEN
-        LET temp = c
+        temp = c
     ENDIF
     RETURN temp
 ENDFUNCTION
 
-FUNCTION hypotenuse(a, b)
+FUNCTION hypotenuse(a As Integer, b As Integer) As Integer
     RETURN SQR(a * a + b * b)
 ENDFUNCTION
 
-FUNCTION triangleArea(base, height)
+FUNCTION triangleArea(base As Integer, height As Integer) As Integer
     RETURN base * height / 2.0
 ENDFUNCTION
 
-FUNCTION pythagoreanTriple(a, b)
-    LET c = hypotenuse(a, b)
-    LET area = triangleArea(a, b)
-    PRINT "  Triangle sides:", a, ",", b, ",", c
-    PRINT "  Triangle area:", area
+FUNCTION pythagoreanTriple(a As Integer, b As Integer) As Integer
+    c = hypotenuse(a, b)
+    area = triangleArea(a, b)
+    Console.WriteLine("  Triangle sides: " + a + "," + b + "," + c)
+    Console.WriteLine("  Triangle area: " + area)
     RETURN c
 ENDFUNCTION
 
-SUB printBanner(title, width)
-    LET i = 0.0
+SUB printBanner(title As String, width As Integer)
+    i = 0
     WHILE i < width
-        PRINT "=";
-        LET i = i + 1.0
+        Console.Write("=")
+        i = i + 1
     ENDWHILE
-    PRINT ""
-    PRINT title
-    LET j = 0.0
+    Console.WriteLine("")
+    Console.WriteLine(title)
+    j = 0
     WHILE j < width
-        PRINT "=";
-        LET j = j + 1.0
+        Console.Write("=")
+        j = j + 1
     ENDWHILE
-    PRINT ""
+    Console.WriteLine("")
 ENDSUB
 
-PRINT "============================================"
-PRINT "   JVM BASIC COMPREHENSIVE TEST SUITE"
-PRINT "============================================"
-PRINT ""
+Console.WriteLine("============================================")
+Console.WriteLine("   JVM BASIC COMPREHENSIVE TEST SUITE")
+Console.WriteLine("============================================")
+Console.WriteLine("")
 
-PRINT "--- 1. VARIABLES AND TYPES ---"
-LET x = 42
-LET y = 3.14
-LET name = "JVM BASIC"
-LET active = true
-PRINT "Integer:", x
-PRINT "Float:", y
-PRINT "String:", name
-PRINT "Boolean:", active
-PRINT ""
+Console.WriteLine("--- 1. VARIABLES AND TYPES ---")
+x = 42
+y = 3.14
+name = "JVM BASIC"
+active = true
+Console.WriteLine("Integer: " + x)
+Console.WriteLine("Float: " + y)
+Console.WriteLine("String: " + name)
+Console.WriteLine("Boolean: " + active)
+Console.WriteLine("")
 
-PRINT "--- 2. ARITHMETIC OPERATIONS ---"
-LET a = 10.0
-LET b = 3.0
-PRINT "a =", a, ", b =", b
-PRINT "a + b =", a + b
-PRINT "a - b =", a - b
-PRINT "a * b =", a * b
-PRINT "a / b =", a / b
-PRINT "a MOD b =", a MOD b
-PRINT "Unary: -a =", -a
-PRINT ""
+Console.WriteLine("--- 2. ARITHMETIC OPERATIONS ---")
+a = 10.0
+b = 3.0
+Console.WriteLine("a = " + a + ", b = " + b)
+Console.WriteLine("a + b = " + (a + b))
+Console.WriteLine("a - b = " + (a - b))
+Console.WriteLine("a * b = " + (a * b))
+Console.WriteLine("a / b = " + (a / b))
+Console.WriteLine("a MOD b = " + (a MOD b))
+Console.WriteLine("Unary: -a = " + (-a))
+Console.WriteLine("")
 
-PRINT "--- 3. COMPARISON AND LOGIC ---"
-PRINT "10 < 20:", 10.0 < 20.0
-PRINT "15 > 10:", 15.0 > 10.0
-PRINT "5 == 5:", 5.0 == 5.0
-PRINT "7 <> 3:", 7.0 <> 3.0
-PRINT "5 <= 5:", 5.0 <= 5.0
-PRINT "8 >= 7:", 8.0 >= 7.0
-PRINT ""
+Console.WriteLine("--- 3. COMPARISON AND LOGIC ---")
+Console.WriteLine("10 < 20: " + (10.0 < 20.0))
+Console.WriteLine("15 > 10: " + (15.0 > 10.0))
+Console.WriteLine("5 == 5: " + (5.0 == 5.0))
+Console.WriteLine("7 <> 3: " + (7.0 <> 3.0))
+Console.WriteLine("5 <= 5: " + (5.0 <= 5.0))
+Console.WriteLine("8 >= 7: " + (8.0 >= 7.0))
+Console.WriteLine("")
 
-PRINT "--- 4. CONTROL STRUCTURES ---"
-PRINT "IF/ELSEIF/ELSE test:"
-LET score = 85.0
+Console.WriteLine("--- 4. CONTROL STRUCTURES ---")
+Console.WriteLine("IF/ELSEIF/ELSE test:")
+score = 85.0
 IF score >= 90.0 THEN
-    PRINT "  Grade: A"
+    Console.WriteLine("  Grade: A")
 ELSEIF score >= 80.0 THEN
-    PRINT "  Grade: B"
+    Console.WriteLine("  Grade: B")
 ELSEIF score >= 70.0 THEN
-    PRINT "  Grade: C"
+    Console.WriteLine("  Grade: C")
 ELSE
-    PRINT "  Grade: F"
+    Console.WriteLine("  Grade: F")
 ENDIF
-PRINT ""
+Console.WriteLine("")
 
-PRINT "FOR loop (1 to 5):"
-FOR i = 1.0 TO 5.0
-    PRINT "  i =", i
+Console.WriteLine("FOR loop (1 to 5):")
+FOR i = 1 TO 5
+    Console.WriteLine("  i = " + i)
 NEXT
-PRINT ""
+Console.WriteLine("")
 
-PRINT "WHILE loop (countdown from 3):"
-LET count = 3.0
-WHILE count > 0.0
-    PRINT "  count =", count
-    LET count = count - 1.0
+Console.WriteLine("WHILE loop (countdown from 3):")
+count = 3
+WHILE count > 0
+    Console.WriteLine("  count = " + count)
+    count = count - 1
 ENDWHILE
-PRINT ""
+Console.WriteLine("")
 
-PRINT "--- 5. ARRAYS ---"
-DIM numbers(5) = 0.0
-LET numbers(0) = 10.0
-LET numbers(1) = 20.0
-LET numbers(2) = 30.0
-LET numbers(3) = 40.0
-LET numbers(4) = 50.0
-PRINT "Array elements:"
-FOR j = 0.0 TO 4.0
-    PRINT "  numbers(", j, ") =", numbers(j)
+Console.WriteLine("--- 5. ARRAYS ---")
+DIM numbers(5) As Integer
+numbers(0) = 10
+numbers(1) = 20
+numbers(2) = 30
+numbers(3) = 40
+numbers(4) = 50
+Console.WriteLine("Array elements:")
+FOR j = 0 TO 4
+    Console.WriteLine("  numbers(" + j + ") = " + numbers(j))
 NEXT
-PRINT ""
+Console.WriteLine("")
 
-PRINT "--- 6. BUILT-IN MATH FUNCTIONS ---"
-PRINT "ABS(-15) =", ABS(-15.0)
-PRINT "SQR(16) =", SQR(16.0)
-PRINT "POW(2, 8) =", POW(2.0, 8.0)
-PRINT "MIN(5, 3) =", MIN(5.0, 3.0)
-PRINT "MAX(5, 3) =", MAX(5.0, 3.0)
-PRINT "SIN(0) =", SIN(0.0)
-PRINT "COS(0) =", COS(0.0)
-PRINT "PI =", PI
-PRINT "E =", E
-PRINT ""
+Console.WriteLine("--- 6. BUILT-IN MATH FUNCTIONS ---")
+Console.WriteLine("ABS(-15) = " + ABS(-15.0))
+Console.WriteLine("SQR(16) = " + SQR(16.0))
+Console.WriteLine("POW(2, 8) = " + POW(2.0, 8.0))
+Console.WriteLine("MIN(5, 3) = " + MIN(5.0, 3.0))
+Console.WriteLine("MAX(5, 3) = " + MAX(5.0, 3.0))
+Console.WriteLine("SIN(0) = " + SIN(0.0))
+Console.WriteLine("COS(0) = " + COS(0.0))
+Console.WriteLine("PI = " + PI)
+Console.WriteLine("E = " + E)
+Console.WriteLine("")
 
-PRINT "--- 7. STRING FUNCTIONS ---"
-LET text = "Hello World"
-PRINT "Original:", text
-PRINT "LEN:", LEN(text)
-PRINT "UPPER:", UPPER(text)
-PRINT "LOWER:", LOWER(text)
-PRINT "LEFT(5):", LEFT(text, 5)
-PRINT "RIGHT(5):", RIGHT(text, 5)
-PRINT ""
+Console.WriteLine("--- 7. STRING FUNCTIONS ---")
+text = "Hello World"
+Console.WriteLine("Original: " + text)
+Console.WriteLine("LEN: " + LEN(text))
+Console.WriteLine("UPPER: " + UPPER(text))
+Console.WriteLine("LOWER: " + LOWER(text))
+Console.WriteLine("LEFT(s, 5): " + LEFT(text, 5))
+Console.WriteLine("RIGHT(s, 5): " + RIGHT(text, 5))
+Console.WriteLine("")
 
-PRINT "--- 8. USER-DEFINED FUNCTIONS ---"
-PRINT "Circle area (radius=5):", circleArea(5.0)
-PRINT "0°C in Fahrenheit:", celsiusToFahrenheit(0.0)
-PRINT "100°C in Fahrenheit:", celsiusToFahrenheit(100.0)
-PRINT "max(15, 42, 28) =", max3(15.0, 42.0, 28.0)
-PRINT ""
+Console.WriteLine("--- 8. USER-DEFINED FUNCTIONS ---")
+Console.WriteLine("Circle area (radius=5): " + circleArea(5))
+Console.WriteLine("0°C in Fahrenheit: " + celsiusToFahrenheit(0))
+Console.WriteLine("100°C in Fahrenheit: " + celsiusToFahrenheit(100))
+Console.WriteLine("max(15, 42, 28) = " + max3(15, 42, 28))
+Console.WriteLine("")
 
-PRINT "--- 9. SUB PROCEDURES ---"
-CALL printBanner("SUCCESS", 20.0)
-PRINT ""
+Console.WriteLine("--- 9. SUB PROCEDURES ---")
+CALL printBanner("SUCCESS", 20)
+Console.WriteLine("")
 
-PRINT "--- 10. NESTED FUNCTIONS ---"
-PRINT "Pythagorean triple (3, 4):"
-LET h = pythagoreanTriple(3.0, 4.0)
-PRINT ""
+Console.WriteLine("--- 10. NESTED FUNCTIONS ---")
+Console.WriteLine("Pythagorean triple (3, 4):")
+h = pythagoreanTriple(3, 4)
+Console.WriteLine("")
 
-PRINT "============================================"
-PRINT "   ALL COMPREHENSIVE TESTS COMPLETE!"
-PRINT "============================================"
+Console.WriteLine("============================================")
+Console.WriteLine("   ALL COMPREHENSIVE TESTS COMPLETE!")
+Console.WriteLine("============================================")
 

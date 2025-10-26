@@ -844,101 +844,42 @@ ExprPtr Parser::parseExpr() {
 }
 
 StmtPtr Parser::parseStmt() {
+    // Phase 10: Simplified PRINT - no semicolon/comma separators
     if (tok.type == TokenType::PRINT) {
         next();
         vector<ExprPtr> exprs;
-        vector<PrintSep> seps;
-        bool addNewline = true;
         
-        // Parse expressions with separators (check we're not at a statement keyword or end)
-        bool shouldParse = (tok.type != TokenType::END && 
-                           tok.type != TokenType::PRINT && 
-                           tok.type != TokenType::LET && 
-                           tok.type != TokenType::INPUT &&
-                           tok.type != TokenType::DIM && 
-                           tok.type != TokenType::IF &&
-                           tok.type != TokenType::FOR && 
-                           tok.type != TokenType::WHILE && 
-                           tok.type != TokenType::DO &&
-                           tok.type != TokenType::NEXT && 
-                           tok.type != TokenType::ENDWHILE && 
-                           tok.type != TokenType::WEND &&
-                           tok.type != TokenType::ENDIF && 
-                           tok.type != TokenType::ELSEIF && 
-                           tok.type != TokenType::ELSE &&
-                           tok.type != TokenType::RETURN && 
-                           tok.type != TokenType::CALL &&
-                           tok.type != TokenType::ENDFUNCTION && 
-                           tok.type != TokenType::ENDSUB);
-        
-        if (shouldParse) {
+        // Parse single expression only (no separators)
+        if (tok.type != TokenType::END && 
+            tok.type != TokenType::PRINT && 
+            tok.type != TokenType::LET && 
+            tok.type != TokenType::INPUT &&
+            tok.type != TokenType::DIM && 
+            tok.type != TokenType::IF &&
+            tok.type != TokenType::FOR && 
+            tok.type != TokenType::WHILE && 
+            tok.type != TokenType::DO &&
+            tok.type != TokenType::NEXT && 
+            tok.type != TokenType::ENDWHILE && 
+            tok.type != TokenType::WEND &&
+            tok.type != TokenType::ENDIF && 
+            tok.type != TokenType::ELSEIF && 
+            tok.type != TokenType::ELSE &&
+            tok.type != TokenType::RETURN && 
+            tok.type != TokenType::CALL &&
+            tok.type != TokenType::ENDFUNCTION && 
+            tok.type != TokenType::ENDSUB) {
             
             exprs.push_back(parseExpr());
-            
-            while (tok.type == TokenType::COMMA || tok.type == TokenType::SEMI) {
-                PrintSep sep = (tok.type == TokenType::COMMA) ? PrintSep::Comma : PrintSep::Semi;
-                seps.push_back(sep);
-                next();
-                
-                // Check for trailing separator
-                if (tok.type == TokenType::END || tok.type == TokenType::PRINT ||
-                    tok.type == TokenType::LET || tok.type == TokenType::INPUT ||
-                    tok.type == TokenType::DIM || tok.type == TokenType::IF ||
-                    tok.type == TokenType::FOR || tok.type == TokenType::WHILE || tok.type == TokenType::DO ||
-                    tok.type == TokenType::NEXT || tok.type == TokenType::ENDWHILE || tok.type == TokenType::WEND ||
-                    tok.type == TokenType::ENDIF || tok.type == TokenType::ELSEIF || tok.type == TokenType::ELSE ||
-                    tok.type == TokenType::RETURN || tok.type == TokenType::CALL ||
-                    tok.type == TokenType::ENDFUNCTION || tok.type == TokenType::ENDSUB) {
-                    addNewline = false;
-                    break;
-                }
-                
-                exprs.push_back(parseExpr());
-            }
         }
         
-        return make_unique<Stmt>(StmtKind::Print, PrintStmt{move(exprs), move(seps), addNewline});
+        // Create simplified PrintStmt with empty separators and always add newline
+        vector<PrintSep> seps; // Empty - no separators in Phase 10
+        return make_unique<Stmt>(StmtKind::Print, PrintStmt{move(exprs), move(seps), true});
     }
     
-    if (tok.type == TokenType::LET) {
-        next();
-        string var = expect(TokenType::ID).val;
-        
-        // Check for member access: LET var.member = value (Phase 6)
-        if (tok.type == TokenType::DOT) {
-            // Member assignment
-            vector<string> memberPath;
-            while (tok.type == TokenType::DOT) {
-                next();
-                memberPath.push_back(expect(TokenType::ID).val);
-            }
-            
-            expect(TokenType::ASSIGN);
-            auto expr = parseExpr();
-            
-            // For now, handle single-level member access
-            if (memberPath.size() == 1) {
-                // Store as "var.member" in the var field (hack for Phase 6)
-                string fullPath = var + "." + memberPath[0];
-                return make_unique<Stmt>(StmtKind::Let, LetStmt{fullPath, move(expr), nullptr});
-            } else {
-                error("Nested member access in assignment not yet supported");
-            }
-        }
-        
-        // Check for array assignment: LET arr(index) = value
-        ExprPtr index = nullptr;
-        if (tok.type == TokenType::LPAREN) {
-            next();
-            index = parseExpr();
-            expect(TokenType::RPAREN);
-        }
-        
-        expect(TokenType::ASSIGN);
-        auto expr = parseExpr();
-        
-        return make_unique<Stmt>(StmtKind::Let, LetStmt{var, move(expr), move(index)});
-    }
+    // Phase 10: LET keyword is now optional - removed LET requirement
+    // Bare assignments are handled below in the ID parsing section
     
     if (tok.type == TokenType::INPUT) {
         next();
@@ -1310,7 +1251,6 @@ StmtPtr Parser::parseStmt() {
             
             // Not a namespace - parse as member access assignment
             vector<string> memberPath;
-            memberPath.push_back(expect(TokenType::ID).val);  // First member already consumed
             while (tok.type == TokenType::DOT) {
                 next();
                 memberPath.push_back(expect(TokenType::ID).val);
@@ -1393,7 +1333,7 @@ DeclPtr Parser::parseDecl() {
                 Type paramType = Type::Float;  // Default
                 string paramTypeName;
                 
-                // Phase 9: Check for AS Type
+                // Phase 10: Require explicit types for all parameters
                 if (tok.type == TokenType::AS) {
                     next();
                     if (tok.type == TokenType::INTEGER) {
@@ -1432,6 +1372,9 @@ DeclPtr Parser::parseDecl() {
                         paramTypeName = expect(TokenType::ID).val;
                         paramType = resolveTypeName(paramTypeName);
                     }
+                } else {
+                    // Phase 10: Require explicit parameter types
+                    error("Parameter must have explicit type (As TypeName)");
                 }
                 
                 params.push_back(Param{paramName, paramType, paramTypeName});
@@ -1439,8 +1382,8 @@ DeclPtr Parser::parseDecl() {
         }
         expect(TokenType::RPAREN);
         
-        // Phase 9: Check for return type: Function Add(...) As Integer
-        Type returnType = Type::Float;  // Default
+        // Phase 10: Require explicit return type for all functions
+        Type returnType = Type::Float;  // Default fallback
         if (tok.type == TokenType::AS) {
             next();
             if (tok.type == TokenType::INTEGER) {
@@ -1471,6 +1414,9 @@ DeclPtr Parser::parseDecl() {
                 string returnTypeName = expect(TokenType::ID).val;
                 returnType = resolveTypeName(returnTypeName);
             }
+        } else {
+            // Phase 10: Require explicit return type
+            error("Function must have explicit return type (As TypeName)");
         }
         
         vector<StmtPtr> body;
@@ -1502,7 +1448,7 @@ DeclPtr Parser::parseDecl() {
                 Type paramType = Type::Float;  // Default
                 string paramTypeName;
                 
-                // Phase 9: Check for AS Type
+                // Phase 10: Require explicit types for all parameters
                 if (tok.type == TokenType::AS) {
                     next();
                     if (tok.type == TokenType::INTEGER) {
@@ -1541,6 +1487,9 @@ DeclPtr Parser::parseDecl() {
                         paramTypeName = expect(TokenType::ID).val;
                         paramType = resolveTypeName(paramTypeName);
                     }
+                } else {
+                    // Phase 10: Require explicit parameter types
+                    error("Parameter must have explicit type (As TypeName)");
                 }
                 
                 params.push_back(Param{paramName, paramType, paramTypeName});

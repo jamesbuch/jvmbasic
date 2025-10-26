@@ -1,136 +1,136 @@
 REM Test Phase 8: Advanced File I/O and Character I/O
-PRINT "=== Phase 8 Advanced File I/O Test ==="
+Console.WriteLine("=== Phase 8 Advanced File I/O Test ===")
 
 REM Create a test file
-LET handle = OPENOUTPUT("test_phase8_temp.txt")
+handle = OPENOUTPUT("test_phase8_temp.txt")
 IF handle >= 0 THEN
-    LET dummy = WRITELINE(handle, "Line 1: Hello")
-    LET dummy = WRITELINE(handle, "Line 2: World")
-    LET dummy = WRITELINE(handle, "Line 3: JVM BASIC")
-    LET dummy = CLOSEFILE(handle)
-    PRINT "Created test file"
+    dummy = WRITELINE(handle, "Line 1: Hello")
+    dummy = WRITELINE(handle, "Line 2: World")
+    dummy = WRITELINE(handle, "Line 3: JVM BASIC")
+    dummy = CLOSEFILE(handle)
+    Console.WriteLine("Created test file")
 ELSE
-    PRINT "ERROR: Could not create file"
+    Console.WriteLine("ERROR: Could not create file")
 ENDIF
 
 REM Test FILESIZE
-LET size = FILESIZE("test_phase8_temp.txt")
-PRINT "File size: "; size; " bytes"
+size = FILESIZE("test_phase8_temp.txt")
+Console.WriteLine("File size: " + size + " bytes")
 IF size <= 0 THEN
-    PRINT "ERROR: File size should be positive"
+    Console.WriteLine("ERROR: File size should be positive")
 ENDIF
 
 REM Test ISFILE and ISDIR
 IF ISFILE("test_phase8_temp.txt") THEN
-    PRINT "ISFILE: OK"
+    Console.WriteLine("ISFILE: OK")
 ELSE
-    PRINT "ERROR: ISFILE failed"
+    Console.WriteLine("ERROR: ISFILE failed")
 ENDIF
 
 IF ISDIR("test_phase8_temp.txt") THEN
-    PRINT "ERROR: ISDIR should be false for files"
+    Console.WriteLine("ERROR: ISDIR should be false for files")
 ELSE
-    PRINT "ISDIR (should be false): OK"
+    Console.WriteLine("ISDIR (should be false): OK")
 ENDIF
 
 REM Test character I/O
-LET handle = OPENINPUT("test_phase8_temp.txt")
+handle = OPENINPUT("test_phase8_temp.txt")
 IF handle >= 0 THEN
-    PRINT "Reading characters..."
-    LET count = 0
-    LET ch = READCHAR(handle)
+    Console.WriteLine("Reading characters...")
+    count = 0
+    ch = READCHAR(handle)
     WHILE ch >= 0
         IF count < 10 THEN
-            PRINT "Char "; count; ": "; CHR(ch); " (ASCII "; ch; ")"
+            Console.WriteLine("Char " + count + ": " + CHR(ch) + " (ASCII " + ch + ")")
         ENDIF
-        LET count = count + 1
-        LET ch = READCHAR(handle)
+        count = count + 1
+        ch = READCHAR(handle)
     ENDWHILE
-    LET dummy = CLOSEFILE(handle)
+    dummy = CLOSEFILE(handle)
 ELSE
-    PRINT "ERROR: Could not open file for reading"
+    Console.WriteLine("ERROR: Could not open file for reading")
 ENDIF
 
 REM Test ISEOF and HASMORE
-LET handle = OPENINPUT("test_phase8_temp.txt")
+handle = OPENINPUT("test_phase8_temp.txt")
 IF handle >= 0 THEN
     IF HASMORE(handle) THEN
-        PRINT "HASMORE: OK (file has data)"
+        Console.WriteLine("HASMORE: OK (file has data)")
     ELSE
-        PRINT "ERROR: HASMORE should be true"
+        Console.WriteLine("ERROR: HASMORE should be true")
     ENDIF
     
     REM Read all data
-    LET ch = READCHAR(handle)
+    ch = READCHAR(handle)
     WHILE ch >= 0
-        LET ch = READCHAR(handle)
+        ch = READCHAR(handle)
     ENDWHILE
     
     IF ISEOF(handle) THEN
-        PRINT "ISEOF: OK (reached end)"
+        Console.WriteLine("ISEOF: OK (reached end)")
     ELSE
-        PRINT "ERROR: ISEOF should be true"
+        Console.WriteLine("ERROR: ISEOF should be true")
     ENDIF
     
-    LET dummy = CLOSEFILE(handle)
+    dummy = CLOSEFILE(handle)
 ELSE
-    PRINT "ERROR: Could not open file"
+    Console.WriteLine("ERROR: Could not open file")
 ENDIF
 
 REM Test COPY
 IF COPY("test_phase8_temp.txt", "test_phase8_copy.txt") THEN
-    PRINT "COPY: OK"
+    Console.WriteLine("COPY: OK")
     IF FILEEXISTS("test_phase8_copy.txt") THEN
-        PRINT "Copy file exists: OK"
+        Console.WriteLine("Copy file exists: OK")
     ELSE
-        PRINT "ERROR: Copy file should exist"
+        Console.WriteLine("ERROR: Copy file should exist")
     ENDIF
 ELSE
-    PRINT "ERROR: COPY failed"
+    Console.WriteLine("ERROR: COPY failed")
 ENDIF
 
 REM Test RENAME  
 IF RENAME("test_phase8_copy.txt", "test_phase8_renamed.txt") THEN
-    PRINT "RENAME: OK"
+    Console.WriteLine("RENAME: OK")
     IF FILEEXISTS("test_phase8_renamed.txt") THEN
-        PRINT "Renamed file exists: OK"
+        Console.WriteLine("Renamed file exists: OK")
     ELSE
-        PRINT "ERROR: Renamed file should exist"
+        Console.WriteLine("ERROR: Renamed file should exist")
     ENDIF
 ELSE
-    PRINT "ERROR: RENAME failed"
+    Console.WriteLine("ERROR: RENAME failed")
 ENDIF
 
 REM Test MOVE
 IF MOVE("test_phase8_renamed.txt", "test_phase8_moved.txt") THEN
-    PRINT "MOVE: OK"
+    Console.WriteLine("MOVE: OK")
 ELSE
-    PRINT "ERROR: MOVE failed"
+    Console.WriteLine("ERROR: MOVE failed")
 ENDIF
 
 REM Test directory functions
-PRINT "Current directory: "; CURRENTDIR()
-PRINT "Absolute path: "; ABSOLUTEPATH(".")
+Console.WriteLine("Current directory: " + CURRENTDIR())
+Console.WriteLine("Absolute path: " + ABSOLUTEPATH("."))
 
 REM Test MKDIR
 IF MKDIR("test_phase8_dir") THEN
-    PRINT "MKDIR: OK"
+    Console.WriteLine("MKDIR: OK")
     IF ISDIR("test_phase8_dir") THEN
-        PRINT "Directory exists: OK"
+        Console.WriteLine("Directory exists: OK")
     ELSE
-        PRINT "ERROR: Directory should exist"
+        Console.WriteLine("ERROR: Directory should exist")
     ENDIF
 ELSE
     REM May already exist
-    PRINT "MKDIR: (directory may already exist)"
+    Console.WriteLine("MKDIR: (directory may already exist)")
 ENDIF
 
 REM Clean up test files
-LET deleted1 = DELETEFILE("test_phase8_temp.txt")
-LET deleted2 = DELETEFILE("test_phase8_moved.txt")
+deleted1 = DELETEFILE("test_phase8_temp.txt")
+deleted2 = DELETEFILE("test_phase8_moved.txt")
 
 REM Remove test directory (only if empty)
-LET removed = RMDIR("test_phase8_dir")
+removed = RMDIR("test_phase8_dir")
 
-PRINT "=== All File I/O Tests Complete ==="
+Console.WriteLine("=== All File I/O Tests Complete ===")
 
