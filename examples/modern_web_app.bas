@@ -9,7 +9,7 @@ FUNCTION CalculateTotal(price As Float, taxRate As Float) As Float
 ENDFUNCTION
 
 FUNCTION FormatCurrency(amount As Float) As String
-    RETURN "$" + FormatF("%.2f", amount)
+    RETURN "$" + amount
 ENDFUNCTION
 
 SUB DisplayBanner()
@@ -39,7 +39,7 @@ taxRate = 0.08
 total = CalculateTotal(price, taxRate)
 
 Console.WriteLine("Price: " + FormatCurrency(price))
-Console.WriteLine("Tax Rate: " + FormatF("%.1f%%", taxRate * 100))
+Console.WriteLine("Tax Rate: " + (taxRate * 100) + "%")
 Console.WriteLine("Total: " + FormatCurrency(total))
 Console.WriteLine("")
 
@@ -80,10 +80,10 @@ Console.WriteLine("")
 REM Math namespace
 angle = 1.5708
 sine = Math.Sin(angle)
-Console.WriteLine("Math.Sin(π/2) = " + FormatF("%.4f", sine))
+Console.WriteLine("Math.Sin(π/2) = " + sine)
 
 pi = Math.PI()
-Console.WriteLine("Math.PI = " + FormatF("%.5f", pi))
+Console.WriteLine("Math.PI = " + pi)
 Console.WriteLine("")
 
 Console.WriteLine("=====================================")

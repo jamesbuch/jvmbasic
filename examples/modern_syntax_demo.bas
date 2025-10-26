@@ -23,30 +23,30 @@ dummy = Console.WriteLine("=== Modern JVM BASIC Demo ===")
 dummy = Console.WriteLine("")
 
 REM Math operations
-dummy = Console.WriteLine("Addition: 10 + 20 = " + FormatI("%d", sum))
+dummy = Console.WriteLine("Addition: 10 + 20 = " + sum)
 
 a = 3.5
 b = 2.0
 product = Multiply(a, b)
-dummy = Console.WriteLine("Multiplication: 3.5 * 2.0 = " + FormatF("%.1f", product))
+dummy = Console.WriteLine("Multiplication: 3.5 * 2.0 = " + product)
 
 REM Math namespace
 angle = 1.5708
 sine = Math.Sin(angle)
-dummy = Console.WriteLine("Math.Sin(1.5708) = " + FormatF("%.4f", sine))
+dummy = Console.WriteLine("Math.Sin(1.5708) = " + sine)
 
 pi = Math.PI()
-dummy = Console.WriteLine("Math.PI = " + FormatF("%.5f", pi))
+dummy = Console.WriteLine("Math.PI = " + pi)
 
 REM Bitwise operations
 dummy = Console.WriteLine("")
 dummy = Console.WriteLine("Bitwise operations:")
 num = 5
 leftShift = num << 2
-dummy = Console.WriteLine("5 << 2 = " + FormatI("%d", leftShift))
+dummy = Console.WriteLine("5 << 2 = " + leftShift)
 
 rightShift = 20 >> 1
-dummy = Console.WriteLine("20 >> 1 = " + FormatI("%d", rightShift))
+dummy = Console.WriteLine("20 >> 1 = " + rightShift)
 
 REM JSON operations
 dummy = Console.WriteLine("")
