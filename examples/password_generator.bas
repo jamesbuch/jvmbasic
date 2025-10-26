@@ -1,127 +1,65 @@
-FUNCTION generatePassword(length)
-    DIM charset(62) = ""
-    
-    LET i = 0.0
-    WHILE i < 26.0
-        LET charset(i) = CHR(97 + i)
-        LET i = i + 1.0
-    ENDWHILE
-    
-    LET i = 0.0
-    WHILE i < 26.0
-        LET charset(26 + i) = CHR(65 + i)
-        LET i = i + 1.0
-    ENDWHILE
-    
-    LET i = 0.0
-    WHILE i < 10.0
-        LET charset(52 + i) = CHR(48 + i)
-        LET i = i + 1.0
-    ENDWHILE
-    
-    LET password = ""
-    LET count = 0.0
+FUNCTION generatePassword(length As Integer) As String
+    password = ""
+    count = 0
     WHILE count < length
-        LET idx = RNDINT(0, 61)
-        LET password = password + charset(idx)
-        LET count = count + 1.0
+        rand = RNDINT(0, 2)
+        IF rand == 0 THEN
+            password = password + CHR(RNDINT(97, 122))
+        ELSEIF rand == 1 THEN
+            password = password + CHR(RNDINT(65, 90))
+        ELSE
+            password = password + CHR(RNDINT(48, 57))
+        ENDIF
+        count = count + 1
     ENDWHILE
-    
     RETURN password
 ENDFUNCTION
 
-FUNCTION hasLowercase(pwd)
-    LET i = 0.0
-    LET pwdLen = LEN(pwd)
-    WHILE i < pwdLen
-        LET c = ASC(MID(pwd, i, 1))
-        IF c >= 97 AND c <= 122 THEN
-            RETURN 1.0
+FUNCTION generateSecurePassword(length As Integer) As String
+    password = ""
+    count = 0
+    WHILE count < length
+        rand = RNDINT(0, 3)
+        IF rand == 0 THEN
+            password = password + CHR(RNDINT(97, 122))
+        ELSEIF rand == 1 THEN
+            password = password + CHR(RNDINT(65, 90))
+        ELSEIF rand == 2 THEN
+            password = password + CHR(RNDINT(48, 57))
+        ELSE
+            password = password + "!"
         ENDIF
-        LET i = i + 1.0
+        count = count + 1
     ENDWHILE
-    RETURN 0.0
+    RETURN password
 ENDFUNCTION
 
-FUNCTION hasUppercase(pwd)
-    LET i = 0.0
-    LET pwdLen = LEN(pwd)
-    WHILE i < pwdLen
-        LET c = ASC(MID(pwd, i, 1))
-        IF c >= 65 AND c <= 90 THEN
-            RETURN 1.0
-        ENDIF
-        LET i = i + 1.0
-    ENDWHILE
-    RETURN 0.0
-ENDFUNCTION
+Console.WriteLine("================================================")
+Console.WriteLine("  PASSWORD GENERATOR")
+Console.WriteLine("================================================")
+Console.WriteLine("")
 
-FUNCTION hasDigit(pwd)
-    LET i = 0.0
-    LET pwdLen = LEN(pwd)
-    WHILE i < pwdLen
-        LET c = ASC(MID(pwd, i, 1))
-        IF c >= 48 AND c <= 57 THEN
-            RETURN 1.0
-        ENDIF
-        LET i = i + 1.0
-    ENDWHILE
-    RETURN 0.0
-ENDFUNCTION
+Console.WriteLine("Generating passwords...")
+Console.WriteLine("")
 
-FUNCTION isStrongPassword(pwd)
-    IF hasLowercase(pwd) == 1.0 THEN
-        IF hasUppercase(pwd) == 1.0 THEN
-            IF hasDigit(pwd) == 1.0 THEN
-                RETURN 1.0
-            ENDIF
-        ENDIF
-    ENDIF
-    RETURN 0.0
-ENDFUNCTION
+password1 = generatePassword(8)
+password2 = generatePassword(12)
+password3 = generateSecurePassword(10)
+password4 = generateSecurePassword(16)
 
-PRINT "================================================"
-PRINT "  SECURE PASSWORD GENERATOR"
-PRINT "================================================"
-PRINT ""
+Console.WriteLine("8-character password: " + password1)
+Console.WriteLine("12-character password: " + password2)
+Console.WriteLine("10-character secure password: " + password3)
+Console.WriteLine("16-character secure password: " + password4)
+Console.WriteLine("")
 
-LET attempts = 0.0
-LET maxAttempts = 100.0
-LET found = 0.0
+Console.WriteLine("Password strength analysis:")
+Console.WriteLine("Length 8: " + LEN(password1) + " characters")
+Console.WriteLine("Length 12: " + LEN(password2) + " characters")
+Console.WriteLine("Length 10: " + LEN(password3) + " characters")
+Console.WriteLine("Length 16: " + LEN(password4) + " characters")
+Console.WriteLine("")
 
-WHILE found == 0.0 AND attempts < maxAttempts
-    LET pwd = generatePassword(12.0)
-    LET attempts = attempts + 1.0
-    
-    IF isStrongPassword(pwd) == 1.0 THEN
-        LET found = 1.0
-    ENDIF
-ENDWHILE
-
-IF found == 1.0 THEN
-    PRINT "Generated strong password (attempt", attempts, "):"
-    PRINT "  ", pwd
-    PRINT ""
-    PRINT "Password strength analysis:"
-    PRINT "  Length:", LEN(pwd)
-    PRINT "  Has lowercase:", hasLowercase(pwd)
-    PRINT "  Has uppercase:", hasUppercase(pwd)
-    PRINT "  Has digits:", hasDigit(pwd)
-ELSE
-    PRINT "Failed to generate strong password after", maxAttempts, "attempts"
-ENDIF
-
-PRINT ""
-PRINT "Generating 5 random passwords (12 characters each):"
-LET i = 1.0
-WHILE i <= 5.0
-    LET pwd = generatePassword(12.0)
-    PRINT "  ", i, ":", pwd, "(strong:", isStrongPassword(pwd), ")"
-    LET i = i + 1.0
-ENDWHILE
-
-PRINT ""
-PRINT "================================================"
-PRINT "  Password generation complete!"
-PRINT "================================================"
-
+Console.WriteLine("================================================")
+Console.WriteLine("  Password generation complete!")
+Console.WriteLine("================================================")

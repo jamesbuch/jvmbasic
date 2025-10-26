@@ -1,77 +1,84 @@
-FUNCTION isPrime(num)
-    IF num <= 1.0 THEN
-        RETURN false
+FUNCTION isPrime(num As Integer) As Integer
+    IF num <= 1 THEN
+        RETURN 0
     ENDIF
-    IF num == 2.0 THEN
-        RETURN true
+    IF num == 2 THEN
+        RETURN 1
     ENDIF
-    IF num MOD 2.0 == 0.0 THEN
-        RETURN false
+    IF num MOD 2 == 0 THEN
+        RETURN 0
     ENDIF
     
-    LET divisor = 3.0
+    divisor = 3
     WHILE divisor * divisor <= num
-        IF num MOD divisor == 0.0 THEN
-            RETURN false
+        IF num MOD divisor == 0 THEN
+            RETURN 0
         ENDIF
-        LET divisor = divisor + 2.0
+        divisor = divisor + 2
     ENDWHILE
-    RETURN true
+    RETURN 1
 ENDFUNCTION
 
-FUNCTION countPrimes(limit)
-    LET count = 0.0
-    LET num = 2.0
+FUNCTION countPrimes(limit As Integer) As Integer
+    count = 0
+    num = 2
     WHILE num <= limit
         IF isPrime(num) THEN
-            LET count = count + 1.0
+            count = count + 1
         ENDIF
-        LET num = num + 1.0
+        num = num + 1
     ENDWHILE
     RETURN count
 ENDFUNCTION
 
-SUB printPrimes(limit)
-    PRINT "Primes up to", limit, ":"
-    LET num = 2.0
-    LET count = 0.0
-    WHILE num <= limit
+FUNCTION findNthPrime(n As Integer) As Integer
+    count = 0
+    num = 2
+    WHILE count < n
         IF isPrime(num) THEN
-            PRINT num;
-            LET count = count + 1.0
-            LET remainder = count MOD 10.0
-            IF remainder == 0.0 THEN
-                PRINT ""
-            ELSE
-                PRINT ", ";
-            ENDIF
+            count = count + 1
         ENDIF
-        LET num = num + 1.0
+        num = num + 1
     ENDWHILE
-    PRINT ""
-ENDSUB
+    RETURN num - 1
+ENDFUNCTION
 
-PRINT "==========================================="
-PRINT "  PRIME NUMBERS - Sieve & Generation"
-PRINT "==========================================="
-PRINT ""
+Console.WriteLine("================================================")
+Console.WriteLine("  PRIME NUMBER CALCULATOR")
+Console.WriteLine("================================================")
+Console.WriteLine("")
 
-PRINT "Testing individual numbers:"
-PRINT "  2 is prime:", isPrime(2.0)
-PRINT "  17 is prime:", isPrime(17.0)
-PRINT "  100 is prime:", isPrime(100.0)
-PRINT "  97 is prime:", isPrime(97.0)
-PRINT ""
+Console.WriteLine("Checking individual numbers:")
+Console.WriteLine("Is 17 prime? " + isPrime(17))
+Console.WriteLine("Is 25 prime? " + isPrime(25))
+Console.WriteLine("Is 29 prime? " + isPrime(29))
+Console.WriteLine("Is 97 prime? " + isPrime(97))
+Console.WriteLine("")
 
-PRINT "Counting primes:"
-PRINT "  Primes up to 50:", countPrimes(50.0)
-PRINT "  Primes up to 100:", countPrimes(100.0)
-PRINT ""
+Console.WriteLine("Counting primes up to limits:")
+Console.WriteLine("Primes up to 10: " + countPrimes(10))
+Console.WriteLine("Primes up to 50: " + countPrimes(50))
+Console.WriteLine("Primes up to 100: " + countPrimes(100))
+Console.WriteLine("")
 
-CALL printPrimes(50.0)
+Console.WriteLine("Finding nth prime:")
+Console.WriteLine("5th prime: " + findNthPrime(5))
+Console.WriteLine("10th prime: " + findNthPrime(10))
+Console.WriteLine("20th prime: " + findNthPrime(20))
+Console.WriteLine("")
 
-PRINT ""
-PRINT "==========================================="
-PRINT "  Prime Number Tests Complete!"
-PRINT "==========================================="
+Console.WriteLine("Prime number list (first 20):")
+count = 0
+num = 2
+WHILE count < 20
+    IF isPrime(num) THEN
+        count = count + 1
+        Console.WriteLine("Prime " + count + ": " + num)
+    ENDIF
+    num = num + 1
+ENDWHILE
 
+Console.WriteLine("")
+Console.WriteLine("================================================")
+Console.WriteLine("  Prime number calculations complete!")
+Console.WriteLine("================================================")

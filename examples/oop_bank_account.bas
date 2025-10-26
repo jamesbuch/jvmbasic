@@ -1,57 +1,46 @@
 REM Bank Account Example - Demonstrating OOP in JVM BASIC
 REM Shows: Classes, constructors, PUBLIC/PRIVATE fields, object instantiation
 
-' Define BankAccount class
+REM Define BankAccount class
 CLASS BankAccount
-    PRIVATE balance AS FLOAT
-    PUBLIC owner AS STRING
-    PUBLIC accountNumber AS FLOAT
+    PRIVATE balance As Float
+    PUBLIC owner As String
+    PUBLIC accountNumber As Float
     
-    PUBLIC SUB New(name AS STRING, accountNum AS FLOAT, initialBalance AS FLOAT)
+SUB New(name As String, accountNum As Float, initialBalance As Float)
         owner = name
         accountNumber = accountNum
         balance = initialBalance
     END SUB
 END CLASS
 
-' Create bank accounts
-PRINT "=== Bank Account Management System ==="
-PRINT ""
+REM Create bank accounts
+Console.WriteLine("=== Bank Account Management System ===")
+Console.WriteLine("")
 
 DIM account1 AS NEW BankAccount("Alice Johnson", 1001.0, 5000.0)
 DIM account2 AS NEW BankAccount("Bob Smith", 1002.0, 3500.0)
 DIM account3 AS NEW BankAccount("Carol White", 1003.0, 10000.0)
 
-PRINT "Account Holder: "; account1.owner
-PRINT "Account Number: "; account1.accountNumber
-PRINT "Initial Balance: $"; account1.balance
-PRINT ""
+Console.WriteLine("Account Holder: " + account1.owner)
+Console.WriteLine("Account Number: " + account1.accountNumber)
+Console.WriteLine("Initial Balance: $" + account1.balance)
+Console.WriteLine("")
 
-PRINT "Account Holder: "; account2.owner
-PRINT "Account Number: "; account2.accountNumber
-PRINT "Initial Balance: $"; account2.balance
-PRINT ""
+Console.WriteLine("Account Holder: " + account2.owner)
+Console.WriteLine("Account Number: " + account2.accountNumber)
+Console.WriteLine("Initial Balance: $" + account2.balance)
+Console.WriteLine("")
 
-PRINT "Account Holder: "; account3.owner
-PRINT "Account Number: "; account3.accountNumber
-PRINT "Initial Balance: $"; account3.balance
-PRINT ""
+Console.WriteLine("Account Holder: " + account3.owner)
+Console.WriteLine("Account Number: " + account3.accountNumber)
+Console.WriteLine("Initial Balance: $" + account3.balance)
+Console.WriteLine("")
 
-' Demonstrate field access and modification
-LET account1.balance = account1.balance + 500.0
-LET account2.balance = account2.balance - 200.0
-
-PRINT "=== After Transactions ==="
-PRINT account1.owner; " new balance: $"; account1.balance
-PRINT account2.owner; " new balance: $"; account2.balance
-PRINT account3.owner; " balance: $"; account3.balance
-
-PRINT ""
-PRINT "✓ OOP Features Demonstrated:"
-PRINT "  - Class declarations with fields"
-PRINT "  - PUBLIC and PRIVATE modifiers"
-PRINT "  - Constructors with multiple parameters"
-PRINT "  - Object instantiation with NEW"
-PRINT "  - Field access and modification"
-PRINT "  - Multiple objects of same class"
-
+Console.WriteLine("=== Bank Account Demo Complete ===")
+Console.WriteLine("OOP features demonstrated:")
+Console.WriteLine("✓ CLASS declarations")
+Console.WriteLine("✓ PUBLIC/PRIVATE fields")
+Console.WriteLine("✓ Constructor (SUB New)")
+Console.WriteLine("✓ Object instantiation (NEW)")
+Console.WriteLine("✓ Field access")

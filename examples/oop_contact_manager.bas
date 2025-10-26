@@ -1,14 +1,14 @@
 REM Contact Manager - Demonstrates Real-World OOP Usage
 REM Shows: Multiple object types, constructors, data organization
 
-' Define Contact class
+REM Define Contact class
 CLASS Contact
-    PUBLIC firstName AS STRING
-    PUBLIC lastName AS STRING
-    PUBLIC email AS STRING
-    PUBLIC phone AS STRING
+    PUBLIC firstName As String
+    PUBLIC lastName As String
+    PUBLIC email As String
+    PUBLIC phone As String
     
-    PUBLIC SUB New(first AS STRING, last AS STRING, mail AS STRING, number AS STRING)
+SUB New(first As String, last As String, mail As String, number As String)
         firstName = first
         lastName = last
         email = mail
@@ -16,64 +16,56 @@ CLASS Contact
     END SUB
 END CLASS
 
-' Define Address class
+REM Define Address class
 CLASS Address
-    PUBLIC street AS STRING
-    PUBLIC city AS STRING
-    PUBLIC zip AS STRING
+    PUBLIC street As String
+    PUBLIC city As String
+    PUBLIC zip As String
     
-    PUBLIC SUB New(st AS STRING, ct AS STRING, z AS STRING)
+SUB New(st As String, ct As String, z As String)
         street = st
         city = ct
         zip = z
     END SUB
 END CLASS
 
-PRINT "=== Contact Management System ==="
-PRINT ""
+Console.WriteLine("=== Contact Manager System ===")
+Console.WriteLine("")
 
-' Create contacts
-DIM contact1 AS NEW Contact("Alice", "Johnson", "alice@email.com", "555-1234")
-DIM contact2 AS NEW Contact("Bob", "Smith", "bob@email.com", "555-5678")
-DIM contact3 AS NEW Contact("Carol", "White", "carol@email.com", "555-9012")
+REM Create contacts
+DIM contact1 AS NEW Contact("John", "Doe", "john.doe@email.com", "555-1234")
+DIM contact2 AS NEW Contact("Jane", "Smith", "jane.smith@email.com", "555-5678")
+DIM contact3 AS NEW Contact("Bob", "Johnson", "bob.johnson@email.com", "555-9012")
 
-' Create addresses
-DIM addr1 AS NEW Address("123 Main St", "Springfield", "12345")
-DIM addr2 AS NEW Address("456 Oak Ave", "Riverside", "67890")
+REM Create addresses
+DIM address1 AS NEW Address("123 Main St", "Anytown", "12345")
+DIM address2 AS NEW Address("456 Oak Ave", "Somewhere", "67890")
+DIM address3 AS NEW Address("789 Pine Rd", "Elsewhere", "54321")
 
-' Display contact information
-PRINT "Contact 1:"
-PRINT "  Name: "; contact1.firstName; " "; contact1.lastName
-PRINT "  Email: "; contact1.email
-PRINT "  Phone: "; contact1.phone
-PRINT ""
+Console.WriteLine("Contact 1:")
+Console.WriteLine("  Name: " + contact1.firstName + " " + contact1.lastName)
+Console.WriteLine("  Email: " + contact1.email)
+Console.WriteLine("  Phone: " + contact1.phone)
+Console.WriteLine("  Address: " + address1.street + ", " + address1.city + " " + address1.zip)
+Console.WriteLine("")
 
-PRINT "Contact 2:"
-PRINT "  Name: "; contact2.firstName; " "; contact2.lastName
-PRINT "  Email: "; contact2.email
-PRINT "  Phone: "; contact2.phone
-PRINT ""
+Console.WriteLine("Contact 2:")
+Console.WriteLine("  Name: " + contact2.firstName + " " + contact2.lastName)
+Console.WriteLine("  Email: " + contact2.email)
+Console.WriteLine("  Phone: " + contact2.phone)
+Console.WriteLine("  Address: " + address2.street + ", " + address2.city + " " + address2.zip)
+Console.WriteLine("")
 
-PRINT "Contact 3:"
-PRINT "  Name: "; contact3.firstName; " "; contact3.lastName
-PRINT "  Email: "; contact3.email
-PRINT "  Phone: "; contact3.phone
-PRINT ""
+Console.WriteLine("Contact 3:")
+Console.WriteLine("  Name: " + contact3.firstName + " " + contact3.lastName)
+Console.WriteLine("  Email: " + contact3.email)
+Console.WriteLine("  Phone: " + contact3.phone)
+Console.WriteLine("  Address: " + address3.street + ", " + address3.city + " " + address3.zip)
+Console.WriteLine("")
 
-' Display addresses
-PRINT "Address 1:"
-PRINT "  "; addr1.street
-PRINT "  "; addr1.city; ", "; addr1.zip
-PRINT ""
-
-PRINT "Address 2:"
-PRINT "  "; addr2.street
-PRINT "  "; addr2.city; ", "; addr2.zip
-PRINT ""
-
-PRINT "✓ Contact manager demonstrating:"
-PRINT "  - Real-world OOP data modeling"
-PRINT "  - Multiple classes with different purposes"
-PRINT "  - Multi-parameter constructors"
-PRINT "  - Complex data organization"
-
+Console.WriteLine("=== Contact Manager Demo Complete ===")
+Console.WriteLine("OOP features demonstrated:")
+Console.WriteLine("✓ Multiple CLASS declarations")
+Console.WriteLine("✓ Constructor parameters")
+Console.WriteLine("✓ Object instantiation")
+Console.WriteLine("✓ Field access and organization")

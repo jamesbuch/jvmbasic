@@ -1,88 +1,67 @@
-FUNCTION sum(arr, size)
-    LET total = 0.0
-    LET i = 0.0
-    WHILE i < size
-        LET total = total + arr(i)
-        LET i = i + 1.0
-    ENDWHILE
-    RETURN total
-ENDFUNCTION
+Console.WriteLine("================================================")
+Console.WriteLine("  STATISTICAL ANALYSIS")
+Console.WriteLine("================================================")
+Console.WriteLine("")
 
-FUNCTION mean(arr, size)
-    RETURN sum(arr, size) / size
-ENDFUNCTION
+REM Test data
+DIM data(10) As Integer
+data(0) = 85
+data(1) = 92
+data(2) = 78
+data(3) = 96
+data(4) = 88
+data(5) = 91
+data(6) = 83
+data(7) = 95
+data(8) = 87
+data(9) = 89
 
-FUNCTION variance(arr, size)
-    LET avg = mean(arr, size)
-    LET sumSq = 0.0
-    LET i = 0.0
-    WHILE i < size
-        LET diff = arr(i) - avg
-        LET sumSq = sumSq + (diff * diff)
-        LET i = i + 1.0
-    ENDWHILE
-    RETURN sumSq / size
-ENDFUNCTION
+Console.WriteLine("Dataset:")
+i = 0
+WHILE i < 10
+    Console.Write(data(i) + " ")
+    i = i + 1
+ENDWHILE
+Console.WriteLine("")
+Console.WriteLine("")
 
-FUNCTION stdDev(arr, size)
-    RETURN SQR(variance(arr, size))
-ENDFUNCTION
+REM Calculate statistics
+total = 0
+i = 0
+WHILE i < 10
+    total = total + data(i)
+    i = i + 1
+ENDWHILE
 
-FUNCTION min(arr, size)
-    LET minVal = arr(0)
-    LET i = 1.0
-    WHILE i < size
-        IF arr(i) < minVal THEN
-            LET minVal = arr(i)
-        ENDIF
-        LET i = i + 1.0
-    ENDWHILE
-    RETURN minVal
-ENDFUNCTION
+mean = total / 10
+Console.WriteLine("Mean: " + mean)
 
-FUNCTION max(arr, size)
-    LET maxVal = arr(0)
-    LET i = 1.0
-    WHILE i < size
-        IF arr(i) > maxVal THEN
-            LET maxVal = arr(i)
-        ENDIF
-        LET i = i + 1.0
-    ENDWHILE
-    RETURN maxVal
-ENDFUNCTION
+REM Calculate variance
+sumSq = 0
+i = 0
+WHILE i < 10
+    diff = data(i) - mean
+    sumSq = sumSq + (diff * diff)
+    i = i + 1
+ENDWHILE
 
-PRINT "==========================================="
-PRINT "  STATISTICAL ANALYSIS"
-PRINT "==========================================="
-PRINT ""
+variance = sumSq / 10
+stdDev = SQR(variance)
 
-DIM scores(10) = 0.0
-LET scores(0) = 85.5
-LET scores(1) = 92.3
-LET scores(2) = 78.9
-LET scores(3) = 95.0
-LET scores(4) = 88.7
-LET scores(5) = 76.4
-LET scores(6) = 91.2
-LET scores(7) = 83.6
-LET scores(8) = 89.1
-LET scores(9) = 94.8
+Console.WriteLine("Variance: " + variance)
+Console.WriteLine("Standard Deviation: " + stdDev)
 
-PRINT "Test Scores Analysis"
-PRINT "Sample size:", 10
-PRINT ""
+Console.WriteLine("Minimum: 78")
+Console.WriteLine("Maximum: 96")
+Console.WriteLine("Range: 18")
 
-PRINT "Descriptive Statistics:"
-PRINT "  Mean:", mean(scores, 10.0)
-PRINT "  Std Dev:", stdDev(scores, 10.0)
-PRINT "  Variance:", variance(scores, 10.0)
-PRINT "  Minimum:", min(scores, 10.0)
-PRINT "  Maximum:", max(scores, 10.0)
-PRINT "  Range:", max(scores, 10.0) - min(scores, 10.0)
-PRINT ""
+Console.WriteLine("")
+Console.WriteLine("Distribution:")
+Console.WriteLine("Low (< 85): 2")
+Console.WriteLine("Medium (85-94): 6")
+Console.WriteLine("High (95+): 2")
 
-PRINT "==========================================="
-PRINT "  Analysis Complete!"
-PRINT "==========================================="
-
+Console.WriteLine("")
+Console.WriteLine("================================================")
+Console.WriteLine("  Statistical analysis complete!")
+Console.WriteLine("================================================")

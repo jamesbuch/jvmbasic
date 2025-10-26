@@ -1,84 +1,85 @@
 REM Geometry Example - Multiple Classes Working Together
 REM Shows: Multiple classes, constructors, field access, calculations
 
-' Define Point class
+REM Define Point class
 CLASS Point
-    PUBLIC x AS FLOAT
-    PUBLIC y AS FLOAT
+    PUBLIC x As Float
+    PUBLIC y As Float
     
-    PUBLIC SUB New(px AS FLOAT, py AS FLOAT)
+SUB New(px As Float, py As Float)
         x = px
         y = py
     END SUB
 END CLASS
 
-' Define Rectangle class
+REM Define Rectangle class
 CLASS Rectangle
-    PUBLIC width AS FLOAT
-    PUBLIC height AS FLOAT
-    PUBLIC color AS STRING
+    PUBLIC width As Float
+    PUBLIC height As Float
+    PUBLIC color As String
     
-    PUBLIC SUB New(w AS FLOAT, h AS FLOAT, c AS STRING)
+SUB New(w As Float, h As Float, c As String)
         width = w
         height = h
         color = c
     END SUB
 END CLASS
 
-' Define Circle class
+REM Define Circle class
 CLASS Circle
-    PUBLIC radius AS FLOAT
-    PUBLIC centerX AS FLOAT
-    PUBLIC centerY AS FLOAT
+    PUBLIC radius As Float
+    PUBLIC color As String
     
-    PUBLIC SUB New(r AS FLOAT, cx AS FLOAT, cy AS FLOAT)
+SUB New(r As Float, c As String)
         radius = r
-        centerX = cx
-        centerY = cy
+        color = c
     END SUB
 END CLASS
 
-PRINT "=== Geometry System - OOP Demo ==="
-PRINT ""
+Console.WriteLine("=== Geometry Calculator ===")
+Console.WriteLine("")
 
-' Create geometric shapes
-DIM p1 AS NEW Point(10.0, 20.0)
-DIM p2 AS NEW Point(50.0, 75.0)
+REM Create geometric objects
+DIM point1 AS NEW Point(5.0, 10.0)
+DIM point2 AS NEW Point(15.0, 20.0)
 
-DIM rect AS NEW Rectangle(100.0, 50.0, "Blue")
-DIM square AS NEW Rectangle(80.0, 80.0, "Red")
+DIM rect1 AS NEW Rectangle(10.0, 5.0, "red")
+DIM rect2 AS NEW Rectangle(20.0, 15.0, "blue")
 
-DIM circle AS NEW Circle(25.0, 100.0, 100.0)
+DIM circle1 AS NEW Circle(7.5, "green")
+DIM circle2 AS NEW Circle(12.0, "yellow")
 
-' Display points
-PRINT "Point 1: ("; p1.x; ", "; p1.y; ")"
-PRINT "Point 2: ("; p2.x; ", "; p2.y; ")"
-PRINT ""
+Console.WriteLine("Points:")
+Console.WriteLine("  Point 1: (" + point1.x + ", " + point1.y + ")")
+Console.WriteLine("  Point 2: (" + point2.x + ", " + point2.y + ")")
+Console.WriteLine("")
 
-' Display rectangles
-PRINT rect.color; " Rectangle: "; rect.width; " x "; rect.height
-LET rectArea = rect.width * rect.height
-PRINT "  Area: "; rectArea
-PRINT ""
+Console.WriteLine("Rectangles:")
+Console.WriteLine("  Rectangle 1: " + rect1.width + " x " + rect1.height + " (" + rect1.color + ")")
+Console.WriteLine("  Rectangle 2: " + rect2.width + " x " + rect2.height + " (" + rect2.color + ")")
+Console.WriteLine("")
 
-PRINT square.color; " Square: "; square.width; " x "; square.height
-LET squareArea = square.width * square.height
-PRINT "  Area: "; squareArea
-PRINT ""
+Console.WriteLine("Circles:")
+Console.WriteLine("  Circle 1: radius " + circle1.radius + " (" + circle1.color + ")")
+Console.WriteLine("  Circle 2: radius " + circle2.radius + " (" + circle2.color + ")")
+Console.WriteLine("")
 
-' Display circle
-PRINT "Circle at ("; circle.centerX; ", "; circle.centerY; ")"
-PRINT "  Radius: "; circle.radius
-LET circleArea = PI * circle.radius * circle.radius
-PRINT "  Area: "; circleArea
-PRINT ""
+REM Calculate areas
+area1 = rect1.width * rect1.height
+area2 = rect2.width * rect2.height
+area3 = PI * circle1.radius * circle1.radius
+area4 = PI * circle2.radius * circle2.radius
 
-' Calculate distance between points
-LET dx = p2.x - p1.x
-LET dy = p2.y - p1.y
-LET distance = SQR(dx * dx + dy * dy)
-PRINT "Distance between points: "; distance
-PRINT ""
+Console.WriteLine("Areas:")
+Console.WriteLine("  Rectangle 1 area: " + area1)
+Console.WriteLine("  Rectangle 2 area: " + area2)
+Console.WriteLine("  Circle 1 area: " + area3)
+Console.WriteLine("  Circle 2 area: " + area4)
+Console.WriteLine("")
 
-PRINT "✓ Multiple classes working together!"
-
+Console.WriteLine("=== Geometry Demo Complete ===")
+Console.WriteLine("OOP features demonstrated:")
+Console.WriteLine("✓ Multiple CLASS declarations")
+Console.WriteLine("✓ Constructor parameters")
+Console.WriteLine("✓ Field access and calculations")
+Console.WriteLine("✓ Object instantiation")
