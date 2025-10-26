@@ -1,47 +1,47 @@
-PRINT "=== Regular Expression Test ==="
-PRINT ""
+Console.WriteLine("=== Regular Expression Test ===")
+Console.WriteLine("")
 
-LET text = "The answer is 42 and 100"
-LET email = "user@example.com"
-LET phone = "Phone: 555-1234"
+text = "The answer is 42 and 100"
+email = "user@example.com"
+phone = "Phone: 555-1234"
 
-PRINT "1. Pattern matching..."
-PRINT "   Text:", text
-PRINT "   Matches '\\d+' (digits):", REGEXMATCH("\\d+", text)
-PRINT "   Matches 'xyz':", REGEXMATCH("xyz", text)
-PRINT ""
+Console.WriteLine("1. Pattern matching...")
+Console.WriteLine("   Text: " + text)
+Console.WriteLine("   Matches '\\d+' (digits): " + REGEXMATCH("\\d+", text))
+Console.WriteLine("   Matches 'xyz': " + REGEXMATCH("xyz", text))
+Console.WriteLine("")
 
-PRINT "2. Finding patterns..."
-LET number = REGEXFIND("\\d+", text)
-PRINT "   First number found:", number
-LET word = REGEXFIND("answer", text)
-PRINT "   Word 'answer' found:", word
-PRINT ""
+Console.WriteLine("2. Finding patterns...")
+number = REGEXFIND("\\d+", text)
+Console.WriteLine("   First number found: " + number)
+word = REGEXFIND("answer", text)
+Console.WriteLine("   Word 'answer' found: " + word)
+Console.WriteLine("")
 
-PRINT "3. Capture groups..."
-LET username = REGEXGROUP("(.+)@", email, 1)
-PRINT "   Email:", email
-PRINT "   Username (group 1):", username
-LET domain = REGEXGROUP("@(.+)", email, 1)
-PRINT "   Domain (group 1):", domain
-PRINT ""
+Console.WriteLine("3. Capture groups...")
+username = REGEXGROUP("(.+)@", email, 1)
+Console.WriteLine("   Email: " + email)
+Console.WriteLine("   Username (group 1): " + username)
+domain = REGEXGROUP("@(.+)", email, 1)
+Console.WriteLine("   Domain (group 1): " + domain)
+Console.WriteLine("")
 
-PRINT "4. Replace..."
-LET masked = REGEXREPLACE("\\d", phone, "X")
-PRINT "   Original:", phone
-PRINT "   Masked:", masked
-LET clean = REGEXREPLACE("[^0-9]", phone, "")
-PRINT "   Digits only:", clean
-PRINT ""
+Console.WriteLine("4. Replace...")
+masked = REGEXREPLACE("\\d", phone, "X")
+Console.WriteLine("   Original: " + phone)
+Console.WriteLine("   Masked: " + masked)
+clean = REGEXREPLACE("[^0-9]", phone, "")
+Console.WriteLine("   Digits only: " + clean)
+Console.WriteLine("")
 
-PRINT "5. Format strings..."
-LET msg1 = FORMAT("Hello, {0}!", "World")
-PRINT "   ", msg1
-LET msg2 = FORMATF("Pi is approximately {0}", PI)
-PRINT "   ", msg2
-LET msg3 = FORMATI("The answer is {0}", 42)
-PRINT "   ", msg3
-PRINT ""
+Console.WriteLine("5. Format strings...")
+msg1 = FORMAT("Hello, {0}!", "World")
+Console.WriteLine("    " + msg1)
+msg2 = FORMATF("Pi is approximately {0}", PI)
+Console.WriteLine("    " + msg2)
+msg3 = FORMATI("The answer is {0}", 42)
+Console.WriteLine("    " + msg3)
+Console.WriteLine("")
 
-PRINT "=== Regex Tests Complete ==="
+Console.WriteLine("=== Regex Tests Complete ===")
 

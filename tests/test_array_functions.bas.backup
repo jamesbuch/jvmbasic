@@ -1,0 +1,41 @@
+FUNCTION sumArrayCustom(arr As IntegerArray, size As Integer)
+    total = 0.0
+    i = 0.0
+    WHILE i < size
+        total = total + arr(i)
+        i = i + 1.0
+    ENDWHILE
+    RETURN total
+ENDFUNCTION
+
+FUNCTION findMax(arr As IntegerArray, size As Integer)
+    maxVal = arr(0)
+    i = 1.0
+    WHILE i < size
+        IF arr(i) > maxVal THEN
+            maxVal = arr(i)
+        ENDIF
+        i = i + 1.0
+    ENDWHILE
+    RETURN maxVal
+ENDFUNCTION
+
+FUNCTION getElement(arr As IntegerArray, index As Integer)
+    RETURN arr(index)
+ENDFUNCTION
+
+Console.WriteLine("=== Array Functions Test ===")
+
+DIM numbers(5) As Integer
+numbers(0) = 15.0
+numbers(1) = 42.0
+numbers(2) = 8.0
+numbers(3) = 23.0
+numbers(4) = 37.0
+
+Console.WriteLine("Sum: " + sumArrayCustom(numbers, 5.0))
+Console.WriteLine("Max: " + findMax(numbers, 5.0))
+Console.WriteLine("Element 2: " + getElement(numbers, 2.0))
+
+Console.WriteLine("=== Tests Complete ===")
+

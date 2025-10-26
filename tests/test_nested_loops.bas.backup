@@ -1,0 +1,21 @@
+Console.WriteLine("Multiplication table:")
+FOR i = 1 TO 3
+    FOR j = 1 TO 3
+        product = i * j
+        Console.WriteLine(i) " * "; j; " = "; product
+    NEXT j
+NEXT i
+
+Console.WriteLine("Nested WHILE:")
+x = 0
+WHILE x < 2
+    y = 0
+    WHILE y < 2
+        Console.WriteLine("x=" + x); " y="; y
+        y = y + 1
+    ENDWHILE
+    x = x + 1
+ENDWHILE
+
+Console.WriteLine("Done")
+

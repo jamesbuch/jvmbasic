@@ -1,18 +1,18 @@
-FUNCTION add(a, b)
+FUNCTION add(a As Integer, b As Integer) As Integer
     RETURN a + b
 ENDFUNCTION
 
-FUNCTION mul(x, y)
+FUNCTION mul(x As Integer, y As Integer) As Integer
     RETURN x * y
 ENDFUNCTION
 
-FUNCTION div2(n)
+FUNCTION div2(n As Integer) As Integer
     RETURN n / 2
 ENDFUNCTION
 
-PRINT "Testing expression-only functions (no local vars)"
-PRINT "add(5, 3) =", add(5, 3)
-PRINT "mul(4, 7) =", mul(4, 7)
-PRINT "div2(20) =", div2(20)
-PRINT "Nested: add(mul(2, 3), div2(10)) =", add(mul(2, 3), div2(10))
+Console.WriteLine("Testing expression-only functions (no local vars)")
+Console.WriteLine("add(5, 3) = " + add(5, 3))
+Console.WriteLine("mul(4, 7) = " + mul(4, 7))
+Console.WriteLine("div2(20) = " + div2(20))
+Console.WriteLine("Nested: add(mul(2, 3), div2(10)) = " + add(mul(2, 3), div2(10)))
 

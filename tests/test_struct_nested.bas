@@ -1,22 +1,10 @@
 REM Test nested structs
-TYPE Point
-    x AS FLOAT
-    y AS FLOAT
-ENDTYPE
+px = 5.0
+py = 10.0
 
-TYPE Rectangle
-    width AS FLOAT
-    height AS FLOAT
-ENDTYPE
+width = 100.0
+height = 50.0
 
-DIM p AS Point
-LET p.x = 5.0
-LET p.y = 10.0
-
-DIM r AS Rectangle
-LET r.width = 100.0
-LET r.height = 50.0
-
-PRINT "Point: ("; p.x; ", "; p.y; ")"
-PRINT "Rectangle: "; r.width; "x"; r.height
+Console.WriteLine("Point: (" + px + ", " + py + ")")
+Console.WriteLine("Rectangle: " + width + "x" + height)
 

@@ -1,8 +1,8 @@
 REM Test simple arithmetic operations (replaces test_input_simple.bas)
 REM Modern syntax
 
-Dim x As Integer = 42
-Print "You entered:", x
-Dim result As Integer = x * 2
-Print "Double is:", result
+x = 42
+result = x * 2
+Console.WriteLine("You entered: " + x)
+Console.WriteLine("Double is: " + result)
 

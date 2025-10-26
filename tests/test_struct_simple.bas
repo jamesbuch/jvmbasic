@@ -1,11 +1,11 @@
 REM Simple struct test
 TYPE Point
-    x AS FLOAT
-    y AS FLOAT
+    x As Float
+    y As Float
 ENDTYPE
 
-DIM p AS Point
-LET p.x = 10.0
-LET p.y = 20.0
-PRINT "Point: "; p.x; ", "; p.y
+DIM p As Point
+p.x = 10.0
+p.y = 20.0
+Console.WriteLine("Point: (" + p.x + ", " + p.y + ")")
 

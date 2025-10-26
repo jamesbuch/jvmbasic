@@ -1,136 +1,136 @@
 REM Test Phase 8: Advanced String Functions
-PRINT "=== Phase 8 String Functions Test ==="
+Console.WriteLine("=== Phase 8 String Functions Test ===")
 
 REM Test REPLACE
-LET s = "Hello World"
-LET s2 = REPLACE(s, "World", "JVM BASIC")
-PRINT "REPLACE: "; s2
+s = "Hello World"
+s2 = REPLACE(s, "World", "JVM BASIC")
+Console.WriteLine("REPLACE: " + s2)
 IF EQUALS(s2, "Hello JVM BASIC") THEN
     REM OK
 ELSE
-    PRINT "ERROR: REPLACE failed"
+    Console.WriteLine("ERROR: REPLACE failed")
 ENDIF
 
 REM Test REPLACEALL
-LET s = "foo bar foo baz foo"
-LET s2 = REPLACEALL(s, "foo", "TEST")
-PRINT "REPLACEALL: "; s2
+s = "foo bar foo baz foo"
+s2 = REPLACEALL(s, "foo", "TEST")
+Console.WriteLine("REPLACEALL: " + s2)
 IF EQUALS(s2, "TEST bar TEST baz TEST") THEN
     REM OK
 ELSE
-    PRINT "ERROR: REPLACEALL failed"
+    Console.WriteLine("ERROR: REPLACEALL failed")
 ENDIF
 
 REM Test STARTSWITH and ENDSWITH
-LET s = "Hello World"
+s = "Hello World"
 IF STARTSWITH(s, "Hello") THEN
-    PRINT "STARTSWITH: OK"
+    Console.WriteLine("STARTSWITH: OK")
 ELSE
-    PRINT "ERROR: STARTSWITH failed"
+    Console.WriteLine("ERROR: STARTSWITH failed")
 ENDIF
 
 IF ENDSWITH(s, "World") THEN
-    PRINT "ENDSWITH: OK"
+    Console.WriteLine("ENDSWITH: OK")
 ELSE
-    PRINT "ERROR: ENDSWITH failed"
+    Console.WriteLine("ERROR: ENDSWITH failed")
 ENDIF
 
 REM Test INDEXOF and LASTINDEXOF
-LET s = "foo bar foo baz"
-LET idx = INDEXOF(s, "foo")
-PRINT "INDEXOF: "; idx
+s = "foo bar foo baz"
+idx = INDEXOF(s, "foo")
+Console.WriteLine("INDEXOF: " + idx)
 IF idx <> 0 THEN
-    PRINT "ERROR: INDEXOF should be 0"
+    Console.WriteLine("ERROR: INDEXOF should be 0")
 ENDIF
 
-LET idx = LASTINDEXOF(s, "foo")
-PRINT "LASTINDEXOF: "; idx
+idx = LASTINDEXOF(s, "foo")
+Console.WriteLine("LASTINDEXOF: " + idx)
 IF idx <> 8 THEN
-    PRINT "ERROR: LASTINDEXOF should be 8"
+    Console.WriteLine("ERROR: LASTINDEXOF should be 8")
 ENDIF
 
 REM Test CONCAT
-LET s = CONCAT("Hello", " World")
-PRINT "CONCAT: "; s
+s = CONCAT("Hello", " World")
+Console.WriteLine("CONCAT: " + s)
 
-LET s = CONCAT3("A", "B", "C")
-PRINT "CONCAT3: "; s
+s = CONCAT3("A", "B", "C")
+Console.WriteLine("CONCAT3: " + s)
 
 REM Test REPEAT
-LET s = REPEAT("*", 5)
-PRINT "REPEAT: "; s
+s = REPEAT("*", 5)
+Console.WriteLine("REPEAT: " + s)
 IF EQUALS(s, "*****") THEN
     REM OK
 ELSE
-    PRINT "ERROR: REPEAT failed"
+    Console.WriteLine("ERROR: REPEAT failed")
 ENDIF
 
 REM Test PADLEFT and PADRIGHT
-LET s = PADLEFT("42", 5)
-PRINT "PADLEFT: ["; s; "]"
+s = PADLEFT("42", 5)
+Console.WriteLine("PADLEFT: [" + s + "]")
 IF LEN(s) <> 5 THEN
-    PRINT "ERROR: PADLEFT length should be 5"
+    Console.WriteLine("ERROR: PADLEFT length should be 5")
 ENDIF
 
-LET s = PADRIGHT("42", 5)
-PRINT "PADRIGHT: ["; s; "]"
+s = PADRIGHT("42", 5)
+Console.WriteLine("PADRIGHT: [" + s + "]")
 IF LEN(s) <> 5 THEN
-    PRINT "ERROR: PADRIGHT length should be 5"
+    Console.WriteLine("ERROR: PADRIGHT length should be 5")
 ENDIF
 
 REM Test SUBSTRING
-LET s = "Hello World"
-LET s2 = SUBSTRING(s, 6)
-PRINT "SUBSTRING: "; s2
+s = "Hello World"
+s2 = SUBSTRING(s, 6)
+Console.WriteLine("SUBSTRING: " + s2)
 IF EQUALS(s2, "World") THEN
     REM OK
 ELSE
-    PRINT "ERROR: SUBSTRING failed"
+    Console.WriteLine("ERROR: SUBSTRING failed")
 ENDIF
 
-LET s2 = SUBSTRINGLEN(s, 0, 5)
-PRINT "SUBSTRINGLEN: "; s2
+s2 = SUBSTRINGLEN(s, 0, 5)
+Console.WriteLine("SUBSTRINGLEN: " + s2)
 IF EQUALS(s2, "Hello") THEN
     REM OK
 ELSE
-    PRINT "ERROR: SUBSTRINGLEN failed"
+    Console.WriteLine("ERROR: SUBSTRINGLEN failed")
 ENDIF
 
 REM Test STRCMP
-LET cmp = STRCMP("abc", "xyz")
-PRINT "STRCMP abc vs xyz: "; cmp
+cmp = STRCMP("abc", "xyz")
+Console.WriteLine("STRCMP abc vs xyz: " + cmp)
 IF cmp >= 0 THEN
-    PRINT "ERROR: STRCMP should be negative"
+    Console.WriteLine("ERROR: STRCMP should be negative")
 ENDIF
 
 REM Test EQUALS and EQUALSIGNORECASE
 IF EQUALS("Test", "Test") THEN
-    PRINT "EQUALS: OK"
+    Console.WriteLine("EQUALS: OK")
 ELSE
-    PRINT "ERROR: EQUALS failed"
+    Console.WriteLine("ERROR: EQUALS failed")
 ENDIF
 
 IF EQUALSIGNORECASE("Test", "test") THEN
-    PRINT "EQUALSIGNORECASE: OK"
+    Console.WriteLine("EQUALSIGNORECASE: OK")
 ELSE
-    PRINT "ERROR: EQUALSIGNORECASE failed"
+    Console.WriteLine("ERROR: EQUALSIGNORECASE failed")
 ENDIF
 
 REM Test CHAR and CHARCODE
-LET s = "Hello"
-LET c = CHAR(s, 0)
-PRINT "CHAR at 0: "; c
+s = "Hello"
+c = CHAR(s, 0)
+Console.WriteLine("CHAR at 0: " + c)
 IF EQUALS(c, "H") THEN
     REM OK
 ELSE
-    PRINT "ERROR: CHAR failed"
+    Console.WriteLine("ERROR: CHAR failed")
 ENDIF
 
-LET code = CHARCODE(s, 0)
-PRINT "CHARCODE at 0: "; code
+code = CHARCODE(s, 0)
+Console.WriteLine("CHARCODE at 0: " + code)
 IF code <> 72 THEN
-    PRINT "ERROR: CHARCODE should be 72 (H)"
+    Console.WriteLine("ERROR: CHARCODE should be 72 (H)")
 ENDIF
 
-PRINT "=== All String Tests Complete ==="
+Console.WriteLine("=== All String Tests Complete ===")
 

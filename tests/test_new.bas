@@ -1,10 +1,10 @@
 CLASS Point
-    PUBLIC x AS FLOAT
-    PUBLIC y AS FLOAT
+    PUBLIC x As Float
+    PUBLIC y As Float
 END CLASS
 
 DIM p AS NEW Point()
-LET p.x = 3.0
-LET p.y = 4.0
-PRINT "Point: ("; p.x; ", "; p.y; ")"
+p.x = 3.0
+p.y = 4.0
+Console.WriteLine("Point: (" + p.x + ", " + p.y + ")")
 

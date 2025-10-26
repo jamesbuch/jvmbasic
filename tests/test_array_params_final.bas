@@ -1,43 +1,43 @@
-FUNCTION sumArrayCustom(arr, size)
-    LET total = 0.0
-    LET i = 0.0
+FUNCTION sumArrayCustom(arr As IntArray, size As Integer) As Integer
+    DIM total As Integer = 0
+    DIM i As Integer = 0
     WHILE i < size
-        LET total = total + arr(i)
-        LET i = i + 1.0
+        total = total + arr(i)
+        i = i + 1
     ENDWHILE
     RETURN total
 ENDFUNCTION
 
-FUNCTION average(arr, size)
+FUNCTION average(arr As IntArray, size As Integer) As Integer
     RETURN sumArrayCustom(arr, size) / size
 ENDFUNCTION
 
-FUNCTION findMax(arr, size)
-    LET maxVal = arr(0)
-    LET i = 1.0
+FUNCTION findMax(arr As IntArray, size As Integer) As Integer
+    DIM maxVal As Integer = arr(0)
+    DIM i As Integer = 1
     WHILE i < size
         IF arr(i) > maxVal THEN
-            LET maxVal = arr(i)
+            maxVal = arr(i)
         ENDIF
-        LET i = i + 1.0
+        i = i + 1
     ENDWHILE
     RETURN maxVal
 ENDFUNCTION
 
-PRINT "=== Array Parameters - Complete Test ==="
-PRINT ""
+Console.WriteLine("=== Array Parameters - Complete Test ===")
+Console.WriteLine("")
 
-DIM data(5) = 0.0
-LET data(0) = 12.0
-LET data(1) = 45.0
-LET data(2) = 8.0
-LET data(3) = 33.0
-LET data(4) = 27.0
+DIM data(5) As Integer
+data(0) = 12
+data(1) = 45
+data(2) = 8
+data(3) = 33
+data(4) = 27
 
-PRINT "Array: 12, 45, 8, 33, 27"
-PRINT "Sum:", sumArrayCustom(data, 5.0)
-PRINT "Average:", average(data, 5.0)
-PRINT "Max:", findMax(data, 5.0)
-PRINT ""
+Console.WriteLine("Array: 12, 45, 8, 33, 27")
+Console.WriteLine("Sum: " + sumArrayCustom(data, 5))
+Console.WriteLine("Average: " + average(data, 5))
+Console.WriteLine("Max: " + findMax(data, 5))
+Console.WriteLine("")
 
-PRINT "=== All Tests Pass! ==="
+Console.WriteLine("=== All Tests Pass! ===")

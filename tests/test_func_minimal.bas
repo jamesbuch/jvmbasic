@@ -1,12 +1,12 @@
-FUNCTION add(a, b)
+FUNCTION add(a As Integer, b As Integer) As Integer
     RETURN a + b
 ENDFUNCTION
 
-FUNCTION times2(x)
+FUNCTION times2(x As Integer) As Integer
     RETURN x * 2
 ENDFUNCTION
 
-PRINT add(3, 4)
-PRINT times2(10)
-PRINT add(times2(5), 3)
+Console.WriteLine(add(3, 4))
+Console.WriteLine(times2(10))
+Console.WriteLine(add(times2(5), 3))
 

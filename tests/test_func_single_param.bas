@@ -1,19 +1,19 @@
-FUNCTION square(x)
+FUNCTION square(x As Integer) As Integer
     RETURN x * x
 ENDFUNCTION
 
-FUNCTION increment(n)
+FUNCTION increment(n As Integer) As Integer
     RETURN n + 1
 ENDFUNCTION
 
-PRINT "Testing single-parameter functions"
+Console.WriteLine("Testing single-parameter functions")
 
-LET x = 5
-LET sq = square(x)
-PRINT "square(5) =", sq
+x = 5
+sq = square(x)
+Console.WriteLine("square(5) = " + sq)
 
-LET num = increment(10)
-PRINT "increment(10) =", num
+num = increment(10)
+Console.WriteLine("increment(10) = " + num)
 
-PRINT "Nested:", square(increment(3))
+Console.WriteLine("Nested: " + square(increment(3)))
 

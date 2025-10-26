@@ -1,28 +1,28 @@
-DIM scores(5) = 0
+DIM scores(5) As Integer
 
-LET scores(0) = 85
-LET scores(1) = 92
-LET scores(2) = 78
-LET scores(3) = 95
-LET scores(4) = 88
+scores(0) = 85
+scores(1) = 92
+scores(2) = 78
+scores(3) = 95
+scores(4) = 88
 
-PRINT "Test Scores:"
-LET i = 0
-PRINT "Score", i, "=", scores(i)
-LET i = 1
-PRINT "Score", i, "=", scores(i)
+Console.WriteLine("Test Scores:")
+i = 0
+Console.WriteLine("Score " + i + "=" + scores(i))
+i = 1
+Console.WriteLine("Score " + i + "=" + scores(i))
 
-LET total = scores(0) + scores(1) + scores(2)
-PRINT "Total of first 3 scores:", total
+total = scores(0) + scores(1) + scores(2)
+Console.WriteLine("Total of first 3 scores: " + total)
 
 IF scores(3) > 90 THEN
-    PRINT "Student 3 got an A!"
+    Console.WriteLine("Student 3 got an A!")
 ENDIF
 
-DIM flags(3) = false
-LET flags(0) = true
-LET flags(1) = false
+DIM flags(3) As Boolean
+flags(0) = true
+flags(1) = false
 
-PRINT "Flags:"
-PRINT flags(0), flags(1)
+Console.WriteLine("Flags:")
+Console.WriteLine(flags(0) + " " + flags(1))
 

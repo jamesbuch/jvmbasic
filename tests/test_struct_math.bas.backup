@@ -1,0 +1,22 @@
+REM Test struct with math operations
+TYPE Vector2D
+    x AS FLOAT
+    y AS FLOAT
+ENDTYPE
+
+DIM v1 AS Vector2D
+DIM v2 AS Vector2D
+
+v1.x = 3.0
+v1.y = 4.0
+
+v2.x = 5.0
+v2.y = 12.0
+
+REM Calculate magnitudes
+mag1 = SQRT(v1.x * v1.x + v1.y * v1.y)
+mag2 = SQRT(v2.x * v2.x + v2.y * v2.y)
+
+Console.WriteLine("Vector 1: (" + v1).x; ", "; v1.y; "), magnitude: "; mag1
+Console.WriteLine("Vector 2: (" + v2).x; ", "; v2.y; "), magnitude: "; mag2
+

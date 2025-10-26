@@ -1,26 +1,26 @@
-FUNCTION factorial(n)
-    LET result = 1.0
-    LET i = 1.0
+FUNCTION factorial(n As Integer) As Integer
+    DIM result As Integer = 1
+    DIM i As Integer = 1
     WHILE i <= n
-        LET result = result * i
-        LET i = i + 1.0
+        result = result * i
+        i = i + 1
     ENDWHILE
     RETURN result
 ENDFUNCTION
 
-FUNCTION sumrange(start, finish)
-    LET total = 0.0
+FUNCTION sumrange(start As Integer, finish As Integer) As Integer
+    DIM total As Integer = 0
     FOR i = start TO finish
-        LET total = total + i
+        total = total + i
     NEXT i
     RETURN total
 ENDFUNCTION
 
-PRINT "Testing functions with loops"
+Console.WriteLine("Testing functions with loops")
 
-LET fact5 = factorial(5.0)
-PRINT "factorial(5) =", fact5
+fact5 = factorial(5)
+Console.WriteLine("factorial(5) = " + fact5)
 
-LET sum = sumrange(1.0, 10.0)
-PRINT "sum(1 to 10) =", sum
+sum = sumrange(1, 10)
+Console.WriteLine("sum(1 to 10) = " + sum)
 

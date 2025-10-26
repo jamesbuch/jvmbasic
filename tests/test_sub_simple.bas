@@ -1,8 +1,8 @@
-SUB greet(name)
-    PRINT "Hello,", name
+SUB greet(name As String)
+Console.WriteLine("Hello, " + name)
 ENDSUB
 
-PRINT "Testing SUB"
+Console.WriteLine("Testing SUB")
 CALL greet("Alice")
 CALL greet("Bob")
 

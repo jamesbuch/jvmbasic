@@ -1,18 +1,19 @@
 Rem Test Boolean return type
 
-Function IsPositive(x As Single) As Boolean
-    If x > 0.0 Then
-        Return true
-    Else
-        Return false
-    End If
-End Function
+FUNCTION IsPositive(x As Float) As Boolean
+    IF x > 0 THEN
+        RETURN true
+    ELSE
+        RETURN false
+    ENDIF
+ENDFUNCTION
 
-Dim result As Boolean = IsPositive(5.0)
-Print "Is 5 positive? "; result
+DIM result As Boolean
+DIM result2 As Boolean
+result = IsPositive(5.0)
+result2 = IsPositive(-3.0)
 
-Dim result2 As Boolean = IsPositive(-3.0)
-Print "Is -3 positive? "; result2
-
-Print "Boolean function test complete"
+Console.WriteLine("Is 5 positive? " + result)
+Console.WriteLine("Is -3 positive? " + result2)
+Console.WriteLine("Boolean function test complete")
 

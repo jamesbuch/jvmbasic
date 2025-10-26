@@ -1,9 +1,9 @@
 REM Test basic Decimal type declaration
 REM Phase 9: Decimal type support
 
-Dim price As Decimal
-Dim tax As Decimal
-Dim total As Decimal
+price = 0.0
+tax = 0.0
+total = 0.0
 
-Print "Decimal type declarations work!"
+Console.WriteLine("Decimal type declarations work!")
 

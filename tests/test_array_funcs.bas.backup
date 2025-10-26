@@ -1,0 +1,22 @@
+DIM nums(5) As Integer
+nums(0) = 50
+nums(1) = 20
+nums(2) = 80
+nums(3) = 10
+nums(4) = 60
+
+Console.WriteLine("Array: " + nums(0)), nums(1), nums(2), nums(3), nums(4)
+
+smallest = MINARRAY(nums)
+largest = MAXARRAY(nums)
+total = SUMARRAY(nums)
+size = UBOUND(nums)
+
+Console.WriteLine("Min: " + smallest)
+Console.WriteLine("Max: " + largest)
+Console.WriteLine("Sum: " + total)
+Console.WriteLine("Upper bound: " + size)
+
+avg = total / (size + 1)
+Console.WriteLine("Average: " + avg)
+

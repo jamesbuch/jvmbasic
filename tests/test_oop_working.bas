@@ -1,30 +1,30 @@
 REM Test OOP features that are working
 
 CLASS Point
-    PUBLIC x AS FLOAT
-    PUBLIC y AS FLOAT
+    PUBLIC x As Float
+    PUBLIC y As Float
 END CLASS
 
 CLASS Rectangle
-    PUBLIC width AS FLOAT
-    PUBLIC height AS FLOAT
+    PUBLIC width As Float
+    PUBLIC height As Float
 END CLASS
 
 DIM p AS NEW Point()
-LET p.x = 5.0
-LET p.y = 10.0
+p.x = 5.0
+p.y = 10.0
 
 DIM r AS NEW Rectangle()
-LET r.width = 20.0
-LET r.height = 15.0
+r.width = 20.0
+r.height = 15.0
 
-PRINT "Point: ("; p.x; ", "; p.y; ")"
-PRINT "Rectangle: "; r.width; " x "; r.height
-PRINT ""
-PRINT "Phase 7 OOP Features Working:"
-PRINT "✓ CLASS declarations"
-PRINT "✓ PUBLIC fields"
-PRINT "✓ NEW operator"
-PRINT "✓ Field access (getfield)"
-PRINT "✓ Field assignment (putfield)"
+Console.WriteLine("Point: (" + p.x + ", " + p.y + ")")
+Console.WriteLine("Rectangle: " + r.width + " x " + r.height)
+Console.WriteLine("")
+Console.WriteLine("Phase 7 OOP Features Working:")
+Console.WriteLine("✓ CLASS declarations")
+Console.WriteLine("✓ PUBLIC fields")
+Console.WriteLine("✓ NEW operator")
+Console.WriteLine("✓ Field access (getfield)")
+Console.WriteLine("✓ Field assignment (putfield)")
 

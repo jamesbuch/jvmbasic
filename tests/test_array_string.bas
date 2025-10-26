@@ -1,15 +1,15 @@
-DIM names(3) = ""
+DIM names(3) As String
 
-LET names(0) = "Alice"
-LET names(1) = "Bob"
-LET names(2) = "Charlie"
+names(0) = "Alice"
+names(1) = "Bob"
+names(2) = "Charlie"
 
-PRINT "Names in array:"
-PRINT names(0)
-PRINT names(1)
-PRINT names(2)
+Console.WriteLine("Names in array:")
+Console.WriteLine(names(0))
+Console.WriteLine(names(1))
+Console.WriteLine(names(2))
 
 IF names(0) == "Alice" THEN
-    PRINT "First name is Alice"
+    Console.WriteLine("First name is Alice")
 ENDIF
 

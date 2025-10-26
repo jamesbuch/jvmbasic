@@ -1,21 +1,21 @@
-FUNCTION add(a, b)
+FUNCTION add(a As Float, b As Float) As Float
     RETURN a + b
 ENDFUNCTION
 
-SUB greet(name)
-    PRINT "Hello,", name
+SUB greet(name As String)
+Console.WriteLine("Hello, " + name)
 ENDSUB
 
-PRINT "Testing type inference"
+Console.WriteLine("Testing type inference")
 
-LET x = 5
-LET y = 3
-LET result = add(x, y)
-PRINT "add(5, 3) =", result
+x = 5
+y = 3
+result = add(x, y)
+Console.WriteLine("add(5, 3) = " + result)
 
 CALL greet("World")
 CALL greet("Alice")
 
-LET f = add(2.5, 3.5)
-PRINT "add(2.5, 3.5) =", f
+f = add(2.5, 3.5)
+Console.WriteLine("add(2.5, 3.5) = " + f)
 

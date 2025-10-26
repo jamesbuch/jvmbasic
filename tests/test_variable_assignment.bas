@@ -1,13 +1,13 @@
 REM Test variable assignments and type conversions (replaces test_input.bas)
 REM Modern syntax with typed variables
 
-Dim name As String = "Bob"
-Dim age As Integer = 30
-Dim height As Single = 5.9
-Dim student As Boolean = true
+name = "Bob"
+age = 30
+h = 5.9
+student = true
 
-Print "Hello", name
-Print "You are", age, "years old"
-Print "Your height is", height, "meters"
-Print "Student:", student
+Console.WriteLine("Hello " + name)
+Console.WriteLine("You are " + age + " years old")
+Console.WriteLine("Your height is " + h + " meters")
+Console.WriteLine("Student: " + student)
 

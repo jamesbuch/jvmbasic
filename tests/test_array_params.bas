@@ -1,70 +1,70 @@
-FUNCTION sumArrayCustom(arr, size)
-    LET total = 0.0
-    LET i = 0.0
+FUNCTION sumArrayCustom(arr As IntArray, size As Integer) As Integer
+    DIM total As Integer = 0
+    DIM i As Integer = 0
     WHILE i < size
-        LET total = total + arr(i)
-        LET i = i + 1.0
+        total = total + arr(i)
+        i = i + 1
     ENDWHILE
     RETURN total
 ENDFUNCTION
 
-FUNCTION findMax(arr, size)
-    LET maxVal = arr(0)
-    LET i = 1.0
+FUNCTION findMax(arr As IntArray, size As Integer) As Integer
+    DIM maxVal As Integer = arr(0)
+    DIM i As Integer = 1
     WHILE i < size
         IF arr(i) > maxVal THEN
-            LET maxVal = arr(i)
+            maxVal = arr(i)
         ENDIF
-        LET i = i + 1.0
+        i = i + 1
     ENDWHILE
     RETURN maxVal
 ENDFUNCTION
 
-FUNCTION findMin(arr, size)
-    LET minVal = arr(0)
-    LET i = 1.0
+FUNCTION findMin(arr As IntArray, size As Integer) As Integer
+    DIM minVal As Integer = arr(0)
+    DIM i As Integer = 1
     WHILE i < size
         IF arr(i) < minVal THEN
-            LET minVal = arr(i)
+            minVal = arr(i)
         ENDIF
-        LET i = i + 1.0
+        i = i + 1
     ENDWHILE
     RETURN minVal
 ENDFUNCTION
 
-FUNCTION average(arr, size)
+FUNCTION average(arr As IntArray, size As Integer) As Integer
     RETURN sumArrayCustom(arr, size) / size
 ENDFUNCTION
 
-PRINT "=== Array Parameter Tests ==="
-PRINT ""
+Console.WriteLine("=== Array Parameter Tests ===")
+Console.WriteLine("")
 
-DIM numbers(5) = 0.0
-LET numbers(0) = 15.0
-LET numbers(1) = 42.0
-LET numbers(2) = 8.0
-LET numbers(3) = 23.0
-LET numbers(4) = 37.0
+DIM numbers(5) As Integer
+numbers(0) = 15
+numbers(1) = 42
+numbers(2) = 8
+numbers(3) = 23
+numbers(4) = 37
 
-PRINT "Array: 15, 42, 8, 23, 37"
-PRINT "Sum:", sumArrayCustom(numbers, 5.0)
-PRINT "Max:", findMax(numbers, 5.0)
-PRINT "Min:", findMin(numbers, 5.0)
-PRINT "Avg:", average(numbers, 5.0)
-PRINT ""
+Console.WriteLine("Array: 15, 42, 8, 23, 37")
+Console.WriteLine("Sum: " + sumArrayCustom(numbers, 5))
+Console.WriteLine("Max: " + findMax(numbers, 5))
+Console.WriteLine("Min: " + findMin(numbers, 5))
+Console.WriteLine("Avg: " + average(numbers, 5))
+Console.WriteLine("")
 
-DIM scores(4) = 0.0
-LET scores(0) = 95.0
-LET scores(1) = 87.0
-LET scores(2) = 92.0
-LET scores(3) = 78.0
+DIM scores(4) As Integer
+scores(0) = 95
+scores(1) = 87
+scores(2) = 92
+scores(3) = 78
 
-PRINT "Scores: 95, 87, 92, 78"
-PRINT "Total:", sumArrayCustom(scores, 4.0)
-PRINT "Highest:", findMax(scores, 4.0)
-PRINT "Lowest:", findMin(scores, 4.0)
-PRINT "Average:", average(scores, 4.0)
-PRINT ""
+Console.WriteLine("Scores: 95, 87, 92, 78")
+Console.WriteLine("Total: " + sumArrayCustom(scores, 4))
+Console.WriteLine("Highest: " + findMax(scores, 4))
+Console.WriteLine("Lowest: " + findMin(scores, 4))
+Console.WriteLine("Average: " + average(scores, 4))
+Console.WriteLine("")
 
-PRINT "=== All Array Parameter Tests Pass! ==="
+Console.WriteLine("=== All Array Parameter Tests Pass! ===")
 

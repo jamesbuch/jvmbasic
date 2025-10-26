@@ -1,23 +1,23 @@
-FUNCTION add(a, b)
+FUNCTION add(a As Integer, b As Integer) As Integer
     RETURN a + b
 ENDFUNCTION
 
-FUNCTION multiply(x, y)
+FUNCTION multiply(x As Integer, y As Integer) As Integer
     RETURN x * y
 ENDFUNCTION
 
-FUNCTION average(a, b, c)
+FUNCTION average(a As Integer, b As Integer, c As Integer) As Integer
     RETURN (a + b + c) / 3
 ENDFUNCTION
 
-PRINT "Testing multi-parameter functions"
+Console.WriteLine("Testing multi-parameter functions")
 
-LET sum = add(10, 20)
-PRINT "add(10, 20) =", sum
+sum = add(10, 20)
+Console.WriteLine("add(10, 20) = " + sum)
 
-LET product = multiply(6, 7)
-PRINT "multiply(6, 7) =", product
+product = multiply(6, 7)
+Console.WriteLine("multiply(6, 7) = " + product)
 
-LET avg = average(10, 20, 30)
-PRINT "average(10, 20, 30) =", avg
+avg = average(10, 20, 30)
+Console.WriteLine("average(10, 20, 30) = " + avg)
 

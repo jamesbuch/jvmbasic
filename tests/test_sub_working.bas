@@ -1,21 +1,21 @@
-SUB printnum(n)
-    PRINT "Number:", n
+SUB printnum(n As Integer)
+    Console.WriteLine("Number: " + n)
 ENDSUB
 
-SUB printmsg(msg)
-    PRINT msg
+SUB printmsg(msg As String)
+    Console.WriteLine(msg)
 ENDSUB
 
-SUB printpair(a, b)
-    PRINT a, "and", b
+SUB printpair(a As Integer, b As Integer)
+    Console.WriteLine("Pair: " + a + " and " + b)
 ENDSUB
 
-PRINT "=== Working SUB Tests ==="
+Console.WriteLine("=== Working SUB Tests ===")
 
 CALL printnum(42)
 CALL printmsg("Hello from SUB!")
 CALL printpair(10, 20)
 
-LET x = 100
+x = 100
 CALL printnum(x)
 

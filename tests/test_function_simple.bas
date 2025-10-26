@@ -1,8 +1,8 @@
-FUNCTION add(a, b)
+FUNCTION add(a As Integer, b As Integer) As Integer
     RETURN a + b
 ENDFUNCTION
 
-PRINT "Testing simple function"
-LET result = add(5, 3)
-PRINT "5 + 3 =", result
+Console.WriteLine("Testing simple function")
+result = add(5, 3)
+Console.WriteLine("5 + 3 = " + result)
 

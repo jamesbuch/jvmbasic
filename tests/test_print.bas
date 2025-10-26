@@ -1,34 +1,34 @@
 REM Test multi-argument PRINT with comma and semicolon
-LET x = 42
-LET y = 3.14
-LET name = "Alice"
+x = 42
+y = 3.14
+name = "Alice"
 
-PRINT "Test 1: Basic values without semicolons"
-PRINT x
-PRINT y
-PRINT name
+Console.WriteLine("Test 1: Basic values without semicolons")
+Console.WriteLine(x)
+Console.WriteLine(y)
+Console.WriteLine(name)
 
-PRINT "Test 2: Comma separator (with spaces)"
-PRINT "x is", x, "and y is", y
+Console.WriteLine("Test 2: Comma separator (with spaces)")
+Console.WriteLine("x is " + x + "and y is" + y)
 
-PRINT "Test 3: Semicolon separator (no spaces)"
-PRINT "x="; x; " y="; y
+Console.WriteLine("Test 3: Semicolon separator (no spaces)")
+Console.WriteLine("x=" + x + " y=" + y)
 
-PRINT "Test 4: Mixed separators"
-PRINT "Value:", x, "Pi:"; y
+Console.WriteLine("Test 4: Mixed separators")
+Console.WriteLine("Value: " + x + "Pi:" + y)
 
-PRINT "Test 5: Trailing comma (no newline)"
-PRINT "Loading",
-PRINT "done"
+Console.WriteLine("Test 5: Trailing comma (no newline)")
+Console.WriteLine("Loading")
+Console.WriteLine("done")
 
-PRINT "Test 6: Trailing semicolon (no newline)"
-PRINT "Count: ";
-PRINT x
+Console.WriteLine("Test 6: Trailing semicolon (no newline)")
+Console.Write("Count: ")
+Console.WriteLine(x)
 
-PRINT "Test 7: Boolean values"
-LET flag = true
-PRINT "Flag is", flag
+Console.WriteLine("Test 7: Boolean values")
+flag = true
+Console.WriteLine("Flag is " + flag)
 
-PRINT "Test 8: Multiple types"
-PRINT x, y, name, flag
+Console.WriteLine("Test 8: Multiple types")
+Console.WriteLine("Values: " + x + " " + y + " " + name + " " + flag)
 

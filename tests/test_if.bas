@@ -1,21 +1,21 @@
-LET x = 10
-LET y = 5
+x = 10
+y = 5
 IF x > y THEN
-    PRINT 1
+    Console.WriteLine(1)
 ENDIF
 
 IF x < y THEN
-    PRINT 2
+    Console.WriteLine(2)
 ELSE
-    PRINT 3
+    Console.WriteLine(3)
 ENDIF
 
-LET z = 10
+z = 10
 IF z < 5 THEN
-    PRINT 4
+    Console.WriteLine(4)
 ELSEIF z == 10 THEN
-    PRINT 5
+    Console.WriteLine(5)
 ELSE
-    PRINT 6
+    Console.WriteLine(6)
 ENDIF
 

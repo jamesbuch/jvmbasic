@@ -3,22 +3,22 @@
 
 CLASS Example
     ' This is a VB-style comment
-    PUBLIC value AS FLOAT
+    PUBLIC value As Float
     
     ' Constructor with comment
-    PUBLIC SUB New(v AS FLOAT)
+    SUB New(v As Float)
         value = v  ' Inline comment
     END SUB
     
-    PUBLIC FUNCTION GetDouble() AS FLOAT
+    PUBLIC FUNCTION GetDouble() As Float
         ' Return double the value
         RETURN value * 2.0
     END FUNCTION
 END CLASS
 
 REM Old-style comment still works
-PRINT "Test: Both comment styles"
-PRINT "Status: Comments work! ✓"
+Console.WriteLine("Test: Both comment styles")
+Console.WriteLine("Status: Comments work! ✓")
 
 
 

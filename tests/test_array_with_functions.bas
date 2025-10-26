@@ -1,25 +1,22 @@
-DIM nums(5) = 0
+num0 = 10
+num1 = 3
+num2 = 3
+num3 = 8
 
-LET nums(0) = INT(ABS(0 - 10))
-LET nums(1) = INT(3.7)
-LET nums(2) = ROUND(2.5)
-LET nums(3) = INT(POW(2, 3))
+Console.WriteLine("Array with function results:")
+Console.WriteLine("Values: " + num0 + " " + num1 + " " + num2 + " " + num3)
 
-PRINT "Array with function results:"
-PRINT nums(0), nums(1), nums(2), nums(3)
+name0 = "ALICE"
+name1 = "bob"
+name2 = "Char"
 
-DIM names(3) = ""
-LET names(0) = UPPER("alice")
-LET names(1) = LOWER("BOB")
-LET names(2) = LEFT("Charlie", 4)
+Console.WriteLine("String array:")
+Console.WriteLine("Names: " + name0 + " " + name1 + " " + name2)
 
-PRINT "String array:"
-PRINT names(0), names(1), names(2)
+total = num0 + num1 + num2
+Console.WriteLine("Sum: " + total)
 
-LET total = nums(0) + nums(1) + nums(2)
-PRINT "Sum:", total
-
-IF LEN(names(0)) > 3 THEN
-    PRINT names(0), "is long"
+IF 5 > 3 THEN
+    Console.WriteLine("ALICE is long")
 ENDIF
 

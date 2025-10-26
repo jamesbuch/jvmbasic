@@ -1026,47 +1026,102 @@ public:
             // Phase 9: Namespace calls (Console.WriteLine, Math.Sin, etc.)
             const NamespaceCallExpr& nce = get<NamespaceCallExpr>(e.data);
             
-            // Load arguments
-            for (const auto& arg : nce.args) {
-                load(*arg, varIdx);
-            }
+            // Special handling for Console.WriteLine - convert non-string arguments to strings
+            bool isConsoleWriteLine = (nce.namespaceName == "CONSOLE" && nce.methodName == "WriteLine");
             
-            // Call the namespace method: invokestatic basicrt/BasicRuntime.method
-            // Build the method descriptor
-            string descriptor = "(";
-            for (const auto& arg : nce.args) {
-                if (arg->type == Type::Int || arg->type == Type::Bool) descriptor += "I";
-                else if (arg->type == Type::Float) descriptor += "F";
-                else if (arg->type == Type::String) descriptor += "Ljava/lang/String;";
-                else descriptor += "Ljava/lang/Object;";  // For Decimal, BigInt, etc.
-            }
-            descriptor += ")";
-            
-            // Determine return type based on method name
-            string returnType = "I"; // Default to Int
-            if (e.type == Type::String) {
-                returnType = "Ljava/lang/String;";
-            } else if (e.type == Type::Int || e.type == Type::Bool) {
-                returnType = "I";
-            } else if (e.type == Type::Float) {
-                returnType = "F";
+            if (isConsoleWriteLine) {
+                // For Console.WriteLine, convert all arguments to strings
+                for (const auto& arg : nce.args) {
+                    // Convert non-string types to strings using String.valueOf
+                    if (arg->type == Type::Int || arg->type == Type::Bool) {
+                        // Load the argument
+                        load(*arg, varIdx);
+                        
+                        // Call String.valueOf(int)
+                        u2 string_class_utf8 = cp.addUtf8("java/lang/String");
+                        u2 string_class_idx = cp.addClass(string_class_utf8);
+                        u2 valueOf_utf8 = cp.addUtf8("valueOf");
+                        u2 valueOf_desc = cp.addUtf8("(I)Ljava/lang/String;");
+                        u2 valueOf_nat = cp.addNameAndType(valueOf_utf8, valueOf_desc);
+                        u2 valueOf_methodref = cp.addMethodRef(string_class_idx, valueOf_nat);
+                        invokestatic(valueOf_methodref);
+                    } else if (arg->type == Type::Float) {
+                        // Load the argument
+                        load(*arg, varIdx);
+                        
+                        // Call String.valueOf(float)
+                        u2 string_class_utf8 = cp.addUtf8("java/lang/String");
+                        u2 string_class_idx = cp.addClass(string_class_utf8);
+                        u2 valueOf_utf8 = cp.addUtf8("valueOf");
+                        u2 valueOf_desc = cp.addUtf8("(F)Ljava/lang/String;");
+                        u2 valueOf_nat = cp.addNameAndType(valueOf_utf8, valueOf_desc);
+                        u2 valueOf_methodref = cp.addMethodRef(string_class_idx, valueOf_nat);
+                        invokestatic(valueOf_methodref);
+                    } else {
+                        // String types - just load them
+                        load(*arg, varIdx);
+                    }
+                }
+                
+                // Build descriptor for Console.WriteLine - all arguments are now strings
+                string descriptor = "(";
+                for (size_t i = 0; i < nce.args.size(); i++) {
+                    descriptor += "Ljava/lang/String;";
+                }
+                descriptor += ")I";  // Console.WriteLine returns int
+                
+                // Create the method call: console_WriteLine
+                string fullMethodName = "console_WriteLine";
+                
+                u2 method_name_idx = cp.addUtf8(fullMethodName);
+                u2 method_desc_idx = cp.addUtf8(descriptor);
+                u2 nat_idx = cp.addNameAndType(method_name_idx, method_desc_idx);
+                u2 method_ref = cp.addMethodRef(basicruntime_class_idx, nat_idx);
+                invokestatic(method_ref);
             } else {
-                returnType = "Ljava/lang/Object;";
+                // For other namespace calls, use original logic
+                // Load arguments
+                for (const auto& arg : nce.args) {
+                    load(*arg, varIdx);
+                }
+                
+                // Call the namespace method: invokestatic basicrt/BasicRuntime.method
+                // Build the method descriptor
+                string descriptor = "(";
+                for (const auto& arg : nce.args) {
+                    if (arg->type == Type::Int || arg->type == Type::Bool) descriptor += "I";
+                    else if (arg->type == Type::Float) descriptor += "F";
+                    else if (arg->type == Type::String) descriptor += "Ljava/lang/String;";
+                    else descriptor += "Ljava/lang/Object;";  // For Decimal, BigInt, etc.
+                }
+                descriptor += ")";
+                
+                // Determine return type based on method name
+                string returnType = "I"; // Default to Int
+                if (e.type == Type::String) {
+                    returnType = "Ljava/lang/String;";
+                } else if (e.type == Type::Int || e.type == Type::Bool) {
+                    returnType = "I";
+                } else if (e.type == Type::Float) {
+                    returnType = "F";
+                } else {
+                    returnType = "Ljava/lang/Object;";
+                }
+                descriptor += returnType;
+                
+                // Create the method call: Convert CONSOLE + WriteLine to console_WriteLine
+                // Preserve method name casing from source (WriteLine stays WriteLine)
+                string namespaceLower = nce.namespaceName;
+                for (auto& c : namespaceLower) c = tolower(c);
+                
+                string fullMethodName = namespaceLower + "_" + nce.methodName;
+                
+                u2 method_name_idx = cp.addUtf8(fullMethodName);
+                u2 method_desc_idx = cp.addUtf8(descriptor);
+                u2 nat_idx = cp.addNameAndType(method_name_idx, method_desc_idx);
+                u2 method_ref = cp.addMethodRef(basicruntime_class_idx, nat_idx);
+                invokestatic(method_ref);
             }
-            descriptor += returnType;
-            
-            // Create the method call: Convert CONSOLE + WriteLine to console_WriteLine
-            // Preserve method name casing from source (WriteLine stays WriteLine)
-            string namespaceLower = nce.namespaceName;
-            for (auto& c : namespaceLower) c = tolower(c);
-            
-            string fullMethodName = namespaceLower + "_" + nce.methodName;
-            
-            u2 method_name_idx = cp.addUtf8(fullMethodName);
-            u2 method_desc_idx = cp.addUtf8(descriptor);
-            u2 nat_idx = cp.addNameAndType(method_name_idx, method_desc_idx);
-            u2 method_ref = cp.addMethodRef(basicruntime_class_idx, nat_idx);
-            invokestatic(method_ref);
         }
     }
 

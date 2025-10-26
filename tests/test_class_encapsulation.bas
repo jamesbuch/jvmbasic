@@ -2,19 +2,19 @@
 ' Tests: PRIVATE access control, methods accessing private fields
 
 CLASS BankAccount
-    PRIVATE balance AS FLOAT
-    PUBLIC owner AS STRING
+    PRIVATE balance As Float
+    PUBLIC owner As String
     
-    PUBLIC SUB New(name AS STRING, initial AS FLOAT)
+SUB New(name As Integer, initial As Integer)
         owner = name
         balance = initial
     END SUB
     
-    PUBLIC SUB Deposit(amount AS FLOAT)
+SUB Deposit(amount As Integer)
         balance = balance + amount
     END SUB
     
-    PUBLIC FUNCTION GetBalance() AS FLOAT
+    PUBLIC FUNCTION GetBalance() As Integer
         RETURN balance
     END FUNCTION
 END CLASS
@@ -22,14 +22,14 @@ END CLASS
 ' When codegen works:
 ' DIM account AS NEW BankAccount("Alice", 1000.0)
 ' CALL account.Deposit(500.0)
-' PRINT account.owner; " has balance: "; account.GetBalance()
+' Console.WriteLine(account.owner + " " + " has balance: " + " " + account.GetBalance())
 ' PRINT "Expected: Alice has balance: 1500.0"
 '
 ' This should fail (private field):
 ' PRINT account.balance
 
-PRINT "Test: Encapsulation with PRIVATE fields"
-PRINT "Status: ✓ WORKING (Phase 7 complete)"
+Console.WriteLine("Test: Encapsulation with PRIVATE fields")
+Console.WriteLine("Status: ✓ WORKING (Phase 7 complete)")
 
 
 

@@ -2,7 +2,7 @@
 ' Tests: Instance methods, FUNCTION with return type, method calls
 
 CLASS Counter
-    PRIVATE count AS FLOAT
+    PRIVATE count As Float
     
     PUBLIC SUB New()
         count = 0.0
@@ -12,7 +12,7 @@ CLASS Counter
         count = count + 1.0
     END SUB
     
-    PUBLIC FUNCTION GetCount() AS FLOAT
+    PUBLIC FUNCTION GetCount() As Integer
         RETURN count
     END FUNCTION
 END CLASS
@@ -21,11 +21,11 @@ END CLASS
 ' DIM c AS NEW Counter()
 ' CALL c.Increment()
 ' CALL c.Increment()
-' PRINT "Count: "; c.GetCount()
+' Console.WriteLine("Count: " + c).GetCount()
 ' PRINT "Expected: Count: 2.0"
 
-PRINT "Test: CLASS with methods"
-PRINT "Status: ✓ WORKING (Phase 7 complete)"
+Console.WriteLine("Test: CLASS with methods")
+Console.WriteLine("Status: ✓ WORKING (Phase 7 complete)")
 
 
 

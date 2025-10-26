@@ -1,0 +1,22 @@
+name = ""
+age = 0
+height = 0.0
+student = false
+
+Console.Write("Enter your name:")
+INPUT name
+
+Console.Write("Enter your age:")
+INPUT age
+
+Console.Write("Enter your height in meters:")
+INPUT height
+
+Console.Write("Are you a student? (true/false):")
+INPUT student
+
+Console.WriteLine("Hello " + name)
+Console.WriteLine("You are " + age), "years old"
+Console.WriteLine("Your height is " + height), "meters"
+Console.WriteLine("Student: " + student)
+

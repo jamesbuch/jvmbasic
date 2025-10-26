@@ -1,16 +1,16 @@
-LET x = 42
-LET y = 3.14
-LET name = "Alice"
+x = 42
+y = 3.14
+name = "Alice"
 
-PRINT "Values:", x, y, name
+Console.WriteLine("Values: " + x + y + name)
 
-PRINT "Semicolon test:"; x; y; name
+Console.WriteLine("Semicolon test: " + x + " " + y + " " + name)
 
-PRINT "Mixed:", x; "and"; y
+Console.WriteLine("Mixed: " + x + "and" + y)
 
-PRINT "Trailing comma",
-PRINT "continues"
+Console.WriteLine("Trailing comma")
+Console.WriteLine("continues")
 
-PRINT "Trailing semi";
-PRINT "also continues"
+Console.Write("Trailing semi")
+Console.WriteLine("also continues")
 
