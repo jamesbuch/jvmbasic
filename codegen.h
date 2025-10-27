@@ -129,7 +129,7 @@ public:
     u2 code_name_idx;
 
     vector<u1> code;  // Current method's code (for generation)
-    u2 max_stack = 10;
+    u2 max_stack = 50;  // Increased for complex string concatenation
     u2 max_locals = 1;
     u1 scanner_local = 0; // Local variable index for Scanner
     
@@ -1873,7 +1873,7 @@ public:
     void generateFunction(const FunctionDecl& fd) {
         // Reset code for new method
         code.clear();
-        max_stack = 10;
+        max_stack = 50;  // Increased for complex string concatenation
         u1 nextLocal = 0; // Note: for static methods, slot 0 is first param (no 'this')
         
         // Map parameters to local slots
@@ -1950,7 +1950,7 @@ public:
     void generateSub(const SubDecl& sd) {
         // Reset code for new method
         code.clear();
-        max_stack = 10;
+        max_stack = 50;  // Increased for complex string concatenation
         u1 nextLocal = 0;
         
         // Map parameters to local slots
@@ -2137,7 +2137,7 @@ public:
         // Generate explicit constructors and methods
         for (const MethodDecl& method : cd.methods) {
             vector<u1> method_code;
-            u2 method_max_stack = 10;
+            u2 method_max_stack = 50;  // Increased for complex string concatenation
             u2 method_max_locals = 1; // Start with 1 for 'this'
             
             if (method.isConstructor) {
@@ -2377,7 +2377,7 @@ public:
         map<string, u1> varIdx;
         u1 nextLocal = 1;
         max_locals = 1;
-        max_stack = 10;
+        max_stack = 50;  // Increased for complex string concatenation
         
         // Store args parameter (local 0) as a special variable
         varIdx["args"] = 0;
