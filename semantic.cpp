@@ -140,9 +140,8 @@ Type SemanticAnalyzer::inferExprType(const Expr& expr, const SymbolTable& symbol
         case ExprKind::MemberAccess: {
             // Look up field type from struct/class definition
             const MemberAccessExpr& mae = get<MemberAccessExpr>(expr.data);
-            // For now, try to infer from the object type if available
-            // This is a simplified implementation
-            return Type::Float;  // Default - needs proper type lookup
+            // Return Float as default - actual type will be determined during codegen
+            return Type::Float;
         }
         
         // Phase 7: OOP expressions - minimal support to avoid errors

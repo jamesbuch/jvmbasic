@@ -837,11 +837,30 @@ public:
                 load(*bo.left, varIdx);
                 u2 append_utf8 = cp.addUtf8("append");
                 u2 append_desc;
-                if (bo.left->type == Type::Int) {
+                
+                // Determine the actual type for append signature
+                Type leftType = bo.left->type;
+                if (bo.left->kind == ExprKind::MemberAccess) {
+                    // For member access, try to determine actual field type
+                    const MemberAccessExpr& mae = get<MemberAccessExpr>(bo.left->data);
+                    if (mae.object->kind == ExprKind::Var) {
+                        const VarRef& vr = get<VarRef>(mae.object->data);
+                        if (varTypeNames.find(vr.name) != varTypeNames.end()) {
+                            string typeName = varTypeNames[vr.name];
+                            // Check if it's a class field
+                            if (classFieldTypes.find(typeName) != classFieldTypes.end() &&
+                                classFieldTypes[typeName].find(mae.member) != classFieldTypes[typeName].end()) {
+                                leftType = classFieldTypes[typeName][mae.member];
+                            }
+                        }
+                    }
+                }
+                
+                if (leftType == Type::Int) {
                     append_desc = cp.addUtf8("(I)Ljava/lang/StringBuilder;");
-                } else if (bo.left->type == Type::Float) {
+                } else if (leftType == Type::Float) {
                     append_desc = cp.addUtf8("(F)Ljava/lang/StringBuilder;");
-                } else if (bo.left->type == Type::Bool) {
+                } else if (leftType == Type::Bool) {
                     append_desc = cp.addUtf8("(Z)Ljava/lang/StringBuilder;");
                 } else {
                     append_desc = cp.addUtf8("(Ljava/lang/String;)Ljava/lang/StringBuilder;");
@@ -852,11 +871,30 @@ public:
                 
                 // append(right)
                 load(*bo.right, varIdx);
-                if (bo.right->type == Type::Int) {
+                
+                // Determine the actual type for append signature
+                Type rightType = bo.right->type;
+                if (bo.right->kind == ExprKind::MemberAccess) {
+                    // For member access, try to determine actual field type
+                    const MemberAccessExpr& mae = get<MemberAccessExpr>(bo.right->data);
+                    if (mae.object->kind == ExprKind::Var) {
+                        const VarRef& vr = get<VarRef>(mae.object->data);
+                        if (varTypeNames.find(vr.name) != varTypeNames.end()) {
+                            string typeName = varTypeNames[vr.name];
+                            // Check if it's a class field
+                            if (classFieldTypes.find(typeName) != classFieldTypes.end() &&
+                                classFieldTypes[typeName].find(mae.member) != classFieldTypes[typeName].end()) {
+                                rightType = classFieldTypes[typeName][mae.member];
+                            }
+                        }
+                    }
+                }
+                
+                if (rightType == Type::Int) {
                     append_desc = cp.addUtf8("(I)Ljava/lang/StringBuilder;");
-                } else if (bo.right->type == Type::Float) {
+                } else if (rightType == Type::Float) {
                     append_desc = cp.addUtf8("(F)Ljava/lang/StringBuilder;");
-                } else if (bo.right->type == Type::Bool) {
+                } else if (rightType == Type::Bool) {
                     append_desc = cp.addUtf8("(Z)Ljava/lang/StringBuilder;");
                 } else {
                     append_desc = cp.addUtf8("(Ljava/lang/String;)Ljava/lang/StringBuilder;");
