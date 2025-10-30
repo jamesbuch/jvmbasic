@@ -144,11 +144,14 @@ Type SemanticAnalyzer::inferExprType(const Expr& expr, const SymbolTable& symbol
             return Type::Float;
         }
         
-        // Phase 7: OOP expressions - minimal support to avoid errors
-        case ExprKind::NewExpr:
+        // Phase 7: OOP expressions - infer types properly
+        case ExprKind::NewExpr: {
+            // analyzeExpr already infers argument types recursively
+            return Type::UserDefined;  // NEW returns an object instance
+        }
         case ExprKind::MethodCall:
         case ExprKind::Me:
-            return Type::Float;  // Default return type for now
+            return Type::UserDefined;  // Object methods return objects
         
         // Phase 8: Logical expressions
         case ExprKind::Logical:

@@ -959,34 +959,39 @@ public:
             dup();
             
             // Look up constructor signature from class definition
-            // For now, assume all Float parameters (common case)
-            // Full solution would store constructor signatures in a map
-            vector<Type> expectedTypes;
-            for (size_t i = 0; i < ne.args.size(); ++i) {
-                // Assume float for numeric arguments (common case for constructors)
-                expectedTypes.push_back(Type::Float);
-            }
-            
-            // Load constructor arguments with type conversion
-            for (size_t i = 0; i < ne.args.size(); ++i) {
-                load(*ne.args[i], varIdx);
+            // Build descriptor from argument types - ALWAYS check expr.kind first
+            string descriptor = "(";
+            for (const auto& arg : ne.args) {
+                // ALWAYS check kind first - it's the source of truth
+                ExprKind kind = arg->kind;
                 
-                // Convert Int to Float if needed
-                if (i < expectedTypes.size() && 
-                    expectedTypes[i] == Type::Float && 
-                    ne.args[i]->type == Type::Int) {
-                    i2f();
+                if (kind == ExprKind::Str) {
+                    descriptor += "Ljava/lang/String;";
+                } else if (kind == ExprKind::Num) {
+                    // Num can be Int or Float - use the stored type
+                    descriptor += (arg->type == Type::Int) ? "I" : "F";
+                } else if (kind == ExprKind::BoolLit) {
+                    descriptor += "Z";
+                } else {
+                    // Fallback to type for complex expressions
+                    Type argType = arg->type;
+                    if (argType == Type::Float) {
+                        descriptor += "F";
+                    } else if (argType == Type::Int || argType == Type::Bool) {
+                        descriptor += "I";
+                    } else if (argType == Type::String) {
+                        descriptor += "Ljava/lang/String;";
+                    } else {
+                        descriptor += "Ljava/lang/Object;";
+                    }
                 }
             }
-            
-            // Build constructor descriptor from expected types
-            string descriptor = "(";
-            for (const auto& t : expectedTypes) {
-                if (t == Type::Float) descriptor += "F";
-                else if (t == Type::Int || t == Type::Bool) descriptor += "I";
-                else if (t == Type::String) descriptor += "Ljava/lang/String;";
-            }
             descriptor += ")V";
+            
+            // Load constructor arguments (descriptor matches actual types, no conversion needed)
+            for (size_t i = 0; i < ne.args.size(); ++i) {
+                load(*ne.args[i], varIdx);
+            }
             
             // invokespecial <init>
             u2 init_name_idx = cp.addUtf8("<init>");
@@ -2222,16 +2227,20 @@ public:
                             // Direct assignment to field: this.field = value
                             method_code.push_back(0x2A); // aload_0
                             
+                            // Get field descriptor to determine load instruction type
+                            const auto& fd = field_data[ls.var];
+                            string fieldDesc = fd.second;
+                            
                             // Load the value
                             if (ls.expr->kind == ExprKind::Var) {
                                 const VarRef& vr = get<VarRef>(ls.expr->data);
                                 u1 paramSlot = param_varIdx[vr.name];
                                 
-                                // Load parameter based on type
-                                if (ls.expr->type == Type::Float) {
+                                // Load parameter based on field type, not parameter type
+                                if (fieldDesc == "F") {
                                     method_code.push_back(0x17); // fload
                                     method_code.push_back(paramSlot);
-                                } else if (ls.expr->type == Type::Int || ls.expr->type == Type::Bool) {
+                                } else if (fieldDesc == "I" || fieldDesc == "Z") {
                                     method_code.push_back(0x15); // iload
                                     method_code.push_back(paramSlot);
                                 } else {
@@ -2241,7 +2250,6 @@ public:
                             }
                             
                             // putfield
-                            const auto& fd = field_data[ls.var];
                             u2 field_desc_idx = ncp.addUtf8(fd.second);
                             u2 field_nat = ncp.addNameAndType(fd.first, field_desc_idx);
                             u2 field_ref = ncp.addFieldRef(n_class_idx, field_nat);
