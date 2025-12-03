@@ -75,11 +75,26 @@ Type SemanticAnalyzer::inferExprType(const Expr& expr, const SymbolTable& symbol
         case ExprKind::Var: {
             const VarRef& vr = get<VarRef>(expr.data);
             if (!symbols.isDefined(vr.name)) {
+                // Not in local scope - check if it's an implicit class field (inside class method)
+                if (!currentClassContext.empty()) {
+                    // currentClassContext is already uppercase from analyzeClassDecl
+                    auto classIt = classFieldTypes.find(currentClassContext);
+                    if (classIt != classFieldTypes.end()) {
+                        string fieldNameLower = vr.name;
+                        transform(fieldNameLower.begin(), fieldNameLower.end(), fieldNameLower.begin(), ::tolower);
+
+                        auto fieldIt = classIt->second.find(fieldNameLower);
+                        if (fieldIt != classIt->second.end()) {
+                            // It's a class field - return its type
+                            return fieldIt->second;
+                        }
+                    }
+                }
                 error("Undefined variable: " + vr.name);
                 return Type::Int;
             }
             Type varType = symbols.getType(vr.name);
-            
+
             if (vr.index) {
                 // Array access - return element type
                 return getArrayElementType(varType);
@@ -558,12 +573,30 @@ void SemanticAnalyzer::analyzeStmt(Stmt& stmt, SymbolTable& symbols) {
                 if (symbols.isDefined(ls.var)) {
                     Type existingType = symbols.getType(ls.var);
                     if (existingType != ls.expr->type) {
-                        error("Type mismatch: cannot reassign " + ls.var + 
-                              " from " + typeToString(existingType) + 
+                        error("Type mismatch: cannot reassign " + ls.var +
+                              " from " + typeToString(existingType) +
                               " to " + typeToString(ls.expr->type));
                     }
                 } else {
-                    symbols.define(ls.var, ls.expr->type);
+                    // Check if this is an implicit class field assignment
+                    // (class field accessed without Me. prefix inside a class method)
+                    bool isClassField = false;
+                    if (!currentClassContext.empty()) {
+                        auto classIt = classFieldTypes.find(currentClassContext);
+                        if (classIt != classFieldTypes.end()) {
+                            string fieldNameLower = ls.var;
+                            transform(fieldNameLower.begin(), fieldNameLower.end(), fieldNameLower.begin(), ::tolower);
+                            if (classIt->second.find(fieldNameLower) != classIt->second.end()) {
+                                isClassField = true;
+                            }
+                        }
+                    }
+
+                    if (!isClassField) {
+                        // Regular local variable - define it
+                        symbols.define(ls.var, ls.expr->type);
+                    }
+                    // If it's a class field, don't define it as a local variable
                 }
             }
             break;

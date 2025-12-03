@@ -559,7 +559,56 @@ public:
             iconst(bl.value ? 1 : 0);
         } else if (e.kind == ExprKind::Var) {
             const VarRef& vr = get<VarRef>(e.data);
-            u1 idx = varIdx.at(vr.name);
+
+            // Check if variable exists in local scope
+            auto varIt = varIdx.find(vr.name);
+            if (varIt == varIdx.end()) {
+                // Variable not in local scope - check if it's an implicit Me.field access
+                // (class field accessed without Me. prefix inside a class method)
+                string classNameUpper = currentClassContext;
+                transform(classNameUpper.begin(), classNameUpper.end(), classNameUpper.begin(), ::toupper);
+
+                if (!currentClassContext.empty() && classFieldTypes.find(classNameUpper) != classFieldTypes.end()) {
+                    // Normalize field name to lowercase for lookup
+                    string fieldNameLower = vr.name;
+                    transform(fieldNameLower.begin(), fieldNameLower.end(), fieldNameLower.begin(), ::tolower);
+
+                    auto fieldIt = classFieldTypes[classNameUpper].find(fieldNameLower);
+                    if (fieldIt != classFieldTypes[classNameUpper].end()) {
+                        // It's a class field - generate Me.field access
+                        // Load "this" (slot 0 in class methods)
+                        aload(0);
+
+                        // Get field type
+                        Type fieldType = fieldIt->second;
+
+                        // Build field reference
+                        string classNameRef = this->className + "$" + currentClassContext;
+                        u2 class_utf8 = cp.addUtf8(classNameRef);
+                        u2 class_idx = cp.addClass(class_utf8);
+
+                        // Field descriptor
+                        string fieldDesc;
+                        if (fieldType == Type::Float) fieldDesc = "F";
+                        else if (fieldType == Type::Int) fieldDesc = "I";
+                        else if (fieldType == Type::Bool) fieldDesc = "Z";
+                        else if (fieldType == Type::String) fieldDesc = "Ljava/lang/String;";
+                        else fieldDesc = "Ljava/lang/Object;";
+
+                        u2 field_name_idx = cp.addUtf8(vr.name);
+                        u2 field_desc_idx = cp.addUtf8(fieldDesc);
+                        u2 field_nat = cp.addNameAndType(field_name_idx, field_desc_idx);
+                        u2 field_ref = cp.addFieldRef(class_idx, field_nat);
+
+                        getfield(field_ref);
+                        return;  // Done - field loaded
+                    }
+                }
+                // If we get here, variable truly doesn't exist - this will throw
+                throw runtime_error("Undefined variable: " + vr.name);
+            }
+
+            u1 idx = varIt->second;
             
             if (vr.index) {
                 // Array element access: load array, load index, load element
@@ -1679,18 +1728,73 @@ public:
                         aastore();
                     }
                 } else {
-                    // Scalar assignment
-                    if (varIdx.find(ls.var) == varIdx.end()) {
-                        varIdx[ls.var] = nextLocal++;
-                        // Track the variable's type from first assignment
-                        runtimeVarTypes[ls.var] = ls.expr->type;
+                    // Scalar assignment - check if it's an implicit class field assignment first
+                    bool handledAsClassField = false;
+
+                    if (varIdx.find(ls.var) == varIdx.end() && !currentClassContext.empty()) {
+                        // Variable not in local scope and we're in a class method
+                        // Check if it's a class field
+                        string classNameUpper = currentClassContext;
+                        transform(classNameUpper.begin(), classNameUpper.end(), classNameUpper.begin(), ::toupper);
+
+                        if (classFieldTypes.find(classNameUpper) != classFieldTypes.end()) {
+                            string fieldNameLower = ls.var;
+                            transform(fieldNameLower.begin(), fieldNameLower.end(), fieldNameLower.begin(), ::tolower);
+
+                            auto fieldIt = classFieldTypes[classNameUpper].find(fieldNameLower);
+                            if (fieldIt != classFieldTypes[classNameUpper].end()) {
+                                // It's a class field - generate Me.field = value
+                                handledAsClassField = true;
+
+                                // Load "this" (slot 0)
+                                aload(0);
+
+                                // Load value
+                                load(*ls.expr, varIdx);
+
+                                // Get field type and convert if needed
+                                Type fieldType = fieldIt->second;
+                                if (fieldType == Type::Float && ls.expr->type == Type::Int) {
+                                    i2f();
+                                }
+
+                                // Build field reference
+                                string classNameRef = this->className + "$" + currentClassContext;
+                                u2 class_utf8 = cp.addUtf8(classNameRef);
+                                u2 class_idx = cp.addClass(class_utf8);
+
+                                // Field descriptor
+                                string fieldDesc;
+                                if (fieldType == Type::Float) fieldDesc = "F";
+                                else if (fieldType == Type::Int) fieldDesc = "I";
+                                else if (fieldType == Type::Bool) fieldDesc = "Z";
+                                else if (fieldType == Type::String) fieldDesc = "Ljava/lang/String;";
+                                else fieldDesc = "Ljava/lang/Object;";
+
+                                u2 field_name_idx = cp.addUtf8(ls.var);
+                                u2 field_desc_idx = cp.addUtf8(fieldDesc);
+                                u2 field_nat = cp.addNameAndType(field_name_idx, field_desc_idx);
+                                u2 field_ref = cp.addFieldRef(class_idx, field_nat);
+
+                                putfield(field_ref);
+                            }
+                        }
                     }
-                    u1 idx = varIdx[ls.var];
-                    load(*ls.expr, varIdx);
-                    if (ls.expr->type == Type::Int || ls.expr->type == Type::Bool) istore(idx);
-                    else if (ls.expr->type == Type::Float) fstore(idx);
-                    else astore(idx);
-                    max_locals = max(max_locals, static_cast<u2>(nextLocal));
+
+                    if (!handledAsClassField) {
+                        // Regular local variable assignment
+                        if (varIdx.find(ls.var) == varIdx.end()) {
+                            varIdx[ls.var] = nextLocal++;
+                            // Track the variable's type from first assignment
+                            runtimeVarTypes[ls.var] = ls.expr->type;
+                        }
+                        u1 idx = varIdx[ls.var];
+                        load(*ls.expr, varIdx);
+                        if (ls.expr->type == Type::Int || ls.expr->type == Type::Bool) istore(idx);
+                        else if (ls.expr->type == Type::Float) fstore(idx);
+                        else astore(idx);
+                        max_locals = max(max_locals, static_cast<u2>(nextLocal));
+                    }
                 }
             }
         } else if (s.kind == StmtKind::Input) {
