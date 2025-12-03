@@ -6,7 +6,7 @@ s = "Hello World"
 s2 = REPLACE(s, "World", "JVM BASIC")
 Console.WriteLine("REPLACE: " + s2)
 IF EQUALS(s2, "Hello JVM BASIC") THEN
-    REM OK
+    ' OK
 ELSE
     Console.WriteLine("ERROR: REPLACE failed")
 ENDIF
@@ -16,7 +16,7 @@ s = "foo bar foo baz foo"
 s2 = REPLACEALL(s, "foo", "TEST")
 Console.WriteLine("REPLACEALL: " + s2)
 IF EQUALS(s2, "TEST bar TEST baz TEST") THEN
-    REM OK
+    ' OK
 ELSE
     Console.WriteLine("ERROR: REPLACEALL failed")
 ENDIF
@@ -60,7 +60,7 @@ Console.WriteLine("CONCAT3: " + s)
 s = REPEAT("*", 5)
 Console.WriteLine("REPEAT: " + s)
 IF EQUALS(s, "*****") THEN
-    REM OK
+    ' OK
 ELSE
     Console.WriteLine("ERROR: REPEAT failed")
 ENDIF
@@ -83,7 +83,7 @@ s = "Hello World"
 s2 = SUBSTRING(s, 6)
 Console.WriteLine("SUBSTRING: " + s2)
 IF EQUALS(s2, "World") THEN
-    REM OK
+    ' OK
 ELSE
     Console.WriteLine("ERROR: SUBSTRING failed")
 ENDIF
@@ -91,7 +91,7 @@ ENDIF
 s2 = SUBSTRINGLEN(s, 0, 5)
 Console.WriteLine("SUBSTRINGLEN: " + s2)
 IF EQUALS(s2, "Hello") THEN
-    REM OK
+    ' OK
 ELSE
     Console.WriteLine("ERROR: SUBSTRINGLEN failed")
 ENDIF
@@ -121,7 +121,7 @@ s = "Hello"
 c = CHAR(s, 0)
 Console.WriteLine("CHAR at 0: " + c)
 IF EQUALS(c, "H") THEN
-    REM OK
+    ' OK
 ELSE
     Console.WriteLine("ERROR: CHAR failed")
 ENDIF

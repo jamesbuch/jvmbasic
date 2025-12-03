@@ -60,7 +60,7 @@ IF handle >= 0 THEN
         Console.WriteLine("ERROR: HASMORE should be true")
     ENDIF
     
-    REM Read all data
+    ' Read all data
     ch = READCHAR(handle)
     WHILE ch >= 0
         ch = READCHAR(handle)
@@ -121,7 +121,7 @@ IF MKDIR("test_phase8_dir") THEN
         Console.WriteLine("ERROR: Directory should exist")
     ENDIF
 ELSE
-    REM May already exist
+    ' May already exist
     Console.WriteLine("MKDIR: (directory may already exist)")
 ENDIF
 

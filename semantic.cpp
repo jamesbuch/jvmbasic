@@ -262,12 +262,14 @@ Type SemanticAnalyzer::inferExprType(const Expr& expr, const SymbolTable& symbol
                     return Type::Float;
                 }
             } else if (nce.namespaceName == "DB") {
-                if (methodUpper == "CONNECT" || methodUpper == "QUERY" || 
-                    methodUpper == "NEXT" || methodUpper == "CLOSE" || 
-                    methodUpper == "GETINT") {
+                if (methodUpper == "CONNECT" || methodUpper == "QUERY" ||
+                    methodUpper == "NEXT" || methodUpper == "NEXTROW" ||
+                    methodUpper == "CLOSE" || methodUpper == "GETINT") {
                     return Type::Int;
                 } else if (methodUpper == "GETSTRING") {
                     return Type::String;
+                } else if (methodUpper == "GETFLOAT") {
+                    return Type::Float;
                 }
             } else if (nce.namespaceName == "XML") {
                 if (methodUpper == "PARSE") {

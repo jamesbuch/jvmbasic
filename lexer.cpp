@@ -140,9 +140,7 @@ Token Lexer::nextToken() {
         for (auto& c : upper) c = toupper(c);
         
         // Keywords
-        if (upper == "PRINT") return {TokenType::PRINT, s, 0.0, tokenLine};
         if (upper == "LET") return {TokenType::LET, s, 0.0, tokenLine};
-        if (upper == "INPUT") return {TokenType::INPUT, s, 0.0, tokenLine};
         if (upper == "DIM") return {TokenType::DIM, s, 0.0, tokenLine};
         if (upper == "MOD") return {TokenType::MOD, s, 0.0, tokenLine};
         if (upper == "IF") return {TokenType::IF, s, 0.0, tokenLine};
@@ -210,14 +208,6 @@ Token Lexer::nextToken() {
         if (upper == "STATIC") return {TokenType::STATIC, s, 0.0, tokenLine};
         if (upper == "BYVAL") return {TokenType::BYVAL, s, 0.0, tokenLine};
         if (upper == "BYREF") return {TokenType::BYREF, s, 0.0, tokenLine};
-        
-        if (upper == "REM") {
-            // Comment - consume rest of line and return next token
-            while (!eof && ch != '\n') {
-                read();
-            }
-            return nextToken();
-        }
         
         // Handle END + keyword (VB-style: "END SUB", "END FUNCTION", etc.)
         if (upper == "END") {
