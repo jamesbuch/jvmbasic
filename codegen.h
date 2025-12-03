@@ -684,15 +684,10 @@ public:
                 getfield(field_ref);
             } else {
                 // Struct field access using Object[] array
-                // Get the base object
-                // For now, assume it's a simple variable (not chained access)
+                // NOTE: Object is already loaded above (lines 637-643), don't load again!
                 if (mae.object->kind == ExprKind::Var) {
                     const VarRef& vr = get<VarRef>(mae.object->data);
-                    u1 varSlot = varIdx.at(vr.name);
-                    
-                    // Load struct object (Object[])
-                    aload(varSlot);
-                    
+
                     // Get field index
                     string typeName = varTypeNames[vr.name];
                     int fieldIdx = structFields[typeName][mae.member];
@@ -1541,19 +1536,39 @@ public:
                 u1 idx = varIdx.at(ls.var);
                 aload(idx);  // Load array reference
                 load(*ls.index, varIdx);  // Load index
-                
+
                 // Convert Float index to Int (for FOR loop variables)
                 if (ls.index->type == Type::Float) {
                     emit(0x8B);  // f2i - float to int conversion
                 }
-                
+
                 load(*ls.expr, varIdx);  // Load value
-                
-                // Store based on type
-                if (ls.expr->type == Type::Int) iastore();
-                else if (ls.expr->type == Type::Float) fastore();
-                else if (ls.expr->type == Type::Bool) bastore();
-                else if (ls.expr->type == Type::String) aastore();
+
+                // Determine array element type from knownTypes
+                Type arrayType = Type::FloatArray;  // Default
+                auto typeIt = knownTypes.find(ls.var);
+                if (typeIt != knownTypes.end()) {
+                    arrayType = typeIt->second;
+                }
+
+                // Convert element type based on array type
+                Type elemType;
+                if (arrayType == Type::IntArray) elemType = Type::Int;
+                else if (arrayType == Type::FloatArray) elemType = Type::Float;
+                else if (arrayType == Type::BoolArray) elemType = Type::Bool;
+                else if (arrayType == Type::StringArray) elemType = Type::String;
+                else elemType = ls.expr->type;  // Fallback to expression type
+
+                // Convert value if needed (e.g., Int -> Float for float arrays)
+                if (elemType == Type::Float && ls.expr->type == Type::Int) {
+                    i2f();  // Convert int to float
+                }
+
+                // Store based on ARRAY element type (not value type)
+                if (elemType == Type::Int) iastore();
+                else if (elemType == Type::Float) fastore();
+                else if (elemType == Type::Bool) bastore();
+                else if (elemType == Type::String) aastore();
             } else {
                 // Check if it's a member assignment (var.member)
                 size_t dotPos = ls.var.find('.');
@@ -1621,14 +1636,9 @@ public:
                         putfield(field_ref);
                     } else {
                         // Struct field assignment using array access
-                        // Load struct object
-                        if (!isMeAssignment) {
-                            u1 varSlot = varIdx.at(varName);
-                            aload(varSlot);
-                        } else {
-                            throw runtime_error("ME assignment to struct field not supported");
-                        }
-                        
+                        // NOTE: Object is already loaded at line 1583 above, don't load again!
+                        // (The aload was moved to the common path for both class and struct)
+
                         // Get field index
                         string typeName = varTypeNames[varName];
                         int fieldIdx = structFields[typeName][memberName];

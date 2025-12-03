@@ -913,39 +913,50 @@ StmtPtr Parser::parseStmt() {
             
             // Phase 9: Modern syntax - DIM arr(10) As Integer
             string typeNameUpper = "";
+            Type arrayType = Type::FloatArray;  // Default
             if (tok.type == TokenType::AS) {
                 next();
                 string typeName;
                 if (tok.type == TokenType::INTEGER) {
                     typeName = "INTEGER";
+                    arrayType = Type::IntArray;
                     next();
                 } else if (tok.type == TokenType::SINGLE) {
                     typeName = "SINGLE";
+                    arrayType = Type::FloatArray;
                     next();
                 } else if (tok.type == TokenType::DOUBLE) {
                     typeName = "DOUBLE";
+                    arrayType = Type::FloatArray;
                     next();
                 } else if (tok.type == TokenType::LONG) {
                     typeName = "LONG";
+                    arrayType = Type::IntArray;
                     next();
                 } else if (tok.type == TokenType::BOOLEAN) {
                     typeName = "BOOLEAN";
+                    arrayType = Type::BoolArray;
                     next();
                 } else if (tok.type == TokenType::STRINGTYPE) {
                     typeName = "STRING";
+                    arrayType = Type::StringArray;
                     next();
                 } else if (tok.type == TokenType::DECIMAL) {
                     typeName = "DECIMAL";
+                    arrayType = Type::FloatArray;  // Map to float array for now
                     next();
                 } else if (tok.type == TokenType::BIGINT) {
                     typeName = "BIGINT";
+                    arrayType = Type::IntArray;  // Map to int array for now
                     next();
                 } else {
                     typeName = expect(TokenType::ID).val;
                 }
-                
+
                 transform(typeName.begin(), typeName.end(), typeName.begin(), ::toupper);
                 typeNameUpper = typeName;
+                // Store array type for codegen
+                knownTypes[var] = arrayType;
             }
             
             // Old syntax still requires = initValue
