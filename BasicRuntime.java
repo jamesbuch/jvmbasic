@@ -2309,6 +2309,154 @@ public class BasicRuntime {
         return sb.toString();
     }
 
+    // ===========================================
+    // Thread Namespace - Phase 10 Priority 5
+    // ===========================================
+
+    // Shared variables for inter-thread communication
+    private static java.util.concurrent.ConcurrentHashMap<String, Object> sharedVars =
+        new java.util.concurrent.ConcurrentHashMap<>();
+
+    // Lock storage
+    private static java.util.concurrent.ConcurrentHashMap<String, Object> locks =
+        new java.util.concurrent.ConcurrentHashMap<>();
+
+    /**
+     * Thread.Sleep - Pause current thread for specified milliseconds
+     * @param millis Milliseconds to sleep
+     * @return 0 on success, -1 on interrupt
+     */
+    public static int thread_Sleep(int millis) {
+        try {
+            Thread.sleep(millis);
+            return 0;
+        } catch (InterruptedException e) {
+            return -1;
+        }
+    }
+
+    /**
+     * Thread.CurrentId - Get current thread ID
+     * @return Thread ID
+     */
+    public static int thread_CurrentId() {
+        return (int) Thread.currentThread().getId();
+    }
+
+    /**
+     * Thread.SetInt - Set a shared integer variable (thread-safe)
+     * @param name Variable name
+     * @param value Integer value
+     * @return 0
+     */
+    public static int thread_SetInt(String name, int value) {
+        sharedVars.put(name, value);
+        return 0;
+    }
+
+    /**
+     * Thread.GetInt - Get a shared integer variable (thread-safe)
+     * @param name Variable name
+     * @return Integer value, or 0 if not set
+     */
+    public static int thread_GetInt(String name) {
+        Object val = sharedVars.get(name);
+        return (val instanceof Integer) ? (Integer) val : 0;
+    }
+
+    /**
+     * Thread.SetString - Set a shared string variable (thread-safe)
+     * @param name Variable name
+     * @param value String value
+     * @return 0
+     */
+    public static int thread_SetString(String name, String value) {
+        sharedVars.put(name, value);
+        return 0;
+    }
+
+    /**
+     * Thread.GetString - Get a shared string variable (thread-safe)
+     * @param name Variable name
+     * @return String value, or empty if not set
+     */
+    public static String thread_GetString(String name) {
+        Object val = sharedVars.get(name);
+        return (val instanceof String) ? (String) val : "";
+    }
+
+    /**
+     * Thread.AtomicAdd - Atomically add to a shared integer
+     * @param name Variable name
+     * @param delta Amount to add
+     * @return New value
+     */
+    public static int thread_AtomicAdd(String name, int delta) {
+        synchronized (sharedVars) {
+            int current = thread_GetInt(name);
+            int newVal = current + delta;
+            sharedVars.put(name, newVal);
+            return newVal;
+        }
+    }
+
+    /**
+     * Thread.Lock - Acquire a named lock
+     * @param name Lock name
+     * @return 0 when lock acquired
+     */
+    public static int thread_Lock(String name) {
+        Object lock = locks.computeIfAbsent(name, k -> new Object());
+        try {
+            synchronized (lock) {
+                while (sharedVars.containsKey("__lock_" + name)) {
+                    lock.wait(10);
+                }
+                sharedVars.put("__lock_" + name, Thread.currentThread().getId());
+            }
+            return 0;
+        } catch (InterruptedException e) {
+            return -1;
+        }
+    }
+
+    /**
+     * Thread.Unlock - Release a named lock
+     * @param name Lock name
+     * @return 0 on success, -1 if not locked by this thread
+     */
+    public static int thread_Unlock(String name) {
+        Object val = sharedVars.get("__lock_" + name);
+        if (val != null && val.equals(Thread.currentThread().getId())) {
+            sharedVars.remove("__lock_" + name);
+            Object lock = locks.get(name);
+            if (lock != null) {
+                synchronized (lock) {
+                    lock.notifyAll();
+                }
+            }
+            return 0;
+        }
+        return -1;
+    }
+
+    /**
+     * Thread.Yield - Hint to scheduler to let other threads run
+     * @return 0
+     */
+    public static int thread_Yield() {
+        Thread.yield();
+        return 0;
+    }
+
+    /**
+     * Thread.AvailableProcessors - Get number of available CPU cores
+     * @return Number of processors
+     */
+    public static int thread_AvailableProcessors() {
+        return Runtime.getRuntime().availableProcessors();
+    }
+
     // Directory operations
     public static int dir_Create(String dirname) {
         try {

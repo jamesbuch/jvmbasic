@@ -313,6 +313,17 @@ Type SemanticAnalyzer::inferExprType(const Expr& expr, const SymbolTable& symbol
                     methodUpper == "RANDOMBYTES") {
                     return Type::String;
                 }
+            } else if (nce.namespaceName == "THREAD") {
+                // Phase 10: Thread namespace for multithreading
+                if (methodUpper == "SLEEP" || methodUpper == "CURRENTID" ||
+                    methodUpper == "SETINT" || methodUpper == "GETINT" ||
+                    methodUpper == "ATOMICADD" || methodUpper == "LOCK" ||
+                    methodUpper == "UNLOCK" || methodUpper == "YIELD" ||
+                    methodUpper == "AVAILABLEPROCESSORS" || methodUpper == "SETSTRING") {
+                    return Type::Int;
+                } else if (methodUpper == "GETSTRING") {
+                    return Type::String;
+                }
             } else if (nce.namespaceName == "REGEX") {
                 if (methodUpper == "MATCH") {
                     return Type::Bool;
