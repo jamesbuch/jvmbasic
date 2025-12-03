@@ -236,11 +236,19 @@ Type SemanticAnalyzer::inferExprType(const Expr& expr, const SymbolTable& symbol
                 }
                 return Type::Float;
             } else if (nce.namespaceName == "FILE") {
-                if (methodUpper == "READALLTEXT") {
+                if (methodUpper == "READALLTEXT" || methodUpper == "READLINE" ||
+                    methodUpper == "GETLINE") {
                     return Type::String;
-                } else if (methodUpper == "EXISTS" || methodUpper == "DELETE" || 
-                          methodUpper == "WRITEALLTEXT" || methodUpper == "COPY" || 
-                          methodUpper == "MOVE" || methodUpper == "ISDIRECTORY") {
+                } else if (methodUpper == "EXISTS" || methodUpper == "DELETE" ||
+                          methodUpper == "WRITEALLTEXT" || methodUpper == "COPY" ||
+                          methodUpper == "MOVE" || methodUpper == "ISDIRECTORY" ||
+                          // Enhanced File I/O Phase 10
+                          methodUpper == "OPENREADER" || methodUpper == "HASLINE" ||
+                          methodUpper == "CLOSEREADER" || methodUpper == "READALLLINES" ||
+                          methodUpper == "GETLINECOUNT" || methodUpper == "FREELINES" ||
+                          methodUpper == "READALLBYTES" || methodUpper == "GETBYTE" ||
+                          methodUpper == "GETBYTECOUNT" || methodUpper == "FREEBYTES" ||
+                          methodUpper == "WRITEALLBYTES") {
                     return Type::Int;
                 } else if (methodUpper == "SIZE") {
                     return Type::Float;

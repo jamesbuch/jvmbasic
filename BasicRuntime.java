@@ -1949,7 +1949,193 @@ public class BasicRuntime {
             return -1;
         }
     }
-    
+
+    // Enhanced File I/O - Priority 1 Phase 10
+
+    // BufferedReader handle storage
+    private static java.util.Map<Integer, java.io.BufferedReader> readerHandles = new java.util.HashMap<>();
+    private static int nextReaderHandle = 10000;
+
+    // String array storage (for ReadAllLines)
+    private static java.util.Map<Integer, String[]> stringArrayHandles = new java.util.HashMap<>();
+    private static int nextStringArrayHandle = 20000;
+
+    // Byte array storage (for ReadAllBytes)
+    private static java.util.Map<Integer, byte[]> byteArrayHandles = new java.util.HashMap<>();
+    private static int nextByteArrayHandle = 30000;
+
+    /**
+     * File.OpenReader - Open file for line-by-line reading
+     * Returns handle (>= 0) on success, -1 on error
+     */
+    public static int file_OpenReader(String filename) {
+        try {
+            java.io.BufferedReader reader = new java.io.BufferedReader(
+                new java.io.FileReader(filename));
+            int handle = nextReaderHandle++;
+            readerHandles.put(handle, reader);
+            return handle;
+        } catch (Exception e) {
+            return -1;
+        }
+    }
+
+    /**
+     * File.ReadLine - Read a line from reader
+     * Returns the line string, or empty string at EOF
+     */
+    public static String file_ReadLine(int handle) {
+        try {
+            java.io.BufferedReader reader = readerHandles.get(handle);
+            if (reader != null) {
+                String line = reader.readLine();
+                return line != null ? line : "";
+            }
+            return "";
+        } catch (Exception e) {
+            return "";
+        }
+    }
+
+    /**
+     * File.HasLine - Check if more lines available
+     * Returns 1 if ready, 0 if EOF or error
+     */
+    public static int file_HasLine(int handle) {
+        try {
+            java.io.BufferedReader reader = readerHandles.get(handle);
+            if (reader != null && reader.ready()) {
+                return 1;
+            }
+            return 0;
+        } catch (Exception e) {
+            return 0;
+        }
+    }
+
+    /**
+     * File.CloseReader - Close a reader handle
+     */
+    public static int file_CloseReader(int handle) {
+        try {
+            java.io.BufferedReader reader = readerHandles.get(handle);
+            if (reader != null) {
+                reader.close();
+                readerHandles.remove(handle);
+            }
+            return 0;
+        } catch (Exception e) {
+            return -1;
+        }
+    }
+
+    /**
+     * File.ReadAllLines - Read all lines into a string array
+     * Returns handle to string array (>= 0), -1 on error
+     */
+    public static int file_ReadAllLines(String filename) {
+        try {
+            java.util.List<String> lines = java.nio.file.Files.readAllLines(
+                java.nio.file.Paths.get(filename));
+            int handle = nextStringArrayHandle++;
+            stringArrayHandles.put(handle, lines.toArray(new String[0]));
+            return handle;
+        } catch (Exception e) {
+            return -1;
+        }
+    }
+
+    /**
+     * File.GetLine - Get a line by index from string array
+     */
+    public static String file_GetLine(int handle, int index) {
+        String[] lines = stringArrayHandles.get(handle);
+        if (lines != null && index >= 0 && index < lines.length) {
+            return lines[index];
+        }
+        return "";
+    }
+
+    /**
+     * File.GetLineCount - Get number of lines in string array
+     */
+    public static int file_GetLineCount(int handle) {
+        String[] lines = stringArrayHandles.get(handle);
+        return lines != null ? lines.length : 0;
+    }
+
+    /**
+     * File.FreeLines - Free string array memory
+     */
+    public static int file_FreeLines(int handle) {
+        stringArrayHandles.remove(handle);
+        return 0;
+    }
+
+    /**
+     * File.ReadAllBytes - Read all bytes from file
+     * Returns handle to byte array (>= 0), -1 on error
+     */
+    public static int file_ReadAllBytes(String filename) {
+        try {
+            byte[] bytes = java.nio.file.Files.readAllBytes(
+                java.nio.file.Paths.get(filename));
+            int handle = nextByteArrayHandle++;
+            byteArrayHandles.put(handle, bytes);
+            return handle;
+        } catch (Exception e) {
+            return -1;
+        }
+    }
+
+    /**
+     * File.GetByte - Get byte at index from byte array
+     */
+    public static int file_GetByte(int handle, int index) {
+        byte[] bytes = byteArrayHandles.get(handle);
+        if (bytes != null && index >= 0 && index < bytes.length) {
+            return bytes[index] & 0xFF;  // Return as unsigned
+        }
+        return -1;
+    }
+
+    /**
+     * File.GetByteCount - Get number of bytes in array
+     */
+    public static int file_GetByteCount(int handle) {
+        byte[] bytes = byteArrayHandles.get(handle);
+        return bytes != null ? bytes.length : 0;
+    }
+
+    /**
+     * File.FreeBytes - Free byte array memory
+     */
+    public static int file_FreeBytes(int handle) {
+        byteArrayHandles.remove(handle);
+        return 0;
+    }
+
+    /**
+     * File.WriteAllBytes - Write bytes from IntList to file
+     * @param filename Target file
+     * @param listHandle Handle to IntList containing bytes
+     * @return 0 on success, -1 on error
+     */
+    public static int file_WriteAllBytes(String filename, int listHandle) {
+        try {
+            java.util.List<Integer> list = intLists.get(listHandle);
+            if (list == null) return -1;
+            byte[] bytes = new byte[list.size()];
+            for (int i = 0; i < list.size(); i++) {
+                bytes[i] = (byte)(int)list.get(i);
+            }
+            java.nio.file.Files.write(java.nio.file.Paths.get(filename), bytes);
+            return 0;
+        } catch (Exception e) {
+            return -1;
+        }
+    }
+
     // Directory operations
     public static int dir_Create(String dirname) {
         try {
