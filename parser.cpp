@@ -572,11 +572,15 @@ ExprPtr Parser::parsePrimary() {
         // Phase 9: Check for namespace call: Namespace.Method()
         if (tok.type == TokenType::DOT) {
             // Check if it's a known namespace
-            bool isNamespace = (nameUpper == "MATH" || 
-                               nameUpper == "FILE" || nameUpper == "HTTP" || 
-                               nameUpper == "JSON" || nameUpper == "XML" || 
-                               nameUpper == "DB" || nameUpper == "PATH" || 
-                               nameUpper == "DIR" || nameUpper == "ARGS");
+            bool isNamespace = (nameUpper == "MATH" ||
+                               nameUpper == "FILE" || nameUpper == "HTTP" ||
+                               nameUpper == "JSON" || nameUpper == "XML" ||
+                               nameUpper == "DB" || nameUpper == "PATH" ||
+                               nameUpper == "DIR" || nameUpper == "ARGS" ||
+                               nameUpper == "REGEX" || nameUpper == "ARRAY" ||
+                               nameUpper == "STR" || nameUpper == "INTLIST" ||
+                               nameUpper == "STRINGLIST" || nameUpper == "MAP" ||
+                               nameUpper == "STACK" || nameUpper == "QUEUE");
             
             if (isNamespace) {
                 // Parse Namespace.Method(args)

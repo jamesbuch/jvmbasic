@@ -1460,10 +1460,18 @@ public:
                 string returnType = "I"; // Default to Int
                 if (e.type == Type::String) {
                     returnType = "Ljava/lang/String;";
-                } else if (e.type == Type::Int || e.type == Type::Bool) {
+                } else if (e.type == Type::Bool) {
+                    returnType = "Z";  // Java boolean
+                } else if (e.type == Type::Int) {
                     returnType = "I";
                 } else if (e.type == Type::Float) {
                     returnType = "F";
+                } else if (e.type == Type::IntArray) {
+                    returnType = "[I";
+                } else if (e.type == Type::FloatArray) {
+                    returnType = "[F";
+                } else if (e.type == Type::StringArray) {
+                    returnType = "[Ljava/lang/String;";
                 } else {
                     returnType = "Ljava/lang/Object;";
                 }

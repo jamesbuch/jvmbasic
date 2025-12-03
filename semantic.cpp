@@ -295,6 +295,79 @@ Type SemanticAnalyzer::inferExprType(const Expr& expr, const SymbolTable& symbol
                 } else if (methodUpper == "CONTAINS" || methodUpper == "INDEXOF") {
                     return Type::Int;
                 }
+            } else if (nce.namespaceName == "REGEX") {
+                if (methodUpper == "MATCH") {
+                    return Type::Bool;
+                } else if (methodUpper == "FIND" || methodUpper == "REPLACE" || methodUpper == "GROUP") {
+                    return Type::String;
+                }
+            } else if (nce.namespaceName == "ARRAY") {
+                if (methodUpper == "SORT" || methodUpper == "SORTINT" ||
+                    methodUpper == "LENGTH" || methodUpper == "LENGTHINT" || methodUpper == "LENGTHSTRING" ||
+                    methodUpper == "SUMINT") {
+                    return Type::Int;
+                } else if (methodUpper == "MIN" || methodUpper == "MAX" ||
+                           methodUpper == "AVG" || methodUpper == "SUM") {
+                    return Type::Float;
+                } else if (methodUpper == "MININT" || methodUpper == "MAXINT") {
+                    return Type::Int;
+                }
+            } else if (nce.namespaceName == "STR") {
+                if (methodUpper == "FORMAT" || methodUpper == "FORMATINT" ||
+                    methodUpper == "FORMATFLOAT" || methodUpper == "JOIN") {
+                    return Type::String;
+                } else if (methodUpper == "SPLIT") {
+                    return Type::StringArray;
+                }
+            } else if (nce.namespaceName == "INTLIST") {
+                if (methodUpper == "CREATE" || methodUpper == "ADD" || methodUpper == "GET" ||
+                    methodUpper == "SET" || methodUpper == "SIZE" || methodUpper == "REMOVE" ||
+                    methodUpper == "INDEXOF" || methodUpper == "CLEAR") {
+                    return Type::Int;
+                } else if (methodUpper == "CONTAINS") {
+                    return Type::Bool;
+                } else if (methodUpper == "TOARRAY") {
+                    return Type::IntArray;
+                }
+            } else if (nce.namespaceName == "STRINGLIST") {
+                if (methodUpper == "CREATE" || methodUpper == "ADD" || methodUpper == "SIZE" ||
+                    methodUpper == "INDEXOF" || methodUpper == "CLEAR") {
+                    return Type::Int;
+                } else if (methodUpper == "GET" || methodUpper == "SET" || methodUpper == "REMOVE") {
+                    return Type::String;
+                } else if (methodUpper == "CONTAINS") {
+                    return Type::Bool;
+                } else if (methodUpper == "TOARRAY") {
+                    return Type::StringArray;
+                }
+            } else if (nce.namespaceName == "MAP") {
+                if (methodUpper == "CREATE" || methodUpper == "SIZE" || methodUpper == "CLEAR") {
+                    return Type::Int;
+                } else if (methodUpper == "PUT" || methodUpper == "GET" || methodUpper == "REMOVE") {
+                    return Type::String;
+                } else if (methodUpper == "CONTAINSKEY") {
+                    return Type::Bool;
+                } else if (methodUpper == "KEYS" || methodUpper == "VALUES") {
+                    return Type::StringArray;
+                }
+            } else if (nce.namespaceName == "STACK") {
+                if (methodUpper == "CREATE" || methodUpper == "PUSH" ||
+                    methodUpper == "SIZE" || methodUpper == "CLEAR") {
+                    return Type::Int;
+                } else if (methodUpper == "POP" || methodUpper == "PEEK") {
+                    return Type::String;
+                } else if (methodUpper == "ISEMPTY") {
+                    return Type::Bool;
+                }
+            } else if (nce.namespaceName == "QUEUE") {
+                if (methodUpper == "CREATE" || methodUpper == "ENQUEUE" ||
+                    methodUpper == "SIZE" || methodUpper == "CLEAR") {
+                    return Type::Int;
+                } else if (methodUpper == "DEQUEUE" || methodUpper == "PEEK") {
+                    return Type::String;
+                } else if (methodUpper == "ISEMPTY") {
+                    return Type::Bool;
+                }
             }
             return Type::Float;  // Default
         }

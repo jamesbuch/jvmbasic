@@ -1,26 +1,26 @@
 REM Test modern Console I/O functions
 REM Console.WriteLine, Console.Write style functions
 
-REM Test ConsoleWriteLine
-dummy = CONSOLEWRITELINE("Testing Console.WriteLine functionality")
-dummy = CONSOLEWRITELINE("This should print on a new line")
+REM Test Console.WriteLine
+Console.WriteLine("Testing Console.WriteLine functionality")
+Console.WriteLine("This should print on a new line")
 
-REM Test ConsoleWrite (no newline)
-dummy = CONSOLEWRITE("This prints ")
-dummy = CONSOLEWRITE("on the ")
-dummy = CONSOLEWRITELINE("same line!")
+REM Test Console.Write (no newline)
+Console.Write("This prints ")
+Console.Write("on the ")
+Console.WriteLine("same line!")
 
 REM Test with variables
 message = "Hello from JVM BASIC!"
-dummy = CONSOLEWRITELINE(message)
+Console.WriteLine(message)
 
 x = 42
-xmsg = FORMATI("%d", x)
-dummy = CONSOLEWRITELINE("x = " + xmsg)
+xmsg = Str.FormatInt("{0}", x)
+Console.WriteLine("x = " + xmsg)
 
 y = 3.14
-ymsg = FORMATF("%.2f", y)
-dummy = CONSOLEWRITELINE("y = " + ymsg)
+ymsg = Str.FormatFloat("{0}", y)
+Console.WriteLine("y = " + ymsg)
 
 REM Modern style works!
 Console.WriteLine("Console I/O test complete!")
