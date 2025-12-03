@@ -2136,6 +2136,179 @@ public class BasicRuntime {
         }
     }
 
+    // ===========================================
+    // Crypto Namespace - Phase 10 Priority 3
+    // ===========================================
+
+    /**
+     * Crypto.Sha256 - Compute SHA-256 hash of a string
+     * @param input The string to hash
+     * @return Hexadecimal string representation of hash
+     */
+    public static String crypto_Sha256(String input) {
+        try {
+            java.security.MessageDigest digest = java.security.MessageDigest.getInstance("SHA-256");
+            byte[] hash = digest.digest(input.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+            return bytesToHex(hash);
+        } catch (Exception e) {
+            return "";
+        }
+    }
+
+    /**
+     * Crypto.Md5 - Compute MD5 hash of a string
+     * @param input The string to hash
+     * @return Hexadecimal string representation of hash
+     */
+    public static String crypto_Md5(String input) {
+        try {
+            java.security.MessageDigest digest = java.security.MessageDigest.getInstance("MD5");
+            byte[] hash = digest.digest(input.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+            return bytesToHex(hash);
+        } catch (Exception e) {
+            return "";
+        }
+    }
+
+    /**
+     * Crypto.Sha512 - Compute SHA-512 hash of a string
+     * @param input The string to hash
+     * @return Hexadecimal string representation of hash
+     */
+    public static String crypto_Sha512(String input) {
+        try {
+            java.security.MessageDigest digest = java.security.MessageDigest.getInstance("SHA-512");
+            byte[] hash = digest.digest(input.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+            return bytesToHex(hash);
+        } catch (Exception e) {
+            return "";
+        }
+    }
+
+    /**
+     * Crypto.AesEncrypt - Encrypt a string using AES-256-CBC
+     * @param plaintext The string to encrypt
+     * @param key The encryption key (will be hashed to get 256-bit key)
+     * @return Base64-encoded encrypted string (IV prepended)
+     */
+    public static String crypto_AesEncrypt(String plaintext, String key) {
+        try {
+            // Generate 256-bit key from password using SHA-256
+            java.security.MessageDigest sha = java.security.MessageDigest.getInstance("SHA-256");
+            byte[] keyBytes = sha.digest(key.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+            javax.crypto.spec.SecretKeySpec secretKey = new javax.crypto.spec.SecretKeySpec(keyBytes, "AES");
+
+            // Generate random IV
+            byte[] iv = new byte[16];
+            java.security.SecureRandom random = new java.security.SecureRandom();
+            random.nextBytes(iv);
+            javax.crypto.spec.IvParameterSpec ivSpec = new javax.crypto.spec.IvParameterSpec(iv);
+
+            // Encrypt
+            javax.crypto.Cipher cipher = javax.crypto.Cipher.getInstance("AES/CBC/PKCS5Padding");
+            cipher.init(javax.crypto.Cipher.ENCRYPT_MODE, secretKey, ivSpec);
+            byte[] encrypted = cipher.doFinal(plaintext.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+
+            // Prepend IV to encrypted data
+            byte[] result = new byte[iv.length + encrypted.length];
+            System.arraycopy(iv, 0, result, 0, iv.length);
+            System.arraycopy(encrypted, 0, result, iv.length, encrypted.length);
+
+            return java.util.Base64.getEncoder().encodeToString(result);
+        } catch (Exception e) {
+            return "";
+        }
+    }
+
+    /**
+     * Crypto.AesDecrypt - Decrypt an AES-256-CBC encrypted string
+     * @param ciphertext Base64-encoded encrypted string (IV prepended)
+     * @param key The encryption key (will be hashed to get 256-bit key)
+     * @return Decrypted plaintext string
+     */
+    public static String crypto_AesDecrypt(String ciphertext, String key) {
+        try {
+            // Generate 256-bit key from password using SHA-256
+            java.security.MessageDigest sha = java.security.MessageDigest.getInstance("SHA-256");
+            byte[] keyBytes = sha.digest(key.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+            javax.crypto.spec.SecretKeySpec secretKey = new javax.crypto.spec.SecretKeySpec(keyBytes, "AES");
+
+            // Decode Base64
+            byte[] data = java.util.Base64.getDecoder().decode(ciphertext);
+
+            // Extract IV (first 16 bytes)
+            byte[] iv = new byte[16];
+            System.arraycopy(data, 0, iv, 0, 16);
+            javax.crypto.spec.IvParameterSpec ivSpec = new javax.crypto.spec.IvParameterSpec(iv);
+
+            // Extract encrypted data
+            byte[] encrypted = new byte[data.length - 16];
+            System.arraycopy(data, 16, encrypted, 0, encrypted.length);
+
+            // Decrypt
+            javax.crypto.Cipher cipher = javax.crypto.Cipher.getInstance("AES/CBC/PKCS5Padding");
+            cipher.init(javax.crypto.Cipher.DECRYPT_MODE, secretKey, ivSpec);
+            byte[] decrypted = cipher.doFinal(encrypted);
+
+            return new String(decrypted, java.nio.charset.StandardCharsets.UTF_8);
+        } catch (Exception e) {
+            return "";
+        }
+    }
+
+    /**
+     * Crypto.Base64Encode - Encode a string to Base64
+     * @param input The string to encode
+     * @return Base64-encoded string
+     */
+    public static String crypto_Base64Encode(String input) {
+        try {
+            return java.util.Base64.getEncoder().encodeToString(
+                input.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+        } catch (Exception e) {
+            return "";
+        }
+    }
+
+    /**
+     * Crypto.Base64Decode - Decode a Base64 string
+     * @param input The Base64-encoded string
+     * @return Decoded string
+     */
+    public static String crypto_Base64Decode(String input) {
+        try {
+            byte[] decoded = java.util.Base64.getDecoder().decode(input);
+            return new String(decoded, java.nio.charset.StandardCharsets.UTF_8);
+        } catch (Exception e) {
+            return "";
+        }
+    }
+
+    /**
+     * Crypto.RandomBytes - Generate cryptographically secure random bytes
+     * @param count Number of bytes to generate
+     * @return Hexadecimal string representation of random bytes
+     */
+    public static String crypto_RandomBytes(int count) {
+        try {
+            byte[] bytes = new byte[count];
+            java.security.SecureRandom random = new java.security.SecureRandom();
+            random.nextBytes(bytes);
+            return bytesToHex(bytes);
+        } catch (Exception e) {
+            return "";
+        }
+    }
+
+    // Helper method to convert bytes to hex string
+    private static String bytesToHex(byte[] bytes) {
+        StringBuilder sb = new StringBuilder();
+        for (byte b : bytes) {
+            sb.append(String.format("%02x", b));
+        }
+        return sb.toString();
+    }
+
     // Directory operations
     public static int dir_Create(String dirname) {
         try {

@@ -305,6 +305,14 @@ Type SemanticAnalyzer::inferExprType(const Expr& expr, const SymbolTable& symbol
                 } else if (methodUpper == "CONTAINS" || methodUpper == "INDEXOF") {
                     return Type::Int;
                 }
+            } else if (nce.namespaceName == "CRYPTO") {
+                // Phase 10: Crypto namespace for hashing and encryption
+                if (methodUpper == "SHA256" || methodUpper == "SHA512" || methodUpper == "MD5" ||
+                    methodUpper == "AESENCRYPT" || methodUpper == "AESDECRYPT" ||
+                    methodUpper == "BASE64ENCODE" || methodUpper == "BASE64DECODE" ||
+                    methodUpper == "RANDOMBYTES") {
+                    return Type::String;
+                }
             } else if (nce.namespaceName == "REGEX") {
                 if (methodUpper == "MATCH") {
                     return Type::Bool;
