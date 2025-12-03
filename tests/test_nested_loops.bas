@@ -1,4 +1,7 @@
 Console.WriteLine("Multiplication table:")
+Dim i As Integer
+Dim j As Integer
+Dim product As Integer
 FOR i = 1 TO 3
     FOR j = 1 TO 3
         product = i * j
@@ -7,6 +10,8 @@ FOR i = 1 TO 3
 NEXT i
 
 Console.WriteLine("Nested WHILE:")
+Dim x As Integer
+Dim y As Integer
 x = 0
 WHILE x < 2
     y = 0

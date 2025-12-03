@@ -667,11 +667,14 @@ void SemanticAnalyzer::analyzeStmt(Stmt& stmt, SymbolTable& symbols) {
                         }
                     }
 
-                    if (!isClassField) {
-                        // Regular local variable - define it
-                        symbols.define(ls.var, ls.expr->type);
+                    // Check if this is a struct/class field assignment (var.field = value)
+                    bool isStructField = (ls.var.find('.') != string::npos);
+
+                    if (!isClassField && !isStructField) {
+                        // Phase 10: Type inference removed - require explicit DIM declaration
+                        error("Variable '" + ls.var + "' must be declared with DIM before use");
                     }
-                    // If it's a class field, don't define it as a local variable
+                    // If it's a class field or struct field, don't define it as a local variable
                 }
             }
             break;
@@ -718,11 +721,9 @@ void SemanticAnalyzer::analyzeStmt(Stmt& stmt, SymbolTable& symbols) {
                     } else {  // BIGINT
                         elemType = Type::BigInt;
                     }
-                } else if (ds.initVal) {
-                    // DIM arr(size) = initVal - infer type from init value
-                    elemType = ds.initVal->type;
                 } else {
-                    error("Array declaration must specify type or initial value");
+                    // Phase 10: Type inference removed - array must have explicit type
+                    error("Array declaration must specify type: DIM " + ds.var + "(size) As Type");
                     elemType = Type::Int; // fallback
                 }
                 

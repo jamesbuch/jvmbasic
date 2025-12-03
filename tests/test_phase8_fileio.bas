@@ -2,6 +2,8 @@
 Console.WriteLine("=== Phase 8 Advanced File I/O Test ===")
 
 ' Create a test file
+Dim handle As Integer
+Dim dummy As Integer
 handle = OPENOUTPUT("test_phase8_temp.txt")
 IF handle >= 0 THEN
     dummy = WRITELINE(handle, "Line 1: Hello")
@@ -14,6 +16,7 @@ ELSE
 ENDIF
 
 ' Test FILESIZE
+Dim size As Single
 size = FILESIZE("test_phase8_temp.txt")
 Console.WriteLine("File size: " + size + " bytes")
 IF size <= 0 THEN
@@ -37,6 +40,8 @@ ENDIF
 handle = OPENINPUT("test_phase8_temp.txt")
 IF handle >= 0 THEN
     Console.WriteLine("Reading characters...")
+    Dim count As Integer
+    Dim ch As Integer
     count = 0
     ch = READCHAR(handle)
     WHILE ch >= 0
@@ -126,10 +131,13 @@ ELSE
 ENDIF
 
 ' Clean up test files
+Dim deleted1 As Boolean
+Dim deleted2 As Boolean
 deleted1 = DELETEFILE("test_phase8_temp.txt")
 deleted2 = DELETEFILE("test_phase8_moved.txt")
 
 ' Remove test directory (only if empty)
+Dim removed As Boolean
 removed = RMDIR("test_phase8_dir")
 
 Console.WriteLine("=== All File I/O Tests Complete ===")

@@ -13,7 +13,7 @@ enum class TokenType {
     INTERPOLATED_STRING,  // Phase 10: $"text {var} more"
     PLUS, MINUS, MUL, DIV, MOD, 
     ASSIGN, SEMI, COMMA, LPAREN, RPAREN, DOT, AMPERSAND,
-    LET, DIM, 
+    DIM, 
     LT, GT, LE, GE, EQ, NE, 
     TRUE, FALSE, 
     IF, THEN, ELSE, ENDIF, ELSEIF,

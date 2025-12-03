@@ -12,6 +12,10 @@ Console.WriteLine("  nums(2) = " + nums(2))
 Console.WriteLine("  nums(3) = " + nums(3))
 Console.WriteLine("  nums(4) = " + nums(4))
 
+Dim smallest As Integer
+Dim largest As Integer
+Dim total As Integer
+Dim size As Integer
 smallest = 10
 largest = 80
 total = 220
@@ -22,6 +26,7 @@ Console.WriteLine("Max: " + largest)
 Console.WriteLine("Sum: " + total)
 Console.WriteLine("Upper bound: " + size)
 
+Dim avg As Integer
 avg = total / (size + 1)
 Console.WriteLine("Average: " + avg)
 

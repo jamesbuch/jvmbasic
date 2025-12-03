@@ -9,6 +9,7 @@ Console.WriteLine(numbers(0))
 Console.WriteLine(numbers(1))
 Console.WriteLine(numbers(2))
 
+Dim sum As Integer
 sum = numbers(0) + numbers(1)
 Console.WriteLine("Sum of first two: " + sum)
 

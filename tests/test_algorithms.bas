@@ -13,6 +13,10 @@ arr(4) = 22
 
 Console.WriteLine("Before sort: " + arr(0) + " " + arr(1) + " " + arr(2) + " " + arr(3) + " " + arr(4))
 
+Dim n As Integer
+Dim i As Integer
+Dim j As Integer
+Dim temp As Integer
 n = 5
 i = 0
 WHILE i < n - 1

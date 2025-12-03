@@ -16,6 +16,7 @@ CALL printnum(42)
 CALL printmsg("Hello from SUB!")
 CALL printpair(10, 20)
 
+Dim x As Integer
 x = 100
 CALL printnum(x)
 

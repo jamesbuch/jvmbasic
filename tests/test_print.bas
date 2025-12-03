@@ -1,4 +1,7 @@
 ' Test multi-argument PRINT with comma and semicolon
+Dim x As Integer
+Dim y As Single
+Dim name As String
 x = 42
 y = 3.14
 name = "Alice"
@@ -26,6 +29,7 @@ Console.Write("Count: ")
 Console.WriteLine(x)
 
 Console.WriteLine("Test 7: Boolean values")
+Dim flag As Boolean
 flag = true
 Console.WriteLine("Flag is " + flag)
 

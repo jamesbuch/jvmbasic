@@ -7,11 +7,13 @@ scores(3) = 95
 scores(4) = 88
 
 Console.WriteLine("Test Scores:")
+Dim i As Integer
 i = 0
 Console.WriteLine("Score " + i + "=" + scores(i))
 i = 1
 Console.WriteLine("Score " + i + "=" + scores(i))
 
+Dim total As Integer
 total = scores(0) + scores(1) + scores(2)
 Console.WriteLine("Total of first 3 scores: " + total)
 

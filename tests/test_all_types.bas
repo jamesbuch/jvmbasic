@@ -2,6 +2,14 @@
 ' Phase 9: Integer, Single, Double, Long, Boolean, String, Decimal, BigInt
 
 ' Test all type declarations
+Dim count As Integer
+Dim price As Single
+Dim precise As Single
+Dim bigNum As Integer
+Dim active As Boolean
+Dim name As String
+Dim money As Single
+Dim huge As Integer
 count = 42
 price = 99.99
 precise = 3.14159265359

@@ -1,5 +1,16 @@
 Console.WriteLine("Testing all features...")
 
+Dim intVal As Integer
+Dim floatVal As Single
+Dim strVal As String
+Dim boolVal As Boolean
+Dim sum As Integer
+Dim prod As Single
+Dim cmp1 As Boolean
+Dim cmp2 As Boolean
+Dim cmp3 As Boolean
+Dim cmp4 As Boolean
+
 intVal = 42
 floatVal = 3.14
 strVal = "Hello"

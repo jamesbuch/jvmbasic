@@ -1,3 +1,11 @@
+Dim pi As Single
+Dim e As Single
+Dim name As String
+Dim other As String
+Dim diff As String
+Dim a As Integer
+Dim b As Integer
+
 pi = 3.14
 e = 2.71
 IF pi > e THEN

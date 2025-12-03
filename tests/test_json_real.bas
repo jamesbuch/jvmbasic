@@ -1,21 +1,21 @@
 ' Test real JSON with Gson
 
 ' Test creating and serializing JSON
-newObj = Json.NewObject()
+Dim newObj As Integer = Json.NewObject()
 Json.Put(newObj, "app", "TestApp")
 Json.Put(newObj, "name", "Bob")
 Json.PutInt(newObj, "age", 25)
 Json.PutInt(newObj, "version", 1)
-output = Json.ToString(newObj)
+Dim output As String = Json.ToString(newObj)
 Console.WriteLine("Created JSON: " + output)
 
 ' Test parsing the JSON we just created
-parsed = Json.Parse(output)
+Dim parsed As Integer = Json.Parse(output)
 Console.WriteLine("Parsed back: " + parsed)
 
-appName = Json.GetString(parsed, "app")
-userName = Json.GetString(parsed, "name")
-userAge = Json.GetInt(parsed, "age")
+Dim appName As String = Json.GetString(parsed, "app")
+Dim userName As String = Json.GetString(parsed, "name")
+Dim userAge As Integer = Json.GetInt(parsed, "age")
 
 Console.WriteLine("App: " + appName)
 Console.WriteLine("User: " + userName)

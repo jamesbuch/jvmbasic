@@ -4,6 +4,7 @@ Console.WriteLine("=== MariaDB Database Test ===")
 Console.WriteLine("")
 
 ' Connect to MariaDB
+Dim conn As Integer
 conn = Db.Connect("jdbc:mariadb://localhost/testdb", "developer", "test")
 Console.WriteLine("Connection ID: " + conn)
 
@@ -12,6 +13,7 @@ IF conn > 0 THEN
     Console.WriteLine("")
 
     ' Query current database
+    Dim result As Integer
     result = Db.Query(conn, "SELECT DATABASE() as dbname")
     Console.WriteLine("Query result ID: " + result)
 
@@ -19,9 +21,11 @@ IF conn > 0 THEN
         Console.WriteLine("✓ Query executed")
 
         ' Use Db.NextRow to advance to first row
+        Dim hasRow As Integer
         hasRow = Db.NextRow(result)
         IF hasRow > 0 THEN
             Console.WriteLine("✓ Row available")
+            Dim dbname As String
             dbname = Db.GetString(result, "dbname")
             Console.WriteLine("Current database: " + dbname)
         ENDIF
@@ -30,6 +34,7 @@ IF conn > 0 THEN
     ENDIF
 
     ' Close connection
+    Dim closeResult As Integer
     closeResult = Db.Close(conn)
     Console.WriteLine("Connection closed: " + closeResult)
 ELSE

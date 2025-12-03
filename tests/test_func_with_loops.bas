@@ -18,9 +18,11 @@ ENDFUNCTION
 
 Console.WriteLine("Testing functions with loops")
 
+Dim fact5 As Integer
 fact5 = factorial(5)
 Console.WriteLine("factorial(5) = " + fact5)
 
+Dim sum As Integer
 sum = sumrange(1, 10)
 Console.WriteLine("sum(1 to 10) = " + sum)
 

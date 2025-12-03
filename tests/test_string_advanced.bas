@@ -1,4 +1,17 @@
 ' Test Advanced String Functions from Phase 8
+Dim s1 As String
+Dim s2 As String
+Dim stars As String
+Dim num1 As String
+Dim num2 As String
+Dim num3 As String
+Dim text As String
+Dim cmp1 As Integer
+Dim cmp2 As Integer
+Dim cmp3 As Integer
+Dim cmp4 As Integer
+Dim word As String
+
 Console.WriteLine("=== Advanced String Functions Test ===")
 
 ' Test CONCAT variations

@@ -2,6 +2,7 @@
 Console.WriteLine("=== Phase 8 Timing Functions Test ===")
 
 ' Test TIMER
+Dim t As Single
 t = TIMER()
 Console.WriteLine("Timer (seconds since midnight): " + t)
 IF t < 0 THEN
@@ -12,15 +13,19 @@ IF t > 86400 THEN
 ENDIF
 
 ' Test NANOSECONDS
+Dim start As Single
 start = NANOSECONDS()
 Console.WriteLine("Nanosecond timer start: " + start)
 
 ' Do some work
+Dim sum As Integer
+Dim i As Integer
 sum = 0
 FOR i = 1 TO 1000
     sum = sum + i
 NEXT i
 
+Dim elapsed As Single
 elapsed = NANOSECONDS() - start
 Console.WriteLine("Loop took (nanoseconds): " + elapsed)
 Console.WriteLine("Loop sum: " + sum)
@@ -31,6 +36,10 @@ ENDIF
 
 ' Test SLEEP (sleep for 100ms)
 Console.WriteLine("Sleeping for 100 milliseconds...")
+Dim before As Single
+Dim dummy As Integer
+Dim after As Single
+Dim slept As Single
 before = NANOSECONDS()
 dummy = SLEEP(100)
 after = NANOSECONDS()
