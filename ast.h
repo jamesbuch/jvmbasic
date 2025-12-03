@@ -305,6 +305,7 @@ struct MethodDecl {
     string name;
     bool isPublic;
     bool isConstructor;  // true if name == "New"
+    bool isSub;  // true if declared as SUB, false if declared as FUNCTION
     vector<Param> params;
     Type returnType;
     vector<StmtPtr> body;

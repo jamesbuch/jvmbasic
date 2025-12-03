@@ -51,12 +51,15 @@ private:
     // Phase 6/7: Struct and class field type information
     map<string, map<string, Type>> structFieldTypes;  // (typeName, fieldName) -> fieldType
     map<string, map<string, Type>> classFieldTypes;   // (className, fieldName) -> fieldType
+    map<string, map<string, bool>> classFieldAccess;  // (className, fieldName) -> isPublic
     map<string, string> varTypeNames;  // (varName) -> typeName (for struct/class variables)
+    string currentClassContext = "";  // Current class name when analyzing class methods (for access control)
     
     // Analysis methods
     void analyzeDecl(Decl& decl);
     void analyzeFunctionDecl(FunctionDecl& fd);
     void analyzeSubDecl(SubDecl& sd);
+    void analyzeClassDecl(ClassDecl& cd);  // Phase 7: Analyze class methods
     void analyzeStmt(Stmt& stmt, SymbolTable& symbols);
     void analyzeExpr(Expr& expr, const SymbolTable& symbols);
     

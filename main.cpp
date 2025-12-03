@@ -71,9 +71,8 @@ int main(int argc, char** argv) {
         
         analyzer.analyze(program);
         
-        // Only fail on semantic errors if no user types (TYPE/CLASS) are present
-        // Semantic analyzer doesn't fully support Phase 6+ yet
-        if (analyzer.hasErrors() && userTypes.empty() && userClassNames.empty()) {
+        // Always report semantic errors
+        if (analyzer.hasErrors()) {
             cerr << "Semantic errors:\n";
             for (const auto& err : analyzer.getErrors()) {
                 cerr << "  " << err << "\n";
