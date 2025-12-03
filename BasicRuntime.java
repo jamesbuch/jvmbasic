@@ -2510,6 +2510,14 @@ public class BasicRuntime {
             return 0;
         }
     }
+
+    /**
+     * Db.NextRow - Alias for Db.Next to avoid NEXT keyword conflict
+     * Advances to next row in result set, returns 1 if successful, 0 if no more rows
+     */
+    public static int db_NextRow(int resultId) {
+        return db_Next(resultId);
+    }
     
     public static String db_GetString(int resultId, String columnName) {
         try {

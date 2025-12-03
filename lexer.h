@@ -13,7 +13,7 @@ enum class TokenType {
     INTERPOLATED_STRING,  // Phase 10: $"text {var} more"
     PLUS, MINUS, MUL, DIV, MOD, 
     ASSIGN, SEMI, COMMA, LPAREN, RPAREN, DOT, AMPERSAND,
-    PRINT, LET, INPUT, DIM, 
+    LET, DIM, 
     LT, GT, LE, GE, EQ, NE, 
     TRUE, FALSE, 
     IF, THEN, ELSE, ENDIF, ELSEIF,
@@ -21,7 +21,7 @@ enum class TokenType {
     WHILE, ENDWHILE, WEND, 
     DO, UNTIL,
     FUNCTION, ENDFUNCTION, SUB, ENDSUB, RETURN, CALL,
-    TYPE, ENDTYPE, AS, REM,
+    TYPE, ENDTYPE, AS,
     // Phase 7: OOP keywords
     CLASS, ENDCLASS, PUBLIC, PRIVATE, NEW, ME, INTEGER,
     // Phase 8: Logical operators and control flow

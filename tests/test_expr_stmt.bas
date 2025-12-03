@@ -1,4 +1,4 @@
-Rem Test expression statements (Phase 9)
+' Test expression statements (Phase 9)
 
 ' Test namespace calls as statements (no LET needed!)
 Console.WriteLine("Hello from expression statement!")

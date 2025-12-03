@@ -17,11 +17,14 @@ IF conn > 0 THEN
 
     IF result > 0 THEN
         Console.WriteLine("✓ Query executed")
-        Console.WriteLine("")
 
-        ' Note: Db.Next() method conflicts with NEXT keyword
-        ' Using direct query instead
-        Console.WriteLine("Database connected and queryable")
+        ' Use Db.NextRow to advance to first row
+        hasRow = Db.NextRow(result)
+        IF hasRow > 0 THEN
+            Console.WriteLine("✓ Row available")
+            version = Db.GetString(result, "version")
+            Console.WriteLine("PostgreSQL version: " + version)
+        ENDIF
     ELSE
         Console.WriteLine("✗ Query failed")
     ENDIF
@@ -30,7 +33,7 @@ IF conn > 0 THEN
     closeResult = Db.Close(conn)
     Console.WriteLine("Connection closed: " + closeResult)
 ELSE
-    Console.WriteLine("✗ Connection failed")
+    Console.WriteLine("✗ Connection failed (expected if no database running)")
 ENDIF
 
 Console.WriteLine("")

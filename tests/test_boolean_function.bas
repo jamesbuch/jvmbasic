@@ -1,4 +1,4 @@
-Rem Test Boolean return type
+' Test Boolean return type
 
 FUNCTION IsPositive(x As Float) As Boolean
     IF x > 0 THEN

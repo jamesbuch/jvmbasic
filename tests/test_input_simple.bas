@@ -1,7 +1,5 @@
-x = 0
+' Simple input test (requires interactive stdin)
 Console.WriteLine("Enter a number:")
-INPUT x
-Console.WriteLine("You entered: " + x)
-result = x * 2
-Console.WriteLine("Double is: " + result)
-
+xStr = Console.ReadLine()
+Console.WriteLine("You entered: " + xStr)
+Console.WriteLine("Input test complete")

@@ -856,55 +856,10 @@ ExprPtr Parser::parseExpr() {
 }
 
 StmtPtr Parser::parseStmt() {
-    // Phase 10: Simplified PRINT - no semicolon/comma separators
-    if (tok.type == TokenType::PRINT) {
-        next();
-        vector<ExprPtr> exprs;
-        
-        // Parse single expression only (no separators)
-        if (tok.type != TokenType::END && 
-            tok.type != TokenType::PRINT && 
-            tok.type != TokenType::LET && 
-            tok.type != TokenType::INPUT &&
-            tok.type != TokenType::DIM && 
-            tok.type != TokenType::IF &&
-            tok.type != TokenType::FOR && 
-            tok.type != TokenType::WHILE && 
-            tok.type != TokenType::DO &&
-            tok.type != TokenType::NEXT && 
-            tok.type != TokenType::ENDWHILE && 
-            tok.type != TokenType::WEND &&
-            tok.type != TokenType::ENDIF && 
-            tok.type != TokenType::ELSEIF && 
-            tok.type != TokenType::ELSE &&
-            tok.type != TokenType::RETURN && 
-            tok.type != TokenType::CALL &&
-            tok.type != TokenType::ENDFUNCTION && 
-            tok.type != TokenType::ENDSUB) {
-            
-            exprs.push_back(parseExpr());
-        }
-        
-        // Create simplified PrintStmt with empty separators and always add newline
-        vector<PrintSep> seps; // Empty - no separators in Phase 10
-        return make_unique<Stmt>(StmtKind::Print, PrintStmt{move(exprs), move(seps), true});
-    }
-    
     // Phase 10: LET keyword is now optional - removed LET requirement
     // Bare assignments are handled below in the ID parsing section
-    
-    if (tok.type == TokenType::INPUT) {
-        next();
-        string var = expect(TokenType::ID).val;
-        ExprPtr index = nullptr;
-        if (tok.type == TokenType::LPAREN) {
-            next();
-            index = parseExpr();
-            expect(TokenType::RPAREN);
-        }
-        return make_unique<Stmt>(StmtKind::Input, InputStmt{var, move(index)});
-    }
-    
+    // Note: PRINT and INPUT removed - use Console.WriteLine/Console.ReadLine
+
     if (tok.type == TokenType::DIM) {
         next();
         string var = expect(TokenType::ID).val;
