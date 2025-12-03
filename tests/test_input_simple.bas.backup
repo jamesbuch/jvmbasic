@@ -1,7 +1,0 @@
-x = 0
-Console.WriteLine("Enter a number:")
-INPUT x
-Console.WriteLine("You entered: " + x)
-result = x * 2
-Console.WriteLine("Double is: " + result)
-

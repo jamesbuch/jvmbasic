@@ -1,8 +1,0 @@
-SUB greet(name As Integer)
-    Console.WriteLine("Hello, " + name)
-ENDSUB
-
-Console.WriteLine("Testing SUB")
-CALL greet("Alice")
-CALL greet("Bob")
-

@@ -1,9 +1,0 @@
-a = true
-b = false
-Console.WriteLine(a)
-Console.WriteLine(b)
-x = 5
-y = 10
-result = x < y
-Console.WriteLine(result)
-

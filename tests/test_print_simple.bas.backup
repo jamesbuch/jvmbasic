@@ -1,4 +1,0 @@
-x = 42
-Console.WriteLine("Value is " + x)
-Console.WriteLine("Done")
-
