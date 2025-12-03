@@ -3,7 +3,7 @@ Console.WriteLine("  SORTING AND SEARCHING ALGORITHMS")
 Console.WriteLine("================================================")
 Console.WriteLine("")
 
-REM Test data
+' Test data
 DIM numbers(10) As Integer
 numbers(0) = 64
 numbers(1) = 34
@@ -25,7 +25,7 @@ ENDWHILE
 Console.WriteLine("")
 Console.WriteLine("")
 
-REM Simple bubble sort demonstration
+' Simple bubble sort demonstration
 Console.WriteLine("Performing bubble sort...")
 swaps = 0
 n = 10
@@ -54,7 +54,7 @@ Console.WriteLine("")
 Console.WriteLine("Swaps performed: " + swaps)
 Console.WriteLine("")
 
-REM Search demonstrations
+' Search demonstrations
 target = 25
 found = -1
 i = 0

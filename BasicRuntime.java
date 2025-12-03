@@ -2086,6 +2086,246 @@ public class BasicRuntime {
         }
     }
     
+    // ===== Phase 10: Regex Namespace =====
+
+    /**
+     * Regex.Match - Test if string matches regex pattern
+     */
+    public static boolean regex_Match(String pattern, String text) {
+        return regexMatch(pattern, text);
+    }
+
+    /**
+     * Regex.Find - Find first match of pattern in text
+     */
+    public static String regex_Find(String pattern, String text) {
+        return regexFind(pattern, text);
+    }
+
+    /**
+     * Regex.Replace - Replace all matches with replacement
+     */
+    public static String regex_Replace(String pattern, String text, String replacement) {
+        return regexReplace(pattern, text, replacement);
+    }
+
+    /**
+     * Regex.Group - Get nth capture group from regex match
+     */
+    public static String regex_Group(String pattern, String text, int groupNum) {
+        return regexGroup(pattern, text, groupNum);
+    }
+
+    // ===== Phase 10: Array Namespace =====
+
+    /**
+     * Array.Sort - Sort float array in-place
+     */
+    public static int array_Sort(float[] arr) {
+        return sort_fa(arr);
+    }
+
+    /**
+     * Array.SortInt - Sort integer array in-place
+     */
+    public static void array_SortInt(int[] arr) {
+        sort_ia(arr);
+    }
+
+    /**
+     * Array.Min - Find minimum value in float array
+     */
+    public static float array_Min(float[] arr) {
+        return min_fa(arr);
+    }
+
+    /**
+     * Array.MinInt - Find minimum value in int array
+     */
+    public static int array_MinInt(int[] arr) {
+        return min_ia(arr);
+    }
+
+    /**
+     * Array.Max - Find maximum value in float array
+     */
+    public static float array_Max(float[] arr) {
+        return max_fa(arr);
+    }
+
+    /**
+     * Array.MaxInt - Find maximum value in int array
+     */
+    public static int array_MaxInt(int[] arr) {
+        return max_ia(arr);
+    }
+
+    /**
+     * Array.Avg - Calculate average of float array
+     */
+    public static float array_Avg(float[] arr) {
+        return avg_fa(arr);
+    }
+
+    /**
+     * Array.Sum - Sum all values in float array
+     */
+    public static float array_Sum(float[] arr) {
+        return sum_fa(arr);
+    }
+
+    /**
+     * Array.SumInt - Sum all values in int array
+     */
+    public static int array_SumInt(int[] arr) {
+        return sum_ia(arr);
+    }
+
+    /**
+     * Array.Length - Get array length (UBound + 1)
+     */
+    public static int array_Length(float[] arr) {
+        return arr == null ? 0 : arr.length;
+    }
+
+    public static int array_LengthInt(int[] arr) {
+        return arr == null ? 0 : arr.length;
+    }
+
+    public static int array_LengthString(String[] arr) {
+        return arr == null ? 0 : arr.length;
+    }
+
+    /**
+     * Array.Fill - Fill float array with value
+     */
+    public static void array_Fill(float[] arr, float val) {
+        fill_fa(arr, val);
+    }
+
+    public static void array_FillInt(int[] arr, int val) {
+        fill_ia(arr, val);
+    }
+
+    public static void array_FillString(String[] arr, String val) {
+        fill_sa(arr, val);
+    }
+
+    /**
+     * Array.Reverse - Reverse array in-place
+     */
+    public static void array_Reverse(float[] arr) {
+        reverse_fa(arr);
+    }
+
+    public static void array_ReverseInt(int[] arr) {
+        reverse_ia(arr);
+    }
+
+    public static void array_ReverseString(String[] arr) {
+        reverse_sa(arr);
+    }
+
+    // ===== Phase 10: Str Namespace (avoiding "String" which is a reserved word) =====
+
+    /**
+     * Str.Format - Format string with one string argument
+     */
+    public static String str_Format(String template, String arg) {
+        return format1(template, arg);
+    }
+
+    /**
+     * Str.FormatInt - Format string with int argument
+     */
+    public static String str_FormatInt(String template, int arg) {
+        return format1_i(template, arg);
+    }
+
+    /**
+     * Str.FormatFloat - Format string with float argument
+     */
+    public static String str_FormatFloat(String template, float arg) {
+        return format1_f(template, arg);
+    }
+
+    /**
+     * Str.Split - Split string by delimiter
+     */
+    public static String[] str_Split(String text, String delimiter) {
+        return split(text, delimiter);
+    }
+
+    /**
+     * Str.Join - Join string array with delimiter
+     */
+    public static String str_Join(String[] arr, String delimiter) {
+        return join(arr, delimiter);
+    }
+
+    // ===== Phase 10: IntList Namespace =====
+
+    public static int intlist_Create() { return intListNew(); }
+    public static int intlist_New() { return intListNew(); }
+    public static int intlist_Add(int listId, int value) { return intListAdd(listId, value); }
+    public static int intlist_Get(int listId, int index) { return intListGet(listId, index); }
+    public static int intlist_Set(int listId, int index, int value) { return intListSet(listId, index, value); }
+    public static int intlist_Size(int listId) { return intListSize(listId); }
+    public static int intlist_Remove(int listId, int index) { return intListRemove(listId, index); }
+    public static boolean intlist_Contains(int listId, int value) { return intListContains(listId, value); }
+    public static int intlist_IndexOf(int listId, int value) { return intListIndexOf(listId, value); }
+    public static int intlist_Clear(int listId) { return intListClear(listId); }
+    public static int[] intlist_ToArray(int listId) { return intListToArray(listId); }
+
+    // ===== Phase 10: StringList Namespace =====
+
+    public static int stringlist_Create() { return stringListNew(); }
+    public static int stringlist_New() { return stringListNew(); }
+    public static int stringlist_Add(int listId, String value) { return stringListAdd(listId, value); }
+    public static String stringlist_Get(int listId, int index) { return stringListGet(listId, index); }
+    public static String stringlist_Set(int listId, int index, String value) { return stringListSet(listId, index, value); }
+    public static int stringlist_Size(int listId) { return stringListSize(listId); }
+    public static String stringlist_Remove(int listId, int index) { return stringListRemove(listId, index); }
+    public static boolean stringlist_Contains(int listId, String value) { return stringListContains(listId, value); }
+    public static int stringlist_IndexOf(int listId, String value) { return stringListIndexOf(listId, value); }
+    public static int stringlist_Clear(int listId) { return stringListClear(listId); }
+    public static String[] stringlist_ToArray(int listId) { return stringListToArray(listId); }
+
+    // ===== Phase 10: Map Namespace =====
+
+    public static int map_Create() { return mapNew(); }
+    public static int map_New() { return mapNew(); }
+    public static String map_Put(int mapId, String key, String value) { return mapPut(mapId, key, value); }
+    public static String map_Get(int mapId, String key) { return mapGet(mapId, key); }
+    public static boolean map_ContainsKey(int mapId, String key) { return mapContainsKey(mapId, key); }
+    public static String map_Remove(int mapId, String key) { return mapRemove(mapId, key); }
+    public static int map_Size(int mapId) { return mapSize(mapId); }
+    public static int map_Clear(int mapId) { return mapClear(mapId); }
+    public static String[] map_Keys(int mapId) { return mapKeys(mapId); }
+    public static String[] map_Values(int mapId) { return mapValues(mapId); }
+
+    // ===== Phase 10: Stack Namespace =====
+
+    public static int stack_Create() { return stackNew(); }
+    public static int stack_New() { return stackNew(); }
+    public static int stack_Push(int stackId, String value) { return stackPush(stackId, value); }
+    public static String stack_Pop(int stackId) { return stackPop(stackId); }
+    public static String stack_Peek(int stackId) { return stackPeek(stackId); }
+    public static boolean stack_IsEmpty(int stackId) { return stackIsEmpty(stackId); }
+    public static int stack_Size(int stackId) { return stackSize(stackId); }
+    public static int stack_Clear(int stackId) { return stackClear(stackId); }
+
+    // ===== Phase 10: Queue Namespace =====
+
+    public static int queue_Create() { return queueNew(); }
+    public static int queue_New() { return queueNew(); }
+    public static int queue_Enqueue(int queueId, String value) { return queueEnqueue(queueId, value); }
+    public static String queue_Dequeue(int queueId) { return queueDequeue(queueId); }
+    public static String queue_Peek(int queueId) { return queuePeek(queueId); }
+    public static boolean queue_IsEmpty(int queueId) { return queueIsEmpty(queueId); }
+    public static int queue_Size(int queueId) { return queueSize(queueId); }
+    public static int queue_Clear(int queueId) { return queueClear(queueId); }
+
     // ===== Phase 9: Json Namespace =====
     // JSON implementation using Google Gson library
     

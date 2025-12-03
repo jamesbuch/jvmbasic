@@ -1,7 +1,7 @@
-REM Geometry Example - Multiple Classes Working Together
-REM Shows: Multiple classes, constructors, field access, calculations
+' Geometry Example - Multiple Classes Working Together
+' Shows: Multiple classes, constructors, field access, calculations
 
-REM Define Point class
+' Define Point class
 CLASS Point
     PUBLIC x As Float
     PUBLIC y As Float
@@ -12,7 +12,7 @@ SUB New(px As Float, py As Float)
     END SUB
 END CLASS
 
-REM Define Rectangle class
+' Define Rectangle class
 CLASS Rectangle
     PUBLIC width As Float
     PUBLIC height As Float
@@ -25,7 +25,7 @@ SUB New(w As Float, h As Float, c As String)
     END SUB
 END CLASS
 
-REM Define Circle class
+' Define Circle class
 CLASS Circle
     PUBLIC radius As Float
     PUBLIC color As String
@@ -39,7 +39,7 @@ END CLASS
 Console.WriteLine("=== Geometry Calculator ===")
 Console.WriteLine("")
 
-REM Create geometric objects
+' Create geometric objects
 DIM point1 AS NEW Point(5.0, 10.0)
 DIM point2 AS NEW Point(15.0, 20.0)
 
@@ -72,7 +72,7 @@ Console.WriteLine("  Circle 2: radius=" + circle2.radius)
 Console.WriteLine("  Circle 2: color=" + circle2.color)
 Console.WriteLine("")
 
-REM Calculate areas
+' Calculate areas
 area1 = rect1.width * rect1.height
 area2 = rect2.width * rect2.height
 area3 = PI * circle1.radius * circle1.radius

@@ -1,4 +1,4 @@
-REM Test nested structs
+' Test nested structs
 px = 5.0
 py = 10.0
 

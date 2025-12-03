@@ -1,7 +1,7 @@
-REM Test Phase 8: Advanced File I/O and Character I/O
+' Test Phase 8: Advanced File I/O and Character I/O
 Console.WriteLine("=== Phase 8 Advanced File I/O Test ===")
 
-REM Create a test file
+' Create a test file
 handle = OPENOUTPUT("test_phase8_temp.txt")
 IF handle >= 0 THEN
     dummy = WRITELINE(handle, "Line 1: Hello")
@@ -13,14 +13,14 @@ ELSE
     Console.WriteLine("ERROR: Could not create file")
 ENDIF
 
-REM Test FILESIZE
+' Test FILESIZE
 size = FILESIZE("test_phase8_temp.txt")
 Console.WriteLine("File size: " + size + " bytes")
 IF size <= 0 THEN
     Console.WriteLine("ERROR: File size should be positive")
 ENDIF
 
-REM Test ISFILE and ISDIR
+' Test ISFILE and ISDIR
 IF ISFILE("test_phase8_temp.txt") THEN
     Console.WriteLine("ISFILE: OK")
 ELSE
@@ -33,7 +33,7 @@ ELSE
     Console.WriteLine("ISDIR (should be false): OK")
 ENDIF
 
-REM Test character I/O
+' Test character I/O
 handle = OPENINPUT("test_phase8_temp.txt")
 IF handle >= 0 THEN
     Console.WriteLine("Reading characters...")
@@ -51,7 +51,7 @@ ELSE
     Console.WriteLine("ERROR: Could not open file for reading")
 ENDIF
 
-REM Test ISEOF and HASMORE
+' Test ISEOF and HASMORE
 handle = OPENINPUT("test_phase8_temp.txt")
 IF handle >= 0 THEN
     IF HASMORE(handle) THEN
@@ -77,7 +77,7 @@ ELSE
     Console.WriteLine("ERROR: Could not open file")
 ENDIF
 
-REM Test COPY
+' Test COPY
 IF COPY("test_phase8_temp.txt", "test_phase8_copy.txt") THEN
     Console.WriteLine("COPY: OK")
     IF FILEEXISTS("test_phase8_copy.txt") THEN
@@ -89,7 +89,7 @@ ELSE
     Console.WriteLine("ERROR: COPY failed")
 ENDIF
 
-REM Test RENAME  
+' Test RENAME  
 IF RENAME("test_phase8_copy.txt", "test_phase8_renamed.txt") THEN
     Console.WriteLine("RENAME: OK")
     IF FILEEXISTS("test_phase8_renamed.txt") THEN
@@ -101,18 +101,18 @@ ELSE
     Console.WriteLine("ERROR: RENAME failed")
 ENDIF
 
-REM Test MOVE
+' Test MOVE
 IF MOVE("test_phase8_renamed.txt", "test_phase8_moved.txt") THEN
     Console.WriteLine("MOVE: OK")
 ELSE
     Console.WriteLine("ERROR: MOVE failed")
 ENDIF
 
-REM Test directory functions
+' Test directory functions
 Console.WriteLine("Current directory: " + CURRENTDIR())
 Console.WriteLine("Absolute path: " + ABSOLUTEPATH("."))
 
-REM Test MKDIR
+' Test MKDIR
 IF MKDIR("test_phase8_dir") THEN
     Console.WriteLine("MKDIR: OK")
     IF ISDIR("test_phase8_dir") THEN
@@ -125,11 +125,11 @@ ELSE
     Console.WriteLine("MKDIR: (directory may already exist)")
 ENDIF
 
-REM Clean up test files
+' Clean up test files
 deleted1 = DELETEFILE("test_phase8_temp.txt")
 deleted2 = DELETEFILE("test_phase8_moved.txt")
 
-REM Remove test directory (only if empty)
+' Remove test directory (only if empty)
 removed = RMDIR("test_phase8_dir")
 
 Console.WriteLine("=== All File I/O Tests Complete ===")

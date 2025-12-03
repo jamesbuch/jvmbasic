@@ -1,4 +1,4 @@
-REM Test OOP features that are working
+' Test OOP features that are working
 
 CLASS Point
     PUBLIC x As Float

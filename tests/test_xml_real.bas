@@ -1,4 +1,4 @@
-REM Test real XML parsing
+' Test real XML parsing
 
 xmlString = "<root><person><name>Alice</name><age>30</age></person></root>"
 doc = Xml.Parse(xmlString)
@@ -11,4 +11,3 @@ Console.WriteLine("Name: " + name)
 Console.WriteLine("Age: " + age)
 
 Console.WriteLine("XML test complete!")
-

@@ -1,7 +1,7 @@
-REM Test Phase 8: Advanced String Functions
+' Test Phase 8: Advanced String Functions
 Console.WriteLine("=== Phase 8 String Functions Test ===")
 
-REM Test REPLACE
+' Test REPLACE
 s = "Hello World"
 s2 = REPLACE(s, "World", "JVM BASIC")
 Console.WriteLine("REPLACE: " + s2)
@@ -11,7 +11,7 @@ ELSE
     Console.WriteLine("ERROR: REPLACE failed")
 ENDIF
 
-REM Test REPLACEALL
+' Test REPLACEALL
 s = "foo bar foo baz foo"
 s2 = REPLACEALL(s, "foo", "TEST")
 Console.WriteLine("REPLACEALL: " + s2)
@@ -21,7 +21,7 @@ ELSE
     Console.WriteLine("ERROR: REPLACEALL failed")
 ENDIF
 
-REM Test STARTSWITH and ENDSWITH
+' Test STARTSWITH and ENDSWITH
 s = "Hello World"
 IF STARTSWITH(s, "Hello") THEN
     Console.WriteLine("STARTSWITH: OK")
@@ -35,7 +35,7 @@ ELSE
     Console.WriteLine("ERROR: ENDSWITH failed")
 ENDIF
 
-REM Test INDEXOF and LASTINDEXOF
+' Test INDEXOF and LASTINDEXOF
 s = "foo bar foo baz"
 idx = INDEXOF(s, "foo")
 Console.WriteLine("INDEXOF: " + idx)
@@ -49,14 +49,14 @@ IF idx <> 8 THEN
     Console.WriteLine("ERROR: LASTINDEXOF should be 8")
 ENDIF
 
-REM Test CONCAT
+' Test CONCAT
 s = CONCAT("Hello", " World")
 Console.WriteLine("CONCAT: " + s)
 
 s = CONCAT3("A", "B", "C")
 Console.WriteLine("CONCAT3: " + s)
 
-REM Test REPEAT
+' Test REPEAT
 s = REPEAT("*", 5)
 Console.WriteLine("REPEAT: " + s)
 IF EQUALS(s, "*****") THEN
@@ -65,7 +65,7 @@ ELSE
     Console.WriteLine("ERROR: REPEAT failed")
 ENDIF
 
-REM Test PADLEFT and PADRIGHT
+' Test PADLEFT and PADRIGHT
 s = PADLEFT("42", 5)
 Console.WriteLine("PADLEFT: [" + s + "]")
 IF LEN(s) <> 5 THEN
@@ -78,7 +78,7 @@ IF LEN(s) <> 5 THEN
     Console.WriteLine("ERROR: PADRIGHT length should be 5")
 ENDIF
 
-REM Test SUBSTRING
+' Test SUBSTRING
 s = "Hello World"
 s2 = SUBSTRING(s, 6)
 Console.WriteLine("SUBSTRING: " + s2)
@@ -96,14 +96,14 @@ ELSE
     Console.WriteLine("ERROR: SUBSTRINGLEN failed")
 ENDIF
 
-REM Test STRCMP
+' Test STRCMP
 cmp = STRCMP("abc", "xyz")
 Console.WriteLine("STRCMP abc vs xyz: " + cmp)
 IF cmp >= 0 THEN
     Console.WriteLine("ERROR: STRCMP should be negative")
 ENDIF
 
-REM Test EQUALS and EQUALSIGNORECASE
+' Test EQUALS and EQUALSIGNORECASE
 IF EQUALS("Test", "Test") THEN
     Console.WriteLine("EQUALS: OK")
 ELSE
@@ -116,7 +116,7 @@ ELSE
     Console.WriteLine("ERROR: EQUALSIGNORECASE failed")
 ENDIF
 
-REM Test CHAR and CHARCODE
+' Test CHAR and CHARCODE
 s = "Hello"
 c = CHAR(s, 0)
 Console.WriteLine("CHAR at 0: " + c)

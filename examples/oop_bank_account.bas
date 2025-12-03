@@ -1,7 +1,7 @@
-REM Bank Account Example - Demonstrating OOP in JVM BASIC
-REM Shows: Classes, constructors, PUBLIC/PRIVATE fields, object instantiation
+' Bank Account Example - Demonstrating OOP in JVM BASIC
+' Shows: Classes, constructors, PUBLIC/PRIVATE fields, object instantiation
 
-REM Define BankAccount class
+' Define BankAccount class
 CLASS BankAccount
     PRIVATE balance As Float
     PUBLIC owner As String
@@ -14,7 +14,7 @@ SUB New(name As String, accountNum As Float, initialBalance As Float)
     END SUB
 END CLASS
 
-REM Create bank accounts
+' Create bank accounts
 Console.WriteLine("=== Bank Account Management System ===")
 Console.WriteLine("")
 

@@ -75,11 +75,26 @@ Type SemanticAnalyzer::inferExprType(const Expr& expr, const SymbolTable& symbol
         case ExprKind::Var: {
             const VarRef& vr = get<VarRef>(expr.data);
             if (!symbols.isDefined(vr.name)) {
+                // Not in local scope - check if it's an implicit class field (inside class method)
+                if (!currentClassContext.empty()) {
+                    // currentClassContext is already uppercase from analyzeClassDecl
+                    auto classIt = classFieldTypes.find(currentClassContext);
+                    if (classIt != classFieldTypes.end()) {
+                        string fieldNameLower = vr.name;
+                        transform(fieldNameLower.begin(), fieldNameLower.end(), fieldNameLower.begin(), ::tolower);
+
+                        auto fieldIt = classIt->second.find(fieldNameLower);
+                        if (fieldIt != classIt->second.end()) {
+                            // It's a class field - return its type
+                            return fieldIt->second;
+                        }
+                    }
+                }
                 error("Undefined variable: " + vr.name);
                 return Type::Int;
             }
             Type varType = symbols.getType(vr.name);
-            
+
             if (vr.index) {
                 // Array access - return element type
                 return getArrayElementType(varType);
@@ -279,6 +294,79 @@ Type SemanticAnalyzer::inferExprType(const Expr& expr, const SymbolTable& symbol
                     return Type::String;
                 } else if (methodUpper == "CONTAINS" || methodUpper == "INDEXOF") {
                     return Type::Int;
+                }
+            } else if (nce.namespaceName == "REGEX") {
+                if (methodUpper == "MATCH") {
+                    return Type::Bool;
+                } else if (methodUpper == "FIND" || methodUpper == "REPLACE" || methodUpper == "GROUP") {
+                    return Type::String;
+                }
+            } else if (nce.namespaceName == "ARRAY") {
+                if (methodUpper == "SORT" || methodUpper == "SORTINT" ||
+                    methodUpper == "LENGTH" || methodUpper == "LENGTHINT" || methodUpper == "LENGTHSTRING" ||
+                    methodUpper == "SUMINT") {
+                    return Type::Int;
+                } else if (methodUpper == "MIN" || methodUpper == "MAX" ||
+                           methodUpper == "AVG" || methodUpper == "SUM") {
+                    return Type::Float;
+                } else if (methodUpper == "MININT" || methodUpper == "MAXINT") {
+                    return Type::Int;
+                }
+            } else if (nce.namespaceName == "STR") {
+                if (methodUpper == "FORMAT" || methodUpper == "FORMATINT" ||
+                    methodUpper == "FORMATFLOAT" || methodUpper == "JOIN") {
+                    return Type::String;
+                } else if (methodUpper == "SPLIT") {
+                    return Type::StringArray;
+                }
+            } else if (nce.namespaceName == "INTLIST") {
+                if (methodUpper == "CREATE" || methodUpper == "ADD" || methodUpper == "GET" ||
+                    methodUpper == "SET" || methodUpper == "SIZE" || methodUpper == "REMOVE" ||
+                    methodUpper == "INDEXOF" || methodUpper == "CLEAR") {
+                    return Type::Int;
+                } else if (methodUpper == "CONTAINS") {
+                    return Type::Bool;
+                } else if (methodUpper == "TOARRAY") {
+                    return Type::IntArray;
+                }
+            } else if (nce.namespaceName == "STRINGLIST") {
+                if (methodUpper == "CREATE" || methodUpper == "ADD" || methodUpper == "SIZE" ||
+                    methodUpper == "INDEXOF" || methodUpper == "CLEAR") {
+                    return Type::Int;
+                } else if (methodUpper == "GET" || methodUpper == "SET" || methodUpper == "REMOVE") {
+                    return Type::String;
+                } else if (methodUpper == "CONTAINS") {
+                    return Type::Bool;
+                } else if (methodUpper == "TOARRAY") {
+                    return Type::StringArray;
+                }
+            } else if (nce.namespaceName == "MAP") {
+                if (methodUpper == "CREATE" || methodUpper == "SIZE" || methodUpper == "CLEAR") {
+                    return Type::Int;
+                } else if (methodUpper == "PUT" || methodUpper == "GET" || methodUpper == "REMOVE") {
+                    return Type::String;
+                } else if (methodUpper == "CONTAINSKEY") {
+                    return Type::Bool;
+                } else if (methodUpper == "KEYS" || methodUpper == "VALUES") {
+                    return Type::StringArray;
+                }
+            } else if (nce.namespaceName == "STACK") {
+                if (methodUpper == "CREATE" || methodUpper == "PUSH" ||
+                    methodUpper == "SIZE" || methodUpper == "CLEAR") {
+                    return Type::Int;
+                } else if (methodUpper == "POP" || methodUpper == "PEEK") {
+                    return Type::String;
+                } else if (methodUpper == "ISEMPTY") {
+                    return Type::Bool;
+                }
+            } else if (nce.namespaceName == "QUEUE") {
+                if (methodUpper == "CREATE" || methodUpper == "ENQUEUE" ||
+                    methodUpper == "SIZE" || methodUpper == "CLEAR") {
+                    return Type::Int;
+                } else if (methodUpper == "DEQUEUE" || methodUpper == "PEEK") {
+                    return Type::String;
+                } else if (methodUpper == "ISEMPTY") {
+                    return Type::Bool;
                 }
             }
             return Type::Float;  // Default
@@ -558,12 +646,30 @@ void SemanticAnalyzer::analyzeStmt(Stmt& stmt, SymbolTable& symbols) {
                 if (symbols.isDefined(ls.var)) {
                     Type existingType = symbols.getType(ls.var);
                     if (existingType != ls.expr->type) {
-                        error("Type mismatch: cannot reassign " + ls.var + 
-                              " from " + typeToString(existingType) + 
+                        error("Type mismatch: cannot reassign " + ls.var +
+                              " from " + typeToString(existingType) +
                               " to " + typeToString(ls.expr->type));
                     }
                 } else {
-                    symbols.define(ls.var, ls.expr->type);
+                    // Check if this is an implicit class field assignment
+                    // (class field accessed without Me. prefix inside a class method)
+                    bool isClassField = false;
+                    if (!currentClassContext.empty()) {
+                        auto classIt = classFieldTypes.find(currentClassContext);
+                        if (classIt != classFieldTypes.end()) {
+                            string fieldNameLower = ls.var;
+                            transform(fieldNameLower.begin(), fieldNameLower.end(), fieldNameLower.begin(), ::tolower);
+                            if (classIt->second.find(fieldNameLower) != classIt->second.end()) {
+                                isClassField = true;
+                            }
+                        }
+                    }
+
+                    if (!isClassField) {
+                        // Regular local variable - define it
+                        symbols.define(ls.var, ls.expr->type);
+                    }
+                    // If it's a class field, don't define it as a local variable
                 }
             }
             break;

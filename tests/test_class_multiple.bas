@@ -10,7 +10,7 @@ SUB New(px As Integer, py As Integer)
         y = py
     END SUB
     
-    PUBLIC FUNCTION Distance() As Integer
+    PUBLIC FUNCTION Distance() As Single
         RETURN SQRT(x * x + y * y)
     END FUNCTION
 END CLASS
@@ -24,7 +24,7 @@ SUB New(r As Integer)
         center = 0.0
     END SUB
     
-    PUBLIC FUNCTION Area() As Integer
+    PUBLIC FUNCTION Area() As Single
         RETURN 3.14159 * radius * radius
     END FUNCTION
 END CLASS

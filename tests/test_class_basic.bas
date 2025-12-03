@@ -1,5 +1,5 @@
-REM Test 1: Basic CLASS with fields only
-REM Tests: CLASS declaration, field declarations, basic parsing
+' Test 1: Basic CLASS with fields only
+' Tests: CLASS declaration, field declarations, basic parsing
 
 CLASS Point
     PUBLIC x As Float

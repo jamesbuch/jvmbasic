@@ -14,7 +14,7 @@ SUB Deposit(amount As Integer)
         balance = balance + amount
     END SUB
     
-    PUBLIC FUNCTION GetBalance() As Integer
+    PUBLIC FUNCTION GetBalance() As Single
         RETURN balance
     END FUNCTION
 END CLASS

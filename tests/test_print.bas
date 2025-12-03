@@ -1,4 +1,4 @@
-REM Test multi-argument PRINT with comma and semicolon
+' Test multi-argument PRINT with comma and semicolon
 x = 42
 y = 3.14
 name = "Alice"

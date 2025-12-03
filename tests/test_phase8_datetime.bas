@@ -1,7 +1,7 @@
-REM Test Phase 8: Date/Time Functions
+' Test Phase 8: Date/Time Functions
 Console.WriteLine("=== Phase 8 Date/Time Functions Test ===")
 
-REM Test basic date/time functions
+' Test basic date/time functions
 Console.WriteLine("Current date: " + DATE())
 Console.WriteLine("Current time: " + TIME())
 Console.WriteLine("Current datetime: " + DATETIME())
@@ -9,7 +9,7 @@ Console.WriteLine("Current datetime: " + DATETIME())
 timestamp = NOW()
 Console.WriteLine("Current timestamp: " + timestamp)
 
-REM Test date component extraction
+' Test date component extraction
 yr = YEAR(timestamp)
 mo = MONTH(timestamp)
 dy = DAY(timestamp)
@@ -26,7 +26,7 @@ Console.WriteLine("Minute: " + mn)
 Console.WriteLine("Second: " + sc)
 Console.WriteLine("Day of week: " + dw)
 
-REM Verify year is reasonable
+' Verify year is reasonable
 IF yr < 2025 THEN
     Console.WriteLine("ERROR: Year seems wrong: " + yr)
 ENDIF
@@ -34,7 +34,7 @@ IF yr > 2100 THEN
     Console.WriteLine("ERROR: Year seems wrong: " + yr)
 ENDIF
 
-REM Verify month is 1-12
+' Verify month is 1-12
 IF mo < 1 THEN
 Console.WriteLine("ERROR: Month should be 1-12, got: " + mo)
 ENDIF
@@ -42,7 +42,7 @@ IF mo > 12 THEN
 Console.WriteLine("ERROR: Month should be 1-12, got: " + mo)
 ENDIF
 
-REM Test date arithmetic
+' Test date arithmetic
 future = ADDDAYS(timestamp, 7)
 Console.WriteLine("One week from now: " + FORMATDATE(future, "yyyy-MM-dd" ))
 
@@ -55,7 +55,7 @@ IF diff <> 14 THEN
 Console.WriteLine("ERROR: Date diff should be 14, got: " + diff)
 ENDIF
 
-REM Test other date arithmetic
+' Test other date arithmetic
 fut2 = ADDHOURS(timestamp, 24)
 fut3 = ADDMINUTES(timestamp, 60)
 fut4 = ADDSECONDS(timestamp, 3600)
@@ -66,7 +66,7 @@ Console.WriteLine("Add 24 hours: " + FORMATDATE(fut2, "yyyy-MM-dd HH:mm" ))
 Console.WriteLine("Add 1 month: " + FORMATDATE(fut5, "yyyy-MM-dd" ))
 Console.WriteLine("Add 1 year: " + FORMATDATE(fut6, "yyyy-MM-dd" ))
 
-REM Test format patterns
+' Test format patterns
 Console.WriteLine("Custom format 1: " + FORMATDATE(timestamp, "MM/dd/yyyy" ))
 Console.WriteLine("Custom format 2: " + FORMATDATE(timestamp, "HH:mm:ss" ))
 Console.WriteLine("Custom format 3: " + FORMATDATE(timestamp, "EEEE, MMMM d, yyyy" ))

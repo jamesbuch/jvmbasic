@@ -1,7 +1,7 @@
-REM Test Logical Operators (AND, OR, NOT, XOR)
+' Test Logical Operators (AND, OR, NOT, XOR)
 Console.WriteLine("=== Logical Operators Test ===")
 
-REM Test AND
+' Test AND
 IF 1 == 1 AND 2 == 2 THEN
     Console.WriteLine("AND test 1: PASS")
 ELSE
@@ -14,7 +14,7 @@ ELSE
     Console.WriteLine("AND test 2: PASS (correctly false)")
 ENDIF
 
-REM Test OR
+' Test OR
 IF 1 == 1 OR 2 == 999 THEN
     Console.WriteLine("OR test 1: PASS")
 ELSE
@@ -27,14 +27,14 @@ ELSE
     Console.WriteLine("OR test 2: PASS (correctly false)")
 ENDIF
 
-REM Test NOT
+' Test NOT
 IF NOT 1 == 999 THEN
     Console.WriteLine("NOT test 1: PASS")
 ELSE
     Console.WriteLine("ERROR: NOT test 1 failed")
 ENDIF
 
-REM Test complex expression
+' Test complex expression
 x = 10
 y = 20
 z = 30
@@ -51,14 +51,14 @@ ELSE
     Console.WriteLine("ERROR: Complex OR failed")
 ENDIF
 
-REM Test NOT with comparisons
+' Test NOT with comparisons
 IF NOT x > 100 THEN
     Console.WriteLine("NOT with comparison: PASS")
 ELSE
     Console.WriteLine("ERROR: NOT with comparison failed")
 ENDIF
 
-REM Test XOR
+' Test XOR
 a = 1
 b = 0
 IF a == 1 XOR b == 1 THEN
