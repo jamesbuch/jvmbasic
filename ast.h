@@ -39,7 +39,9 @@ enum class ExprKind { Num, Str, Var, Bin, BoolLit, Cmp, Call, Unary, MemberAcces
                       // Phase 8: Logical expressions
                       Logical,
                       // Phase 9: Namespace calls
-                      NamespaceCall };
+                      NamespaceCall,
+                      // Phase 10: Flattened string concatenation
+                      StringConcat };
 
 // Unary operators
 enum class UnaryOp { Neg };
@@ -117,12 +119,17 @@ struct LogicalExpr {
     ExprPtr right;
 };
 
+// Phase 10: Flattened string concatenation (A + B + C + ...)
+struct StringConcatExpr {
+    vector<ExprPtr> operands;  // All operands to concatenate
+};
+
 struct Expr {
     ExprKind kind;
     Type type;
     string typeName;  // For UserDefined types, stores the type name
     variant<NumLit, StrLit, VarRef, BinOp, BoolLit, CmpOp, CallExpr, UnaryExpr, MemberAccessExpr,
-            NewExpr, MethodCallExpr, MeExpr, LogicalExpr, NamespaceCallExpr> data;
+            NewExpr, MethodCallExpr, MeExpr, LogicalExpr, NamespaceCallExpr, StringConcatExpr> data;
 
     Expr(ExprKind k, Type t, NumLit n) : kind(k), type(t), data(n) {}
     Expr(ExprKind k, Type t, StrLit s) : kind(k), type(t), data(s) {}
@@ -141,6 +148,8 @@ struct Expr {
     Expr(ExprKind k, Type t, LogicalExpr l) : kind(k), type(t), data(std::move(l)) {}
     // Phase 9: Namespace call constructor
     Expr(ExprKind k, Type t, NamespaceCallExpr nc) : kind(k), type(t), data(std::move(nc)) {}
+    // Phase 10: String concatenation constructor
+    Expr(ExprKind k, Type t, StringConcatExpr sc) : kind(k), type(t), data(std::move(sc)) {}
 };
 
 // Statement kinds
@@ -305,6 +314,7 @@ struct MethodDecl {
     string name;
     bool isPublic;
     bool isConstructor;  // true if name == "New"
+    bool isSub;  // true if declared as SUB, false if declared as FUNCTION
     vector<Param> params;
     Type returnType;
     vector<StmtPtr> body;

@@ -143,6 +143,7 @@ public:
     vector<MethodInfo> methods;
     map<string, Type> currentLocalTypes;  // Current function's local types (for load to access)
     Type currentReturnType = Type::Float;  // Current function's return type (for return statement validation)
+    string currentClassContext = "";  // Current class name when generating class methods (for ME references)
     
     // Struct support (Phase 6)
     map<string, map<string, int>> structFields;      // (typeName, fieldName) -> fieldIndex
@@ -151,6 +152,7 @@ public:
     
     // Phase 7: Class support
     map<string, map<string, Type>> classFieldTypes;  // (className, fieldName) -> fieldType
+    map<string, map<string, pair<Type, bool>>> classMethodSignatures;  // (className, methodName) -> (returnType, isSub)
     
     // Runtime variable type tracking (for variables created with LET)
     map<string, Type> runtimeVarTypes;  // varName -> Type (as created by LET)
@@ -600,26 +602,37 @@ public:
                 }
             }
         } else if (e.kind == ExprKind::MemberAccess) {
-            // Member access: var.member
+            // Member access: var.member or ME.member
             const MemberAccessExpr& mae = get<MemberAccessExpr>(e.data);
             
-            // Determine the type name of the object
-            string objectTypeName;
-            if (mae.object->kind == ExprKind::Var) {
-                const VarRef& vr = get<VarRef>(mae.object->data);
-                if (varTypeNames.find(vr.name) != varTypeNames.end()) {
-                    objectTypeName = varTypeNames.at(vr.name);
+            // Check if this is ME (self reference in class method)
+            string actualObjectTypeName;
+            bool isMeAccess = false;
+            
+            if (mae.object->kind == ExprKind::Me) {
+                // ME.field - use current class context
+                if (!currentClassContext.empty()) {
+                    actualObjectTypeName = currentClassContext;
+                    isMeAccess = true;
+                    // Load the "this" parameter (first param, slot 0)
+                    aload(0);
+                } else {
+                    throw runtime_error("ME reference outside of class method context");
                 }
-            } else if (mae.object->typeName != "") {
-                objectTypeName = mae.object->typeName;
-            }
-            
-            // Check if this is class field access or struct field access
-            // Phase 7: For class instances, use getfield; for structs, use array access
-            bool isClassAccess = (objectTypeName != "" && classFieldTypes.find(objectTypeName) != classFieldTypes.end());
-            
-            if (isClassAccess) {
-                // Phase 7: Class field access using getfield
+            } else {
+                // Regular member access: var.member
+                // Determine the type name of the object
+                string objectTypeName;
+                if (mae.object->kind == ExprKind::Var) {
+                    const VarRef& vr = get<VarRef>(mae.object->data);
+                    if (varTypeNames.find(vr.name) != varTypeNames.end()) {
+                        objectTypeName = varTypeNames.at(vr.name);
+                    }
+                } else if (mae.object->typeName != "") {
+                    objectTypeName = mae.object->typeName;
+                }
+                actualObjectTypeName = objectTypeName;
+                
                 // Load the object (must use aload for reference types)
                 if (mae.object->kind == ExprKind::Var) {
                     const VarRef& vr = get<VarRef>(mae.object->data);
@@ -628,14 +641,31 @@ public:
                 } else {
                     load(*mae.object, varIdx);
                 }
-                
+            }
+            
+            // Check if this is class field access or struct field access
+            // Phase 7: For class instances, use getfield; for structs, use array access
+            // Normalize class name to uppercase for lookup (classes are stored uppercase in classFieldTypes)
+            string classNameUpper = actualObjectTypeName;
+            if (!classNameUpper.empty()) {
+                transform(classNameUpper.begin(), classNameUpper.end(), classNameUpper.begin(), ::toupper);
+            }
+            // Normalize member name to lowercase for lookup (fields are stored lowercase in classFieldTypes)
+            string memberNameLower = mae.member;
+            transform(memberNameLower.begin(), memberNameLower.end(), memberNameLower.begin(), ::tolower);
+            
+            bool isClassAccess = (actualObjectTypeName != "" && classFieldTypes.find(classNameUpper) != classFieldTypes.end() &&
+                                  classFieldTypes[classNameUpper].find(memberNameLower) != classFieldTypes[classNameUpper].end());
+            
+            if (isClassAccess) {
+                // Phase 7: Class field access using getfield
                 // Build field reference
-                string classNameRef = this->className + "$" + objectTypeName;
+                string classNameRef = this->className + "$" + actualObjectTypeName;
                 u2 class_utf8 = cp.addUtf8(classNameRef);
                 u2 class_idx = cp.addClass(class_utf8);
                 
-                // Get actual field type from class definition
-                Type fieldType = classFieldTypes[objectTypeName][mae.member];
+                // Get actual field type from class definition (use normalized names)
+                Type fieldType = classFieldTypes[classNameUpper][memberNameLower];
                 
                 // Field descriptor
                 string fieldDesc;
@@ -654,15 +684,10 @@ public:
                 getfield(field_ref);
             } else {
                 // Struct field access using Object[] array
-                // Get the base object
-                // For now, assume it's a simple variable (not chained access)
+                // NOTE: Object is already loaded above (lines 637-643), don't load again!
                 if (mae.object->kind == ExprKind::Var) {
                     const VarRef& vr = get<VarRef>(mae.object->data);
-                    u1 varSlot = varIdx.at(vr.name);
-                    
-                    // Load struct object (Object[])
-                    aload(varSlot);
-                    
+
                     // Get field index
                     string typeName = varTypeNames[vr.name];
                     int fieldIdx = structFields[typeName][mae.member];
@@ -719,8 +744,12 @@ public:
         } else if (e.kind == ExprKind::Call) {
             const CallExpr& ce = get<CallExpr>(e.data);
             
+            // Normalize function name to uppercase for builtin lookup (semantic analyzer does this too)
+            string funcNameUpper = ce.name;
+            for (auto& c : funcNameUpper) c = toupper(c);
+            
             // Check if it's a built-in function (uppercase names)
-            auto builtinIt = builtinFunctions.find(ce.name);
+            auto builtinIt = builtinFunctions.find(funcNameUpper);
             if (builtinIt != builtinFunctions.end()) {
                 // Built-in function
                 const FunctionSig& sig = builtinIt->second;
@@ -735,10 +764,12 @@ public:
                     if (expectedType == Type::Float && actualType == Type::Int) {
                         i2f();
                     }
+                    // Arrays are reference types - no conversion needed
+                    // FloatArray, IntArray, etc. are already loaded as references via aload
                 }
                 
-                // Call built-in function
-                u2 methodRef = getFunctionMethodRef(ce.name);
+                // Call built-in function (use uppercase name for lookup)
+                u2 methodRef = getFunctionMethodRef(funcNameUpper);
                 invokestatic(methodRef);
             } else {
                 // User-defined function - use userFunctions for correct signature
@@ -816,101 +847,284 @@ public:
                     // else: unknown call, no code generated (error will be caught elsewhere)
                 }
             }
-        } else if (e.kind == ExprKind::Bin) {
-            const BinOp& bo = get<BinOp>(e.data);
+        } else if (e.kind == ExprKind::StringConcat) {
+            // Phase 10: Flattened string concatenation - simple and efficient!
+            const StringConcatExpr& sc = get<StringConcatExpr>(e.data);
             
-            // Phase 10: String concatenation
-            if (e.type == Type::String && bo.op == Op::Add) {
-                // Use StringBuilder for efficient string concatenation
-                // new StringBuilder()
-                u2 sb_class_utf8 = cp.addUtf8("java/lang/StringBuilder");
-                u2 sb_class_idx = cp.addClass(sb_class_utf8);
-                new_(sb_class_idx);
-                dup();
+            // Get StringBuilder class index
+            u2 sb_class_utf8 = cp.addUtf8("java/lang/StringBuilder");
+            u2 sb_class_idx = cp.addClass(sb_class_utf8);
+            
+            // Create StringBuilder
+            new_(sb_class_idx);
+            dup();
+            
+            // <init>()
+            u2 init_utf8 = cp.addUtf8("<init>");
+            u2 init_desc = cp.addUtf8("()V");
+            u2 init_nat = cp.addNameAndType(init_utf8, init_desc);
+            u2 init_methodref = cp.addMethodRef(sb_class_idx, init_nat);
+            invokespecial(init_methodref);
+            
+            // Append each operand
+            for (const auto& operand : sc.operands) {
+                load(*operand, varIdx);
                 
-                // <init>()
-                u2 init_utf8 = cp.addUtf8("<init>");
-                u2 init_desc = cp.addUtf8("()V");
-                u2 init_nat = cp.addNameAndType(init_utf8, init_desc);
-                u2 init_methodref = cp.addMethodRef(sb_class_idx, init_nat);
-                invokespecial(init_methodref);
-                
-                // append(left)
-                load(*bo.left, varIdx);
+                // Determine append signature based on operand type
                 u2 append_utf8 = cp.addUtf8("append");
                 u2 append_desc;
                 
-                // Determine the actual type for append signature
-                Type leftType = bo.left->type;
-                if (bo.left->kind == ExprKind::MemberAccess) {
-                    // For member access, try to determine actual field type
-                    const MemberAccessExpr& mae = get<MemberAccessExpr>(bo.left->data);
+                Type opType = operand->type;
+                // Check if it's a member access to get actual field type
+                if (operand->kind == ExprKind::MemberAccess) {
+                    const MemberAccessExpr& mae = get<MemberAccessExpr>(operand->data);
                     if (mae.object->kind == ExprKind::Var) {
                         const VarRef& vr = get<VarRef>(mae.object->data);
                         if (varTypeNames.find(vr.name) != varTypeNames.end()) {
                             string typeName = varTypeNames[vr.name];
-                            // Check if it's a class field
                             if (classFieldTypes.find(typeName) != classFieldTypes.end() &&
                                 classFieldTypes[typeName].find(mae.member) != classFieldTypes[typeName].end()) {
-                                leftType = classFieldTypes[typeName][mae.member];
+                                opType = classFieldTypes[typeName][mae.member];
                             }
                         }
                     }
                 }
                 
-                if (leftType == Type::Int) {
+                if (opType == Type::Int) {
                     append_desc = cp.addUtf8("(I)Ljava/lang/StringBuilder;");
-                } else if (leftType == Type::Float) {
+                } else if (opType == Type::Float) {
                     append_desc = cp.addUtf8("(F)Ljava/lang/StringBuilder;");
-                } else if (leftType == Type::Bool) {
+                } else if (opType == Type::Bool) {
                     append_desc = cp.addUtf8("(Z)Ljava/lang/StringBuilder;");
                 } else {
                     append_desc = cp.addUtf8("(Ljava/lang/String;)Ljava/lang/StringBuilder;");
                 }
+                
                 u2 append_nat = cp.addNameAndType(append_utf8, append_desc);
                 u2 append_methodref = cp.addMethodRef(sb_class_idx, append_nat);
                 invokevirtual(append_methodref);
-                
-                // append(right)
-                load(*bo.right, varIdx);
-                
-                // Determine the actual type for append signature
-                Type rightType = bo.right->type;
-                if (bo.right->kind == ExprKind::MemberAccess) {
-                    // For member access, try to determine actual field type
-                    const MemberAccessExpr& mae = get<MemberAccessExpr>(bo.right->data);
-                    if (mae.object->kind == ExprKind::Var) {
-                        const VarRef& vr = get<VarRef>(mae.object->data);
-                        if (varTypeNames.find(vr.name) != varTypeNames.end()) {
-                            string typeName = varTypeNames[vr.name];
-                            // Check if it's a class field
-                            if (classFieldTypes.find(typeName) != classFieldTypes.end() &&
-                                classFieldTypes[typeName].find(mae.member) != classFieldTypes[typeName].end()) {
-                                rightType = classFieldTypes[typeName][mae.member];
+            }
+            
+            // toString()
+            u2 tostring_utf8 = cp.addUtf8("toString");
+            u2 tostring_desc = cp.addUtf8("()Ljava/lang/String;");
+            u2 tostring_nat = cp.addNameAndType(tostring_utf8, tostring_desc);
+            u2 tostring_methodref = cp.addMethodRef(sb_class_idx, tostring_nat);
+            invokevirtual(tostring_methodref);
+        } else if (e.kind == ExprKind::Bin) {
+            const BinOp& bo = get<BinOp>(e.data);
+            
+                // Phase 10: String concatenation - check operand types, not expression type
+                // NOTE: This should rarely be hit now since flattening converts nested concats to StringConcatExpr
+                // But keep it for simple A + B cases that weren't flattened
+                if (bo.op == Op::Add && (bo.left->type == Type::String || bo.right->type == Type::String)) {
+                    // Use StringBuilder for efficient string concatenation
+                    // For nested concatenations like (A + B) + C:
+                    // - If left is a BinOp with Add and String result, it's a nested concat
+                    // - Load inner concat first (leaves String), then create outer StringBuilder
+                    bool leftIsNestedConcat = (bo.left->kind == ExprKind::Bin);
+                    if (leftIsNestedConcat) {
+                        const BinOp& leftBin = get<BinOp>(bo.left->data);
+                        // It's a nested concat if it's Add with String result
+                        leftIsNestedConcat = (leftBin.op == Op::Add && bo.left->type == Type::String);
+                    }
+                    
+                    // Get StringBuilder class index
+                    u2 sb_class_utf8 = cp.addUtf8("java/lang/StringBuilder");
+                    u2 sb_class_idx = cp.addClass(sb_class_utf8);
+                    
+                    if (leftIsNestedConcat) {
+                        // Nested concatenation: (A + B) + C
+                        // Strategy: Load inner concatenation FIRST (creates its own StringBuilder, 
+                        // appends A and B, calls toString(), leaves String on stack)
+                        // Then create outer StringBuilder and append that String, then append C
+                        
+                        // Load inner concatenation (creates StringBuilder, appends operands, toString(), leaves String)
+                        load(*bo.left, varIdx);
+                        // Stack now: [String]
+                        
+                        // Create new StringBuilder for outer concatenation
+                        new_(sb_class_idx);
+                        dup();
+                        // Stack now: [StringBuilder, StringBuilder, String]
+                        
+                        // <init>()
+                        u2 init_utf8 = cp.addUtf8("<init>");
+                        u2 init_desc = cp.addUtf8("()V");
+                        u2 init_nat = cp.addNameAndType(init_utf8, init_desc);
+                        u2 init_methodref = cp.addMethodRef(sb_class_idx, init_nat);
+                        invokespecial(init_methodref);
+                        // Stack now: [StringBuilder, String] - correct order for append
+                        
+                        // append(String) - append the inner concatenation result
+                        u2 append_utf8 = cp.addUtf8("append");
+                        u2 append_desc = cp.addUtf8("(Ljava/lang/String;)Ljava/lang/StringBuilder;");
+                        u2 append_nat = cp.addNameAndType(append_utf8, append_desc);
+                        u2 append_methodref = cp.addMethodRef(sb_class_idx, append_nat);
+                        invokevirtual(append_methodref);
+                        // Stack now: [StringBuilder]
+                        
+                        // Now append the right operand
+                        load(*bo.right, varIdx);
+                        u2 append_utf8_r = cp.addUtf8("append");
+                        u2 append_desc_r;
+                        
+                        // Determine the actual type for append signature
+                        Type rightType = bo.right->type;
+                        if (bo.right->kind == ExprKind::MemberAccess) {
+                            const MemberAccessExpr& mae = get<MemberAccessExpr>(bo.right->data);
+                            if (mae.object->kind == ExprKind::Var) {
+                                const VarRef& vr = get<VarRef>(mae.object->data);
+                                if (varTypeNames.find(vr.name) != varTypeNames.end()) {
+                                    string typeName = varTypeNames[vr.name];
+                                    if (classFieldTypes.find(typeName) != classFieldTypes.end() &&
+                                        classFieldTypes[typeName].find(mae.member) != classFieldTypes[typeName].end()) {
+                                        rightType = classFieldTypes[typeName][mae.member];
+                                    }
+                                }
                             }
                         }
+                        
+                        if (rightType == Type::Int) {
+                            append_desc_r = cp.addUtf8("(I)Ljava/lang/StringBuilder;");
+                        } else if (rightType == Type::Float) {
+                            append_desc_r = cp.addUtf8("(F)Ljava/lang/StringBuilder;");
+                        } else if (rightType == Type::Bool) {
+                            append_desc_r = cp.addUtf8("(Z)Ljava/lang/StringBuilder;");
+                        } else {
+                            append_desc_r = cp.addUtf8("(Ljava/lang/String;)Ljava/lang/StringBuilder;");
+                        }
+                        u2 append_nat_r = cp.addNameAndType(append_utf8_r, append_desc_r);
+                        u2 append_methodref_r = cp.addMethodRef(sb_class_idx, append_nat_r);
+                        invokevirtual(append_methodref_r);
+                        // Stack now: [StringBuilder]
+                    } else {
+                        // Normal case: create new StringBuilder
+                        // BUT: Check if left operand is a nested concatenation that we missed
+                        // If so, load it first (leaves String), then create StringBuilder
+                        bool leftIsNestedConcat = (bo.left->kind == ExprKind::Bin);
+                        if (leftIsNestedConcat) {
+                            const BinOp& leftBin = get<BinOp>(bo.left->data);
+                            leftIsNestedConcat = (leftBin.op == Op::Add && 
+                                                  (leftBin.left->type == Type::String || leftBin.right->type == Type::String) &&
+                                                  bo.left->type == Type::String);
+                        }
+                        
+                        if (leftIsNestedConcat) {
+                            // Left is nested concatenation - load it first (leaves String)
+                            load(*bo.left, varIdx);
+                            // Stack now: [String]
+                            
+                            // Create StringBuilder
+                            new_(sb_class_idx);
+                            dup();
+                            // Stack now: [StringBuilder, StringBuilder, String]
+                            
+                            // <init>()
+                            u2 init_utf8 = cp.addUtf8("<init>");
+                            u2 init_desc = cp.addUtf8("()V");
+                            u2 init_nat = cp.addNameAndType(init_utf8, init_desc);
+                            u2 init_methodref = cp.addMethodRef(sb_class_idx, init_nat);
+                            invokespecial(init_methodref);
+                            // Stack now: [StringBuilder, String]
+                            
+                            // append(String) - append the inner concatenation result
+                            u2 append_utf8 = cp.addUtf8("append");
+                            u2 append_desc = cp.addUtf8("(Ljava/lang/String;)Ljava/lang/StringBuilder;");
+                            u2 append_nat = cp.addNameAndType(append_utf8, append_desc);
+                            u2 append_methodref = cp.addMethodRef(sb_class_idx, append_nat);
+                            invokevirtual(append_methodref);
+                            // Stack now: [StringBuilder]
+                        } else {
+                            // Truly normal case: create StringBuilder first, then load left
+                            new_(sb_class_idx);
+                            dup();
+                            
+                            // <init>()
+                            u2 init_utf8 = cp.addUtf8("<init>");
+                            u2 init_desc = cp.addUtf8("()V");
+                            u2 init_nat = cp.addNameAndType(init_utf8, init_desc);
+                            u2 init_methodref = cp.addMethodRef(sb_class_idx, init_nat);
+                            invokespecial(init_methodref);
+                            
+                            // append(left)
+                            load(*bo.left, varIdx);
+                        }
+                        u2 append_utf8 = cp.addUtf8("append");
+                        u2 append_desc;
+                        
+                        // Determine the actual type for append signature
+                        Type leftType = bo.left->type;
+                        if (bo.left->kind == ExprKind::MemberAccess) {
+                            // For member access, try to determine actual field type
+                            const MemberAccessExpr& mae = get<MemberAccessExpr>(bo.left->data);
+                            if (mae.object->kind == ExprKind::Var) {
+                                const VarRef& vr = get<VarRef>(mae.object->data);
+                                if (varTypeNames.find(vr.name) != varTypeNames.end()) {
+                                    string typeName = varTypeNames[vr.name];
+                                    // Check if it's a class field
+                                    if (classFieldTypes.find(typeName) != classFieldTypes.end() &&
+                                        classFieldTypes[typeName].find(mae.member) != classFieldTypes[typeName].end()) {
+                                        leftType = classFieldTypes[typeName][mae.member];
+                                    }
+                                }
+                            }
+                        }
+                        
+                        if (leftType == Type::Int) {
+                            append_desc = cp.addUtf8("(I)Ljava/lang/StringBuilder;");
+                        } else if (leftType == Type::Float) {
+                            append_desc = cp.addUtf8("(F)Ljava/lang/StringBuilder;");
+                        } else if (leftType == Type::Bool) {
+                            append_desc = cp.addUtf8("(Z)Ljava/lang/StringBuilder;");
+                        } else {
+                            append_desc = cp.addUtf8("(Ljava/lang/String;)Ljava/lang/StringBuilder;");
+                        }
+                        u2 append_nat = cp.addNameAndType(append_utf8, append_desc);
+                        u2 append_methodref = cp.addMethodRef(sb_class_idx, append_nat);
+                        invokevirtual(append_methodref);
+                        
+                        // append(right)
+                        load(*bo.right, varIdx);
+                        
+                        // Determine the actual type for append signature
+                        Type rightType = bo.right->type;
+                        if (bo.right->kind == ExprKind::MemberAccess) {
+                            // For member access, try to determine actual field type
+                            const MemberAccessExpr& mae = get<MemberAccessExpr>(bo.right->data);
+                            if (mae.object->kind == ExprKind::Var) {
+                                const VarRef& vr = get<VarRef>(mae.object->data);
+                                if (varTypeNames.find(vr.name) != varTypeNames.end()) {
+                                    string typeName = varTypeNames[vr.name];
+                                    // Check if it's a class field
+                                    if (classFieldTypes.find(typeName) != classFieldTypes.end() &&
+                                        classFieldTypes[typeName].find(mae.member) != classFieldTypes[typeName].end()) {
+                                        rightType = classFieldTypes[typeName][mae.member];
+                                    }
+                                }
+                            }
+                        }
+                        
+                        if (rightType == Type::Int) {
+                            append_desc = cp.addUtf8("(I)Ljava/lang/StringBuilder;");
+                        } else if (rightType == Type::Float) {
+                            append_desc = cp.addUtf8("(F)Ljava/lang/StringBuilder;");
+                        } else if (rightType == Type::Bool) {
+                            append_desc = cp.addUtf8("(Z)Ljava/lang/StringBuilder;");
+                        } else {
+                            append_desc = cp.addUtf8("(Ljava/lang/String;)Ljava/lang/StringBuilder;");
+                        }
+                        append_nat = cp.addNameAndType(append_utf8, append_desc);
+                        append_methodref = cp.addMethodRef(sb_class_idx, append_nat);
+                        invokevirtual(append_methodref);
                     }
-                }
-                
-                if (rightType == Type::Int) {
-                    append_desc = cp.addUtf8("(I)Ljava/lang/StringBuilder;");
-                } else if (rightType == Type::Float) {
-                    append_desc = cp.addUtf8("(F)Ljava/lang/StringBuilder;");
-                } else if (rightType == Type::Bool) {
-                    append_desc = cp.addUtf8("(Z)Ljava/lang/StringBuilder;");
-                } else {
-                    append_desc = cp.addUtf8("(Ljava/lang/String;)Ljava/lang/StringBuilder;");
-                }
-                append_nat = cp.addNameAndType(append_utf8, append_desc);
-                append_methodref = cp.addMethodRef(sb_class_idx, append_nat);
-                invokevirtual(append_methodref);
-                
-                // toString()
-                u2 tostring_utf8 = cp.addUtf8("toString");
-                u2 tostring_desc = cp.addUtf8("()Ljava/lang/String;");
-                u2 tostring_nat = cp.addNameAndType(tostring_utf8, tostring_desc);
-                u2 tostring_methodref = cp.addMethodRef(sb_class_idx, tostring_nat);
-                invokevirtual(tostring_methodref);
+                    
+                    // toString()
+                    u2 tostring_utf8 = cp.addUtf8("toString");
+                    u2 tostring_desc = cp.addUtf8("()Ljava/lang/String;");
+                    u2 tostring_nat = cp.addNameAndType(tostring_utf8, tostring_desc);
+                    u2 tostring_methodref = cp.addMethodRef(sb_class_idx, tostring_nat);
+                    invokevirtual(tostring_methodref);
             } else {
                 // Numeric operations
                 load(*bo.left, varIdx);
@@ -1002,19 +1216,53 @@ public:
             u2 init_ref = cp.addMethodRef(class_idx, init_nat);
             invokespecial(init_ref);
         } else if (e.kind == ExprKind::MethodCall) {
-            // Phase 7: obj.method(args)
+            // Phase 7: obj.method(args) or ME.method(args)
             const MethodCallExpr& mce = get<MethodCallExpr>(e.data);
             
-            // Load object
-            load(*mce.object, varIdx);
+            // Get class name from object type (same logic as MemberAccess)
+            string objectTypeName;
+            bool isMeCall = false;
             
-            // Load arguments
-            for (const auto& arg : mce.args) {
-                load(*arg, varIdx);
+            if (mce.object->kind == ExprKind::Me) {
+                // ME.method() - use current class context
+                if (!currentClassContext.empty()) {
+                    objectTypeName = currentClassContext;
+                    isMeCall = true;
+                } else {
+                    throw runtime_error("ME method call outside of class method context");
+                }
+            } else if (mce.object->kind == ExprKind::Var) {
+                const VarRef& vr = get<VarRef>(mce.object->data);
+                if (varTypeNames.find(vr.name) != varTypeNames.end()) {
+                    objectTypeName = varTypeNames.at(vr.name);
+                }
+            } else if (mce.object->typeName != "") {
+                objectTypeName = mce.object->typeName;
+            } else if (mce.object->kind == ExprKind::NewExpr) {
+                const NewExpr& ne = get<NewExpr>(mce.object->data);
+                objectTypeName = ne.className;
             }
             
-            // Build method descriptor
+            if (objectTypeName.empty()) {
+                throw runtime_error("Cannot determine class name for method call");
+            }
+            
+            // Determine return type from method signature
+            bool isSub = false;
+            Type returnType = Type::Float;
+            if (classMethodSignatures.find(objectTypeName) != classMethodSignatures.end() &&
+                classMethodSignatures[objectTypeName].find(mce.methodName) != classMethodSignatures[objectTypeName].end()) {
+                auto& sig = classMethodSignatures[objectTypeName][mce.methodName];
+                returnType = sig.first;
+                isSub = sig.second;
+            }
+            
+            // Build method descriptor: (objectInstance, args...) -> returnType
             string descriptor = "(";
+            // First parameter: object instance (LClassName$Class;)
+            string classNameRef = this->className + "$" + objectTypeName;
+            descriptor += "L" + classNameRef + ";";
+            // Then method arguments
             for (const auto& arg : mce.args) {
                 if (arg->type == Type::Float) descriptor += "F";
                 else if (arg->type == Type::Int || arg->type == Type::Bool) descriptor += "I";
@@ -1023,22 +1271,40 @@ public:
             descriptor += ")";
             
             // Return type
-            if (e.type == Type::Float) descriptor += "F";
-            else if (e.type == Type::Int || e.type == Type::Bool) descriptor += "I";
-            else if (e.type == Type::String) descriptor += "Ljava/lang/String;";
-            else descriptor += "V"; // void (for subs)
+            if (isSub) {
+                descriptor += "V"; // void for SUBs
+            } else if (returnType == Type::Float) {
+                descriptor += "F";
+            } else if (returnType == Type::Int || returnType == Type::Bool) {
+                descriptor += "I";
+            } else if (returnType == Type::String) {
+                descriptor += "Ljava/lang/String;";
+            } else {
+                descriptor += "V"; // fallback
+            }
             
-            // Get class name from object type
-            string classNameRef = this->className + "$" + e.typeName; // typeName holds class name
-            u2 class_utf8 = cp.addUtf8(classNameRef);
-            u2 class_idx = cp.addClass(class_utf8);
+            // Load object (unless it's ME, which we handle specially)
+            if (isMeCall) {
+                // ME.method() - load the "this" parameter (slot 0)
+                aload(0);
+            } else {
+                // obj.method() - load the object
+                load(*mce.object, varIdx);
+            }
             
-            // invokevirtual ClassName/methodName
-            u2 method_name_idx = cp.addUtf8(mce.methodName);
+            // Load arguments
+            for (const auto& arg : mce.args) {
+                load(*arg, varIdx);
+            }
+            
+            // Call static method: ClassName$MethodName
+            string methodName = objectTypeName + "$" + mce.methodName;
+            u2 method_name_idx = cp.addUtf8(methodName);
             u2 method_desc_idx = cp.addUtf8(descriptor);
             u2 method_nat = cp.addNameAndType(method_name_idx, method_desc_idx);
-            u2 method_ref = cp.addMethodRef(class_idx, method_nat);
-            invokevirtual(method_ref);
+            u2 this_class_idx = cp.addClass(cp.addUtf8(this->className));
+            u2 method_ref = cp.addMethodRef(this_class_idx, method_nat);
+            invokestatic(method_ref);
         } else if (e.kind == ExprKind::Me) {
             // Phase 7: ME reference - load 'this' (local 0)
             aload(0);
@@ -1077,11 +1343,14 @@ public:
             if (isConsoleWriteLine) {
                 // For Console.WriteLine, convert all arguments to strings
                 for (const auto& arg : nce.args) {
+                    // Load the argument (this will handle string concatenation correctly)
+                    load(*arg, varIdx);
+                    
                     // Convert non-string types to strings using String.valueOf
-                    if (arg->type == Type::Int || arg->type == Type::Bool) {
-                        // Load the argument
-                        load(*arg, varIdx);
-                        
+                    // String concatenations already leave a String on the stack
+                    if (arg->type == Type::String) {
+                        // Already a String - nothing to do, it's already on the stack
+                    } else if (arg->type == Type::Int || arg->type == Type::Bool) {
                         // Call String.valueOf(int)
                         u2 string_class_utf8 = cp.addUtf8("java/lang/String");
                         u2 string_class_idx = cp.addClass(string_class_utf8);
@@ -1091,9 +1360,6 @@ public:
                         u2 valueOf_methodref = cp.addMethodRef(string_class_idx, valueOf_nat);
                         invokestatic(valueOf_methodref);
                     } else if (arg->type == Type::Float) {
-                        // Load the argument
-                        load(*arg, varIdx);
-                        
                         // Call String.valueOf(float)
                         u2 string_class_utf8 = cp.addUtf8("java/lang/String");
                         u2 string_class_idx = cp.addClass(string_class_utf8);
@@ -1103,8 +1369,8 @@ public:
                         u2 valueOf_methodref = cp.addMethodRef(string_class_idx, valueOf_nat);
                         invokestatic(valueOf_methodref);
                     } else {
-                        // String types - just load them
-                        load(*arg, varIdx);
+                        // Other types - assume already String (shouldn't happen)
+                        // Just leave it on the stack
                     }
                 }
                 
@@ -1270,44 +1536,78 @@ public:
                 u1 idx = varIdx.at(ls.var);
                 aload(idx);  // Load array reference
                 load(*ls.index, varIdx);  // Load index
-                
+
                 // Convert Float index to Int (for FOR loop variables)
                 if (ls.index->type == Type::Float) {
                     emit(0x8B);  // f2i - float to int conversion
                 }
-                
+
                 load(*ls.expr, varIdx);  // Load value
-                
-                // Store based on type
-                if (ls.expr->type == Type::Int) iastore();
-                else if (ls.expr->type == Type::Float) fastore();
-                else if (ls.expr->type == Type::Bool) bastore();
-                else if (ls.expr->type == Type::String) aastore();
+
+                // Determine array element type from knownTypes
+                Type arrayType = Type::FloatArray;  // Default
+                auto typeIt = knownTypes.find(ls.var);
+                if (typeIt != knownTypes.end()) {
+                    arrayType = typeIt->second;
+                }
+
+                // Convert element type based on array type
+                Type elemType;
+                if (arrayType == Type::IntArray) elemType = Type::Int;
+                else if (arrayType == Type::FloatArray) elemType = Type::Float;
+                else if (arrayType == Type::BoolArray) elemType = Type::Bool;
+                else if (arrayType == Type::StringArray) elemType = Type::String;
+                else elemType = ls.expr->type;  // Fallback to expression type
+
+                // Convert value if needed (e.g., Int -> Float for float arrays)
+                if (elemType == Type::Float && ls.expr->type == Type::Int) {
+                    i2f();  // Convert int to float
+                }
+
+                // Store based on ARRAY element type (not value type)
+                if (elemType == Type::Int) iastore();
+                else if (elemType == Type::Float) fastore();
+                else if (elemType == Type::Bool) bastore();
+                else if (elemType == Type::String) aastore();
             } else {
                 // Check if it's a member assignment (var.member)
                 size_t dotPos = ls.var.find('.');
                 if (dotPos != string::npos) {
-                    // Member assignment: LET var.member = value
+                    // Member assignment: LET var.member = value or ME.member = value
                     string varName = ls.var.substr(0, dotPos);
                     string memberName = ls.var.substr(dotPos + 1);
                     
-                    // Phase 7: Check if this is a class field or struct field
-                    u1 varSlot = varIdx.at(varName);
+                    bool isMeAssignment = (varName == "ME");
+                    string objTypeName;
+                    
+                    if (isMeAssignment) {
+                        // ME.field = value - use current class context
+                        if (!currentClassContext.empty()) {
+                            objTypeName = currentClassContext;
+                            // Load the "this" parameter (slot 0)
+                            aload(0);
+                        } else {
+                            throw runtime_error("ME assignment outside of class method context");
+                        }
+                    } else {
+                        // var.field = value
+                        objTypeName = (varTypeNames.find(varName) != varTypeNames.end()) ? varTypeNames[varName] : "";
+                        // Phase 7: Check if this is a class field or struct field
+                        u1 varSlot = varIdx.at(varName);
+                        // Load object
+                        aload(varSlot);
+                    }
                     
                     // Determine if it's a class or struct
-                    string objTypeName = (varTypeNames.find(varName) != varTypeNames.end()) ? varTypeNames[varName] : "";
                     bool isClassField = (objTypeName != "" && classFieldTypes.find(objTypeName) != classFieldTypes.end());
                     
                     if (isClassField) {
                         // Phase 7: Class field assignment using putfield
-                        // Load object
-                        aload(varSlot);
-                        
                         // Load value
                         load(*ls.expr, varIdx);
                         
                         // Get actual field type from class definition
-                        Type fieldType = classFieldTypes[varTypeNames[varName]][memberName];
+                        Type fieldType = classFieldTypes[objTypeName][memberName];
                         
                         // Convert if needed (e.g., Int to Float)
                         if (fieldType == Type::Float && ls.expr->type == Type::Int) {
@@ -1315,7 +1615,7 @@ public:
                         }
                         
                         // Build field reference
-                        string className = this->className + "$" + varTypeNames[varName];
+                        string className = this->className + "$" + objTypeName;
                         u2 class_utf8 = cp.addUtf8(className);
                         u2 class_idx = cp.addClass(class_utf8);
                         
@@ -1336,9 +1636,9 @@ public:
                         putfield(field_ref);
                     } else {
                         // Struct field assignment using array access
-                        // Load struct object
-                        aload(varSlot);
-                        
+                        // NOTE: Object is already loaded at line 1583 above, don't load again!
+                        // (The aload was moved to the common path for both class and struct)
+
                         // Get field index
                         string typeName = varTypeNames[varName];
                         int fieldIdx = structFields[typeName][memberName];
@@ -1465,8 +1765,11 @@ public:
                 astore(idx);
                 
                 // Store type name for later field/method lookups
+                // Normalize to uppercase for consistent lookup (classes are stored uppercase)
                 const NewExpr& ne = get<NewExpr>(ds.initVal->data);
-                varTypeNames[ds.var] = ne.className;
+                string classNameUpper = ne.className;
+                transform(classNameUpper.begin(), classNameUpper.end(), classNameUpper.begin(), ::toupper);
+                varTypeNames[ds.var] = classNameUpper;
             } else if (ds.size) {
                 // Array declaration: DIM arr(size) AS Type or DIM arr(size) = initVal
                 varIdx[ds.var] = nextLocal++;
@@ -1897,8 +2200,25 @@ public:
             }
             descriptor += ")V"; // Method call statements are for SUBs (void return)
             
-            // Get class name from object type
-            string className = this->className + "$" + mcs.object->typeName; // typeName holds class name
+            // Get class name from object type (same logic as MethodCall expression)
+            string objectTypeName;
+            if (mcs.object->kind == ExprKind::Var) {
+                const VarRef& vr = get<VarRef>(mcs.object->data);
+                if (varTypeNames.find(vr.name) != varTypeNames.end()) {
+                    objectTypeName = varTypeNames.at(vr.name);
+                }
+            } else if (mcs.object->typeName != "") {
+                objectTypeName = mcs.object->typeName;
+            } else if (mcs.object->kind == ExprKind::NewExpr) {
+                const NewExpr& ne = get<NewExpr>(mcs.object->data);
+                objectTypeName = ne.className;
+            }
+            
+            if (objectTypeName.empty()) {
+                throw runtime_error("Cannot determine class name for method call statement");
+            }
+            
+            string className = this->className + "$" + objectTypeName;
             u2 class_utf8 = cp.addUtf8(className);
             u2 class_idx = cp.addClass(class_utf8);
             
@@ -2092,11 +2412,172 @@ public:
         }
     }
     
+    // Initialize class metadata from semantic analyzer
+    void initClassTypes(const SemanticAnalyzer& analyzer) {
+        // Get classFieldTypes and varTypeNames from semantic analyzer
+        classFieldTypes = analyzer.getClassFieldTypes();
+        varTypeNames = analyzer.getVarTypeNames();
+    }
+    
+    // Helper to generate class method as SUB (can't copy unique_ptr body)
+    void generateClassMethodAsSub(const string& className, const MethodDecl& method) {
+        // Reset code for new method
+        code.clear();
+        max_stack = 50;
+        u1 nextLocal = 0;
+        
+        // Map parameters to local slots (first is "this")
+        map<string, u1> varIdx;
+        varIdx["this"] = nextLocal++;  // First parameter: object instance
+        for (const auto& param : method.params) {
+            varIdx[param.name] = nextLocal++;
+        }
+        max_locals = nextLocal;
+        
+        // Build parameter types map
+        map<string, Type> localTypes;
+        localTypes["this"] = Type::UserDefined;  // Object instance
+        for (const auto& param : method.params) {
+            localTypes[param.name] = param.type;
+        }
+        
+        currentLocalTypes = localTypes;
+        
+        // Generate body
+        for (const auto& stmt : method.body) {
+            genStmt(*stmt, varIdx, nextLocal, localTypes);
+        }
+        
+        // Add return
+        _return();
+        
+        // Build method descriptor: (LClassName$Class;, args...)V
+        string descriptor = "(";
+        string classNameRef = this->className + "$" + className;
+        descriptor += "L" + classNameRef + ";";  // First param: object
+        for (const auto& param : method.params) {
+            if (param.type == Type::Int || param.type == Type::Bool) descriptor += "I";
+            else if (param.type == Type::Float) descriptor += "F";
+            else if (param.type == Type::String) descriptor += "Ljava/lang/String;";
+        }
+        descriptor += ")V";
+        
+        // Add name and descriptor to constant pool
+        string methodName = className + "$" + method.name;
+        u2 name_idx = cp.addUtf8(methodName);
+        u2 desc_idx = cp.addUtf8(descriptor);
+        
+        // Save method
+        methods.push_back(MethodInfo{
+            name_idx,
+            desc_idx,
+            0x0009, // public static
+            code,
+            max_stack,
+            max_locals
+        });
+    }
+    
+    // Helper to generate class method as FUNCTION
+    void generateClassMethodAsFunction(const string& className, const MethodDecl& method) {
+        // Reset code for new method
+        code.clear();
+        max_stack = 50;
+        u1 nextLocal = 0;
+        
+        // Map parameters to local slots (first is "this")
+        map<string, u1> varIdx;
+        varIdx["this"] = nextLocal++;  // First parameter: object instance
+        for (const auto& param : method.params) {
+            varIdx[param.name] = nextLocal++;
+        }
+        max_locals = nextLocal;
+        
+        // Build parameter types map
+        map<string, Type> localTypes;
+        localTypes["this"] = Type::UserDefined;  // Object instance
+        for (const auto& param : method.params) {
+            localTypes[param.name] = param.type;
+        }
+        
+        currentLocalTypes = localTypes;
+        Type savedReturnType = currentReturnType;
+        currentReturnType = method.returnType;
+        
+        // Generate body
+        for (const auto& stmt : method.body) {
+            genStmt(*stmt, varIdx, nextLocal, localTypes);
+        }
+        
+        currentReturnType = savedReturnType;
+        
+        // Build method descriptor: (LClassName$Class;, args...) -> returnType
+        string descriptor = "(";
+        string classNameRef = this->className + "$" + className;
+        descriptor += "L" + classNameRef + ";";  // First param: object
+        for (const auto& param : method.params) {
+            if (param.type == Type::Int || param.type == Type::Bool) descriptor += "I";
+            else if (param.type == Type::Float) descriptor += "F";
+            else if (param.type == Type::String) descriptor += "Ljava/lang/String;";
+        }
+        descriptor += ")";
+        
+        // Return type
+        if (method.returnType == Type::Float) descriptor += "F";
+        else if (method.returnType == Type::Int || method.returnType == Type::Bool) descriptor += "I";
+        else if (method.returnType == Type::String) descriptor += "Ljava/lang/String;";
+        else descriptor += "V";
+        
+        // Add name and descriptor to constant pool
+        string methodName = className + "$" + method.name;
+        u2 name_idx = cp.addUtf8(methodName);
+        u2 desc_idx = cp.addUtf8(descriptor);
+        
+        // Save method
+        methods.push_back(MethodInfo{
+            name_idx,
+            desc_idx,
+            0x0009, // public static
+            code,
+            max_stack,
+            max_locals
+        });
+    }
+    
+    // Generate class methods as static methods with object as first parameter
+    void generateClassMethods(const ClassDecl& cd) {
+        string classNameRef = this->className + "$" + cd.name;
+        string objectTypeDesc = "L" + classNameRef + ";";
+        
+        for (const MethodDecl& method : cd.methods) {
+            if (method.isConstructor) continue; // Constructors are handled in generateNestedClass
+            
+            // Store class context for ME references
+            currentClassContext = cd.name;
+            
+            // Generate method directly (can't copy unique_ptr body)
+            if (method.isSub) {
+                generateClassMethodAsSub(cd.name, method);
+            } else {
+                generateClassMethodAsFunction(cd.name, method);
+            }
+            
+            currentClassContext = "";
+        }
+    }
+    
     // Phase 7: Generate a nested static class as a separate .class file
     void generateNestedClass(const ClassDecl& cd) {
         // Store field types for later use in field access
         for (const Field& field : cd.fields) {
             classFieldTypes[cd.name][field.name] = field.type;
+        }
+        
+        // Store method signatures for method call resolution (needed before main program generation)
+        for (const MethodDecl& method : cd.methods) {
+            if (!method.isConstructor) {
+                classMethodSignatures[cd.name][method.name] = {method.returnType, method.isSub};
+            }
         }
         
         // Create a new class file for the nested class
@@ -2123,7 +2604,7 @@ public:
         map<string, pair<u2, string>> field_data; // name -> (name_idx, descriptor)
         
         for (const Field& field : cd.fields) {
-            u2 access = field.isPublic ? 0x0001 : 0x0002; // PUBLIC or PRIVATE
+            u2 access = 0x0001; // Always PUBLIC in bytecode (semantic analyzer enforces access control)
             u2 name_idx = ncp.addUtf8(field.name);
             
             string descriptor;
@@ -2247,30 +2728,90 @@ public:
                     if (stmt->kind == StmtKind::Let) {
                         const LetStmt& ls = get<LetStmt>(stmt->data);
                         
-                        // Check if it's a direct field assignment (no dot in var name)
-                        if (ls.var.find('.') == string::npos) {
-                            // Direct assignment to field: this.field = value
+                        // Check if it's a field assignment: ME.field = value or field = value
+                        string fieldName;
+                        bool isMeAssignment = false;
+                        
+                        if (ls.var.find('.') != string::npos) {
+                            // ME.field = value or var.field = value
+                            size_t dotPos = ls.var.find('.');
+                            string varPart = ls.var.substr(0, dotPos);
+                            fieldName = ls.var.substr(dotPos + 1);
+                            isMeAssignment = (varPart == "ME");
+                        } else {
+                            // Direct field assignment (shouldn't happen in constructors, but handle it)
+                            fieldName = ls.var;
+                        }
+                        
+                        // Only handle ME.field assignments in constructors
+                        if (isMeAssignment && field_data.find(fieldName) != field_data.end()) {
+                            // ME.field = value - load this, then value, then putfield
                             method_code.push_back(0x2A); // aload_0
                             
-                            // Get field descriptor to determine load instruction type
-                            const auto& fd = field_data[ls.var];
+                            // Get field descriptor
+                            const auto& fd = field_data[fieldName];
                             string fieldDesc = fd.second;
                             
-                            // Load the value
+                            // Load the value expression
                             if (ls.expr->kind == ExprKind::Var) {
                                 const VarRef& vr = get<VarRef>(ls.expr->data);
-                                u1 paramSlot = param_varIdx[vr.name];
-                                
-                                // Load parameter based on field type, not parameter type
+                                if (param_varIdx.find(vr.name) != param_varIdx.end()) {
+                                    u1 paramSlot = param_varIdx[vr.name];
+                                    
+                                    // Load parameter based on field type
+                                    if (fieldDesc == "F") {
+                                        method_code.push_back(0x17); // fload
+                                        method_code.push_back(paramSlot);
+                                    } else if (fieldDesc == "I" || fieldDesc == "Z") {
+                                        method_code.push_back(0x15); // iload
+                                        method_code.push_back(paramSlot);
+                                    } else {
+                                        method_code.push_back(0x19); // aload
+                                        method_code.push_back(paramSlot);
+                                    }
+                                }
+                            } else if (ls.expr->kind == ExprKind::Str) {
+                                // String literal
+                                const StrLit& sl = get<StrLit>(ls.expr->data);
+                                u2 str_idx = ncp.addUtf8(sl.value);
+                                method_code.push_back(0x12); // ldc
+                                method_code.push_back(static_cast<u1>(str_idx >> 8));
+                                method_code.push_back(static_cast<u1>(str_idx & 0xFF));
+                            } else if (ls.expr->kind == ExprKind::Num) {
+                                // Numeric literal
+                                const NumLit& nl = get<NumLit>(ls.expr->data);
                                 if (fieldDesc == "F") {
-                                    method_code.push_back(0x17); // fload
-                                    method_code.push_back(paramSlot);
-                                } else if (fieldDesc == "I" || fieldDesc == "Z") {
-                                    method_code.push_back(0x15); // iload
-                                    method_code.push_back(paramSlot);
+                                    // Load float constant
+                                    if (nl.value == 0.0) {
+                                        method_code.push_back(0x0B); // fconst_0
+                                    } else if (nl.value == 1.0) {
+                                        method_code.push_back(0x0C); // fconst_1
+                                    } else if (nl.value == 2.0) {
+                                        method_code.push_back(0x0D); // fconst_2
+                                    } else {
+                                        // Use ldc for other float values
+                                        u2 float_idx = ncp.addFloat(static_cast<float>(nl.value));
+                                        method_code.push_back(0x13); // ldc_w (simplified to ldc)
+                                        method_code.push_back(static_cast<u1>(float_idx >> 8));
+                                        method_code.push_back(static_cast<u1>(float_idx & 0xFF));
+                                    }
                                 } else {
-                                    method_code.push_back(0x19); // aload
-                                    method_code.push_back(paramSlot);
+                                    // Integer constant
+                                    int intVal = static_cast<int>(nl.value);
+                                    if (intVal >= -1 && intVal <= 5) {
+                                        method_code.push_back(0x03 + intVal); // iconst_n
+                                    } else {
+                                        // Use bipush/sipush for other values
+                                        if (intVal >= -128 && intVal <= 127) {
+                                            method_code.push_back(0x10); // bipush
+                                            method_code.push_back(static_cast<u1>(intVal & 0xFF));
+                                        } else {
+                                            // sipush for larger values
+                                            method_code.push_back(0x11); // sipush
+                                            method_code.push_back(static_cast<u1>((intVal >> 8) & 0xFF));
+                                            method_code.push_back(static_cast<u1>(intVal & 0xFF));
+                                        }
+                                    }
                                 }
                             }
                             
@@ -2296,53 +2837,9 @@ public:
                     method_max_stack,
                     method_max_locals
                 });
-            } else {
-                // Generate instance method (SUB or FUNCTION)
-                u2 method_name_idx = ncp.addUtf8(method.name);
-                
-                // Build descriptor
-                string descriptor = "(";
-                for (const auto& param : method.params) {
-                    if (param.type == Type::Float) descriptor += "F";
-                    else if (param.type == Type::Int) descriptor += "I";
-                    else if (param.type == Type::Bool) descriptor += "Z";
-                    else if (param.type == Type::String) descriptor += "Ljava/lang/String;";
-                }
-                descriptor += ")";
-                
-                // Return type
-                if (method.returnType == Type::Float) descriptor += "F";
-                else if (method.returnType == Type::Int) descriptor += "I";
-                else if (method.returnType == Type::Bool) descriptor += "Z";
-                else if (method.returnType == Type::String) descriptor += "Ljava/lang/String;";
-                else descriptor += "V"; // void for SUBs
-                
-                u2 method_desc_idx = ncp.addUtf8(descriptor);
-                
-                // For now, generate a simple method that just returns default value
-                // Full implementation would require generating bytecode from method.body
-                if (method.returnType == Type::Float) {
-                    method_code.push_back(0x0B); // fconst_0
-                    method_code.push_back(0xAE); // freturn
-                } else if (method.returnType == Type::Int || method.returnType == Type::Bool) {
-                    method_code.push_back(0x03); // iconst_0
-                    method_code.push_back(0xAC); // ireturn
-                } else if (method.returnType == Type::String) {
-                    method_code.push_back(0x01); // aconst_null
-                    method_code.push_back(0xB0); // areturn
-                } else {
-                    method_code.push_back(0xB1); // return (void)
-                }
-                
-                n_methods.push_back(MethodInfo{
-                    method_name_idx,
-                    method_desc_idx,
-                    static_cast<u2>(method.isPublic ? 0x0001 : 0x0002),
-                    method_code,
-                    method_max_stack,
-                    method_max_locals
-                });
             }
+            // Note: Instance methods (non-constructor) are now generated as static methods
+            // in the main class via generateClassMethods() - see that function
         }
         
         // Write nested class file
@@ -2428,6 +2925,8 @@ public:
             if (decl->kind == DeclKind::Class) {
                 const ClassDecl& cd = get<ClassDecl>(decl->data);
                 generateNestedClass(cd);
+                // Generate class methods as static methods with ClassName$MethodName
+                generateClassMethods(cd);
             }
         }
         

@@ -137,8 +137,10 @@ MethodDecl Parser::parseMethodDecl(bool isPublic) {
     bool isConstructor = false;
     Type returnType = Type::Float;  // Default for SUB
     string name;
+    bool isSub = false;  // Track if this is SUB or FUNCTION
     
     if (tok.type == TokenType::SUB) {
+        isSub = true;
         next();
         
         // Special case: "SUB New" - NEW is a keyword but also the constructor name
@@ -157,6 +159,7 @@ MethodDecl Parser::parseMethodDecl(bool isPublic) {
             }
         }
     } else if (tok.type == TokenType::FUNCTION) {
+        isSub = false;
         next();
         name = expect(TokenType::ID).val;
         // Return type will be determined from AS clause or inferred from RETURN
@@ -276,6 +279,7 @@ MethodDecl Parser::parseMethodDecl(bool isPublic) {
     method.name = name;
     method.isPublic = isPublic;
     method.isConstructor = isConstructor;
+    method.isSub = isSub;  // Track if it was SUB or FUNCTION
     method.params = move(params);
     method.returnType = returnType;
     method.body = move(body);
@@ -381,16 +385,20 @@ ExprPtr Parser::parsePrimary() {
         string classNameUpper = className;
         transform(classNameUpper.begin(), classNameUpper.end(), classNameUpper.begin(), ::toupper);
         
-        expect(TokenType::LPAREN);
+        // Parentheses are optional for no-arg constructors
         vector<ExprPtr> args;
-        if (tok.type != TokenType::RPAREN) {
-            args.push_back(parseExpr());
-            while (tok.type == TokenType::COMMA) {
-                next();
+        if (tok.type == TokenType::LPAREN) {
+            next();
+            if (tok.type != TokenType::RPAREN) {
                 args.push_back(parseExpr());
+                while (tok.type == TokenType::COMMA) {
+                    next();
+                    args.push_back(parseExpr());
+                }
             }
+            expect(TokenType::RPAREN);
         }
-        expect(TokenType::RPAREN);
+        // If no parentheses, assume no-arg constructor (args remains empty)
         
         // Return UserDefined type for class instances
         return make_unique<Expr>(ExprKind::NewExpr, Type::UserDefined, NewExpr{classNameUpper, move(args)});
@@ -905,39 +913,50 @@ StmtPtr Parser::parseStmt() {
             
             // Phase 9: Modern syntax - DIM arr(10) As Integer
             string typeNameUpper = "";
+            Type arrayType = Type::FloatArray;  // Default
             if (tok.type == TokenType::AS) {
                 next();
                 string typeName;
                 if (tok.type == TokenType::INTEGER) {
                     typeName = "INTEGER";
+                    arrayType = Type::IntArray;
                     next();
                 } else if (tok.type == TokenType::SINGLE) {
                     typeName = "SINGLE";
+                    arrayType = Type::FloatArray;
                     next();
                 } else if (tok.type == TokenType::DOUBLE) {
                     typeName = "DOUBLE";
+                    arrayType = Type::FloatArray;
                     next();
                 } else if (tok.type == TokenType::LONG) {
                     typeName = "LONG";
+                    arrayType = Type::IntArray;
                     next();
                 } else if (tok.type == TokenType::BOOLEAN) {
                     typeName = "BOOLEAN";
+                    arrayType = Type::BoolArray;
                     next();
                 } else if (tok.type == TokenType::STRINGTYPE) {
                     typeName = "STRING";
+                    arrayType = Type::StringArray;
                     next();
                 } else if (tok.type == TokenType::DECIMAL) {
                     typeName = "DECIMAL";
+                    arrayType = Type::FloatArray;  // Map to float array for now
                     next();
                 } else if (tok.type == TokenType::BIGINT) {
                     typeName = "BIGINT";
+                    arrayType = Type::IntArray;  // Map to int array for now
                     next();
                 } else {
                     typeName = expect(TokenType::ID).val;
                 }
-                
+
                 transform(typeName.begin(), typeName.end(), typeName.begin(), ::toupper);
                 typeNameUpper = typeName;
+                // Store array type for codegen
+                knownTypes[var] = arrayType;
             }
             
             // Old syntax still requires = initValue
@@ -1022,7 +1041,7 @@ StmtPtr Parser::parseStmt() {
             }
         }
         
-        // Old syntax without AS: Should not reach here normally
+        // Require explicit typing - no type inference
         error("Expected AS after variable name in DIM statement");
         return nullptr;
     }
@@ -1249,22 +1268,68 @@ StmtPtr Parser::parseStmt() {
                 return make_unique<Stmt>(StmtKind::ExprStmt, ExprStmtNode{move(expr)});
             }
             
-            // Not a namespace - parse as member access assignment
-            vector<string> memberPath;
+            // Not a namespace - could be method call or member assignment
+            // Build the object expression first
+            ExprPtr objExpr = make_unique<Expr>(ExprKind::Var, Type::Float, VarRef{var, nullptr});
+            
+            // Parse member access chain
+            bool foundAssignment = false;
             while (tok.type == TokenType::DOT) {
                 next();
-                memberPath.push_back(expect(TokenType::ID).val);
+                string member = expect(TokenType::ID).val;
+                
+                // Phase 7: Check if it's a method call (followed by parentheses)
+                if (tok.type == TokenType::LPAREN) {
+                    // Method call: obj.method(args) - parse as expression statement
+                    next();
+                    vector<ExprPtr> args;
+                    if (tok.type != TokenType::RPAREN) {
+                        args.push_back(parseExpr());
+                        while (tok.type == TokenType::COMMA) {
+                            next();
+                            args.push_back(parseExpr());
+                        }
+                    }
+                    expect(TokenType::RPAREN);
+                    
+                    // Create method call expression and wrap in ExprStmt
+                    auto expr = make_unique<Expr>(ExprKind::MethodCall, Type::Float,
+                                                 MethodCallExpr{move(objExpr), member, move(args)});
+                    return make_unique<Stmt>(StmtKind::ExprStmt, ExprStmtNode{move(expr)});
+                } else if (tok.type == TokenType::ASSIGN) {
+                    // Member assignment: obj.field = value
+                    // Build the member access expression first, then handle assignment
+                    objExpr = make_unique<Expr>(ExprKind::MemberAccess, Type::Float, 
+                                              MemberAccessExpr{move(objExpr), member});
+                    foundAssignment = true;
+                    break;  // Exit the while loop to handle assignment below
+                } else {
+                    // Property/field access: obj.field (continue building chain)
+                    objExpr = make_unique<Expr>(ExprKind::MemberAccess, Type::Float, 
+                                              MemberAccessExpr{move(objExpr), member});
+                }
             }
             
-            expect(TokenType::ASSIGN);
+            // If we get here, it's a member assignment (obj.field = value)
+            if (foundAssignment) {
+                next();  // Consume the ASSIGN token that we already saw
+            } else {
+                expect(TokenType::ASSIGN);
+            }
             auto expr = parseExpr();
             
             // Handle single-level member access
-            if (memberPath.size() == 1) {
-                string fullPath = var + "." + memberPath[0];
-                return make_unique<Stmt>(StmtKind::Let, LetStmt{fullPath, move(expr), nullptr});
+            if (objExpr->kind == ExprKind::MemberAccess) {
+                const MemberAccessExpr& mae = get<MemberAccessExpr>(objExpr->data);
+                if (mae.object->kind == ExprKind::Var) {
+                    const VarRef& vr = get<VarRef>(mae.object->data);
+                    string fullPath = vr.name + "." + mae.member;
+                    return make_unique<Stmt>(StmtKind::Let, LetStmt{fullPath, move(expr), nullptr});
+                } else {
+                    error("Complex member access in assignment not yet supported");
+                }
             } else {
-                error("Nested member access in assignment not yet supported");
+                error("Expected member access before assignment");
             }
         }
         
@@ -1541,9 +1606,24 @@ Program Parser::parse() {
         prog.declarations.push_back(parseDecl());
     }
     
-    // Parse main program statements
+    // Parse main program statements (and any TYPE/CLASS/FUNCTION/SUB declarations mixed in)
     while (tok.type != TokenType::END) {
-        prog.statements.push_back(parseStmt());
+        // Allow TYPE, CLASS, FUNCTION, SUB declarations to appear anywhere
+        if (tok.type == TokenType::TYPE) {
+            auto typeDecl = parseTypeDecl();
+            const TypeDefDecl& td = get<TypeDefDecl>(typeDecl->data);
+            userTypes[td.name] = td;
+            prog.declarations.push_back(move(typeDecl));
+        } else if (tok.type == TokenType::CLASS) {
+            auto classDecl = parseClassDecl();
+            const ClassDecl& cd = get<ClassDecl>(classDecl->data);
+            userClassNames.insert(cd.name);
+            prog.declarations.push_back(move(classDecl));
+        } else if (tok.type == TokenType::FUNCTION || tok.type == TokenType::SUB) {
+            prog.declarations.push_back(parseDecl());
+        } else {
+            prog.statements.push_back(parseStmt());
+        }
     }
     
     return prog;
