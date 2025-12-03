@@ -48,6 +48,11 @@ private:
     };
     vector<CallSite> callSites;
     
+    // Phase 6/7: Struct and class field type information
+    map<string, map<string, Type>> structFieldTypes;  // (typeName, fieldName) -> fieldType
+    map<string, map<string, Type>> classFieldTypes;   // (className, fieldName) -> fieldType
+    map<string, string> varTypeNames;  // (varName) -> typeName (for struct/class variables)
+    
     // Analysis methods
     void analyzeDecl(Decl& decl);
     void analyzeFunctionDecl(FunctionDecl& fd);
@@ -69,6 +74,10 @@ private:
 
 public:
     SemanticAnalyzer() = default;
+    
+    // Initialize struct/class field type information (called from main.cpp)
+    void initStructTypes(const map<string, TypeDefDecl>& userTypes);
+    void initClassTypesFromProgram(const Program& program);  // Extract classes from program declarations
     
     // Main analysis entry point
     bool analyze(Program& program);

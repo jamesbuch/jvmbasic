@@ -1,8 +1,8 @@
-FUNCTION circleArea(radius As Integer) As Integer
+FUNCTION circleArea(radius As Integer) As Float
     RETURN PI * radius * radius
 ENDFUNCTION
 
-FUNCTION celsiusToFahrenheit(c As Integer) As Integer
+FUNCTION celsiusToFahrenheit(c As Integer) As Float
     RETURN c * 9.0 / 5.0 + 32.0
 ENDFUNCTION
 
@@ -17,15 +17,15 @@ FUNCTION max3(a As Integer, b As Integer, c As Integer) As Integer
     RETURN temp
 ENDFUNCTION
 
-FUNCTION hypotenuse(a As Integer, b As Integer) As Integer
+FUNCTION hypotenuse(a As Integer, b As Integer) As Float
     RETURN SQR(a * a + b * b)
 ENDFUNCTION
 
-FUNCTION triangleArea(base As Integer, height As Integer) As Integer
+FUNCTION triangleArea(base As Integer, height As Integer) As Float
     RETURN base * height / 2.0
 ENDFUNCTION
 
-FUNCTION pythagoreanTriple(a As Integer, b As Integer) As Integer
+FUNCTION pythagoreanTriple(a As Integer, b As Integer) As Float
     c = hypotenuse(a, b)
     area = triangleArea(a, b)
     Console.WriteLine("  Triangle sides: " + a + "," + b + "," + c)

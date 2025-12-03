@@ -142,6 +142,7 @@ public:
     // Multiple methods support
     vector<MethodInfo> methods;
     map<string, Type> currentLocalTypes;  // Current function's local types (for load to access)
+    Type currentReturnType = Type::Float;  // Current function's return type (for return statement validation)
     
     // Struct support (Phase 6)
     map<string, map<string, int>> structFields;      // (typeName, fieldName) -> fieldIndex
@@ -374,7 +375,8 @@ public:
     void frem() { emit(0x72); }
     void ineg() { emit(0x74); }
     void fneg() { emit(0x76); }
-    void i2f() { emit(0x86); } // Added i2f instruction
+    void i2f() { emit(0x86); } // Convert int to float
+    void f2i() { emit(0x8b); } // Convert float to int
     void _return() { emit(0xB1); }
     void ireturn() { emit(0xAC); }
     void freturn() { emit(0xAE); }
@@ -1820,12 +1822,28 @@ public:
             if (rs.expr) {
                 // Load return value
                 load(*rs.expr, varIdx);
-                // Generate appropriate return instruction
-                if (rs.expr->type == Type::Int || rs.expr->type == Type::Bool) {
+                
+                // CRITICAL FIX: Ensure return type matches function signature
+                // Convert if necessary (e.g., Float -> Int if function expects Int)
+                Type exprType = rs.expr->type;
+                Type expectedType = currentReturnType;
+                
+                if (expectedType == Type::Int && exprType == Type::Float) {
+                    // Function expects Int but got Float - convert
+                    f2i();
                     ireturn();
-                } else if (rs.expr->type == Type::Float) {
+                } else if (expectedType == Type::Float && exprType == Type::Int) {
+                    // Function expects Float but got Int - convert
+                    i2f();
                     freturn();
-                } else if (rs.expr->type == Type::String) {
+                } else if (exprType == Type::Int || exprType == Type::Bool) {
+                    ireturn();
+                } else if (exprType == Type::Float) {
+                    freturn();
+                } else if (exprType == Type::String) {
+                    areturn();
+                } else {
+                    // Default fallback
                     areturn();
                 }
             } else {
@@ -1935,10 +1953,17 @@ public:
         // Set current local types for load() to access
         currentLocalTypes = localTypes;
         
+        // Store current function return type for return statement validation
+        Type savedReturnType = currentReturnType;
+        currentReturnType = fd.returnType;
+        
         // Generate body
         for (const auto& stmt : fd.body) {
             genStmt(*stmt, varIdx, nextLocal, localTypes);
         }
+        
+        // Restore previous return type
+        currentReturnType = savedReturnType;
         
         // If no explicit return, add default return of 0 or empty string
         if (fd.returnType == Type::Int) {

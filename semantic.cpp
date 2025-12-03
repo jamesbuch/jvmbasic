@@ -140,7 +140,38 @@ Type SemanticAnalyzer::inferExprType(const Expr& expr, const SymbolTable& symbol
         case ExprKind::MemberAccess: {
             // Look up field type from struct/class definition
             const MemberAccessExpr& mae = get<MemberAccessExpr>(expr.data);
-            // Return Float as default - actual type will be determined during codegen
+            
+            // Try to determine the object's type name
+            string objectTypeName;
+            if (mae.object->kind == ExprKind::Var) {
+                const VarRef& vr = get<VarRef>(mae.object->data);
+                // Check if we know the type name for this variable
+                if (varTypeNames.find(vr.name) != varTypeNames.end()) {
+                    objectTypeName = varTypeNames[vr.name];
+                } else if (symbols.isDefined(vr.name)) {
+                    // Variable is defined but we don't have type name - check if it's a struct/class
+                    Type varType = symbols.getType(vr.name);
+                    if (varType == Type::UserDefined) {
+                        // This shouldn't happen - UserDefined should have type name
+                        return Type::Float;
+                    }
+                }
+            }
+            
+            // Look up field type in struct field types
+            if (!objectTypeName.empty()) {
+                if (structFieldTypes.find(objectTypeName) != structFieldTypes.end() &&
+                    structFieldTypes[objectTypeName].find(mae.member) != structFieldTypes[objectTypeName].end()) {
+                    return structFieldTypes[objectTypeName][mae.member];
+                }
+                // Check class field types
+                if (classFieldTypes.find(objectTypeName) != classFieldTypes.end() &&
+                    classFieldTypes[objectTypeName].find(mae.member) != classFieldTypes[objectTypeName].end()) {
+                    return classFieldTypes[objectTypeName][mae.member];
+                }
+            }
+            
+            // Default to Float if we can't determine (shouldn't happen in well-formed code)
             return Type::Float;
         }
         
@@ -336,9 +367,16 @@ void SemanticAnalyzer::analyzeExpr(Expr& expr, const SymbolTable& symbols) {
         }
         
         case ExprKind::Me:
-        case ExprKind::MemberAccess:
-            // Nothing to analyze for these
+            // Nothing to analyze
             break;
+            
+        case ExprKind::MemberAccess: {
+            MemberAccessExpr& mae = get<MemberAccessExpr>(expr.data);
+            // Analyze the object expression first
+            analyzeExpr(*mae.object, symbols);
+            // The type is already set by inferExprType above
+            break;
+        }
         
         // Phase 8: Logical expressions
         case ExprKind::Logical: {
@@ -508,6 +546,8 @@ void SemanticAnalyzer::analyzeStmt(Stmt& stmt, SymbolTable& symbols) {
                 } else {
                     // Phase 6: DIM var AS TypeName (user-defined struct/class)
                     symbols.define(ds.var, Type::UserDefined);
+                    // Store type name for MemberAccess type inference
+                    varTypeNames[ds.var] = ds.typeName;
                 }
             } else if (ds.initVal && ds.initVal->kind == ExprKind::NewExpr) {
                 // Phase 7: DIM var AS NEW ClassName() - size is nullptr!
@@ -638,13 +678,34 @@ void SemanticAnalyzer::inferReturnType(FunctionDecl& fd) {
     // Default returnType is Float, so if it's anything else, it was explicitly set
     bool wasExplicitlyTyped = (fd.returnType != Type::Float);
     
-    // Find RETURN statements
+    // Find RETURN statements and validate types
     for (const auto& stmt : fd.body) {
         if (stmt->kind == StmtKind::Return) {
             const ReturnStmt& rs = get<ReturnStmt>(stmt->data);
             if (rs.expr) {
-                // Only override if not explicitly typed
-                if (!wasExplicitlyTyped) {
+                // CRITICAL FIX: Validate return type matches declared type
+                if (wasExplicitlyTyped) {
+                    // Function has explicit return type - validate it matches
+                    Type returnExprType = rs.expr->type;
+                    if (returnExprType != fd.returnType) {
+                        // Allow numeric promotion (Int -> Float) but warn
+                        if ((fd.returnType == Type::Float && returnExprType == Type::Int) ||
+                            (fd.returnType == Type::Int && returnExprType == Type::Float)) {
+                            // Numeric promotion is OK, but we need to ensure codegen handles it
+                            // For now, convert Int return to Float if function expects Float
+                            if (fd.returnType == Type::Float && returnExprType == Type::Int) {
+                                // This is OK - codegen will handle i2f conversion
+                            } else {
+                                // Float return in Int function - this is an error
+                                error("Function " + fd.name + " declared As Integer but returns Float value");
+                            }
+                        } else {
+                            error("Function " + fd.name + " declared As " + typeToString(fd.returnType) + 
+                                  " but returns " + typeToString(returnExprType));
+                        }
+                    }
+                } else {
+                    // No explicit type - infer from return expression
                     fd.returnType = rs.expr->type;
                 }
                 return;
@@ -838,5 +899,26 @@ bool SemanticAnalyzer::analyze(Program& program) {
     }
     
     return !hasErrors();
+}
+
+// Initialize struct field types from parser
+void SemanticAnalyzer::initStructTypes(const map<string, TypeDefDecl>& userTypes) {
+    for (const auto& [typeName, typeDef] : userTypes) {
+        for (const Field& field : typeDef.fields) {
+            structFieldTypes[typeName][field.name] = field.type;
+        }
+    }
+}
+
+// Initialize class field types from program declarations
+void SemanticAnalyzer::initClassTypesFromProgram(const Program& program) {
+    for (const auto& decl : program.declarations) {
+        if (decl->kind == DeclKind::Class) {
+            const ClassDecl& cd = get<ClassDecl>(decl->data);
+            for (const Field& field : cd.fields) {
+                classFieldTypes[cd.name][field.name] = field.type;
+            }
+        }
+    }
 }
 

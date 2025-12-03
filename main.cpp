@@ -64,6 +64,11 @@ int main(int argc, char** argv) {
         
         // PHASE 2: Semantic Analysis
         SemanticAnalyzer analyzer;
+        
+        // Initialize struct/class field types before analysis
+        analyzer.initStructTypes(userTypes);
+        analyzer.initClassTypesFromProgram(program);
+        
         analyzer.analyze(program);
         
         // Only fail on semantic errors if no user types (TYPE/CLASS) are present
