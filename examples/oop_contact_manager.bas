@@ -1,7 +1,7 @@
-REM Contact Manager - Demonstrates Real-World OOP Usage
-REM Shows: Multiple object types, constructors, data organization
+' Contact Manager - Demonstrates Real-World OOP Usage
+' Shows: Multiple object types, constructors, data organization
 
-REM Define Contact class
+' Define Contact class
 CLASS Contact
     PUBLIC firstName As String
     PUBLIC lastName As String
@@ -16,7 +16,7 @@ SUB New(first As String, last As String, mail As String, number As String)
     END SUB
 END CLASS
 
-REM Define Address class
+' Define Address class
 CLASS Address
     PUBLIC street As String
     PUBLIC city As String
@@ -32,12 +32,12 @@ END CLASS
 Console.WriteLine("=== Contact Manager System ===")
 Console.WriteLine("")
 
-REM Create contacts
+' Create contacts
 DIM contact1 AS NEW Contact("John", "Doe", "john.doe@email.com", "555-1234")
 DIM contact2 AS NEW Contact("Jane", "Smith", "jane.smith@email.com", "555-5678")
 DIM contact3 AS NEW Contact("Bob", "Johnson", "bob.johnson@email.com", "555-9012")
 
-REM Create addresses
+' Create addresses
 DIM address1 AS NEW Address("123 Main St", "Anytown", "12345")
 DIM address2 AS NEW Address("456 Oak Ave", "Somewhere", "67890")
 DIM address3 AS NEW Address("789 Pine Rd", "Elsewhere", "54321")

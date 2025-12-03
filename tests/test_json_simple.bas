@@ -1,12 +1,11 @@
-REM Test Json namespace - simple version
-REM Phase 9: Json.NewObject, Json.Put, Json.ToString
+' Test Json namespace - simple version
+' Phase 9: Json.NewObject, Json.Put, Json.ToString
 
-REM Create a JSON object
+' Create a JSON object
 Dim obj As Integer = Json.NewObject()
 Dim r1 As Integer = Json.Put(obj, "name", "Alice")
 Dim r2 As Integer = Json.PutInt(obj, "age", 30)
 Dim jsonStr As String = Json.ToString(obj)
-Dim dummy As Integer = Console.WriteLine(jsonStr)
+Console.WriteLine(jsonStr)
 
-Print "Json namespace test complete!"
-
+Console.WriteLine("Json namespace test complete!")

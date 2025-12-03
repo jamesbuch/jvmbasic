@@ -1,11 +1,11 @@
-REM File Backup Utility - Demonstrates Phase 8 File I/O & Date/Time
-REM Creates timestamped backups of files
+' File Backup Utility - Demonstrates Phase 8 File I/O & Date/Time
+' Creates timestamped backups of files
 
 Console.WriteLine("=== File Backup Utility ===")
 Console.WriteLine("Showcases: File operations, Date/Time formatting")
 Console.WriteLine("")
 
-REM Create a sample file to backup
+' Create a sample file to backup
 original = "important_data.txt"
 handle = OPENOUTPUT(original)
 IF handle >= 0 THEN
@@ -16,7 +16,7 @@ IF handle >= 0 THEN
     Console.WriteLine("Created " + original)
 ENDIF
 
-REM Check if file exists
+' Check if file exists
 IF FILEEXISTS(original) THEN
     Console.WriteLine("File exists: " + original)
     size = FILESIZE(original)
@@ -27,7 +27,7 @@ ENDIF
 
 Console.WriteLine("")
 
-REM Create timestamped backup
+' Create timestamped backup
 now = NOW()
 timestamp = FORMATDATE(now, "yyyyMMdd_HHmmss")
 backupName = CONCAT3("backup_", timestamp, ".txt")
@@ -79,7 +79,7 @@ mo = MONTH(now)
 dy = DAY(now)
 Console.WriteLine("Parsed date: " + yr + "-" + mo + "-" + dy)
 
-REM Calculate future dates
+' Calculate future dates
 oneWeek = ADDDAYS(now, 7)
 oneMonth = ADDMONTHS(now, 1)
 oneYear = ADDYEARS(now, 1)

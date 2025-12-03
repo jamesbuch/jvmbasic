@@ -1,5 +1,5 @@
-REM Test modern VB-style function syntax
-REM Phase 9: Typed parameters and return types
+' Test modern VB-style function syntax
+' Phase 9: Typed parameters and return types
 
 FUNCTION Add(a As Integer, b As Integer) As Integer
     RETURN a + b
@@ -19,7 +19,7 @@ SUB PrintSum(a As Integer, b As Integer)
     Console.WriteLine("Sum: " + result)
 ENDSUB
 
-REM Test the functions
+' Test the functions
 DIM x As Integer
 DIM y As Integer
 DIM sum As Integer

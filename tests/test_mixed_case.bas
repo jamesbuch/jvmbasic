@@ -1,4 +1,4 @@
-REM Test case-insensitive keywords
+' Test case-insensitive keywords
 x = 42
 y = 3.14
 

@@ -1,5 +1,5 @@
-REM Test variable assignments and type conversions (replaces test_input.bas)
-REM Modern syntax with typed variables
+' Test variable assignments and type conversions (replaces test_input.bas)
+' Modern syntax with typed variables
 
 name = "Bob"
 age = 30

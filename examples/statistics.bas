@@ -3,7 +3,7 @@ Console.WriteLine("  STATISTICAL ANALYSIS")
 Console.WriteLine("================================================")
 Console.WriteLine("")
 
-REM Test data
+' Test data
 DIM data(10) As Integer
 data(0) = 85
 data(1) = 92
@@ -25,7 +25,7 @@ ENDWHILE
 Console.WriteLine("")
 Console.WriteLine("")
 
-REM Calculate statistics
+' Calculate statistics
 total = 0
 i = 0
 WHILE i < 10
@@ -36,7 +36,7 @@ ENDWHILE
 mean = total / 10
 Console.WriteLine("Mean: " + mean)
 
-REM Calculate variance
+' Calculate variance
 sumSq = 0
 i = 0
 WHILE i < 10

@@ -1,11 +1,11 @@
-REM Log File Processor - Demonstrates Advanced String & I/O Functions
-REM Parses and analyzes log files
+' Log File Processor - Demonstrates Advanced String & I/O Functions
+' Parses and analyzes log files
 
 Console.WriteLine("=== Log File Processor ===")
 Console.WriteLine("Showcases: String parsing, Pattern matching, Statistics")
 Console.WriteLine("")
 
-REM Create sample log file
+' Create sample log file
 logFile = "application.log"
 handle = OPENOUTPUT(logFile)
 IF handle >= 0 THEN
@@ -26,7 +26,7 @@ ENDIF
 Console.WriteLine("")
 Console.WriteLine("Log File Statistics:")
 
-REM Count log levels
+' Count log levels
 handle = OPENINPUT(logFile)
 IF handle >= 0 THEN
     totalLines = 0
@@ -67,7 +67,7 @@ ENDIF
 Console.WriteLine("")
 Console.WriteLine("Error Messages:")
 
-REM Extract error messages
+' Extract error messages
 handle = OPENINPUT(logFile)
 IF handle >= 0 THEN
     errorNum = 0
@@ -106,7 +106,7 @@ Console.WriteLine("Sample log line:")
 Console.WriteLine(sample)
 Console.WriteLine("")
 
-REM Extract parts using string functions
+' Extract parts using string functions
 bracketPos = INDEXOF(sample, "]")
 IF bracketPos > 0 THEN
     datePart = SUBSTRINGLEN(sample, 1, bracketPos - 1)
@@ -144,7 +144,7 @@ Console.WriteLine("")
 Console.WriteLine("=== Log Processing Complete ===")
 Console.WriteLine("Processed at: " + DATETIME())
 
-REM Cleanup
+' Cleanup
 deleted = DELETEFILE(logFile)
 deleted2 = DELETEFILE("application.log")
 

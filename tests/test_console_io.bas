@@ -1,16 +1,16 @@
-REM Test modern Console I/O functions
-REM Console.WriteLine, Console.Write style functions
+' Test modern Console I/O functions
+' Console.WriteLine, Console.Write style functions
 
-REM Test Console.WriteLine
+' Test Console.WriteLine
 Console.WriteLine("Testing Console.WriteLine functionality")
 Console.WriteLine("This should print on a new line")
 
-REM Test Console.Write (no newline)
+' Test Console.Write (no newline)
 Console.Write("This prints ")
 Console.Write("on the ")
 Console.WriteLine("same line!")
 
-REM Test with variables
+' Test with variables
 message = "Hello from JVM BASIC!"
 Console.WriteLine(message)
 
@@ -22,6 +22,5 @@ y = 3.14
 ymsg = Str.FormatFloat("{0}", y)
 Console.WriteLine("y = " + ymsg)
 
-REM Modern style works!
+' Modern style works!
 Console.WriteLine("Console I/O test complete!")
-

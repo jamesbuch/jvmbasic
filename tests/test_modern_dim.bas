@@ -1,5 +1,5 @@
-REM Test modern VB-style DIM syntax
-REM Phase 9: Modern variable declarations
+' Test modern VB-style DIM syntax
+' Phase 9: Modern variable declarations
 
 x = 10
 y = 3.14
@@ -11,7 +11,7 @@ Console.WriteLine("y = " + y)
 Console.WriteLine("name = " + name)
 Console.WriteLine("flag = " + flag)
 
-REM Test without initialization
+' Test without initialization
 a = 42
 b = 2.718
 s = "Hello"

@@ -1,4 +1,4 @@
-REM Test basic struct operations
+' Test basic struct operations
 TYPE Person
     name As String
     age As Float

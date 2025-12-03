@@ -1,4 +1,4 @@
-REM Test TYPE parsing only
+' Test TYPE parsing only
 
 Console.WriteLine("Hello")
 

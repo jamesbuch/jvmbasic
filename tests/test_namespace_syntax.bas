@@ -1,12 +1,12 @@
-REM Test namespace/OO-style syntax
-REM Console.WriteLine, Math.Sin, etc.
+' Test namespace/OO-style syntax
+' Console.WriteLine, Math.Sin, etc.
 
-REM Test Console namespace
+' Test Console namespace
 dummy = Console.WriteLine("Testing Console.WriteLine!")
 dummy = Console.Write("No newline test... ")
 dummy = Console.WriteLine("done!")
 
-REM Test Math namespace  
+' Test Math namespace  
 angle = 1.5708
 result = Math.Sin(angle)
 Console.WriteLine("Math.Sin(π/2) ≈ " + FormatF("%.4f", result))

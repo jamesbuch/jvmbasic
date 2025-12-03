@@ -1,8 +1,8 @@
-REM ====================================================
-REM Modern Web Application Demo - Phase 10
-REM Showcasing modern VB-style syntax with expression statements
-REM Features: Namespaces, typed variables, JSON, HTTP, File I/O, Bitwise
-REM ====================================================
+' ====================================================
+' Modern Web Application Demo - Phase 10
+' Showcasing modern VB-style syntax with expression statements
+' Features: Namespaces, typed variables, JSON, HTTP, File I/O, Bitwise
+' ====================================================
 
 FUNCTION CalculateTotal(price As Float, taxRate As Float) As Float
     RETURN price * (1.0 + taxRate)
@@ -19,11 +19,11 @@ SUB DisplayBanner()
     Console.WriteLine("=====================================")
 ENDSUB
 
-REM ===== Main Program =====
+' ===== Main Program =====
 
 CALL DisplayBanner()
 
-REM Modern variable declarations
+' Modern variable declarations
 appName = "WebApp Demo"
 version = 1.0
 active = true
@@ -33,7 +33,7 @@ Console.WriteLine("Version: " + version)
 Console.WriteLine("Active: " + active)
 Console.WriteLine("")
 
-REM Math operations
+' Math operations
 price = 99.99
 taxRate = 0.08
 total = CalculateTotal(price, taxRate)
@@ -43,7 +43,7 @@ Console.WriteLine("Tax Rate: " + (taxRate * 100) + "%")
 Console.WriteLine("Total: " + FormatCurrency(total))
 Console.WriteLine("")
 
-REM JSON operations
+' JSON operations
 obj = Json.NewObject()
 r = Json.Put(obj, "app", appName)
 r = Json.PutInt(obj, "version", 10)
@@ -52,14 +52,14 @@ jsonStr = Json.ToString(obj)
 Console.WriteLine("JSON Object: " + jsonStr)
 Console.WriteLine("")
 
-REM HTTP operations
+' HTTP operations
 text = "Hello World"
 encoded = Http.UrlEncode(text)
 Console.WriteLine("Original: " + text)
 Console.WriteLine("URL Encoded: " + encoded)
 Console.WriteLine("")
 
-REM File operations
+' File operations
 fileContent = "Web application data"
 r = File.WriteAllText("webapp.txt", fileContent)
 readBack = File.ReadAllText("webapp.txt")
@@ -67,7 +67,7 @@ Console.WriteLine("File content: " + readBack)
 r = File.Delete("webapp.txt")
 Console.WriteLine("")
 
-REM Bitwise operations
+' Bitwise operations
 flags = 5
 mask = 3
 result = flags & mask
@@ -77,7 +77,7 @@ shifted = flags << 2
 Console.WriteLine("Left shift: " + flags + " << 2 = " + shifted)
 Console.WriteLine("")
 
-REM Math namespace
+' Math namespace
 angle = 1.5708
 sine = Math.Sin(angle)
 Console.WriteLine("Math.Sin(π/2) = " + sine)

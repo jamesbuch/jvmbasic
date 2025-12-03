@@ -1,7 +1,7 @@
-REM Test Phase 8: Timing Functions
+' Test Phase 8: Timing Functions
 Console.WriteLine("=== Phase 8 Timing Functions Test ===")
 
-REM Test TIMER
+' Test TIMER
 t = TIMER()
 Console.WriteLine("Timer (seconds since midnight): " + t)
 IF t < 0 THEN
@@ -11,11 +11,11 @@ IF t > 86400 THEN
     Console.WriteLine("ERROR: TIMER should be 0-86400")
 ENDIF
 
-REM Test NANOSECONDS
+' Test NANOSECONDS
 start = NANOSECONDS()
 Console.WriteLine("Nanosecond timer start: " + start)
 
-REM Do some work
+' Do some work
 sum = 0
 FOR i = 1 TO 1000
     sum = sum + i
@@ -29,7 +29,7 @@ IF elapsed < 0 THEN
     Console.WriteLine("ERROR: Elapsed time should be positive")
 ENDIF
 
-REM Test SLEEP (sleep for 100ms)
+' Test SLEEP (sleep for 100ms)
 Console.WriteLine("Sleeping for 100 milliseconds...")
 before = NANOSECONDS()
 dummy = SLEEP(100)
@@ -37,7 +37,7 @@ after = NANOSECONDS()
 slept = (after - before) / 1000000
 Console.WriteLine("Actually slept (ms): " + slept)
 
-REM Sleep should be at least 80ms (allowing some variance)
+' Sleep should be at least 80ms (allowing some variance)
 IF slept < 80 THEN
     Console.WriteLine("WARNING: SLEEP may not have worked correctly")
 ENDIF

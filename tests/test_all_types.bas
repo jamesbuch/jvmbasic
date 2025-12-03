@@ -1,7 +1,7 @@
-REM Test all Phase 9 type keywords
-REM Phase 9: Integer, Single, Double, Long, Boolean, String, Decimal, BigInt
+' Test all Phase 9 type keywords
+' Phase 9: Integer, Single, Double, Long, Boolean, String, Decimal, BigInt
 
-REM Test all type declarations
+' Test all type declarations
 count = 42
 price = 99.99
 precise = 3.14159265359

@@ -16,7 +16,7 @@ CLASS Example
     END FUNCTION
 END CLASS
 
-REM Old-style comment still works
+' Old-style comment still works
 Console.WriteLine("Test: Both comment styles")
 Console.WriteLine("Status: Comments work! ✓")
 

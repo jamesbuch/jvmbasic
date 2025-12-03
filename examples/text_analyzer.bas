@@ -1,11 +1,11 @@
-REM Text File Analyzer - Demonstrates Phase 8 String & File I/O Functions
-REM Analyzes a text file and provides statistics
+' Text File Analyzer - Demonstrates Phase 8 String & File I/O Functions
+' Analyzes a text file and provides statistics
 
 Console.WriteLine("=== Text File Analyzer ===")
 Console.WriteLine("Showcases: String functions, Character I/O, File operations")
 Console.WriteLine("")
 
-REM Create sample file for analysis
+' Create sample file for analysis
 handle = OPENOUTPUT("sample_text.txt")
 IF handle >= 0 THEN
     dummy = WRITELINE(handle, "The quick brown fox jumps over the lazy dog.")
@@ -17,12 +17,12 @@ IF handle >= 0 THEN
     Console.WriteLine("Created sample_text.txt")
 ENDIF
 
-REM Get file information
+' Get file information
 size = FILESIZE("sample_text.txt")
 Console.WriteLine("File size: " + size + " bytes")
 Console.WriteLine("")
 
-REM Analyze file character by character
+' Analyze file character by character
 Console.WriteLine("Character Analysis:")
 handle = OPENINPUT("sample_text.txt")
 IF handle >= 0 THEN
@@ -61,7 +61,7 @@ ENDIF
 
 Console.WriteLine("")
 
-REM Analyze file line by line
+' Analyze file line by line
 Console.WriteLine("Line Analysis:")
 handle = OPENINPUT("sample_text.txt")
 IF handle >= 0 THEN
@@ -96,7 +96,7 @@ ENDIF
 
 Console.WriteLine("")
 
-REM String function demonstrations
+' String function demonstrations
 sample = "  Hello, JVM BASIC!  "
 Console.WriteLine("String Function Demonstrations:")
 Console.WriteLine("Original: '" + sample + "'")
@@ -110,7 +110,7 @@ Console.WriteLine("Right 5: '" + RIGHT(sample, 5) + "'")
 Console.WriteLine("")
 Console.WriteLine("=== Text Analysis Complete ===")
 
-REM Clean up
+' Clean up
 deleted = DELETEFILE("sample_text.txt")
 IF deleted THEN
     Console.WriteLine("Sample file cleaned up")

@@ -1,4 +1,4 @@
-REM Simple struct test
+' Simple struct test
 TYPE Point
     x As Float
     y As Float

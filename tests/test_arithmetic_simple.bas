@@ -1,5 +1,5 @@
-REM Test simple arithmetic operations (replaces test_input_simple.bas)
-REM Modern syntax
+' Test simple arithmetic operations (replaces test_input_simple.bas)
+' Modern syntax
 
 x = 42
 result = x * 2
