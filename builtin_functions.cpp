@@ -61,6 +61,7 @@ const map<string, FunctionSig> builtinFunctions = {
     
     // Type conversion
     {"CHR", {{Type::Int}, Type::String, "chr", "(I)Ljava/lang/String;"}},
+    {"STR", {{Type::Float}, Type::String, "str_f", "(F)Ljava/lang/String;"}},  // Convert Float to String
     {"VAL", {{Type::String}, Type::Float, "val_f", "(Ljava/lang/String;)F"}},
     
     // Phase 10: String interpolation support
@@ -75,6 +76,12 @@ const map<string, FunctionSig> builtinFunctions = {
     {"MAXARRAY", {{Type::IntArray}, Type::Int, "max_ia", "([I)I"}},
     {"SUMARRAY", {{Type::IntArray}, Type::Int, "sum_ia", "([I)I"}},
     {"UBOUND", {{Type::IntArray}, Type::Int, "ubound_ia", "([I)I"}},
+    
+    // Array functions for FloatArray
+    {"ARRAYSORT", {{Type::FloatArray}, Type::Int, "sort_fa", "([F)I"}},
+    {"ARRAYMIN", {{Type::FloatArray}, Type::Float, "min_fa", "([F)F"}},
+    {"ARRAYMAX", {{Type::FloatArray}, Type::Float, "max_fa", "([F)F"}},
+    {"ARRAYAVG", {{Type::FloatArray}, Type::Float, "avg_fa", "([F)F"}},
     
     // File I/O
     {"OPENINPUT", {{Type::String}, Type::Int, "openInput", "(Ljava/lang/String;)I"}},

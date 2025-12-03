@@ -754,9 +754,10 @@ public class BasicRuntime {
     /**
      * Sort a float array in-place (ascending order)
      */
-    public static void sort_fa(float[] arr) {
-        if (arr == null) return;
+    public static int sort_fa(float[] arr) {
+        if (arr == null) return 0;
         java.util.Arrays.sort(arr);
+        return 0;
     }
     
     /**
@@ -882,6 +883,14 @@ public class BasicRuntime {
             sum += val;
         }
         return sum;
+    }
+    
+    /**
+     * Calculate average of float array
+     */
+    public static float avg_fa(float[] arr) {
+        if (arr == null || arr.length == 0) return 0.0f;
+        return sum_fa(arr) / arr.length;
     }
     
     /**

@@ -39,6 +39,18 @@ void ASTPrinter::printExpr(const Expr& expr) {
             break;
         }
         
+        case ExprKind::StringConcat: {
+            const StringConcatExpr& sc = get<StringConcatExpr>(expr.data);
+            out << "(";
+            bool first = true;
+            for (const auto& op : sc.operands) {
+                if (!first) out << " + ";
+                printExpr(*op);
+                first = false;
+            }
+            out << ")";
+            break;
+        }
         case ExprKind::Bin: {
             const BinOp& bo = get<BinOp>(expr.data);
             out << "(";
@@ -427,7 +439,7 @@ void ASTPrinter::printDecl(const Decl& decl) {
             printIndent();
             out << (method.isPublic ? "PUBLIC " : "PRIVATE ");
             out << (method.isConstructor ? "SUB New(" : 
-                    (method.returnType == Type::Float ? "SUB " : "FUNCTION ") + method.name + "(");
+                    (method.isSub ? "SUB " : "FUNCTION ") + method.name + "(");
             for (size_t i = 0; i < method.params.size(); ++i) {
                 if (i > 0) out << ", ";
                 out << method.params[i].name << ":" << typeToString(method.params[i].type);
@@ -443,7 +455,7 @@ void ASTPrinter::printDecl(const Decl& decl) {
             }
             indent--;
             printIndent();
-            out << (method.isConstructor || method.returnType == Type::Float ? "END SUB" : "END FUNCTION") << "\n";
+            out << (method.isConstructor || method.isSub ? "END SUB" : "END FUNCTION") << "\n";
         }
         
         indent--;
