@@ -39,6 +39,18 @@ void ASTPrinter::printExpr(const Expr& expr) {
             break;
         }
         
+        case ExprKind::StringConcat: {
+            const StringConcatExpr& sc = get<StringConcatExpr>(expr.data);
+            out << "(";
+            bool first = true;
+            for (const auto& op : sc.operands) {
+                if (!first) out << " + ";
+                printExpr(*op);
+                first = false;
+            }
+            out << ")";
+            break;
+        }
         case ExprKind::Bin: {
             const BinOp& bo = get<BinOp>(expr.data);
             out << "(";

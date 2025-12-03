@@ -74,6 +74,11 @@ private:
     Type promoteTypes(Type a, Type b);
     Type getArrayElementType(Type arrayType);
     Type makeArrayType(Type elemType);
+    
+    // Phase 10: AST flattening for string concatenation
+    ExprPtr flattenStringConcat(ExprPtr expr);
+    void flattenStmt(Stmt& stmt);
+    void flattenStringConcats(Program& program);
 
 public:
     SemanticAnalyzer() = default;
@@ -90,5 +95,9 @@ public:
     const map<string, FuncSignature>& getUserFunctions() const { return userFunctions; }
     const vector<string>& getErrors() const { return errors; }
     bool hasErrors() const { return !errors.empty(); }
+    
+    // Phase 10: Expose class field types and var type names for codegen
+    const map<string, map<string, Type>>& getClassFieldTypes() const { return classFieldTypes; }
+    const map<string, string>& getVarTypeNames() const { return varTypeNames; }
 };
 

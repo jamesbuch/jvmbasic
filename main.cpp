@@ -92,6 +92,15 @@ int main(int argc, char** argv) {
             return 0;
         }
         
+        // DEBUG: Dump AST just before codegen to verify flattening
+        if (dumpAst || getenv("JVMBASIC_DEBUG_AST")) {
+            cout << "\n=== AST AFTER FLATTENING (just before codegen) ===\n";
+            ASTPrinter printer(cout);
+            printer.print(program);
+            cout << "\n=== END AST DUMP ===\n";
+            if (dumpAst) return 0;  // Only exit if --dump-ast was explicitly requested
+        }
+        
         // PHASE 3: Code Generation
         string outputFile = outputClassName + ".class";
         
@@ -100,6 +109,7 @@ int main(int argc, char** argv) {
         cf.className = outputClassName;
         cf.buildConstantPool();
         cf.initStructs(userTypes);
+        cf.initClassTypes(analyzer);
         cf.generate(program.declarations, program.statements, knownTypes);
         
         // Write to file

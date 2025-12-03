@@ -645,7 +645,17 @@ public:
             
             // Check if this is class field access or struct field access
             // Phase 7: For class instances, use getfield; for structs, use array access
-            bool isClassAccess = (actualObjectTypeName != "" && classFieldTypes.find(actualObjectTypeName) != classFieldTypes.end());
+            // Normalize class name to uppercase for lookup (classes are stored uppercase in classFieldTypes)
+            string classNameUpper = actualObjectTypeName;
+            if (!classNameUpper.empty()) {
+                transform(classNameUpper.begin(), classNameUpper.end(), classNameUpper.begin(), ::toupper);
+            }
+            // Normalize member name to lowercase for lookup (fields are stored lowercase in classFieldTypes)
+            string memberNameLower = mae.member;
+            transform(memberNameLower.begin(), memberNameLower.end(), memberNameLower.begin(), ::tolower);
+            
+            bool isClassAccess = (actualObjectTypeName != "" && classFieldTypes.find(classNameUpper) != classFieldTypes.end() &&
+                                  classFieldTypes[classNameUpper].find(memberNameLower) != classFieldTypes[classNameUpper].end());
             
             if (isClassAccess) {
                 // Phase 7: Class field access using getfield
@@ -654,8 +664,8 @@ public:
                 u2 class_utf8 = cp.addUtf8(classNameRef);
                 u2 class_idx = cp.addClass(class_utf8);
                 
-                // Get actual field type from class definition
-                Type fieldType = classFieldTypes[actualObjectTypeName][mae.member];
+                // Get actual field type from class definition (use normalized names)
+                Type fieldType = classFieldTypes[classNameUpper][memberNameLower];
                 
                 // Field descriptor
                 string fieldDesc;
@@ -842,10 +852,76 @@ public:
                     // else: unknown call, no code generated (error will be caught elsewhere)
                 }
             }
+        } else if (e.kind == ExprKind::StringConcat) {
+            // Phase 10: Flattened string concatenation - simple and efficient!
+            const StringConcatExpr& sc = get<StringConcatExpr>(e.data);
+            
+            // Get StringBuilder class index
+            u2 sb_class_utf8 = cp.addUtf8("java/lang/StringBuilder");
+            u2 sb_class_idx = cp.addClass(sb_class_utf8);
+            
+            // Create StringBuilder
+            new_(sb_class_idx);
+            dup();
+            
+            // <init>()
+            u2 init_utf8 = cp.addUtf8("<init>");
+            u2 init_desc = cp.addUtf8("()V");
+            u2 init_nat = cp.addNameAndType(init_utf8, init_desc);
+            u2 init_methodref = cp.addMethodRef(sb_class_idx, init_nat);
+            invokespecial(init_methodref);
+            
+            // Append each operand
+            for (const auto& operand : sc.operands) {
+                load(*operand, varIdx);
+                
+                // Determine append signature based on operand type
+                u2 append_utf8 = cp.addUtf8("append");
+                u2 append_desc;
+                
+                Type opType = operand->type;
+                // Check if it's a member access to get actual field type
+                if (operand->kind == ExprKind::MemberAccess) {
+                    const MemberAccessExpr& mae = get<MemberAccessExpr>(operand->data);
+                    if (mae.object->kind == ExprKind::Var) {
+                        const VarRef& vr = get<VarRef>(mae.object->data);
+                        if (varTypeNames.find(vr.name) != varTypeNames.end()) {
+                            string typeName = varTypeNames[vr.name];
+                            if (classFieldTypes.find(typeName) != classFieldTypes.end() &&
+                                classFieldTypes[typeName].find(mae.member) != classFieldTypes[typeName].end()) {
+                                opType = classFieldTypes[typeName][mae.member];
+                            }
+                        }
+                    }
+                }
+                
+                if (opType == Type::Int) {
+                    append_desc = cp.addUtf8("(I)Ljava/lang/StringBuilder;");
+                } else if (opType == Type::Float) {
+                    append_desc = cp.addUtf8("(F)Ljava/lang/StringBuilder;");
+                } else if (opType == Type::Bool) {
+                    append_desc = cp.addUtf8("(Z)Ljava/lang/StringBuilder;");
+                } else {
+                    append_desc = cp.addUtf8("(Ljava/lang/String;)Ljava/lang/StringBuilder;");
+                }
+                
+                u2 append_nat = cp.addNameAndType(append_utf8, append_desc);
+                u2 append_methodref = cp.addMethodRef(sb_class_idx, append_nat);
+                invokevirtual(append_methodref);
+            }
+            
+            // toString()
+            u2 tostring_utf8 = cp.addUtf8("toString");
+            u2 tostring_desc = cp.addUtf8("()Ljava/lang/String;");
+            u2 tostring_nat = cp.addNameAndType(tostring_utf8, tostring_desc);
+            u2 tostring_methodref = cp.addMethodRef(sb_class_idx, tostring_nat);
+            invokevirtual(tostring_methodref);
         } else if (e.kind == ExprKind::Bin) {
             const BinOp& bo = get<BinOp>(e.data);
             
                 // Phase 10: String concatenation - check operand types, not expression type
+                // NOTE: This should rarely be hit now since flattening converts nested concats to StringConcatExpr
+                // But keep it for simple A + B cases that weren't flattened
                 if (bo.op == Op::Add && (bo.left->type == Type::String || bo.right->type == Type::String)) {
                     // Use StringBuilder for efficient string concatenation
                     // For nested concatenations like (A + B) + C:
@@ -1048,7 +1124,7 @@ public:
                         invokevirtual(append_methodref);
                     }
                     
-                    // toString() - called for both cases
+                    // toString()
                     u2 tostring_utf8 = cp.addUtf8("toString");
                     u2 tostring_desc = cp.addUtf8("()Ljava/lang/String;");
                     u2 tostring_nat = cp.addNameAndType(tostring_utf8, tostring_desc);
@@ -1679,8 +1755,11 @@ public:
                 astore(idx);
                 
                 // Store type name for later field/method lookups
+                // Normalize to uppercase for consistent lookup (classes are stored uppercase)
                 const NewExpr& ne = get<NewExpr>(ds.initVal->data);
-                varTypeNames[ds.var] = ne.className;
+                string classNameUpper = ne.className;
+                transform(classNameUpper.begin(), classNameUpper.end(), classNameUpper.begin(), ::toupper);
+                varTypeNames[ds.var] = classNameUpper;
             } else if (ds.size) {
                 // Array declaration: DIM arr(size) AS Type or DIM arr(size) = initVal
                 varIdx[ds.var] = nextLocal++;
@@ -2321,6 +2400,13 @@ public:
                 structFieldTypes[typeName][field.name] = field.type;
             }
         }
+    }
+    
+    // Initialize class metadata from semantic analyzer
+    void initClassTypes(const SemanticAnalyzer& analyzer) {
+        // Get classFieldTypes and varTypeNames from semantic analyzer
+        classFieldTypes = analyzer.getClassFieldTypes();
+        varTypeNames = analyzer.getVarTypeNames();
     }
     
     // Helper to generate class method as SUB (can't copy unique_ptr body)

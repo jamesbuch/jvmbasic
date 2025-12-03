@@ -1081,7 +1081,222 @@ bool SemanticAnalyzer::analyze(Program& program) {
         }
     }
     
+    // PASS 3: Flatten string concatenations in AST
+    flattenStringConcats(program);
+    
     return !hasErrors();
+}
+
+// Helper function to collect string concatenation operands
+// This is called AFTER flattening, so operands might already be StringConcatExpr
+static void collectStringConcatOperands(ExprPtr e, vector<ExprPtr>& operands) {
+    if (!e) return;
+    
+    // Check StringConcat first (most common after flattening)
+    if (e->kind == ExprKind::StringConcat) {
+        // Already flattened - add its operands
+        StringConcatExpr& sc = get<StringConcatExpr>(e->data);
+        for (auto& op : sc.operands) {
+            operands.push_back(move(op));
+        }
+    } else if (e->kind == ExprKind::Bin) {
+        // Might still be BinOp if flattening didn't convert it (non-string concat)
+        BinOp& b = get<BinOp>(e->data);
+        if (b.op == Op::Add && (b.left->type == Type::String || b.right->type == Type::String)) {
+            // It's a nested string concat - recurse (shouldn't happen after flattening, but handle it)
+            collectStringConcatOperands(move(b.left), operands);
+            collectStringConcatOperands(move(b.right), operands);
+        } else {
+            // Not a string concat - add as-is
+            operands.push_back(move(e));
+        }
+    } else {
+        // Leaf node - add as operand
+        operands.push_back(move(e));
+    }
+}
+
+// Phase 10: Flatten nested string concatenations into StringConcatExpr
+ExprPtr SemanticAnalyzer::flattenStringConcat(ExprPtr expr) {
+    if (!expr) return nullptr;
+    
+    // Recursively flatten sub-expressions first
+    switch (expr->kind) {
+        case ExprKind::Bin: {
+            BinOp& bo = get<BinOp>(expr->data);
+            // Flatten left and right first (they might become StringConcatExpr)
+            bo.left = flattenStringConcat(move(bo.left));
+            bo.right = flattenStringConcat(move(bo.right));
+            
+            // Check if this is a string concatenation
+            // After flattening, left/right might be StringConcatExpr, but type should still be String
+            if (bo.op == Op::Add && (bo.left->type == Type::String || bo.right->type == Type::String)) {
+                // Collect all operands into a flat list
+                // collectStringConcatOperands handles both BinOp and StringConcatExpr
+                vector<ExprPtr> operands;
+                collectStringConcatOperands(move(bo.left), operands);
+                collectStringConcatOperands(move(bo.right), operands);
+                
+                // Create flattened StringConcatExpr - this replaces the BinOp
+                return make_unique<Expr>(ExprKind::StringConcat, Type::String, 
+                                        StringConcatExpr{move(operands)});
+            }
+            // Not a string concat - return as-is (but left/right are already flattened)
+            return expr;
+        }
+        
+        case ExprKind::StringConcat: {
+            // Already flattened, but recursively flatten its operands
+            StringConcatExpr& sc = get<StringConcatExpr>(expr->data);
+            for (auto& op : sc.operands) {
+                op = flattenStringConcat(move(op));
+            }
+            return expr;
+        }
+        
+        case ExprKind::Call: {
+            CallExpr& ce = get<CallExpr>(expr->data);
+            for (auto& arg : ce.args) {
+                arg = flattenStringConcat(move(arg));
+            }
+            return expr;
+        }
+        
+        case ExprKind::NamespaceCall: {
+            NamespaceCallExpr& nce = get<NamespaceCallExpr>(expr->data);
+            for (auto& arg : nce.args) {
+                arg = flattenStringConcat(move(arg));
+            }
+            return expr;
+        }
+        
+        case ExprKind::MethodCall: {
+            MethodCallExpr& mce = get<MethodCallExpr>(expr->data);
+            mce.object = flattenStringConcat(move(mce.object));
+            for (auto& arg : mce.args) {
+                arg = flattenStringConcat(move(arg));
+            }
+            return expr;
+        }
+        
+        case ExprKind::MemberAccess: {
+            MemberAccessExpr& mae = get<MemberAccessExpr>(expr->data);
+            mae.object = flattenStringConcat(move(mae.object));
+            return expr;
+        }
+        
+        case ExprKind::NewExpr: {
+            NewExpr& ne = get<NewExpr>(expr->data);
+            for (auto& arg : ne.args) {
+                arg = flattenStringConcat(move(arg));
+            }
+            return expr;
+        }
+        
+        default:
+            // Other expression types don't have sub-expressions that need flattening
+            return expr;
+    }
+}
+
+// Helper to flatten string concats in statements
+void SemanticAnalyzer::flattenStmt(Stmt& stmt) {
+    switch (stmt.kind) {
+        case StmtKind::Let: {
+            LetStmt& ls = get<LetStmt>(stmt.data);
+            if (ls.expr) {
+                ls.expr = flattenStringConcat(move(ls.expr));
+            }
+            break;
+        }
+        case StmtKind::Return: {
+            ReturnStmt& rs = get<ReturnStmt>(stmt.data);
+            if (rs.expr) {
+                rs.expr = flattenStringConcat(move(rs.expr));
+            }
+            break;
+        }
+        case StmtKind::Print: {
+            PrintStmt& ps = get<PrintStmt>(stmt.data);
+            for (auto& expr : ps.exprs) {
+                expr = flattenStringConcat(move(expr));
+            }
+            break;
+        }
+        case StmtKind::ExprStmt: {
+            ExprStmtNode& es = get<ExprStmtNode>(stmt.data);
+            if (es.expr) {
+                es.expr = flattenStringConcat(move(es.expr));
+            }
+            break;
+        }
+        case StmtKind::If: {
+            IfStmt& is = get<IfStmt>(stmt.data);
+            if (is.cond) {
+                is.cond = flattenStringConcat(move(is.cond));
+            }
+            for (auto& s : is.thenBody) {
+                flattenStmt(*s);
+            }
+            for (auto& s : is.elseBody) {
+                flattenStmt(*s);
+            }
+            break;
+        }
+        case StmtKind::For: {
+            ForStmt& fs = get<ForStmt>(stmt.data);
+            if (fs.start) fs.start = flattenStringConcat(move(fs.start));
+            if (fs.end) fs.end = flattenStringConcat(move(fs.end));
+            if (fs.step) fs.step = flattenStringConcat(move(fs.step));
+            for (auto& s : fs.body) {
+                flattenStmt(*s);
+            }
+            break;
+        }
+        case StmtKind::While: {
+            WhileStmt& ws = get<WhileStmt>(stmt.data);
+            if (ws.cond) {
+                ws.cond = flattenStringConcat(move(ws.cond));
+            }
+            for (auto& s : ws.body) {
+                flattenStmt(*s);
+            }
+            break;
+        }
+        default:
+            // Other statement types don't contain expressions that need flattening
+            break;
+    }
+}
+
+// Flatten string concatenations in the entire program
+void SemanticAnalyzer::flattenStringConcats(Program& program) {
+    // Flatten in declarations (function/sub bodies)
+    for (auto& decl : program.declarations) {
+        if (decl->kind == DeclKind::Function) {
+            FunctionDecl& fd = get<FunctionDecl>(decl->data);
+            for (auto& stmt : fd.body) {
+                flattenStmt(*stmt);
+            }
+        } else if (decl->kind == DeclKind::Sub) {
+            SubDecl& sd = get<SubDecl>(decl->data);
+            for (auto& stmt : sd.body) {
+                flattenStmt(*stmt);
+            }
+        } else if (decl->kind == DeclKind::Class) {
+            ClassDecl& cd = get<ClassDecl>(decl->data);
+            for (auto& method : cd.methods) {
+                for (auto& stmt : method.body) {
+                    flattenStmt(*stmt);
+                }
+            }
+        }
+    }
+    
+    // Flatten in main program statements
+    for (auto& stmt : program.statements) {
+        flattenStmt(*stmt);
+    }
 }
 
 // Initialize struct field types from parser
