@@ -8,13 +8,14 @@ passed=0
 failed=0
 skipped=0
 
-# Tests that require stdin (cannot run automatically)
-skip_tests=("test_input.bas" "test_input_simple.bas" "input.bas")
+# No tests should be skipped - we have input files for all stdin tests
+skip_tests=()
 
 run_test() {
     local test_file=$1
     local test_name=$(basename "$test_file" .bas)
-    
+    local input_file="${test_file%.bas}.input"
+
     # Check if this test should be skipped
     for skip_test in "${skip_tests[@]}"; do
         if [[ "$test_file" == *"$skip_test" ]]; then
@@ -23,15 +24,33 @@ run_test() {
             return
         fi
     done
-    
+
     printf "%-50s" "$test_name..."
-    
-    if ./jvmbasic < "$test_file" > /dev/null 2>&1 && java -cp ".:lib/*:basicrt" BasicProgram > /dev/null 2>&1; then
-        echo "✓ PASS"
-        ((passed++))
-    else
-        echo "✗ FAIL"
+
+    # Compile the test
+    if ! ./jvmbasic < "$test_file" > /dev/null 2>&1; then
+        echo "✗ FAIL (compile)"
         ((failed++))
+        return
+    fi
+
+    # Run the test - use input file if it exists
+    if [ -f "$input_file" ]; then
+        if java -cp ".:lib/*:basicrt" BasicProgram < "$input_file" > /dev/null 2>&1; then
+            echo "✓ PASS"
+            ((passed++))
+        else
+            echo "✗ FAIL (run)"
+            ((failed++))
+        fi
+    else
+        if java -cp ".:lib/*:basicrt" BasicProgram > /dev/null 2>&1; then
+            echo "✓ PASS"
+            ((passed++))
+        else
+            echo "✗ FAIL (run)"
+            ((failed++))
+        fi
     fi
 }
 
