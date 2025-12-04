@@ -3069,9 +3069,10 @@ public class BasicRuntime {
     }
 
     // ===== BigInteger Support =====
+    // Note: Using Object type to match codegen's type descriptor
 
     // Creation
-    public static java.math.BigInteger bigint_FromString(String s) {
+    public static Object bigint_FromString(String s) {
         try {
             return new java.math.BigInteger(s);
         } catch (Exception e) {
@@ -3079,116 +3080,121 @@ public class BasicRuntime {
         }
     }
 
-    public static java.math.BigInteger bigint_FromInt(int n) {
+    public static Object bigint_FromInt(int n) {
         return java.math.BigInteger.valueOf(n);
     }
 
-    public static java.math.BigInteger bigint_FromLong(long n) {
+    public static Object bigint_FromLong(long n) {
         return java.math.BigInteger.valueOf(n);
     }
 
     // Arithmetic
-    public static java.math.BigInteger bigint_Add(java.math.BigInteger a, java.math.BigInteger b) {
-        return a.add(b);
+    public static Object bigint_Add(Object a, Object b) {
+        return ((java.math.BigInteger) a).add((java.math.BigInteger) b);
     }
 
-    public static java.math.BigInteger bigint_Subtract(java.math.BigInteger a, java.math.BigInteger b) {
-        return a.subtract(b);
+    public static Object bigint_Subtract(Object a, Object b) {
+        return ((java.math.BigInteger) a).subtract((java.math.BigInteger) b);
     }
 
-    public static java.math.BigInteger bigint_Multiply(java.math.BigInteger a, java.math.BigInteger b) {
-        return a.multiply(b);
+    public static Object bigint_Multiply(Object a, Object b) {
+        return ((java.math.BigInteger) a).multiply((java.math.BigInteger) b);
     }
 
-    public static java.math.BigInteger bigint_Divide(java.math.BigInteger a, java.math.BigInteger b) {
-        return a.divide(b);
+    public static Object bigint_Divide(Object a, Object b) {
+        return ((java.math.BigInteger) a).divide((java.math.BigInteger) b);
     }
 
-    public static java.math.BigInteger bigint_Mod(java.math.BigInteger a, java.math.BigInteger b) {
-        return a.mod(b);
+    public static Object bigint_Mod(Object a, Object b) {
+        return ((java.math.BigInteger) a).mod((java.math.BigInteger) b);
     }
 
-    public static java.math.BigInteger bigint_Pow(java.math.BigInteger base, int exp) {
-        return base.pow(exp);
+    public static Object bigint_Remainder(Object a, Object b) {
+        return ((java.math.BigInteger) a).mod((java.math.BigInteger) b);  // Alias for Mod to avoid keyword conflict
     }
 
-    public static java.math.BigInteger bigint_ModPow(java.math.BigInteger base, java.math.BigInteger exp, java.math.BigInteger mod) {
-        return base.modPow(exp, mod);
+    public static Object bigint_Pow(Object base, int exp) {
+        return ((java.math.BigInteger) base).pow(exp);
+    }
+
+    public static Object bigint_ModPow(Object base, Object exp, Object mod) {
+        return ((java.math.BigInteger) base).modPow((java.math.BigInteger) exp, (java.math.BigInteger) mod);
     }
 
     // Comparison
-    public static int bigint_CompareTo(java.math.BigInteger a, java.math.BigInteger b) {
-        return a.compareTo(b);
+    public static int bigint_CompareTo(Object a, Object b) {
+        return ((java.math.BigInteger) a).compareTo((java.math.BigInteger) b);
     }
 
-    public static boolean bigint_Equals(java.math.BigInteger a, java.math.BigInteger b) {
-        return a.equals(b);
+    public static boolean bigint_Equals(Object a, Object b) {
+        return ((java.math.BigInteger) a).equals((java.math.BigInteger) b);
     }
 
     // Unary operations
-    public static java.math.BigInteger bigint_Abs(java.math.BigInteger a) {
-        return a.abs();
+    public static Object bigint_Abs(Object a) {
+        return ((java.math.BigInteger) a).abs();
     }
 
-    public static java.math.BigInteger bigint_Negate(java.math.BigInteger a) {
-        return a.negate();
+    public static Object bigint_Negate(Object a) {
+        return ((java.math.BigInteger) a).negate();
     }
 
-    public static int bigint_Signum(java.math.BigInteger a) {
-        return a.signum();
+    public static int bigint_Signum(Object a) {
+        return ((java.math.BigInteger) a).signum();
     }
 
     // Conversion
-    public static String bigint_ToString(java.math.BigInteger a) {
-        return a.toString();
+    public static String bigint_ToString(Object a) {
+        return ((java.math.BigInteger) a).toString();
     }
 
-    public static int bigint_ToInt(java.math.BigInteger a) {
-        return a.intValue();
+    public static int bigint_ToInt(Object a) {
+        return ((java.math.BigInteger) a).intValue();
     }
 
-    public static long bigint_ToLong(java.math.BigInteger a) {
-        return a.longValue();
+    public static long bigint_ToLong(Object a) {
+        return ((java.math.BigInteger) a).longValue();
     }
 
     // Utility
-    public static java.math.BigInteger bigint_Gcd(java.math.BigInteger a, java.math.BigInteger b) {
-        return a.gcd(b);
+    public static Object bigint_Gcd(Object a, Object b) {
+        return ((java.math.BigInteger) a).gcd((java.math.BigInteger) b);
     }
 
-    public static java.math.BigInteger bigint_Max(java.math.BigInteger a, java.math.BigInteger b) {
-        return a.max(b);
+    public static Object bigint_Max(Object a, Object b) {
+        return ((java.math.BigInteger) a).max((java.math.BigInteger) b);
     }
 
-    public static java.math.BigInteger bigint_Min(java.math.BigInteger a, java.math.BigInteger b) {
-        return a.min(b);
+    public static Object bigint_Min(Object a, Object b) {
+        return ((java.math.BigInteger) a).min((java.math.BigInteger) b);
     }
 
-    public static int bigint_BitLength(java.math.BigInteger a) {
-        return a.bitLength();
+    public static int bigint_BitLength(Object a) {
+        return ((java.math.BigInteger) a).bitLength();
     }
 
-    public static boolean bigint_IsProbablePrime(java.math.BigInteger a, int certainty) {
-        return a.isProbablePrime(certainty);
+    public static boolean bigint_IsProbablePrime(Object a, int certainty) {
+        return ((java.math.BigInteger) a).isProbablePrime(certainty);
     }
 
     // Constants
-    public static java.math.BigInteger bigint_Zero() {
+    public static Object bigint_Zero() {
         return java.math.BigInteger.ZERO;
     }
 
-    public static java.math.BigInteger bigint_One() {
+    public static Object bigint_One() {
         return java.math.BigInteger.ONE;
     }
 
-    public static java.math.BigInteger bigint_Ten() {
+    public static Object bigint_Ten() {
         return java.math.BigInteger.TEN;
     }
 
     // ===== BigDecimal Support =====
+    // Note: Using Object type to match codegen's type descriptor
 
     // Creation
-    public static java.math.BigDecimal decimal_FromString(String s) {
+    public static Object decimal_FromString(String s) {
         try {
             return new java.math.BigDecimal(s);
         } catch (Exception e) {
@@ -3196,118 +3202,123 @@ public class BasicRuntime {
         }
     }
 
-    public static java.math.BigDecimal decimal_FromDouble(double d) {
+    public static Object decimal_FromDouble(double d) {
         return java.math.BigDecimal.valueOf(d);
     }
 
-    public static java.math.BigDecimal decimal_FromBigInt(java.math.BigInteger n) {
-        return new java.math.BigDecimal(n);
+    // Overload for float parameters (codegen may use float for literals)
+    public static Object decimal_FromDouble(float f) {
+        return java.math.BigDecimal.valueOf(f);
+    }
+
+    public static Object decimal_FromBigInt(Object n) {
+        return new java.math.BigDecimal((java.math.BigInteger) n);
     }
 
     // Arithmetic
-    public static java.math.BigDecimal decimal_Add(java.math.BigDecimal a, java.math.BigDecimal b) {
-        return a.add(b);
+    public static Object decimal_Add(Object a, Object b) {
+        return ((java.math.BigDecimal) a).add((java.math.BigDecimal) b);
     }
 
-    public static java.math.BigDecimal decimal_Subtract(java.math.BigDecimal a, java.math.BigDecimal b) {
-        return a.subtract(b);
+    public static Object decimal_Subtract(Object a, Object b) {
+        return ((java.math.BigDecimal) a).subtract((java.math.BigDecimal) b);
     }
 
-    public static java.math.BigDecimal decimal_Multiply(java.math.BigDecimal a, java.math.BigDecimal b) {
-        return a.multiply(b);
+    public static Object decimal_Multiply(Object a, Object b) {
+        return ((java.math.BigDecimal) a).multiply((java.math.BigDecimal) b);
     }
 
-    public static java.math.BigDecimal decimal_Divide(java.math.BigDecimal a, java.math.BigDecimal b, int scale, int roundingMode) {
+    public static Object decimal_Divide(Object a, Object b, int scale, int roundingMode) {
         java.math.RoundingMode rm = java.math.RoundingMode.values()[roundingMode];
-        return a.divide(b, scale, rm);
+        return ((java.math.BigDecimal) a).divide((java.math.BigDecimal) b, scale, rm);
     }
 
-    public static java.math.BigDecimal decimal_DivideSimple(java.math.BigDecimal a, java.math.BigDecimal b) {
+    public static Object decimal_DivideSimple(Object a, Object b) {
         // Default: 10 decimal places, HALF_UP rounding
-        return a.divide(b, 10, java.math.RoundingMode.HALF_UP);
+        return ((java.math.BigDecimal) a).divide((java.math.BigDecimal) b, 10, java.math.RoundingMode.HALF_UP);
     }
 
-    public static java.math.BigDecimal decimal_Remainder(java.math.BigDecimal a, java.math.BigDecimal b) {
-        return a.remainder(b);
+    public static Object decimal_Remainder(Object a, Object b) {
+        return ((java.math.BigDecimal) a).remainder((java.math.BigDecimal) b);
     }
 
-    public static java.math.BigDecimal decimal_Pow(java.math.BigDecimal base, int exp) {
-        return base.pow(exp);
+    public static Object decimal_Pow(Object base, int exp) {
+        return ((java.math.BigDecimal) base).pow(exp);
     }
 
     // Comparison
-    public static int decimal_CompareTo(java.math.BigDecimal a, java.math.BigDecimal b) {
-        return a.compareTo(b);
+    public static int decimal_CompareTo(Object a, Object b) {
+        return ((java.math.BigDecimal) a).compareTo((java.math.BigDecimal) b);
     }
 
-    public static boolean decimal_Equals(java.math.BigDecimal a, java.math.BigDecimal b) {
-        return a.compareTo(b) == 0;  // Use compareTo for value equality
+    public static boolean decimal_Equals(Object a, Object b) {
+        return ((java.math.BigDecimal) a).compareTo((java.math.BigDecimal) b) == 0;  // Use compareTo for value equality
     }
 
     // Unary operations
-    public static java.math.BigDecimal decimal_Abs(java.math.BigDecimal a) {
-        return a.abs();
+    public static Object decimal_Abs(Object a) {
+        return ((java.math.BigDecimal) a).abs();
     }
 
-    public static java.math.BigDecimal decimal_Negate(java.math.BigDecimal a) {
-        return a.negate();
+    public static Object decimal_Negate(Object a) {
+        return ((java.math.BigDecimal) a).negate();
     }
 
-    public static int decimal_Signum(java.math.BigDecimal a) {
-        return a.signum();
+    public static int decimal_Signum(Object a) {
+        return ((java.math.BigDecimal) a).signum();
     }
 
     // Scale and precision
-    public static int decimal_Scale(java.math.BigDecimal a) {
-        return a.scale();
+    public static int decimal_Scale(Object a) {
+        return ((java.math.BigDecimal) a).scale();
     }
 
-    public static int decimal_Precision(java.math.BigDecimal a) {
-        return a.precision();
+    public static int decimal_Precision(Object a) {
+        return ((java.math.BigDecimal) a).precision();
     }
 
-    public static java.math.BigDecimal decimal_SetScale(java.math.BigDecimal a, int scale, int roundingMode) {
+    public static Object decimal_SetScale(Object a, int scale, int roundingMode) {
         java.math.RoundingMode rm = java.math.RoundingMode.values()[roundingMode];
-        return a.setScale(scale, rm);
+        return ((java.math.BigDecimal) a).setScale(scale, rm);
     }
 
     // Rounding
-    public static java.math.BigDecimal decimal_Round(java.math.BigDecimal a, int precision) {
-        return a.round(new java.math.MathContext(precision, java.math.RoundingMode.HALF_UP));
+    public static Object decimal_Round(Object a, int precision) {
+        return ((java.math.BigDecimal) a).round(new java.math.MathContext(precision, java.math.RoundingMode.HALF_UP));
     }
 
     // Conversion
-    public static String decimal_ToString(java.math.BigDecimal a) {
-        return a.toPlainString();
+    public static String decimal_ToString(Object a) {
+        return ((java.math.BigDecimal) a).toPlainString();
     }
 
-    public static double decimal_ToDouble(java.math.BigDecimal a) {
-        return a.doubleValue();
+    public static double decimal_ToDouble(Object a) {
+        return ((java.math.BigDecimal) a).doubleValue();
     }
 
-    public static java.math.BigInteger decimal_ToBigInt(java.math.BigDecimal a) {
-        return a.toBigInteger();
+    public static Object decimal_ToBigInt(Object a) {
+        return ((java.math.BigDecimal) a).toBigInteger();
     }
 
     // Utility
-    public static java.math.BigDecimal decimal_Max(java.math.BigDecimal a, java.math.BigDecimal b) {
-        return a.max(b);
+    public static Object decimal_Max(Object a, Object b) {
+        return ((java.math.BigDecimal) a).max((java.math.BigDecimal) b);
     }
 
-    public static java.math.BigDecimal decimal_Min(java.math.BigDecimal a, java.math.BigDecimal b) {
-        return a.min(b);
+    public static Object decimal_Min(Object a, Object b) {
+        return ((java.math.BigDecimal) a).min((java.math.BigDecimal) b);
     }
 
     // Constants
-    public static java.math.BigDecimal decimal_Zero() {
+    public static Object decimal_Zero() {
         return java.math.BigDecimal.ZERO;
     }
 
-    public static java.math.BigDecimal decimal_One() {
+    public static Object decimal_One() {
         return java.math.BigDecimal.ONE;
     }
 
-    public static java.math.BigDecimal decimal_Ten() {
+    public static Object decimal_Ten() {
         return java.math.BigDecimal.TEN;
     }
 }

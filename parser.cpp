@@ -543,7 +543,7 @@ ExprPtr Parser::parsePrimary() {
             string methodName = expect(TokenType::ID).val;
             string methodUpper = methodName;
             for (auto& c : methodUpper) c = toupper(c);
-            
+
             // Parse arguments
             expect(TokenType::LPAREN);
             vector<ExprPtr> args;
@@ -555,7 +555,7 @@ ExprPtr Parser::parsePrimary() {
                 }
             }
             expect(TokenType::RPAREN);
-            
+
             // Create namespace call expression
             // Store original methodName to preserve casing (WriteLine not WRITELINE)
             return make_unique<Expr>(ExprKind::NamespaceCall, Type::Float,
@@ -563,6 +563,60 @@ ExprPtr Parser::parsePrimary() {
         }
         // If not followed by DOT, error
         error("Expected '.' after Console");
+    }
+
+    // Phase 11: Handle BIGINT namespace calls (BigInt.FromString, etc.)
+    if (tok.type == TokenType::BIGINT) {
+        next();
+        if (tok.type == TokenType::DOT) {
+            next();  // Consume DOT
+            string methodName = expect(TokenType::ID).val;
+
+            // Parse arguments
+            expect(TokenType::LPAREN);
+            vector<ExprPtr> args;
+            if (tok.type != TokenType::RPAREN) {
+                args.push_back(parseExpr());
+                while (tok.type == TokenType::COMMA) {
+                    next();
+                    args.push_back(parseExpr());
+                }
+            }
+            expect(TokenType::RPAREN);
+
+            // Return type is BigInt for most operations
+            return make_unique<Expr>(ExprKind::NamespaceCall, Type::BigInt,
+                                   NamespaceCallExpr{"BIGINT", methodName, move(args)});
+        }
+        // If not followed by DOT, it's being used as a type name (shouldn't reach here in expression context)
+        error("Expected '.' after BigInt");
+    }
+
+    // Phase 11: Handle DECIMAL namespace calls (Decimal.FromString, etc.)
+    if (tok.type == TokenType::DECIMAL) {
+        next();
+        if (tok.type == TokenType::DOT) {
+            next();  // Consume DOT
+            string methodName = expect(TokenType::ID).val;
+
+            // Parse arguments
+            expect(TokenType::LPAREN);
+            vector<ExprPtr> args;
+            if (tok.type != TokenType::RPAREN) {
+                args.push_back(parseExpr());
+                while (tok.type == TokenType::COMMA) {
+                    next();
+                    args.push_back(parseExpr());
+                }
+            }
+            expect(TokenType::RPAREN);
+
+            // Return type is Decimal for most operations
+            return make_unique<Expr>(ExprKind::NamespaceCall, Type::Decimal,
+                                   NamespaceCallExpr{"DECIMAL", methodName, move(args)});
+        }
+        // If not followed by DOT, it's being used as a type name (shouldn't reach here in expression context)
+        error("Expected '.' after Decimal");
     }
     
     if (tok.type == TokenType::ID) {
@@ -583,7 +637,8 @@ ExprPtr Parser::parsePrimary() {
                                nameUpper == "STR" || nameUpper == "INTLIST" ||
                                nameUpper == "STRINGLIST" || nameUpper == "MAP" ||
                                nameUpper == "STACK" || nameUpper == "QUEUE" ||
-                               nameUpper == "CRYPTO" || nameUpper == "THREAD");
+                               nameUpper == "CRYPTO" || nameUpper == "THREAD" ||
+                               nameUpper == "BIGINT" || nameUpper == "DECIMAL");
             
             if (isNamespace) {
                 // Parse Namespace.Method(args)
@@ -1210,7 +1265,8 @@ StmtPtr Parser::parseStmt() {
                            varUpper == "INTLIST" || varUpper == "STRINGLIST" ||
                            varUpper == "MAP" || varUpper == "STACK" ||
                            varUpper == "QUEUE" || varUpper == "CRYPTO" ||
-                           varUpper == "THREAD");
+                           varUpper == "THREAD" || varUpper == "BIGINT" ||
+                           varUpper == "DECIMAL");
         
         next();
         
