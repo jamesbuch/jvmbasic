@@ -44,11 +44,12 @@ Console.WriteLine("Document root: " + WWWROOT)
 Console.WriteLine("Starting server on port " + PORT + "...")
 
 ' Check if wwwroot exists
-If File.Exists(WWWROOT) = 0 Then
+Dim wwwExists As Integer = File.Exists(WWWROOT)
+If wwwExists < 1 Then
     Console.WriteLine("ERROR: wwwroot directory not found!")
     Console.WriteLine("Please create: " + WWWROOT)
     Console.WriteLine("See comments in source for setup instructions.")
-    End
+    System.exit(1)
 End If
 
 ' NOTE: Socket namespace not yet implemented
@@ -95,7 +96,7 @@ Console.WriteLine("")
 
 ' For now, just demonstrate the concept
 Console.WriteLine("Press Enter to exit...")
-Input dummy
+Dim dummy As String = Console.ReadLine()
 Console.WriteLine("Server stopped.")
 
 ' Sub ServeFile(client As Integer, path As String)

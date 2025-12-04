@@ -35,9 +35,9 @@ jsonResponse = Http.Get("https://httpbin.org/json")
 
 If Len(jsonResponse) > 0 Then
     Console.WriteLine("JSON response received")
-    ' Find the slideshow title
-    Dim slideTitle As String = Regex.Find("\"title\":\\s*\"([^\"]+)\"", jsonResponse)
-    Console.WriteLine("Found title pattern: " + slideTitle)
+    ' Parse JSON and get slideshow info
+    Dim jsonObj As Integer = Json.Parse(jsonResponse)
+    Console.WriteLine("JSON parsed successfully")
 End If
 Console.WriteLine("")
 
@@ -48,9 +48,9 @@ headersResponse = Http.Get("https://httpbin.org/headers")
 
 If Len(headersResponse) > 0 Then
     Console.WriteLine("Headers response received")
-    ' Extract User-Agent
-    Dim userAgent As String = Regex.Group("\"User-Agent\":\\s*\"([^\"]+)\"", headersResponse, 1)
-    Console.WriteLine("User-Agent: " + userAgent)
+    ' Parse JSON headers
+    Dim headersObj As Integer = Json.Parse(headersResponse)
+    Console.WriteLine("Headers parsed successfully")
 End If
 Console.WriteLine("")
 
@@ -60,7 +60,8 @@ Dim ipResponse As String
 ipResponse = Http.Get("https://httpbin.org/ip")
 
 If Len(ipResponse) > 0 Then
-    Dim ip As String = Regex.Group("\"origin\":\\s*\"([^\"]+)\"", ipResponse, 1)
+    Dim ipObj As Integer = Json.Parse(ipResponse)
+    Dim ip As String = Json.GetString(ipObj, "origin")
     Console.WriteLine("Your IP: " + ip)
 End If
 Console.WriteLine("")
@@ -75,8 +76,13 @@ Console.WriteLine("Original: " + original)
 Console.WriteLine("Encoded:  " + encoded)
 Console.WriteLine("Decoded:  " + decoded)
 
-If original = decoded Then
-    Console.WriteLine("Round-trip encoding: SUCCESS")
+Dim comparison As Integer = StrCmp(original, decoded)
+If comparison < 1 Then
+    If comparison > -1 Then
+        Console.WriteLine("Round-trip encoding: SUCCESS")
+    Else
+        Console.WriteLine("Round-trip encoding: FAILED")
+    End If
 Else
     Console.WriteLine("Round-trip encoding: FAILED")
 End If
