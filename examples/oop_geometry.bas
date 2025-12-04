@@ -3,20 +3,20 @@
 
 ' Define Point class
 CLASS Point
-    PUBLIC x As Single
-    PUBLIC y As Single
+    PUBLIC x As Float
+    PUBLIC y As Float
 END CLASS
 
 ' Define Rectangle class
 CLASS Rectangle
-    PUBLIC width As Single
-    PUBLIC height As Single
+    PUBLIC width As Float
+    PUBLIC height As Float
     PUBLIC color As String
 END CLASS
 
 ' Define Circle class
 CLASS Circle
-    PUBLIC radius As Single
+    PUBLIC radius As Float
     PUBLIC color As String
 END CLASS
 

@@ -7,7 +7,7 @@ FUNCTION Add(a As Integer, b As Integer) As Integer
     RETURN a + b
 ENDFUNCTION
 
-FUNCTION Multiply(x As Single, y As Single) As Single
+FUNCTION Multiply(x As Float, y As Float) As Float
     RETURN x * y
 ENDFUNCTION
 

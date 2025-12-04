@@ -4,11 +4,11 @@
 ' Features: Namespaces, typed variables, JSON, HTTP, File I/O, Bitwise
 ' ====================================================
 
-FUNCTION CalculateTotal(price As Single, taxRate As Single) As Single
+FUNCTION CalculateTotal(price As Float, taxRate As Float) As Float
     RETURN price * (1.0 + taxRate)
 ENDFUNCTION
 
-FUNCTION FormatCurrency(amount As Single) As String
+FUNCTION FormatCurrency(amount As Float) As String
     RETURN "$" + amount
 ENDFUNCTION
 

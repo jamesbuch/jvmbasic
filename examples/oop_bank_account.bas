@@ -3,9 +3,9 @@
 
 ' Define BankAccount class
 CLASS BankAccount
-    PUBLIC balance As Single
+    PUBLIC balance As Float
     PUBLIC owner As String
-    PUBLIC accountNumber As Single
+    PUBLIC accountNumber As Float
 END CLASS
 
 ' Create bank accounts
