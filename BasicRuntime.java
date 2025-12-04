@@ -2468,6 +2468,55 @@ public class BasicRuntime {
         return Runtime.getRuntime().availableProcessors();
     }
 
+    // ========================================
+    // System namespace - Program control
+    // ========================================
+
+    /**
+     * Terminates the program with the specified exit code.
+     * @param code Exit code (0 = success, non-zero = error)
+     * @return Never returns (program exits)
+     */
+    public static int system_exit(int code) {
+        System.exit(code);
+        return 0;  // Never reached, but needed for type consistency
+    }
+
+    /**
+     * Gets an environment variable value.
+     * @param name Environment variable name
+     * @return Value of the environment variable, or empty string if not found
+     */
+    public static String system_getenv(String name) {
+        String value = System.getenv(name);
+        return value != null ? value : "";
+    }
+
+    /**
+     * Gets the current time in milliseconds since epoch.
+     * @return Current time in milliseconds
+     */
+    public static float system_currentTimeMillis() {
+        return (float) System.currentTimeMillis();
+    }
+
+    /**
+     * Gets the current time in nanoseconds (for precise timing).
+     * @return Current time in nanoseconds
+     */
+    public static float system_nanoTime() {
+        return (float) System.nanoTime();
+    }
+
+    /**
+     * Requests garbage collection (hint to JVM).
+     * @return 0 (always succeeds)
+     */
+    public static int system_gc() {
+        System.gc();
+        return 0;
+    }
+
     // Directory operations
     public static int dir_Create(String dirname) {
         try {

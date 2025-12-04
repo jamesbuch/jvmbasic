@@ -437,6 +437,19 @@ Type SemanticAnalyzer::inferExprType(const Expr& expr, const SymbolTable& symbol
                 }
                 // All other methods return Decimal
                 return Type::Decimal;
+            } else if (nce.namespaceName == "SYSTEM") {
+                // Phase 12: System namespace for program control
+                if (methodUpper == "EXIT") {
+                    return Type::Int;  // Returns nothing meaningful, but need a type
+                } else if (methodUpper == "GETENV") {
+                    return Type::String;
+                } else if (methodUpper == "SETENV") {
+                    return Type::Int;
+                } else if (methodUpper == "CURRENTTIMEMILLIS" || methodUpper == "NANOTIME") {
+                    return Type::Float;  // Returns float like Timer() function
+                } else if (methodUpper == "GC") {
+                    return Type::Int;
+                }
             }
             return Type::Float;  // Default
         }
