@@ -6,10 +6,18 @@ Console.WriteLine("Current date: " + DATE())
 Console.WriteLine("Current time: " + TIME())
 Console.WriteLine("Current datetime: " + DATETIME())
 
+Dim timestamp As Single
 timestamp = NOW()
 Console.WriteLine("Current timestamp: " + timestamp)
 
 ' Test date component extraction
+Dim yr As Integer
+Dim mo As Integer
+Dim dy As Integer
+Dim hr As Integer
+Dim mn As Integer
+Dim sc As Integer
+Dim dw As Integer
 yr = YEAR(timestamp)
 mo = MONTH(timestamp)
 dy = DAY(timestamp)
@@ -43,12 +51,15 @@ Console.WriteLine("ERROR: Month should be 1-12, got: " + mo)
 ENDIF
 
 ' Test date arithmetic
+Dim future As Single
 future = ADDDAYS(timestamp, 7)
 Console.WriteLine("One week from now: " + FORMATDATE(future, "yyyy-MM-dd" ))
 
+Dim past As Single
 past = ADDDAYS(timestamp, -7)
 Console.WriteLine("One week ago: " + FORMATDATE(past, "yyyy-MM-dd" ))
 
+Dim diff As Integer
 diff = DATEDIFF(past, future)
 Console.WriteLine("Difference in days: " + diff)
 IF diff <> 14 THEN
@@ -56,6 +67,11 @@ Console.WriteLine("ERROR: Date diff should be 14, got: " + diff)
 ENDIF
 
 ' Test other date arithmetic
+Dim fut2 As Single
+Dim fut3 As Single
+Dim fut4 As Single
+Dim fut5 As Single
+Dim fut6 As Single
 fut2 = ADDHOURS(timestamp, 24)
 fut3 = ADDMINUTES(timestamp, 60)
 fut4 = ADDSECONDS(timestamp, 3600)

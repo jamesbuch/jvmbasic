@@ -1,3 +1,12 @@
+Dim num0 As Integer
+Dim num1 As Integer
+Dim num2 As Integer
+Dim num3 As Integer
+Dim name0 As String
+Dim name1 As String
+Dim name2 As String
+Dim total As Integer
+
 num0 = 10
 num1 = 3
 num2 = 3

@@ -35,6 +35,9 @@ ELSE
 ENDIF
 
 ' Test complex expression
+Dim x As Integer
+Dim y As Integer
+Dim z As Integer
 x = 10
 y = 20
 z = 30
@@ -59,6 +62,8 @@ ELSE
 ENDIF
 
 ' Test XOR
+Dim a As Integer
+Dim b As Integer
 a = 1
 b = 0
 IF a == 1 XOR b == 1 THEN

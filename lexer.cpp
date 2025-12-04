@@ -140,7 +140,6 @@ Token Lexer::nextToken() {
         for (auto& c : upper) c = toupper(c);
         
         // Keywords
-        if (upper == "LET") return {TokenType::LET, s, 0.0, tokenLine};
         if (upper == "DIM") return {TokenType::DIM, s, 0.0, tokenLine};
         if (upper == "MOD") return {TokenType::MOD, s, 0.0, tokenLine};
         if (upper == "IF") return {TokenType::IF, s, 0.0, tokenLine};

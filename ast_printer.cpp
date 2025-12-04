@@ -164,8 +164,9 @@ void ASTPrinter::printStmt(const Stmt& stmt) {
     
     switch(stmt.kind) {
         case StmtKind::Print: {
+            // DEPRECATED: Use Console.WriteLine() instead
             const PrintStmt& ps = get<PrintStmt>(stmt.data);
-            out << "PRINT";
+            out << "PRINT [DEPRECATED]";
             for (size_t i = 0; i < ps.exprs.size(); ++i) {
                 if (i > 0) {
                     out << (ps.seps[i-1] == PrintSep::Comma ? ", " : "; ");
@@ -178,10 +179,11 @@ void ASTPrinter::printStmt(const Stmt& stmt) {
             out << "\n";
             break;
         }
-        
+
         case StmtKind::Let: {
+            // Assignment statement (LET keyword removed in Phase 10)
             const LetStmt& ls = get<LetStmt>(stmt.data);
-            out << "LET " << ls.var;
+            out << ls.var;
             if (ls.index) {
                 out << "(";
                 printExpr(*ls.index);
@@ -194,8 +196,9 @@ void ASTPrinter::printStmt(const Stmt& stmt) {
         }
         
         case StmtKind::Input: {
+            // DEPRECATED: Use Console.ReadLine() instead
             const InputStmt& is = get<InputStmt>(stmt.data);
-            out << "INPUT " << is.var;
+            out << "INPUT [DEPRECATED] " << is.var;
             if (is.index) {
                 out << "(";
                 printExpr(*is.index);

@@ -1,6 +1,10 @@
 ' Test variable assignments and type conversions (replaces test_input.bas)
 ' Modern syntax with typed variables
 
+Dim name As String
+Dim age As Integer
+Dim h As Single
+Dim student As Boolean
 name = "Bob"
 age = 30
 h = 5.9

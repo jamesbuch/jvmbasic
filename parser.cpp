@@ -580,7 +580,8 @@ ExprPtr Parser::parsePrimary() {
                                nameUpper == "REGEX" || nameUpper == "ARRAY" ||
                                nameUpper == "STR" || nameUpper == "INTLIST" ||
                                nameUpper == "STRINGLIST" || nameUpper == "MAP" ||
-                               nameUpper == "STACK" || nameUpper == "QUEUE");
+                               nameUpper == "STACK" || nameUpper == "QUEUE" ||
+                               nameUpper == "CRYPTO" || nameUpper == "THREAD");
             
             if (isNamespace) {
                 // Parse Namespace.Method(args)
@@ -1198,9 +1199,16 @@ StmtPtr Parser::parseStmt() {
         for (auto& c : varUpper) c = toupper(c);
         
         // Phase 9: Check if it's a namespace
-        bool isNamespace = (varUpper == "MATH" || varUpper == "FILE" || 
-                           varUpper == "HTTP" || varUpper == "JSON" || 
-                           varUpper == "XML" || varUpper == "DB");
+        bool isNamespace = (varUpper == "MATH" || varUpper == "FILE" ||
+                           varUpper == "HTTP" || varUpper == "JSON" ||
+                           varUpper == "XML" || varUpper == "DB" ||
+                           varUpper == "PATH" || varUpper == "DIR" ||
+                           varUpper == "ARGS" || varUpper == "REGEX" ||
+                           varUpper == "ARRAY" || varUpper == "STR" ||
+                           varUpper == "INTLIST" || varUpper == "STRINGLIST" ||
+                           varUpper == "MAP" || varUpper == "STACK" ||
+                           varUpper == "QUEUE" || varUpper == "CRYPTO" ||
+                           varUpper == "THREAD");
         
         next();
         

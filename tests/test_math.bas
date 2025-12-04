@@ -4,6 +4,8 @@ Console.WriteLine("ABS(-5): " + ABS(-5))
 Console.WriteLine("SQR(16): " + SQR(16))
 Console.WriteLine("INT(3.7): " + INT(3.7))
 
+Dim x As Integer
+Dim y As Integer
 x = 2
 y = 3
 Console.WriteLine("POW(2, 3): " + POW(x, y))
@@ -16,6 +18,7 @@ Console.WriteLine("E: " + E)
 
 Console.WriteLine("RND: " + RND)
 
+Dim angle As Single
 angle = 1.57
 Console.WriteLine("SIN(1.57) ~= 1: " + SIN(angle))
 

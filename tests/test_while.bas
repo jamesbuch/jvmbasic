@@ -1,19 +1,19 @@
 Console.WriteLine("Test WHILE loop")
-x = 0
+Dim x As Integer = 0
 WHILE x < 5
     Console.WriteLine(x)
     x = x + 1
 ENDWHILE
 
 Console.WriteLine("Test DO-WHILE")
-y = 0
+Dim y As Integer = 0
 DO
     Console.WriteLine("y = " + y)
     y = y + 1
 WHILE y < 3
 
 Console.WriteLine("Test DO-UNTIL")
-z = 0
+Dim z As Integer = 0
 DO
     Console.WriteLine("z = " + z)
     z = z + 1

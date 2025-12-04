@@ -1,3 +1,6 @@
+Dim x As Integer
+Dim y As Single
+Dim name As String
 x = 42
 y = 3.14
 name = "Alice"

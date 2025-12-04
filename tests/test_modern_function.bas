@@ -28,6 +28,9 @@ y = 20
 sum = Add(x, y)
 Console.WriteLine("Add(10, 20) = " + sum)
 
+Dim f1 As Single
+Dim f2 As Single
+Dim product As Single
 f1 = 3.5
 f2 = 2.0
 product = Multiply(f1, f2)

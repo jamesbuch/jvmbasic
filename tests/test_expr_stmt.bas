@@ -4,6 +4,7 @@
 Console.WriteLine("Hello from expression statement!")
 Console.WriteLine("This should work without dummy variables")
 
+Dim x As Integer
 x = 42
 Console.WriteLine("x = " + FormatI("%d", x))
 

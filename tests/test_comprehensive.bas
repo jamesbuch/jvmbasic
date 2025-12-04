@@ -7,6 +7,7 @@ FUNCTION celsiusToFahrenheit(c As Integer) As Float
 ENDFUNCTION
 
 FUNCTION max3(a As Integer, b As Integer, c As Integer) As Integer
+    Dim temp As Integer
     temp = a
     IF b > temp THEN
         temp = b
@@ -26,6 +27,8 @@ FUNCTION triangleArea(base As Integer, height As Integer) As Float
 ENDFUNCTION
 
 FUNCTION pythagoreanTriple(a As Integer, b As Integer) As Float
+    Dim c As Single
+    Dim area As Single
     c = hypotenuse(a, b)
     area = triangleArea(a, b)
     Console.WriteLine("  Triangle sides: " + a + "," + b + "," + c)
@@ -34,6 +37,8 @@ FUNCTION pythagoreanTriple(a As Integer, b As Integer) As Float
 ENDFUNCTION
 
 SUB printBanner(title As String, width As Integer)
+    Dim i As Integer
+    Dim j As Integer
     i = 0
     WHILE i < width
         Console.Write("=")
@@ -55,6 +60,10 @@ Console.WriteLine("============================================")
 Console.WriteLine("")
 
 Console.WriteLine("--- 1. VARIABLES AND TYPES ---")
+Dim x As Integer
+Dim y As Single
+Dim name As String
+Dim active As Boolean
 x = 42
 y = 3.14
 name = "JVM BASIC"
@@ -66,6 +75,8 @@ Console.WriteLine("Boolean: " + active)
 Console.WriteLine("")
 
 Console.WriteLine("--- 2. ARITHMETIC OPERATIONS ---")
+Dim a As Single
+Dim b As Single
 a = 10.0
 b = 3.0
 Console.WriteLine("a = " + a + ", b = " + b)
@@ -88,6 +99,7 @@ Console.WriteLine("")
 
 Console.WriteLine("--- 4. CONTROL STRUCTURES ---")
 Console.WriteLine("IF/ELSEIF/ELSE test:")
+Dim score As Single
 score = 85.0
 IF score >= 90.0 THEN
     Console.WriteLine("  Grade: A")
@@ -101,12 +113,14 @@ ENDIF
 Console.WriteLine("")
 
 Console.WriteLine("FOR loop (1 to 5):")
+Dim i As Integer
 FOR i = 1 TO 5
     Console.WriteLine("  i = " + i)
 NEXT
 Console.WriteLine("")
 
 Console.WriteLine("WHILE loop (countdown from 3):")
+Dim count As Integer
 count = 3
 WHILE count > 0
     Console.WriteLine("  count = " + count)
@@ -122,6 +136,7 @@ numbers(2) = 30
 numbers(3) = 40
 numbers(4) = 50
 Console.WriteLine("Array elements:")
+Dim j As Integer
 FOR j = 0 TO 4
     Console.WriteLine("  numbers(" + j + ") = " + numbers(j))
 NEXT
@@ -140,6 +155,7 @@ Console.WriteLine("E = " + E)
 Console.WriteLine("")
 
 Console.WriteLine("--- 7. STRING FUNCTIONS ---")
+Dim text As String
 text = "Hello World"
 Console.WriteLine("Original: " + text)
 Console.WriteLine("LEN: " + LEN(text))
@@ -162,6 +178,7 @@ Console.WriteLine("")
 
 Console.WriteLine("--- 10. NESTED FUNCTIONS ---")
 Console.WriteLine("Pythagorean triple (3, 4):")
+Dim h As Single
 h = pythagoreanTriple(3, 4)
 Console.WriteLine("")
 

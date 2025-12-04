@@ -2,6 +2,10 @@
 ' Phase 9: Xml.Parse, Xml.GetText
 
 ' Test XML parsing (placeholder implementation)
+Dim xmlString As String
+Dim doc As Integer
+Dim text As String
+
 xmlString = "<root><name>Test</name></root>"
 doc = Xml.Parse(xmlString)
 Console.WriteLine("XML document parsed: " + doc)

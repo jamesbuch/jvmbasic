@@ -1,3 +1,16 @@
+Dim text As String
+Dim email As String
+Dim phone As String
+Dim number As String
+Dim word As String
+Dim username As String
+Dim domain As String
+Dim masked As String
+Dim clean As String
+Dim msg1 As String
+Dim msg2 As String
+Dim msg3 As String
+
 Console.WriteLine("=== Regular Expression Test ===")
 Console.WriteLine("")
 

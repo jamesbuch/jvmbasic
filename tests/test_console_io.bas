@@ -11,14 +11,19 @@ Console.Write("on the ")
 Console.WriteLine("same line!")
 
 ' Test with variables
+Dim message As String
 message = "Hello from JVM BASIC!"
 Console.WriteLine(message)
 
+Dim x As Integer
 x = 42
+Dim xmsg As String
 xmsg = Str.FormatInt("{0}", x)
 Console.WriteLine("x = " + xmsg)
 
+Dim y As Single
 y = 3.14
+Dim ymsg As String
 ymsg = Str.FormatFloat("{0}", y)
 Console.WriteLine("y = " + ymsg)
 

@@ -1949,7 +1949,514 @@ public class BasicRuntime {
             return -1;
         }
     }
-    
+
+    // Enhanced File I/O - Priority 1 Phase 10
+
+    // BufferedReader handle storage
+    private static java.util.Map<Integer, java.io.BufferedReader> readerHandles = new java.util.HashMap<>();
+    private static int nextReaderHandle = 10000;
+
+    // String array storage (for ReadAllLines)
+    private static java.util.Map<Integer, String[]> stringArrayHandles = new java.util.HashMap<>();
+    private static int nextStringArrayHandle = 20000;
+
+    // Byte array storage (for ReadAllBytes)
+    private static java.util.Map<Integer, byte[]> byteArrayHandles = new java.util.HashMap<>();
+    private static int nextByteArrayHandle = 30000;
+
+    /**
+     * File.OpenReader - Open file for line-by-line reading
+     * Returns handle (>= 0) on success, -1 on error
+     */
+    public static int file_OpenReader(String filename) {
+        try {
+            java.io.BufferedReader reader = new java.io.BufferedReader(
+                new java.io.FileReader(filename));
+            int handle = nextReaderHandle++;
+            readerHandles.put(handle, reader);
+            return handle;
+        } catch (Exception e) {
+            return -1;
+        }
+    }
+
+    /**
+     * File.ReadLine - Read a line from reader
+     * Returns the line string, or empty string at EOF
+     */
+    public static String file_ReadLine(int handle) {
+        try {
+            java.io.BufferedReader reader = readerHandles.get(handle);
+            if (reader != null) {
+                String line = reader.readLine();
+                return line != null ? line : "";
+            }
+            return "";
+        } catch (Exception e) {
+            return "";
+        }
+    }
+
+    /**
+     * File.HasLine - Check if more lines available
+     * Returns 1 if ready, 0 if EOF or error
+     */
+    public static int file_HasLine(int handle) {
+        try {
+            java.io.BufferedReader reader = readerHandles.get(handle);
+            if (reader != null && reader.ready()) {
+                return 1;
+            }
+            return 0;
+        } catch (Exception e) {
+            return 0;
+        }
+    }
+
+    /**
+     * File.CloseReader - Close a reader handle
+     */
+    public static int file_CloseReader(int handle) {
+        try {
+            java.io.BufferedReader reader = readerHandles.get(handle);
+            if (reader != null) {
+                reader.close();
+                readerHandles.remove(handle);
+            }
+            return 0;
+        } catch (Exception e) {
+            return -1;
+        }
+    }
+
+    /**
+     * File.ReadAllLines - Read all lines into a string array
+     * Returns handle to string array (>= 0), -1 on error
+     */
+    public static int file_ReadAllLines(String filename) {
+        try {
+            java.util.List<String> lines = java.nio.file.Files.readAllLines(
+                java.nio.file.Paths.get(filename));
+            int handle = nextStringArrayHandle++;
+            stringArrayHandles.put(handle, lines.toArray(new String[0]));
+            return handle;
+        } catch (Exception e) {
+            return -1;
+        }
+    }
+
+    /**
+     * File.GetLine - Get a line by index from string array
+     */
+    public static String file_GetLine(int handle, int index) {
+        String[] lines = stringArrayHandles.get(handle);
+        if (lines != null && index >= 0 && index < lines.length) {
+            return lines[index];
+        }
+        return "";
+    }
+
+    /**
+     * File.GetLineCount - Get number of lines in string array
+     */
+    public static int file_GetLineCount(int handle) {
+        String[] lines = stringArrayHandles.get(handle);
+        return lines != null ? lines.length : 0;
+    }
+
+    /**
+     * File.FreeLines - Free string array memory
+     */
+    public static int file_FreeLines(int handle) {
+        stringArrayHandles.remove(handle);
+        return 0;
+    }
+
+    /**
+     * File.ReadAllBytes - Read all bytes from file
+     * Returns handle to byte array (>= 0), -1 on error
+     */
+    public static int file_ReadAllBytes(String filename) {
+        try {
+            byte[] bytes = java.nio.file.Files.readAllBytes(
+                java.nio.file.Paths.get(filename));
+            int handle = nextByteArrayHandle++;
+            byteArrayHandles.put(handle, bytes);
+            return handle;
+        } catch (Exception e) {
+            return -1;
+        }
+    }
+
+    /**
+     * File.GetByte - Get byte at index from byte array
+     */
+    public static int file_GetByte(int handle, int index) {
+        byte[] bytes = byteArrayHandles.get(handle);
+        if (bytes != null && index >= 0 && index < bytes.length) {
+            return bytes[index] & 0xFF;  // Return as unsigned
+        }
+        return -1;
+    }
+
+    /**
+     * File.GetByteCount - Get number of bytes in array
+     */
+    public static int file_GetByteCount(int handle) {
+        byte[] bytes = byteArrayHandles.get(handle);
+        return bytes != null ? bytes.length : 0;
+    }
+
+    /**
+     * File.FreeBytes - Free byte array memory
+     */
+    public static int file_FreeBytes(int handle) {
+        byteArrayHandles.remove(handle);
+        return 0;
+    }
+
+    /**
+     * File.WriteAllBytes - Write bytes from IntList to file
+     * @param filename Target file
+     * @param listHandle Handle to IntList containing bytes
+     * @return 0 on success, -1 on error
+     */
+    public static int file_WriteAllBytes(String filename, int listHandle) {
+        try {
+            java.util.List<Integer> list = intLists.get(listHandle);
+            if (list == null) return -1;
+            byte[] bytes = new byte[list.size()];
+            for (int i = 0; i < list.size(); i++) {
+                bytes[i] = (byte)(int)list.get(i);
+            }
+            java.nio.file.Files.write(java.nio.file.Paths.get(filename), bytes);
+            return 0;
+        } catch (Exception e) {
+            return -1;
+        }
+    }
+
+    // ===========================================
+    // Crypto Namespace - Phase 10 Priority 3
+    // ===========================================
+
+    /**
+     * Crypto.Sha256 - Compute SHA-256 hash of a string
+     * @param input The string to hash
+     * @return Hexadecimal string representation of hash
+     */
+    public static String crypto_Sha256(String input) {
+        try {
+            java.security.MessageDigest digest = java.security.MessageDigest.getInstance("SHA-256");
+            byte[] hash = digest.digest(input.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+            return bytesToHex(hash);
+        } catch (Exception e) {
+            return "";
+        }
+    }
+
+    /**
+     * Crypto.Md5 - Compute MD5 hash of a string
+     * @param input The string to hash
+     * @return Hexadecimal string representation of hash
+     */
+    public static String crypto_Md5(String input) {
+        try {
+            java.security.MessageDigest digest = java.security.MessageDigest.getInstance("MD5");
+            byte[] hash = digest.digest(input.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+            return bytesToHex(hash);
+        } catch (Exception e) {
+            return "";
+        }
+    }
+
+    /**
+     * Crypto.Sha512 - Compute SHA-512 hash of a string
+     * @param input The string to hash
+     * @return Hexadecimal string representation of hash
+     */
+    public static String crypto_Sha512(String input) {
+        try {
+            java.security.MessageDigest digest = java.security.MessageDigest.getInstance("SHA-512");
+            byte[] hash = digest.digest(input.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+            return bytesToHex(hash);
+        } catch (Exception e) {
+            return "";
+        }
+    }
+
+    /**
+     * Crypto.AesEncrypt - Encrypt a string using AES-256-CBC
+     * @param plaintext The string to encrypt
+     * @param key The encryption key (will be hashed to get 256-bit key)
+     * @return Base64-encoded encrypted string (IV prepended)
+     */
+    public static String crypto_AesEncrypt(String plaintext, String key) {
+        try {
+            // Generate 256-bit key from password using SHA-256
+            java.security.MessageDigest sha = java.security.MessageDigest.getInstance("SHA-256");
+            byte[] keyBytes = sha.digest(key.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+            javax.crypto.spec.SecretKeySpec secretKey = new javax.crypto.spec.SecretKeySpec(keyBytes, "AES");
+
+            // Generate random IV
+            byte[] iv = new byte[16];
+            java.security.SecureRandom random = new java.security.SecureRandom();
+            random.nextBytes(iv);
+            javax.crypto.spec.IvParameterSpec ivSpec = new javax.crypto.spec.IvParameterSpec(iv);
+
+            // Encrypt
+            javax.crypto.Cipher cipher = javax.crypto.Cipher.getInstance("AES/CBC/PKCS5Padding");
+            cipher.init(javax.crypto.Cipher.ENCRYPT_MODE, secretKey, ivSpec);
+            byte[] encrypted = cipher.doFinal(plaintext.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+
+            // Prepend IV to encrypted data
+            byte[] result = new byte[iv.length + encrypted.length];
+            System.arraycopy(iv, 0, result, 0, iv.length);
+            System.arraycopy(encrypted, 0, result, iv.length, encrypted.length);
+
+            return java.util.Base64.getEncoder().encodeToString(result);
+        } catch (Exception e) {
+            return "";
+        }
+    }
+
+    /**
+     * Crypto.AesDecrypt - Decrypt an AES-256-CBC encrypted string
+     * @param ciphertext Base64-encoded encrypted string (IV prepended)
+     * @param key The encryption key (will be hashed to get 256-bit key)
+     * @return Decrypted plaintext string
+     */
+    public static String crypto_AesDecrypt(String ciphertext, String key) {
+        try {
+            // Generate 256-bit key from password using SHA-256
+            java.security.MessageDigest sha = java.security.MessageDigest.getInstance("SHA-256");
+            byte[] keyBytes = sha.digest(key.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+            javax.crypto.spec.SecretKeySpec secretKey = new javax.crypto.spec.SecretKeySpec(keyBytes, "AES");
+
+            // Decode Base64
+            byte[] data = java.util.Base64.getDecoder().decode(ciphertext);
+
+            // Extract IV (first 16 bytes)
+            byte[] iv = new byte[16];
+            System.arraycopy(data, 0, iv, 0, 16);
+            javax.crypto.spec.IvParameterSpec ivSpec = new javax.crypto.spec.IvParameterSpec(iv);
+
+            // Extract encrypted data
+            byte[] encrypted = new byte[data.length - 16];
+            System.arraycopy(data, 16, encrypted, 0, encrypted.length);
+
+            // Decrypt
+            javax.crypto.Cipher cipher = javax.crypto.Cipher.getInstance("AES/CBC/PKCS5Padding");
+            cipher.init(javax.crypto.Cipher.DECRYPT_MODE, secretKey, ivSpec);
+            byte[] decrypted = cipher.doFinal(encrypted);
+
+            return new String(decrypted, java.nio.charset.StandardCharsets.UTF_8);
+        } catch (Exception e) {
+            return "";
+        }
+    }
+
+    /**
+     * Crypto.Base64Encode - Encode a string to Base64
+     * @param input The string to encode
+     * @return Base64-encoded string
+     */
+    public static String crypto_Base64Encode(String input) {
+        try {
+            return java.util.Base64.getEncoder().encodeToString(
+                input.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+        } catch (Exception e) {
+            return "";
+        }
+    }
+
+    /**
+     * Crypto.Base64Decode - Decode a Base64 string
+     * @param input The Base64-encoded string
+     * @return Decoded string
+     */
+    public static String crypto_Base64Decode(String input) {
+        try {
+            byte[] decoded = java.util.Base64.getDecoder().decode(input);
+            return new String(decoded, java.nio.charset.StandardCharsets.UTF_8);
+        } catch (Exception e) {
+            return "";
+        }
+    }
+
+    /**
+     * Crypto.RandomBytes - Generate cryptographically secure random bytes
+     * @param count Number of bytes to generate
+     * @return Hexadecimal string representation of random bytes
+     */
+    public static String crypto_RandomBytes(int count) {
+        try {
+            byte[] bytes = new byte[count];
+            java.security.SecureRandom random = new java.security.SecureRandom();
+            random.nextBytes(bytes);
+            return bytesToHex(bytes);
+        } catch (Exception e) {
+            return "";
+        }
+    }
+
+    // Helper method to convert bytes to hex string
+    private static String bytesToHex(byte[] bytes) {
+        StringBuilder sb = new StringBuilder();
+        for (byte b : bytes) {
+            sb.append(String.format("%02x", b));
+        }
+        return sb.toString();
+    }
+
+    // ===========================================
+    // Thread Namespace - Phase 10 Priority 5
+    // ===========================================
+
+    // Shared variables for inter-thread communication
+    private static java.util.concurrent.ConcurrentHashMap<String, Object> sharedVars =
+        new java.util.concurrent.ConcurrentHashMap<>();
+
+    // Lock storage
+    private static java.util.concurrent.ConcurrentHashMap<String, Object> locks =
+        new java.util.concurrent.ConcurrentHashMap<>();
+
+    /**
+     * Thread.Sleep - Pause current thread for specified milliseconds
+     * @param millis Milliseconds to sleep
+     * @return 0 on success, -1 on interrupt
+     */
+    public static int thread_Sleep(int millis) {
+        try {
+            Thread.sleep(millis);
+            return 0;
+        } catch (InterruptedException e) {
+            return -1;
+        }
+    }
+
+    /**
+     * Thread.CurrentId - Get current thread ID
+     * @return Thread ID
+     */
+    public static int thread_CurrentId() {
+        return (int) Thread.currentThread().getId();
+    }
+
+    /**
+     * Thread.SetInt - Set a shared integer variable (thread-safe)
+     * @param name Variable name
+     * @param value Integer value
+     * @return 0
+     */
+    public static int thread_SetInt(String name, int value) {
+        sharedVars.put(name, value);
+        return 0;
+    }
+
+    /**
+     * Thread.GetInt - Get a shared integer variable (thread-safe)
+     * @param name Variable name
+     * @return Integer value, or 0 if not set
+     */
+    public static int thread_GetInt(String name) {
+        Object val = sharedVars.get(name);
+        return (val instanceof Integer) ? (Integer) val : 0;
+    }
+
+    /**
+     * Thread.SetString - Set a shared string variable (thread-safe)
+     * @param name Variable name
+     * @param value String value
+     * @return 0
+     */
+    public static int thread_SetString(String name, String value) {
+        sharedVars.put(name, value);
+        return 0;
+    }
+
+    /**
+     * Thread.GetString - Get a shared string variable (thread-safe)
+     * @param name Variable name
+     * @return String value, or empty if not set
+     */
+    public static String thread_GetString(String name) {
+        Object val = sharedVars.get(name);
+        return (val instanceof String) ? (String) val : "";
+    }
+
+    /**
+     * Thread.AtomicAdd - Atomically add to a shared integer
+     * @param name Variable name
+     * @param delta Amount to add
+     * @return New value
+     */
+    public static int thread_AtomicAdd(String name, int delta) {
+        synchronized (sharedVars) {
+            int current = thread_GetInt(name);
+            int newVal = current + delta;
+            sharedVars.put(name, newVal);
+            return newVal;
+        }
+    }
+
+    /**
+     * Thread.Lock - Acquire a named lock
+     * @param name Lock name
+     * @return 0 when lock acquired
+     */
+    public static int thread_Lock(String name) {
+        Object lock = locks.computeIfAbsent(name, k -> new Object());
+        try {
+            synchronized (lock) {
+                while (sharedVars.containsKey("__lock_" + name)) {
+                    lock.wait(10);
+                }
+                sharedVars.put("__lock_" + name, Thread.currentThread().getId());
+            }
+            return 0;
+        } catch (InterruptedException e) {
+            return -1;
+        }
+    }
+
+    /**
+     * Thread.Unlock - Release a named lock
+     * @param name Lock name
+     * @return 0 on success, -1 if not locked by this thread
+     */
+    public static int thread_Unlock(String name) {
+        Object val = sharedVars.get("__lock_" + name);
+        if (val != null && val.equals(Thread.currentThread().getId())) {
+            sharedVars.remove("__lock_" + name);
+            Object lock = locks.get(name);
+            if (lock != null) {
+                synchronized (lock) {
+                    lock.notifyAll();
+                }
+            }
+            return 0;
+        }
+        return -1;
+    }
+
+    /**
+     * Thread.Yield - Hint to scheduler to let other threads run
+     * @return 0
+     */
+    public static int thread_Yield() {
+        Thread.yield();
+        return 0;
+    }
+
+    /**
+     * Thread.AvailableProcessors - Get number of available CPU cores
+     * @return Number of processors
+     */
+    public static int thread_AvailableProcessors() {
+        return Runtime.getRuntime().availableProcessors();
+    }
+
     // Directory operations
     public static int dir_Create(String dirname) {
         try {

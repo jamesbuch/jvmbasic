@@ -8,10 +8,13 @@ ENDFUNCTION
 
 Console.WriteLine("Testing single-parameter functions")
 
+Dim x As Integer
 x = 5
+Dim sq As Integer
 sq = square(x)
 Console.WriteLine("square(5) = " + sq)
 
+Dim num As Integer
 num = increment(10)
 Console.WriteLine("increment(10) = " + num)
 

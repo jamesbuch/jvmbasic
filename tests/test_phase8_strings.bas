@@ -2,6 +2,8 @@
 Console.WriteLine("=== Phase 8 String Functions Test ===")
 
 ' Test REPLACE
+Dim s As String
+Dim s2 As String
 s = "Hello World"
 s2 = REPLACE(s, "World", "JVM BASIC")
 Console.WriteLine("REPLACE: " + s2)
@@ -36,6 +38,7 @@ ELSE
 ENDIF
 
 ' Test INDEXOF and LASTINDEXOF
+Dim idx As Integer
 s = "foo bar foo baz"
 idx = INDEXOF(s, "foo")
 Console.WriteLine("INDEXOF: " + idx)
@@ -97,6 +100,7 @@ ELSE
 ENDIF
 
 ' Test STRCMP
+Dim cmp As Integer
 cmp = STRCMP("abc", "xyz")
 Console.WriteLine("STRCMP abc vs xyz: " + cmp)
 IF cmp >= 0 THEN
@@ -117,6 +121,7 @@ ELSE
 ENDIF
 
 ' Test CHAR and CHARCODE
+Dim c As String
 s = "Hello"
 c = CHAR(s, 0)
 Console.WriteLine("CHAR at 0: " + c)
@@ -126,6 +131,7 @@ ELSE
     Console.WriteLine("ERROR: CHAR failed")
 ENDIF
 
+Dim code As Integer
 code = CHARCODE(s, 0)
 Console.WriteLine("CHARCODE at 0: " + code)
 IF code <> 72 THEN

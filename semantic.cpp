@@ -236,11 +236,19 @@ Type SemanticAnalyzer::inferExprType(const Expr& expr, const SymbolTable& symbol
                 }
                 return Type::Float;
             } else if (nce.namespaceName == "FILE") {
-                if (methodUpper == "READALLTEXT") {
+                if (methodUpper == "READALLTEXT" || methodUpper == "READLINE" ||
+                    methodUpper == "GETLINE") {
                     return Type::String;
-                } else if (methodUpper == "EXISTS" || methodUpper == "DELETE" || 
-                          methodUpper == "WRITEALLTEXT" || methodUpper == "COPY" || 
-                          methodUpper == "MOVE" || methodUpper == "ISDIRECTORY") {
+                } else if (methodUpper == "EXISTS" || methodUpper == "DELETE" ||
+                          methodUpper == "WRITEALLTEXT" || methodUpper == "COPY" ||
+                          methodUpper == "MOVE" || methodUpper == "ISDIRECTORY" ||
+                          // Enhanced File I/O Phase 10
+                          methodUpper == "OPENREADER" || methodUpper == "HASLINE" ||
+                          methodUpper == "CLOSEREADER" || methodUpper == "READALLLINES" ||
+                          methodUpper == "GETLINECOUNT" || methodUpper == "FREELINES" ||
+                          methodUpper == "READALLBYTES" || methodUpper == "GETBYTE" ||
+                          methodUpper == "GETBYTECOUNT" || methodUpper == "FREEBYTES" ||
+                          methodUpper == "WRITEALLBYTES") {
                     return Type::Int;
                 } else if (methodUpper == "SIZE") {
                     return Type::Float;
@@ -296,6 +304,25 @@ Type SemanticAnalyzer::inferExprType(const Expr& expr, const SymbolTable& symbol
                     return Type::String;
                 } else if (methodUpper == "CONTAINS" || methodUpper == "INDEXOF") {
                     return Type::Int;
+                }
+            } else if (nce.namespaceName == "CRYPTO") {
+                // Phase 10: Crypto namespace for hashing and encryption
+                if (methodUpper == "SHA256" || methodUpper == "SHA512" || methodUpper == "MD5" ||
+                    methodUpper == "AESENCRYPT" || methodUpper == "AESDECRYPT" ||
+                    methodUpper == "BASE64ENCODE" || methodUpper == "BASE64DECODE" ||
+                    methodUpper == "RANDOMBYTES") {
+                    return Type::String;
+                }
+            } else if (nce.namespaceName == "THREAD") {
+                // Phase 10: Thread namespace for multithreading
+                if (methodUpper == "SLEEP" || methodUpper == "CURRENTID" ||
+                    methodUpper == "SETINT" || methodUpper == "GETINT" ||
+                    methodUpper == "ATOMICADD" || methodUpper == "LOCK" ||
+                    methodUpper == "UNLOCK" || methodUpper == "YIELD" ||
+                    methodUpper == "AVAILABLEPROCESSORS" || methodUpper == "SETSTRING") {
+                    return Type::Int;
+                } else if (methodUpper == "GETSTRING") {
+                    return Type::String;
                 }
             } else if (nce.namespaceName == "REGEX") {
                 if (methodUpper == "MATCH") {
@@ -667,11 +694,14 @@ void SemanticAnalyzer::analyzeStmt(Stmt& stmt, SymbolTable& symbols) {
                         }
                     }
 
-                    if (!isClassField) {
-                        // Regular local variable - define it
-                        symbols.define(ls.var, ls.expr->type);
+                    // Check if this is a struct/class field assignment (var.field = value)
+                    bool isStructField = (ls.var.find('.') != string::npos);
+
+                    if (!isClassField && !isStructField) {
+                        // Phase 10: Type inference removed - require explicit DIM declaration
+                        error("Variable '" + ls.var + "' must be declared with DIM before use");
                     }
-                    // If it's a class field, don't define it as a local variable
+                    // If it's a class field or struct field, don't define it as a local variable
                 }
             }
             break;
@@ -718,11 +748,9 @@ void SemanticAnalyzer::analyzeStmt(Stmt& stmt, SymbolTable& symbols) {
                     } else {  // BIGINT
                         elemType = Type::BigInt;
                     }
-                } else if (ds.initVal) {
-                    // DIM arr(size) = initVal - infer type from init value
-                    elemType = ds.initVal->type;
                 } else {
-                    error("Array declaration must specify type or initial value");
+                    // Phase 10: Type inference removed - array must have explicit type
+                    error("Array declaration must specify type: DIM " + ds.var + "(size) As Type");
                     elemType = Type::Int; // fallback
                 }
                 

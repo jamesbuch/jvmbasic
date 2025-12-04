@@ -1,5 +1,5 @@
-x = 10
-y = 5
+Dim x As Integer = 10
+Dim y As Integer = 5
 IF x > y THEN
     Console.WriteLine(1)
 ENDIF
@@ -10,7 +10,7 @@ ELSE
     Console.WriteLine(3)
 ENDIF
 
-z = 10
+Dim z As Integer = 10
 IF z < 5 THEN
     Console.WriteLine(4)
 ELSEIF z == 10 THEN
