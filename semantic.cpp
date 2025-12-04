@@ -276,12 +276,20 @@ Type SemanticAnalyzer::inferExprType(const Expr& expr, const SymbolTable& symbol
             } else if (nce.namespaceName == "DB") {
                 if (methodUpper == "CONNECT" || methodUpper == "QUERY" ||
                     methodUpper == "NEXT" || methodUpper == "NEXTROW" ||
-                    methodUpper == "CLOSE" || methodUpper == "GETINT") {
+                    methodUpper == "CLOSE" || methodUpper == "GETINT" ||
+                    methodUpper == "EXECUTE" || methodUpper == "GETROWCOUNT" ||
+                    methodUpper == "CLOSERESULT" || methodUpper == "BEGINTRANSACTION" ||
+                    methodUpper == "COMMIT" || methodUpper == "ROLLBACK" ||
+                    methodUpper == "GETLONG") {
                     return Type::Int;
-                } else if (methodUpper == "GETSTRING") {
+                } else if (methodUpper == "GETSTRING" || methodUpper == "ESCAPE") {
                     return Type::String;
                 } else if (methodUpper == "GETFLOAT") {
                     return Type::Float;
+                } else if (methodUpper == "GETDOUBLE") {
+                    return Type::Double;
+                } else if (methodUpper == "ISNULL") {
+                    return Type::Bool;
                 }
             } else if (nce.namespaceName == "XML") {
                 if (methodUpper == "PARSE") {

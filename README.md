@@ -297,11 +297,18 @@ File.Delete("backup2.txt")
 ### Regular Expressions
 ```basic
 Dim email As String = "user@example.com"
-If RegexMatch(email, "\\w+@\\w+\\.\\w+") Then
-    Dim user As String = RegexGroup(email, "(\\w+)@(\\w+\\.\\w+)", 1)
-    Dim domain As String = RegexGroup(email, "(\\w+)@(\\w+\\.\\w+)", 2)
+' Classic function syntax: RegexMatch(pattern, text)
+If RegexMatch("\\w+@\\w+\\.\\w+", email) Then
+    Dim user As String = RegexGroup("(\\w+)@(\\w+\\.\\w+)", email, 1)
+    Dim domain As String = RegexGroup("(\\w+)@(\\w+\\.\\w+)", email, 2)
     Console.WriteLine("User: " + user)
     Console.WriteLine("Domain: " + domain)
+End If
+
+' Or use namespace syntax: Regex.Match(pattern, text)
+If Regex.Match("\\d+", "Order #12345") Then
+    Dim orderNum As String = Regex.Find("\\d+", "Order #12345")
+    Console.WriteLine("Order number: " + orderNum)
 End If
 ```
 
