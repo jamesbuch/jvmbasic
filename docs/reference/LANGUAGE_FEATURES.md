@@ -11,16 +11,20 @@
 ### Data Types ✅
 
 **Primitive Types**:
-- `Int` - 32-bit integer
-- `Float` - 32-bit floating point
+- `Integer` / `Int` - 32-bit integer (JVM `int`)
+- `Single` / `Float` - 32-bit floating point (JVM `float`)
+- `Double` - 64-bit floating point (JVM `double`)
 - `String` - Text strings
-- `Bool` - Boolean (true/false)
+- `Boolean` / `Bool` - Boolean (true/false)
 
 **Array Types**:
 - `IntArray` - Integer arrays
 - `FloatArray` - Float arrays
+- `DoubleArray` - Double arrays
 - `StringArray` - String arrays
 - `BoolArray` - Boolean arrays
+
+**Note:** `Single` and `Float` are synonymous (both map to Java's 32-bit `float`). Use `Double` for higher precision (64-bit).
 
 **Type Inference**: Automatic at call sites and assignments
 

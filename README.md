@@ -129,15 +129,17 @@ java -cp ".;basicrt;lib/*" MyProgram
 
 ### Data Types
 
-| Type | Description | Example |
-|------|-------------|---------|
-| `Integer` | 32-bit signed integer | `Dim x As Integer = 42` |
-| `Single` / `Float` | 32-bit floating point | `Dim f As Single = 3.14` |
-| `Double` | 64-bit floating point | `Dim d As Double = 3.14159265359` |
-| `String` | Text string | `Dim s As String = "Hello"` |
-| `Boolean` | True/False | `Dim b As Boolean = True` |
-| `BigInt` | Arbitrary precision integer | `Dim big As Object = BigInt.FromString("12345678901234567890")` |
-| `Decimal` | Arbitrary precision decimal | `Dim dec As Object = Decimal.FromString("3.14159265358979323846")` |
+| Type | Description | JVM Type | Example |
+|------|-------------|----------|---------|
+| `Integer` | 32-bit signed integer | `int` | `Dim x As Integer = 42` |
+| `Single` / `Float` | 32-bit floating point | `float` | `Dim f As Single = 3.14` |
+| `Double` | 64-bit floating point | `double` | `Dim d As Double = 3.14159265358979` |
+| `String` | Text string | `String` | `Dim s As String = "Hello"` |
+| `Boolean` | True/False | `boolean` | `Dim b As Boolean = True` |
+| `BigInt` | Arbitrary precision integer | `BigInteger` | `Dim big As Object = BigInt.FromString("12345678901234567890")` |
+| `Decimal` | Arbitrary precision decimal | `BigDecimal` | `Dim dec As Object = Decimal.FromString("3.14159265358979323846")` |
+
+**Note:** `Single` and `Float` are synonymous (both map to Java's 32-bit `float`). Use `Double` for higher precision (64-bit).
 
 ### Variable Declaration
 
@@ -349,19 +351,38 @@ Directory operations.
 
 ### Http Namespace
 
-HTTP client operations.
+HTTP client operations for RESTful APIs.
 
 ```basic
 ' GET request
 Dim response As String = Http.Get("https://api.example.com/data")
 
-' POST request
-Dim result As String = Http.Post("https://api.example.com/submit", "name=Alice&age=30")
+' POST request (with JSON body)
+Dim result As String = Http.Post("https://api.example.com/submit", "{\"name\":\"Alice\"}")
+
+' PUT request (update resource)
+Dim updated As String = Http.Put("https://api.example.com/users/1", "{\"name\":\"Bob\"}")
+
+' PATCH request (partial update)
+Dim patched As String = Http.Patch("https://api.example.com/users/1", "{\"age\":30}")
+
+' DELETE request
+Dim deleted As String = Http.Delete("https://api.example.com/users/1")
 
 ' URL encoding
 Dim encoded As String = Http.UrlEncode("Hello World!")
 Dim decoded As String = Http.UrlDecode(encoded)
 ```
+
+| Function | Description |
+|----------|-------------|
+| `Http.Get(url)` | HTTP GET request |
+| `Http.Post(url, body)` | HTTP POST with JSON body |
+| `Http.Put(url, body)` | HTTP PUT with JSON body |
+| `Http.Patch(url, body)` | HTTP PATCH with JSON body |
+| `Http.Delete(url)` | HTTP DELETE request |
+| `Http.UrlEncode(text)` | URL-encode a string |
+| `Http.UrlDecode(text)` | URL-decode a string |
 
 ### Json Namespace
 
@@ -393,7 +414,9 @@ Dim name As String = Xml.GetText(doc, "/root/user/@name")
 
 ### Db Namespace
 
-Database connectivity (PostgreSQL, MariaDB/MySQL).
+Database connectivity (PostgreSQL, MariaDB/MySQL) with parameterized query support.
+
+**Basic Operations:**
 
 ```basic
 ' Connect to database
@@ -419,6 +442,73 @@ If conn >= 0 Then
     Db.Close(conn)
 End If
 ```
+
+**Parameterized Queries (SQL Injection Safe):**
+
+```basic
+' Create prepared statement with ? placeholders
+Dim stmt As Integer = Db.Prepare(conn, "SELECT * FROM users WHERE name = ? AND age > ?")
+
+' Bind parameters (1-indexed)
+Db.SetString(stmt, 1, "Alice O'Brien")  ' Apostrophes handled safely
+Db.SetInt(stmt, 2, 25)
+
+' Execute and get results
+Dim result As Integer = Db.ExecuteQuery(stmt)
+While Db.NextRow(result) > 0
+    Console.WriteLine(Db.GetString(result, "name"))
+Wend
+Db.CloseResult(result)
+
+' Reuse statement with new parameters
+Db.ClearParameters(stmt)
+Db.SetString(stmt, 1, "Bob")
+Db.SetInt(stmt, 2, 30)
+result = Db.ExecuteQuery(stmt)
+
+' For INSERT/UPDATE/DELETE
+Dim insertStmt As Integer = Db.Prepare(conn, "INSERT INTO users (name, age) VALUES (?, ?)")
+Db.SetString(insertStmt, 1, "Carol")
+Db.SetInt(insertStmt, 2, 28)
+Dim rows As Integer = Db.ExecuteUpdate(insertStmt)
+
+' Clean up
+Db.CloseStmt(stmt)
+Db.CloseStmt(insertStmt)
+```
+
+**Db Function Reference:**
+
+| Function | Description |
+|----------|-------------|
+| `Db.Connect(url, user, pass)` | Connect to database, returns connection ID |
+| `Db.Query(conn, sql)` | Execute SELECT, returns result set ID |
+| `Db.Execute(conn, sql)` | Execute INSERT/UPDATE/DELETE, returns rows affected |
+| `Db.NextRow(result)` | Move to next row, returns 1 if successful |
+| `Db.GetString(result, column)` | Get string column value |
+| `Db.GetInt(result, column)` | Get integer column value |
+| `Db.GetFloat(result, column)` | Get float column value |
+| `Db.GetDouble(result, column)` | Get double column value |
+| `Db.GetLong(result, column)` | Get long column value |
+| `Db.IsNull(result, column)` | Check if column is NULL |
+| `Db.CloseResult(result)` | Close result set |
+| `Db.Close(conn)` | Close connection |
+| `Db.BeginTransaction(conn)` | Start transaction |
+| `Db.Commit(conn)` | Commit transaction |
+| `Db.Rollback(conn)` | Rollback transaction |
+| `Db.Escape(value)` | Escape string for SQL (prefer parameterized queries) |
+| **Parameterized Queries** | |
+| `Db.Prepare(conn, sql)` | Create prepared statement with ? placeholders |
+| `Db.SetString(stmt, idx, val)` | Set string parameter (1-indexed) |
+| `Db.SetInt(stmt, idx, val)` | Set integer parameter |
+| `Db.SetFloat(stmt, idx, val)` | Set float parameter |
+| `Db.SetDouble(stmt, idx, val)` | Set double parameter |
+| `Db.SetLong(stmt, idx, val)` | Set long parameter |
+| `Db.SetNull(stmt, idx, type)` | Set NULL parameter |
+| `Db.ExecuteQuery(stmt)` | Execute prepared SELECT |
+| `Db.ExecuteUpdate(stmt)` | Execute prepared INSERT/UPDATE/DELETE |
+| `Db.ClearParameters(stmt)` | Clear parameters for reuse |
+| `Db.CloseStmt(stmt)` | Close prepared statement |
 
 ### Crypto Namespace
 

@@ -2354,7 +2354,7 @@ public class BasicRuntime {
      * @return Thread ID
      */
     public static int thread_CurrentId() {
-        return (int) Thread.currentThread().getId();
+        return (int) Thread.currentThread().threadId();
     }
 
     /**
@@ -2426,7 +2426,7 @@ public class BasicRuntime {
                 while (sharedVars.containsKey("__lock_" + name)) {
                     lock.wait(10);
                 }
-                sharedVars.put("__lock_" + name, Thread.currentThread().getId());
+                sharedVars.put("__lock_" + name, Thread.currentThread().threadId());
             }
             return 0;
         } catch (InterruptedException e) {
@@ -2441,7 +2441,7 @@ public class BasicRuntime {
      */
     public static int thread_Unlock(String name) {
         Object val = sharedVars.get("__lock_" + name);
-        if (val != null && val.equals(Thread.currentThread().getId())) {
+        if (val != null && val.equals(Thread.currentThread().threadId())) {
             sharedVars.remove("__lock_" + name);
             Object lock = locks.get(name);
             if (lock != null) {
@@ -3102,9 +3102,10 @@ public class BasicRuntime {
     
     // ===== Phase 9: Db Namespace =====
     // Database connection management
-    
+
     private static java.util.Map<Integer, java.sql.Connection> dbConnections = new java.util.HashMap<>();
     private static java.util.Map<Integer, java.sql.ResultSet> dbResults = new java.util.HashMap<>();
+    private static java.util.Map<Integer, java.sql.PreparedStatement> dbPreparedStmts = new java.util.HashMap<>();
     private static int nextDbId = 1;
     
     public static int db_Connect(String url, String user, String password) {
@@ -3170,7 +3171,16 @@ public class BasicRuntime {
             return 0;
         }
     }
-    
+
+    public static float db_GetFloat(int resultId, String columnName) {
+        try {
+            java.sql.ResultSet rs = dbResults.get(resultId);
+            return rs != null ? rs.getFloat(columnName) : 0.0f;
+        } catch (Exception e) {
+            return 0.0f;
+        }
+    }
+
     public static int db_Close(int connId) {
         try {
             java.sql.Connection conn = dbConnections.get(connId);
@@ -3346,6 +3356,215 @@ public class BasicRuntime {
     public static String db_Escape(String value) {
         if (value == null) return "NULL";
         return value.replace("'", "''");
+    }
+
+    // ===== Parameterized Query Support =====
+
+    /**
+     * Db.Prepare - Create a prepared statement with parameter placeholders (?)
+     * Returns statement ID, or -1 on error
+     */
+    public static int db_Prepare(int connId, String sql) {
+        try {
+            java.sql.Connection conn = dbConnections.get(connId);
+            if (conn != null) {
+                java.sql.PreparedStatement pstmt = conn.prepareStatement(sql);
+                int id = nextDbId++;
+                dbPreparedStmts.put(id, pstmt);
+                return id;
+            }
+            return -1;
+        } catch (Exception e) {
+            System.err.println("DB Prepare Error: " + e.getMessage());
+            return -1;
+        }
+    }
+
+    /**
+     * Db.SetString - Set a string parameter in a prepared statement
+     * Parameter index is 1-based
+     */
+    public static int db_SetString(int stmtId, int paramIndex, String value) {
+        try {
+            java.sql.PreparedStatement pstmt = dbPreparedStmts.get(stmtId);
+            if (pstmt != null) {
+                pstmt.setString(paramIndex, value);
+                return 0;
+            }
+            return -1;
+        } catch (Exception e) {
+            System.err.println("DB SetString Error: " + e.getMessage());
+            return -1;
+        }
+    }
+
+    /**
+     * Db.SetInt - Set an integer parameter in a prepared statement
+     * Parameter index is 1-based
+     */
+    public static int db_SetInt(int stmtId, int paramIndex, int value) {
+        try {
+            java.sql.PreparedStatement pstmt = dbPreparedStmts.get(stmtId);
+            if (pstmt != null) {
+                pstmt.setInt(paramIndex, value);
+                return 0;
+            }
+            return -1;
+        } catch (Exception e) {
+            System.err.println("DB SetInt Error: " + e.getMessage());
+            return -1;
+        }
+    }
+
+    /**
+     * Db.SetFloat - Set a float parameter in a prepared statement
+     * Parameter index is 1-based
+     */
+    public static int db_SetFloat(int stmtId, int paramIndex, float value) {
+        try {
+            java.sql.PreparedStatement pstmt = dbPreparedStmts.get(stmtId);
+            if (pstmt != null) {
+                pstmt.setFloat(paramIndex, value);
+                return 0;
+            }
+            return -1;
+        } catch (Exception e) {
+            System.err.println("DB SetFloat Error: " + e.getMessage());
+            return -1;
+        }
+    }
+
+    /**
+     * Db.SetDouble - Set a double parameter in a prepared statement
+     * Parameter index is 1-based
+     */
+    public static int db_SetDouble(int stmtId, int paramIndex, double value) {
+        try {
+            java.sql.PreparedStatement pstmt = dbPreparedStmts.get(stmtId);
+            if (pstmt != null) {
+                pstmt.setDouble(paramIndex, value);
+                return 0;
+            }
+            return -1;
+        } catch (Exception e) {
+            System.err.println("DB SetDouble Error: " + e.getMessage());
+            return -1;
+        }
+    }
+
+    /**
+     * Db.SetDouble - Overload accepting float (for BASIC numeric literals)
+     */
+    public static int db_SetDouble(int stmtId, int paramIndex, float value) {
+        return db_SetDouble(stmtId, paramIndex, (double) value);
+    }
+
+    /**
+     * Db.SetLong - Set a long parameter in a prepared statement
+     * Parameter index is 1-based
+     */
+    public static int db_SetLong(int stmtId, int paramIndex, long value) {
+        try {
+            java.sql.PreparedStatement pstmt = dbPreparedStmts.get(stmtId);
+            if (pstmt != null) {
+                pstmt.setLong(paramIndex, value);
+                return 0;
+            }
+            return -1;
+        } catch (Exception e) {
+            System.err.println("DB SetLong Error: " + e.getMessage());
+            return -1;
+        }
+    }
+
+    /**
+     * Db.SetNull - Set a NULL parameter in a prepared statement
+     * Parameter index is 1-based, sqlType uses java.sql.Types constants:
+     * 4 = INTEGER, 12 = VARCHAR, 8 = DOUBLE, 6 = FLOAT
+     */
+    public static int db_SetNull(int stmtId, int paramIndex, int sqlType) {
+        try {
+            java.sql.PreparedStatement pstmt = dbPreparedStmts.get(stmtId);
+            if (pstmt != null) {
+                pstmt.setNull(paramIndex, sqlType);
+                return 0;
+            }
+            return -1;
+        } catch (Exception e) {
+            System.err.println("DB SetNull Error: " + e.getMessage());
+            return -1;
+        }
+    }
+
+    /**
+     * Db.ExecuteQuery - Execute a prepared SELECT statement
+     * Returns result set ID, or -1 on error
+     */
+    public static int db_ExecuteQuery(int stmtId) {
+        try {
+            java.sql.PreparedStatement pstmt = dbPreparedStmts.get(stmtId);
+            if (pstmt != null) {
+                java.sql.ResultSet rs = pstmt.executeQuery();
+                int id = nextDbId++;
+                dbResults.put(id, rs);
+                return id;
+            }
+            return -1;
+        } catch (Exception e) {
+            System.err.println("DB ExecuteQuery Error: " + e.getMessage());
+            return -1;
+        }
+    }
+
+    /**
+     * Db.ExecuteUpdate - Execute a prepared INSERT/UPDATE/DELETE statement
+     * Returns number of rows affected, or -1 on error
+     */
+    public static int db_ExecuteUpdate(int stmtId) {
+        try {
+            java.sql.PreparedStatement pstmt = dbPreparedStmts.get(stmtId);
+            if (pstmt != null) {
+                return pstmt.executeUpdate();
+            }
+            return -1;
+        } catch (Exception e) {
+            System.err.println("DB ExecuteUpdate Error: " + e.getMessage());
+            return -1;
+        }
+    }
+
+    /**
+     * Db.CloseStmt - Close a prepared statement
+     */
+    public static int db_CloseStmt(int stmtId) {
+        try {
+            java.sql.PreparedStatement pstmt = dbPreparedStmts.get(stmtId);
+            if (pstmt != null) {
+                pstmt.close();
+                dbPreparedStmts.remove(stmtId);
+            }
+            return 0;
+        } catch (Exception e) {
+            System.err.println("DB CloseStmt Error: " + e.getMessage());
+            return -1;
+        }
+    }
+
+    /**
+     * Db.ClearParameters - Clear all parameters in a prepared statement for reuse
+     */
+    public static int db_ClearParameters(int stmtId) {
+        try {
+            java.sql.PreparedStatement pstmt = dbPreparedStmts.get(stmtId);
+            if (pstmt != null) {
+                pstmt.clearParameters();
+                return 0;
+            }
+            return -1;
+        } catch (Exception e) {
+            System.err.println("DB ClearParameters Error: " + e.getMessage());
+            return -1;
+        }
     }
 
     // ===== BigInteger Support =====
