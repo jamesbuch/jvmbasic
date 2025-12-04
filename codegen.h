@@ -122,10 +122,12 @@ public:
     u2 out_field_idx;
     u2 println_int_idx;
     u2 println_float_idx;
+    u2 println_double_idx;
     u2 println_str_idx;
     u2 println_bool_idx;
     u2 print_int_idx;
     u2 print_float_idx;
+    u2 print_double_idx;
     u2 print_str_idx;
     u2 print_bool_idx;
     u2 println_void_idx;
@@ -208,6 +210,11 @@ public:
         u2 nat_pf = cp.addNameAndType(println_name, pf_desc);
         println_float_idx = cp.addMethodRef(ps_cls_idx, nat_pf);
 
+        // println (D)V for double
+        u2 pd_desc = cp.addUtf8("(D)V");
+        u2 nat_pd = cp.addNameAndType(println_name, pd_desc);
+        println_double_idx = cp.addMethodRef(ps_cls_idx, nat_pd);
+
         // println (Ljava/lang/String;)V
         u2 ps_desc = cp.addUtf8("(Ljava/lang/String;)V");
         u2 nat_ps = cp.addNameAndType(println_name, ps_desc);
@@ -231,6 +238,10 @@ public:
         // print (F)V
         u2 nat_prf = cp.addNameAndType(print_name, pf_desc);
         print_float_idx = cp.addMethodRef(ps_cls_idx, nat_prf);
+
+        // print (D)V for double
+        u2 nat_prd = cp.addNameAndType(print_name, pd_desc);
+        print_double_idx = cp.addMethodRef(ps_cls_idx, nat_prd);
 
         // print (Ljava/lang/String;)V
         u2 nat_prs = cp.addNameAndType(print_name, ps_desc);
@@ -1510,6 +1521,15 @@ public:
                         u2 valueOf_nat = cp.addNameAndType(valueOf_utf8, valueOf_desc);
                         u2 valueOf_methodref = cp.addMethodRef(string_class_idx, valueOf_nat);
                         invokestatic(valueOf_methodref);
+                    } else if (arg->type == Type::Double) {
+                        // Call String.valueOf(double)
+                        u2 string_class_utf8 = cp.addUtf8("java/lang/String");
+                        u2 string_class_idx = cp.addClass(string_class_utf8);
+                        u2 valueOf_utf8 = cp.addUtf8("valueOf");
+                        u2 valueOf_desc = cp.addUtf8("(D)Ljava/lang/String;");
+                        u2 valueOf_nat = cp.addNameAndType(valueOf_utf8, valueOf_desc);
+                        u2 valueOf_methodref = cp.addMethodRef(string_class_idx, valueOf_nat);
+                        invokestatic(valueOf_methodref);
                     } else {
                         // Other types - assume already String (shouldn't happen)
                         // Just leave it on the stack
@@ -1652,12 +1672,14 @@ public:
                     // Last expression with newline: use println
                     if (actualType == Type::Int) invokevirtual(println_int_idx);
                     else if (actualType == Type::Float) invokevirtual(println_float_idx);
+                    else if (actualType == Type::Double) invokevirtual(println_double_idx);
                     else if (actualType == Type::Bool) invokevirtual(println_bool_idx);
                     else invokevirtual(println_str_idx);
                 } else {
                     // Not last, or no newline: use print (no newline)
                     if (actualType == Type::Int) invokevirtual(print_int_idx);
                     else if (actualType == Type::Float) invokevirtual(print_float_idx);
+                    else if (actualType == Type::Double) invokevirtual(print_double_idx);
                     else if (actualType == Type::Bool) invokevirtual(print_bool_idx);
                     else invokevirtual(print_str_idx);
                 }

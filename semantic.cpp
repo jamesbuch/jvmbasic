@@ -281,7 +281,14 @@ Type SemanticAnalyzer::inferExprType(const Expr& expr, const SymbolTable& symbol
                     methodUpper == "EXECUTE" || methodUpper == "GETROWCOUNT" ||
                     methodUpper == "CLOSERESULT" || methodUpper == "BEGINTRANSACTION" ||
                     methodUpper == "COMMIT" || methodUpper == "ROLLBACK" ||
-                    methodUpper == "GETLONG") {
+                    methodUpper == "GETLONG" ||
+                    // Parameterized query methods
+                    methodUpper == "PREPARE" || methodUpper == "SETSTRING" ||
+                    methodUpper == "SETINT" || methodUpper == "SETFLOAT" ||
+                    methodUpper == "SETDOUBLE" || methodUpper == "SETLONG" ||
+                    methodUpper == "SETNULL" || methodUpper == "EXECUTEQUERY" ||
+                    methodUpper == "EXECUTEUPDATE" || methodUpper == "CLOSESTMT" ||
+                    methodUpper == "CLEARPARAMETERS") {
                     return Type::Int;
                 } else if (methodUpper == "GETSTRING" || methodUpper == "ESCAPE") {
                     return Type::String;
