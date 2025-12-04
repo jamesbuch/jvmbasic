@@ -3068,6 +3068,170 @@ public class BasicRuntime {
         }
     }
 
+    /**
+     * Db.Execute - Execute non-SELECT SQL (INSERT, UPDATE, DELETE, CREATE, DROP, etc.)
+     * Returns number of rows affected, or -1 on error
+     */
+    public static int db_Execute(int connId, String sql) {
+        try {
+            java.sql.Connection conn = dbConnections.get(connId);
+            if (conn != null) {
+                java.sql.Statement stmt = conn.createStatement();
+                int rowsAffected = stmt.executeUpdate(sql);
+                stmt.close();
+                return rowsAffected;
+            }
+            return -1;
+        } catch (Exception e) {
+            System.err.println("DB Error: " + e.getMessage());
+            return -1;
+        }
+    }
+
+    /**
+     * Db.GetDouble - Get double column value from current row
+     */
+    public static double db_GetDouble(int resultId, String columnName) {
+        try {
+            java.sql.ResultSet rs = dbResults.get(resultId);
+            if (rs != null) {
+                return rs.getDouble(columnName);
+            }
+            return 0.0;
+        } catch (Exception e) {
+            return 0.0;
+        }
+    }
+
+    /**
+     * Db.GetLong - Get long column value from current row
+     */
+    public static long db_GetLong(int resultId, String columnName) {
+        try {
+            java.sql.ResultSet rs = dbResults.get(resultId);
+            if (rs != null) {
+                return rs.getLong(columnName);
+            }
+            return 0;
+        } catch (Exception e) {
+            return 0;
+        }
+    }
+
+    /**
+     * Db.IsNull - Check if column value is NULL
+     */
+    public static boolean db_IsNull(int resultId, String columnName) {
+        try {
+            java.sql.ResultSet rs = dbResults.get(resultId);
+            if (rs != null) {
+                rs.getObject(columnName);
+                return rs.wasNull();
+            }
+            return true;
+        } catch (Exception e) {
+            return true;
+        }
+    }
+
+    /**
+     * Db.GetRowCount - Get number of rows in result (moves cursor, use carefully)
+     */
+    public static int db_GetRowCount(int resultId) {
+        try {
+            java.sql.ResultSet rs = dbResults.get(resultId);
+            if (rs != null) {
+                int currentRow = rs.getRow();
+                rs.last();
+                int rowCount = rs.getRow();
+                if (currentRow == 0) {
+                    rs.beforeFirst();
+                } else {
+                    rs.absolute(currentRow);
+                }
+                return rowCount;
+            }
+            return -1;
+        } catch (Exception e) {
+            return -1;
+        }
+    }
+
+    /**
+     * Db.CloseResult - Close a result set to free resources
+     */
+    public static int db_CloseResult(int resultId) {
+        try {
+            java.sql.ResultSet rs = dbResults.get(resultId);
+            if (rs != null) {
+                rs.close();
+                dbResults.remove(resultId);
+            }
+            return 0;
+        } catch (Exception e) {
+            return -1;
+        }
+    }
+
+    /**
+     * Db.BeginTransaction - Start a transaction (disable auto-commit)
+     */
+    public static int db_BeginTransaction(int connId) {
+        try {
+            java.sql.Connection conn = dbConnections.get(connId);
+            if (conn != null) {
+                conn.setAutoCommit(false);
+                return 0;
+            }
+            return -1;
+        } catch (Exception e) {
+            return -1;
+        }
+    }
+
+    /**
+     * Db.Commit - Commit the current transaction
+     */
+    public static int db_Commit(int connId) {
+        try {
+            java.sql.Connection conn = dbConnections.get(connId);
+            if (conn != null) {
+                conn.commit();
+                conn.setAutoCommit(true);
+                return 0;
+            }
+            return -1;
+        } catch (Exception e) {
+            return -1;
+        }
+    }
+
+    /**
+     * Db.Rollback - Rollback the current transaction
+     */
+    public static int db_Rollback(int connId) {
+        try {
+            java.sql.Connection conn = dbConnections.get(connId);
+            if (conn != null) {
+                conn.rollback();
+                conn.setAutoCommit(true);
+                return 0;
+            }
+            return -1;
+        } catch (Exception e) {
+            return -1;
+        }
+    }
+
+    /**
+     * Db.Escape - Escape a string for safe SQL insertion (basic escaping)
+     * Note: Prefer parameterized queries when available
+     */
+    public static String db_Escape(String value) {
+        if (value == null) return "NULL";
+        return value.replace("'", "''");
+    }
+
     // ===== BigInteger Support =====
     // Note: Using Object type to match codegen's type descriptor
 
