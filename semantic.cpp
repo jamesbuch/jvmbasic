@@ -1411,6 +1411,16 @@ void SemanticAnalyzer::flattenStmt(Stmt& stmt) {
             }
             break;
         }
+        case StmtKind::Dim: {
+            DimStmt& ds = get<DimStmt>(stmt.data);
+            if (ds.initVal) {
+                ds.initVal = flattenStringConcat(move(ds.initVal));
+            }
+            if (ds.size) {
+                ds.size = flattenStringConcat(move(ds.size));
+            }
+            break;
+        }
         default:
             // Other statement types don't contain expressions that need flattening
             break;
