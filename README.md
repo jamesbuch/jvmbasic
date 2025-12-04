@@ -20,7 +20,7 @@ A modern, professional BASIC compiler with Visual Basic-style syntax that genera
 - **Modern VB-Style Syntax**: `Dim x As Integer = 10`, `Function Add(a As Integer) As Integer`
 - **Fully Case-Insensitive**: All keywords work in any case (Dim/DIM/dim, If/IF/if, Function/FUNCTION/function, etc.)
 - **Expression Statements**: Call functions without dummy variables: `Console.WriteLine("text")`
-- **Expanded Type System**: Integer, Single, Double, Long, Boolean, String, Decimal, BigInt
+- **Expanded Type System**: Integer, Single/Float (32-bit), Double (64-bit IEEE 754), Long, Boolean, String, Decimal, BigInt
 - **Namespace/OO Syntax**: Console.WriteLine(), Math.Sin(), File.ReadAllText()
 - **Professional Libraries** (16 JARs - 22MB):
   - **JSON**: Google Gson 2.10.1 for robust JSON parsing/generation
@@ -52,7 +52,7 @@ A modern, professional BASIC compiler with Visual Basic-style syntax that genera
 - **Control Flow**: IF, FOR, WHILE, DO...WHILE/UNTIL with modern syntax
 - **I/O**: Console namespace + traditional PRINT/INPUT
 - **Comments**: `REM` and `'` (apostrophe)
-- **Type System**: Int, Float, String, Bool, Decimal, BigInt, UserDefined
+- **Type System**: Int, Float/Single (32-bit), Double (64-bit), String, Bool, Decimal, BigInt, UserDefined
 - **Expressions**: Full arithmetic, comparison, logical, bitwise operations
 
 ### Compiler Features

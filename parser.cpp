@@ -52,15 +52,17 @@ string Parser::tokenTypeName(TokenType tt) {
 Type Parser::resolveTypeName(const string& typeName) {
     string upper = typeName;
     transform(upper.begin(), upper.end(), upper.begin(), ::toupper);
-    
+
     if (upper == "INT" || upper == "INTEGER") return Type::Int;
     if (upper == "FLOAT" || upper == "SINGLE") return Type::Float;
+    if (upper == "DOUBLE") return Type::Double;
     if (upper == "STRING") return Type::String;
     if (upper == "BOOL" || upper == "BOOLEAN") return Type::Bool;
     if (upper == "DECIMAL") return Type::Decimal;
     if (upper == "BIGINT") return Type::BigInt;
     if (upper == "INTARRAY") return Type::IntArray;
     if (upper == "FLOATARRAY") return Type::FloatArray;
+    if (upper == "DOUBLEARRAY") return Type::DoubleArray;
     if (upper == "STRINGARRAY") return Type::StringArray;
     if (upper == "BOOLARRAY") return Type::BoolArray;
     
@@ -191,7 +193,7 @@ MethodDecl Parser::parseMethodDecl(bool isPublic) {
                     next();
                 } else if (tok.type == TokenType::DOUBLE) {
                     paramTypeName = "DOUBLE";
-                    paramType = Type::Float;
+                    paramType = Type::Double;
                     next();
                 } else if (tok.type == TokenType::LONG) {
                     paramTypeName = "LONG";
@@ -234,7 +236,7 @@ MethodDecl Parser::parseMethodDecl(bool isPublic) {
             returnType = Type::Float;
             next();
         } else if (tok.type == TokenType::DOUBLE) {
-            returnType = Type::Float;
+            returnType = Type::Double;
             next();
         } else if (tok.type == TokenType::LONG) {
             returnType = Type::Int;
@@ -887,7 +889,7 @@ StmtPtr Parser::parseStmt() {
                     next();
                 } else if (tok.type == TokenType::DOUBLE) {
                     typeName = "DOUBLE";
-                    arrayType = Type::FloatArray;
+                    arrayType = Type::DoubleArray;
                     next();
                 } else if (tok.type == TokenType::LONG) {
                     typeName = "LONG";
@@ -958,7 +960,7 @@ StmtPtr Parser::parseStmt() {
                 } else if (tok.type == TokenType::DOUBLE) {
                     typeName = "DOUBLE";
                     next();
-                    knownTypes[var] = Type::Float;  // Map to Float for now
+                    knownTypes[var] = Type::Double;
                 } else if (tok.type == TokenType::LONG) {
                     typeName = "LONG";
                     next();
@@ -1378,7 +1380,7 @@ DeclPtr Parser::parseDecl() {
                         next();
                     } else if (tok.type == TokenType::DOUBLE) {
                         paramTypeName = "DOUBLE";
-                        paramType = Type::Float;
+                        paramType = Type::Double;
                         next();
                     } else if (tok.type == TokenType::LONG) {
                         paramTypeName = "LONG";
@@ -1425,7 +1427,7 @@ DeclPtr Parser::parseDecl() {
                 returnType = Type::Float;
                 next();
             } else if (tok.type == TokenType::DOUBLE) {
-                returnType = Type::Float;
+                returnType = Type::Double;
                 next();
             } else if (tok.type == TokenType::LONG) {
                 returnType = Type::Int;
@@ -1493,7 +1495,7 @@ DeclPtr Parser::parseDecl() {
                         next();
                     } else if (tok.type == TokenType::DOUBLE) {
                         paramTypeName = "DOUBLE";
-                        paramType = Type::Float;
+                        paramType = Type::Double;
                         next();
                     } else if (tok.type == TokenType::LONG) {
                         paramTypeName = "LONG";

@@ -4,10 +4,12 @@ string typeToString(Type t) {
     switch(t) {
         case Type::Int: return "Int";
         case Type::Float: return "Float";
+        case Type::Double: return "Double";
         case Type::String: return "String";
         case Type::Bool: return "Bool";
         case Type::IntArray: return "IntArray";
         case Type::FloatArray: return "FloatArray";
+        case Type::DoubleArray: return "DoubleArray";
         case Type::StringArray: return "StringArray";
         case Type::BoolArray: return "BoolArray";
         case Type::UserDefined: return "UserDefined";
