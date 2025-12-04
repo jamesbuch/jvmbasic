@@ -114,13 +114,50 @@ Token Lexer::nextToken() {
         }
     }
     
-    // Regular string literals
+    // Regular string literals with escape sequence support
     if (ch == '"') {
         read();
         string s;
         while (!eof && ch != '"') {
-            s += ch;
-            read();
+            if (ch == '\\') {
+                // Handle escape sequences
+                read();
+                if (!eof) {
+                    switch (ch) {
+                        case '"':  s += '"';  break;  // Escaped quote
+                        case '\\': s += '\\'; break;  // Escaped backslash
+                        case 'n':  s += '\n'; break;  // Newline
+                        case 't':  s += '\t'; break;  // Tab
+                        case 'r':  s += '\r'; break;  // Carriage return
+                        // Regex escape sequences - preserve backslash for regex engine
+                        case 's':  s += '\\'; s += 's'; break;  // \s - whitespace
+                        case 'd':  s += '\\'; s += 'd'; break;  // \d - digit
+                        case 'w':  s += '\\'; s += 'w'; break;  // \w - word char
+                        case 'S':  s += '\\'; s += 'S'; break;  // \S - non-whitespace
+                        case 'D':  s += '\\'; s += 'D'; break;  // \D - non-digit
+                        case 'W':  s += '\\'; s += 'W'; break;  // \W - non-word
+                        case 'b':  s += '\\'; s += 'b'; break;  // \b - word boundary
+                        case '+':  s += '\\'; s += '+'; break;  // \+ - literal plus
+                        case '*':  s += '\\'; s += '*'; break;  // \* - literal star
+                        case '?':  s += '\\'; s += '?'; break;  // \? - literal question
+                        case '.':  s += '\\'; s += '.'; break;  // \. - literal dot
+                        case '(':  s += '\\'; s += '('; break;  // \( - literal paren
+                        case ')':  s += '\\'; s += ')'; break;  // \) - literal paren
+                        case '[':  s += '\\'; s += '['; break;  // \[ - literal bracket
+                        case ']':  s += '\\'; s += ']'; break;  // \] - literal bracket
+                        case '{':  s += '\\'; s += '{'; break;  // \{ - literal brace
+                        case '}':  s += '\\'; s += '}'; break;  // \} - literal brace
+                        case '^':  s += '\\'; s += '^'; break;  // \^ - literal caret
+                        case '$':  s += '\\'; s += '$'; break;  // \$ - literal dollar
+                        case '|':  s += '\\'; s += '|'; break;  // \| - literal pipe
+                        default:   s += '\\'; s += ch; break;  // Unknown escape - keep both chars
+                    }
+                    read();
+                }
+            } else {
+                s += ch;
+                read();
+            }
         }
         if (!eof && ch == '"') read();
         else if (eof) error("Unterminated string at line " + to_string(tokenLine));

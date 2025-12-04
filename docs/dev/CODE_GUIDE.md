@@ -1,25 +1,32 @@
 # JVM BASIC Code Structure Guide
 **A detailed walkthrough for understanding and modifying the compiler**
 
+**Version**: Phase 12 (December 2025)
+
 ---
 
 ## File Overview
 
-### Source Files
-- **jvmbasic.cpp** (~1,600 lines) - The complete compiler
-- **BasicRuntime.java** (~470 lines) - Standard library helper class
+### Source Files (Modular Architecture)
 
-### Documentation
-- **README.md** - User-facing documentation
-- **CODE_GUIDE.md** - This file (developer guide)
-- **DEVELOPMENT_PLAN.md** - Feature roadmap
-- **WISHLIST.md** - Future features
-- **SESSION_SUMMARY.md** - Development history
-- **LOOPS_PLAN.md**, **ARRAY_PLAN.md**, **STDLIB_PLAN.md** - Specific feature plans
-- **walkthrough.md**, **extending.md**, **index.md** - Original documentation
+**Compiler (C++ - ~4,431 lines total):**
+- **main.cpp** (145 lines) - Entry point and CLI
+- **lexer.cpp/.h** (297 lines) - Tokenization
+- **parser.cpp/.h** (1,679 lines) - Recursive descent parser
+- **ast.cpp/.h** (43 lines) - AST type definitions
+- **semantic.cpp/.h** (1,542 lines) - Type inference and analysis
+- **codegen.h** (~4,000 lines) - JVM bytecode generator
+- **ast_printer.cpp/.h** (488 lines) - AST pretty-printing
+- **builtin_functions.cpp/.h** (237 lines) - Built-in function registry
 
-### Test Files (31 .bas files)
-- Comprehensive test coverage for every feature
+**Runtime (Java - 3,539 lines):**
+- **BasicRuntime.java** - All 280+ functions and 23 namespace implementations
+
+### Test Files (100 .bas files)
+- Comprehensive test coverage in `tests/` directory
+
+### Example Programs (25 .bas files)
+- Demonstration programs in `examples/` directory
 
 ---
 
@@ -48,40 +55,63 @@ BasicProgram.class (output)
 ### Key Data Structures
 
 ```cpp
-// Types
-enum class Type { 
-    Int, Float, String, Bool,              // Scalar types
-    IntArray, FloatArray, StringArray, BoolArray  // Array types
+// Types (ast.h)
+enum class Type {
+    Int, Float, Double, String, Bool,      // Scalar types
+    IntArray, FloatArray, DoubleArray,     // Array types
+    StringArray, BoolArray,
+    UserDefined,                           // Structs (TYPE)
+    Decimal,                               // java.math.BigDecimal
+    BigInt                                 // java.math.BigInteger
 };
 
-// Operators
-enum class Op { 
+// Operators (ast.h)
+enum class Op {
     Add, Sub, Mul, Div, Mod,               // Arithmetic
-    Lt, Gt, Le, Ge, Eq, Ne                 // Comparisons
+    Lt, Gt, Le, Ge, Eq, Ne,                // Comparisons
+    Shl, Shr,                              // Bit shifts
+    BitAnd, BitOr, BitXor                  // Bitwise
 };
+
+enum class LogicalOp { And, Or, Xor, Not };  // Logical operators
 
 // Expressions (what produces a value)
-enum class ExprKind { 
-    Num,      // Numeric literal
-    Str,      // String literal
-    Var,      // Variable or array access
-    Bin,      // Binary operation (a + b)
-    BoolLit,  // Boolean literal (true/false)
-    Cmp,      // Comparison (a < b)
-    Call      // Function call
+enum class ExprKind {
+    Num,           // Numeric literal
+    Str,           // String literal
+    Var,           // Variable or array access
+    Bin,           // Binary operation (a + b)
+    BoolLit,       // Boolean literal (true/false)
+    Cmp,           // Comparison (a < b)
+    Call,          // Function call
+    MethodCall,    // obj.Method() call
+    NamespaceCall, // Console.WriteLine() etc.
+    NewObj,        // NEW ClassName(args)
+    MemberAccess,  // obj.field
+    Logical        // AND, OR, NOT, XOR
 };
 
 // Statements (what does something)
-enum class StmtKind { 
-    Print,    // Output
-    Let,      // Assignment
-    Input,    // Read input
-    Dim,      // Array declaration
-    If,       // Conditional
-    For,      // FOR loop
-    While,    // WHILE loop
-    DoWhile   // DO-WHILE loop
+enum class StmtKind {
+    Print,       // Output
+    Let,         // Assignment
+    Input,       // Read input
+    Dim,         // Variable/array declaration
+    If,          // Conditional
+    For,         // FOR loop
+    While,       // WHILE loop
+    DoWhile,     // DO-WHILE loop
+    Return,      // Return from function
+    Call,        // SUB call
+    MethodCall,  // obj.Method() as statement
+    ExprStmt,    // Expression statement
+    ExitFor,     // Break from FOR
+    ExitWhile,   // Break from WHILE
+    Continue     // Continue to next iteration
 };
+
+// Declarations
+enum class DeclKind { Function, Sub, TypeDef, Class };
 ```
 
 ---

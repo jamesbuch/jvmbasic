@@ -14,8 +14,10 @@ Dim einsteinUrl As String = "https://en.wikipedia.org/api/rest_v1/page/summary/A
 Dim einstein As String = Http.Get(einsteinUrl)
 
 If Len(einstein) > 0 Then
-    ' Extract the extract (summary text)
-    Dim summary As String = Regex.Group("\"extract\":\\s*\"([^\"]{1,200})", einstein, 1)
+    ' Extract the extract (summary text) using Json namespace
+    Dim einsteinObj As Integer = Json.Parse(einstein)
+    Dim summary As String = Json.GetString(einsteinObj, "extract")
+    summary = Mid(summary, 1, 200)
     Console.WriteLine("Summary: " + summary + "...")
 
     ' Check for expected facts
@@ -41,7 +43,9 @@ Dim pythonUrl As String = "https://en.wikipedia.org/api/rest_v1/page/summary/Pyt
 Dim python As String = Http.Get(pythonUrl)
 
 If Len(python) > 0 Then
-    Dim pythonSummary As String = Regex.Group("\"extract\":\\s*\"([^\"]{1,200})", python, 1)
+    Dim pythonObj As Integer = Json.Parse(python)
+    Dim pythonSummary As String = Json.GetString(pythonObj, "extract")
+    pythonSummary = Mid(pythonSummary, 1, 200)
     Console.WriteLine("Summary: " + pythonSummary + "...")
 
     If Regex.Match("programming language", python) Then
@@ -62,7 +66,9 @@ Dim moonUrl As String = "https://en.wikipedia.org/api/rest_v1/page/summary/Moon"
 Dim moon As String = Http.Get(moonUrl)
 
 If Len(moon) > 0 Then
-    Dim moonSummary As String = Regex.Group("\"extract\":\\s*\"([^\"]{1,200})", moon, 1)
+    Dim moonObj As Integer = Json.Parse(moon)
+    Dim moonSummary As String = Json.GetString(moonObj, "extract")
+    moonSummary = Mid(moonSummary, 1, 200)
     Console.WriteLine("Summary: " + moonSummary + "...")
 
     If Regex.Match("Earth", moon) Then
@@ -83,16 +89,18 @@ Dim mathUrl As String = "https://en.wikipedia.org/api/rest_v1/page/summary/Mathe
 Dim math As String = Http.Get(mathUrl)
 
 If Len(math) > 0 Then
+    Dim mathObj As Integer = Json.Parse(math)
+
     ' Extract title
-    Dim pageTitle As String = Regex.Group("\"title\":\\s*\"([^\"]+)\"", math, 1)
+    Dim pageTitle As String = Json.GetString(mathObj, "title")
     Console.WriteLine("Title: " + pageTitle)
 
     ' Extract description
-    Dim desc As String = Regex.Group("\"description\":\\s*\"([^\"]+)\"", math, 1)
+    Dim desc As String = Json.GetString(mathObj, "description")
     Console.WriteLine("Description: " + desc)
 
     ' Check content type
-    Dim contentType As String = Regex.Group("\"type\":\\s*\"([^\"]+)\"", math, 1)
+    Dim contentType As String = Json.GetString(mathObj, "type")
     Console.WriteLine("Content type: " + contentType)
 End If
 Console.WriteLine("")

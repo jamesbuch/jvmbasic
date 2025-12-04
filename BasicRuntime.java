@@ -1275,7 +1275,10 @@ public class BasicRuntime {
     public static boolean regexMatch(String pattern, String text) {
         if (pattern == null || text == null) return false;
         try {
-            return text.matches(pattern);
+            // Use Matcher.find() to check if pattern exists anywhere in text
+            // NOT String.matches() which requires matching the entire string
+            java.util.regex.Pattern p = java.util.regex.Pattern.compile(pattern);
+            return p.matcher(text).find();
         } catch (java.util.regex.PatternSyntaxException e) {
             return false;
         }
