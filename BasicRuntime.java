@@ -3067,6 +3067,249 @@ public class BasicRuntime {
             return -1;
         }
     }
+
+    // ===== BigInteger Support =====
+
+    // Creation
+    public static java.math.BigInteger bigint_FromString(String s) {
+        try {
+            return new java.math.BigInteger(s);
+        } catch (Exception e) {
+            return java.math.BigInteger.ZERO;
+        }
+    }
+
+    public static java.math.BigInteger bigint_FromInt(int n) {
+        return java.math.BigInteger.valueOf(n);
+    }
+
+    public static java.math.BigInteger bigint_FromLong(long n) {
+        return java.math.BigInteger.valueOf(n);
+    }
+
+    // Arithmetic
+    public static java.math.BigInteger bigint_Add(java.math.BigInteger a, java.math.BigInteger b) {
+        return a.add(b);
+    }
+
+    public static java.math.BigInteger bigint_Subtract(java.math.BigInteger a, java.math.BigInteger b) {
+        return a.subtract(b);
+    }
+
+    public static java.math.BigInteger bigint_Multiply(java.math.BigInteger a, java.math.BigInteger b) {
+        return a.multiply(b);
+    }
+
+    public static java.math.BigInteger bigint_Divide(java.math.BigInteger a, java.math.BigInteger b) {
+        return a.divide(b);
+    }
+
+    public static java.math.BigInteger bigint_Mod(java.math.BigInteger a, java.math.BigInteger b) {
+        return a.mod(b);
+    }
+
+    public static java.math.BigInteger bigint_Pow(java.math.BigInteger base, int exp) {
+        return base.pow(exp);
+    }
+
+    public static java.math.BigInteger bigint_ModPow(java.math.BigInteger base, java.math.BigInteger exp, java.math.BigInteger mod) {
+        return base.modPow(exp, mod);
+    }
+
+    // Comparison
+    public static int bigint_CompareTo(java.math.BigInteger a, java.math.BigInteger b) {
+        return a.compareTo(b);
+    }
+
+    public static boolean bigint_Equals(java.math.BigInteger a, java.math.BigInteger b) {
+        return a.equals(b);
+    }
+
+    // Unary operations
+    public static java.math.BigInteger bigint_Abs(java.math.BigInteger a) {
+        return a.abs();
+    }
+
+    public static java.math.BigInteger bigint_Negate(java.math.BigInteger a) {
+        return a.negate();
+    }
+
+    public static int bigint_Signum(java.math.BigInteger a) {
+        return a.signum();
+    }
+
+    // Conversion
+    public static String bigint_ToString(java.math.BigInteger a) {
+        return a.toString();
+    }
+
+    public static int bigint_ToInt(java.math.BigInteger a) {
+        return a.intValue();
+    }
+
+    public static long bigint_ToLong(java.math.BigInteger a) {
+        return a.longValue();
+    }
+
+    // Utility
+    public static java.math.BigInteger bigint_Gcd(java.math.BigInteger a, java.math.BigInteger b) {
+        return a.gcd(b);
+    }
+
+    public static java.math.BigInteger bigint_Max(java.math.BigInteger a, java.math.BigInteger b) {
+        return a.max(b);
+    }
+
+    public static java.math.BigInteger bigint_Min(java.math.BigInteger a, java.math.BigInteger b) {
+        return a.min(b);
+    }
+
+    public static int bigint_BitLength(java.math.BigInteger a) {
+        return a.bitLength();
+    }
+
+    public static boolean bigint_IsProbablePrime(java.math.BigInteger a, int certainty) {
+        return a.isProbablePrime(certainty);
+    }
+
+    // Constants
+    public static java.math.BigInteger bigint_Zero() {
+        return java.math.BigInteger.ZERO;
+    }
+
+    public static java.math.BigInteger bigint_One() {
+        return java.math.BigInteger.ONE;
+    }
+
+    public static java.math.BigInteger bigint_Ten() {
+        return java.math.BigInteger.TEN;
+    }
+
+    // ===== BigDecimal Support =====
+
+    // Creation
+    public static java.math.BigDecimal decimal_FromString(String s) {
+        try {
+            return new java.math.BigDecimal(s);
+        } catch (Exception e) {
+            return java.math.BigDecimal.ZERO;
+        }
+    }
+
+    public static java.math.BigDecimal decimal_FromDouble(double d) {
+        return java.math.BigDecimal.valueOf(d);
+    }
+
+    public static java.math.BigDecimal decimal_FromBigInt(java.math.BigInteger n) {
+        return new java.math.BigDecimal(n);
+    }
+
+    // Arithmetic
+    public static java.math.BigDecimal decimal_Add(java.math.BigDecimal a, java.math.BigDecimal b) {
+        return a.add(b);
+    }
+
+    public static java.math.BigDecimal decimal_Subtract(java.math.BigDecimal a, java.math.BigDecimal b) {
+        return a.subtract(b);
+    }
+
+    public static java.math.BigDecimal decimal_Multiply(java.math.BigDecimal a, java.math.BigDecimal b) {
+        return a.multiply(b);
+    }
+
+    public static java.math.BigDecimal decimal_Divide(java.math.BigDecimal a, java.math.BigDecimal b, int scale, int roundingMode) {
+        java.math.RoundingMode rm = java.math.RoundingMode.values()[roundingMode];
+        return a.divide(b, scale, rm);
+    }
+
+    public static java.math.BigDecimal decimal_DivideSimple(java.math.BigDecimal a, java.math.BigDecimal b) {
+        // Default: 10 decimal places, HALF_UP rounding
+        return a.divide(b, 10, java.math.RoundingMode.HALF_UP);
+    }
+
+    public static java.math.BigDecimal decimal_Remainder(java.math.BigDecimal a, java.math.BigDecimal b) {
+        return a.remainder(b);
+    }
+
+    public static java.math.BigDecimal decimal_Pow(java.math.BigDecimal base, int exp) {
+        return base.pow(exp);
+    }
+
+    // Comparison
+    public static int decimal_CompareTo(java.math.BigDecimal a, java.math.BigDecimal b) {
+        return a.compareTo(b);
+    }
+
+    public static boolean decimal_Equals(java.math.BigDecimal a, java.math.BigDecimal b) {
+        return a.compareTo(b) == 0;  // Use compareTo for value equality
+    }
+
+    // Unary operations
+    public static java.math.BigDecimal decimal_Abs(java.math.BigDecimal a) {
+        return a.abs();
+    }
+
+    public static java.math.BigDecimal decimal_Negate(java.math.BigDecimal a) {
+        return a.negate();
+    }
+
+    public static int decimal_Signum(java.math.BigDecimal a) {
+        return a.signum();
+    }
+
+    // Scale and precision
+    public static int decimal_Scale(java.math.BigDecimal a) {
+        return a.scale();
+    }
+
+    public static int decimal_Precision(java.math.BigDecimal a) {
+        return a.precision();
+    }
+
+    public static java.math.BigDecimal decimal_SetScale(java.math.BigDecimal a, int scale, int roundingMode) {
+        java.math.RoundingMode rm = java.math.RoundingMode.values()[roundingMode];
+        return a.setScale(scale, rm);
+    }
+
+    // Rounding
+    public static java.math.BigDecimal decimal_Round(java.math.BigDecimal a, int precision) {
+        return a.round(new java.math.MathContext(precision, java.math.RoundingMode.HALF_UP));
+    }
+
+    // Conversion
+    public static String decimal_ToString(java.math.BigDecimal a) {
+        return a.toPlainString();
+    }
+
+    public static double decimal_ToDouble(java.math.BigDecimal a) {
+        return a.doubleValue();
+    }
+
+    public static java.math.BigInteger decimal_ToBigInt(java.math.BigDecimal a) {
+        return a.toBigInteger();
+    }
+
+    // Utility
+    public static java.math.BigDecimal decimal_Max(java.math.BigDecimal a, java.math.BigDecimal b) {
+        return a.max(b);
+    }
+
+    public static java.math.BigDecimal decimal_Min(java.math.BigDecimal a, java.math.BigDecimal b) {
+        return a.min(b);
+    }
+
+    // Constants
+    public static java.math.BigDecimal decimal_Zero() {
+        return java.math.BigDecimal.ZERO;
+    }
+
+    public static java.math.BigDecimal decimal_One() {
+        return java.math.BigDecimal.ONE;
+    }
+
+    public static java.math.BigDecimal decimal_Ten() {
+        return java.math.BigDecimal.TEN;
+    }
 }
 
 
