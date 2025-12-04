@@ -1,694 +1,752 @@
 # JVM BASIC — A Modern BASIC Compiler for the JVM
 
-A modern, professional BASIC compiler with Visual Basic-style syntax that generates JVM bytecode. Supports full object-oriented programming, modern type system (Decimal, BigInt), web capabilities (JSON, HTTP), database connectivity, and 255 built-in functions with namespace syntax.
+A modern, professional BASIC compiler with Visual Basic-style syntax that generates JVM bytecode. Supports full object-oriented programming, arbitrary precision arithmetic (Decimal, BigInt), web capabilities (JSON, HTTP), database connectivity, cryptography, threading, and 23 namespaces with 280+ functions.
 
-**Current Version**: Phase 10 In Progress (String Interpolation + Type System Fixes) ✅  
-**Test Coverage**: 100% (89/89 tests passing + 3 stdin tests skipped)  
-**Function Count**: 255 functions across 7 namespaces  
-**Libraries**: 16 professional JARs (22MB) - Gson, JDBC, Apache Commons, ANTLR4, Bouncy Castle, Jetty
+**Current Version**: Phase 12 (System Namespace)
+**Test Coverage**: 98/100 tests passing
+**Runtime Library**: 3,539 lines of Java
+**Namespaces**: 23 modern namespaces
+**Libraries**: 16 professional JARs (PostgreSQL, MariaDB, Gson, Bouncy Castle, Jetty, Apache Commons)
 
-## Features
+---
 
-### Phase 10: String Interpolation ✨ NEW!
-- **String Interpolation**: `$"Hello {name}, you are {age} years old!"`
-  - Python f-string / C# interpolated string style
-  - Works with all types: Integer, Single, Double, Long, Boolean, String
-  - Automatic type conversion to string
-  - Escape sequences: `\\{`, `\\}`, `\\n`, `\\t`
+## Table of Contents
 
-### Phase 9: Modern Syntax & Enterprise Libraries
-- **Modern VB-Style Syntax**: `Dim x As Integer = 10`, `Function Add(a As Integer) As Integer`
-- **Fully Case-Insensitive**: All keywords work in any case (Dim/DIM/dim, If/IF/if, Function/FUNCTION/function, etc.)
-- **Expression Statements**: Call functions without dummy variables: `Console.WriteLine("text")`
-- **Expanded Type System**: Integer, Single/Float (32-bit), Double (64-bit IEEE 754), Long, Boolean, String, Decimal, BigInt
-- **Namespace/OO Syntax**: Console.WriteLine(), Math.Sin(), File.ReadAllText()
-- **Professional Libraries** (16 JARs - 22MB):
-  - **JSON**: Google Gson 2.10.1 for robust JSON parsing/generation
-  - **Databases**: PostgreSQL JDBC 42.7.1 + MariaDB JDBC 3.3.2
-  - **HTTP**: Modern `java.net.http.HttpClient` (Java 11+)
-  - **XML**: javax.xml DOM + XPath support
-  - **Utilities**: Apache Commons (IO, Lang3, Text, Math3, Codec), Google Guava
-  - **Crypto**: Bouncy Castle 1.77 (future)
-  - **Web Server**: Jetty 11.0.19 (future)
-  - **Parsers**: ANTLR4 4.13.1 (self-hosting goal!)
-- **Complete Operators**: 
-  - Bitwise: `&` (AND), `|` (OR), `^` (XOR), `<<` (SHL), `>>` (SHR)
-  - Logical: `AND`, `OR`, `NOT`, `XOR`
-  - Arithmetic: `+`, `-`, `*`, `/`, `%`
-  - Comparison: `<`, `>`, `<=`, `>=`, `=`, `<>`
-- **255 Functions** across 7 namespaces (Console, Math, File, Http, Json, Xml, Db)
+1. [Quick Start](#quick-start)
+2. [Building from Source](#building-from-source)
+3. [Language Features](#language-features)
+4. [Standard Library](#standard-library)
+5. [Example Programs](#example-programs)
+6. [Running Tests](#running-tests)
+7. [Development History](#development-history)
 
-### Object-Oriented Programming (Phase 7)
-- `CLASS...END CLASS` with PUBLIC/PRIVATE fields and methods
-- Constructors, instance methods, `NEW` operator, `ME` keyword
-- Full encapsulation and inheritance foundation
-
-### User-Defined Types (Phase 6)
-- `TYPE...ENDTYPE` structures with dot notation member access
-
-### Core Language
-- **Functions & Subroutines**: Modern syntax with typed parameters
-- **Arrays**: Typed arrays with modern declarations
-- **Control Flow**: IF, FOR, WHILE, DO...WHILE/UNTIL with modern syntax
-- **I/O**: Console namespace + traditional PRINT/INPUT
-- **Comments**: `REM` and `'` (apostrophe)
-- **Type System**: Int, Float/Single (32-bit), Double (64-bit), String, Bool, Decimal, BigInt, UserDefined
-- **Expressions**: Full arithmetic, comparison, logical, bitwise operations
-
-### Compiler Features
-- **Pure C++20**: Single-file or modular architecture
-- **Direct Bytecode**: Generates valid `.class` files for JVM (Java 5 target)
-- **Type Inference**: Multi-pass type inference for function parameters and arrays
-- **Error Reporting**: Line numbers and descriptive error messages
-- **Zero Dependencies**: No external libraries for compilation
+---
 
 ## Quick Start
 
-### Build the Compiler
+### Prerequisites
 
-**Using Make:**
+- **C++20 compiler** (g++ 10+ or clang 12+)
+- **JDK 11+** (for running compiled programs)
+- **Make** (optional, for build system)
+
+### Build Everything
+
 ```bash
-# Clean build
-make clean && make
+# Clean build of compiler and runtime
+./rebuild.sh
 
-# This compiles all C++ modules and links them into ./jvmbasic
+# Or with tests
+./rebuild.sh --test
 ```
 
-**Manual Build:**
+### Compile and Run a Program
+
 ```bash
-# Compile individual modules
-g++ -std=gnu++20 -O2 -c ast.cpp
-g++ -std=gnu++20 -O2 -c lexer.cpp
-g++ -std=gnu++20 -O2 -c parser.cpp
-g++ -std=gnu++20 -O2 -c semantic.cpp
-g++ -std=gnu++20 -O2 -c ast_printer.cpp
-g++ -std=gnu++20 -O2 -c builtin_functions.cpp
-g++ -std=gnu++20 -O2 -c main.cpp
-
-# Link all modules
-g++ -std=gnu++20 -O2 *.o -o jvmbasic
-```
-
-**Compile Runtime with Libraries:**
-```bash
-# Compile with all 16 professional libraries
-javac -cp "lib/*" BasicRuntime.java
-cp BasicRuntime.class basicrt/
-
-# Or use the provided script
-./compile_runtime.sh
-```
-
-### Compile a BASIC Program
-
-**Basic Compilation:**
-```bash
-./jvmbasic < program.bas
-# Generates: BasicProgram.class
-```
-
-**Custom Class Name:**
-```bash
+# Compile a BASIC program
 ./jvmbasic -o MyProgram < program.bas
-# Generates: MyProgram.class
-```
 
-**Debug with AST Dump:**
-```bash
-./jvmbasic --dump-ast < program.bas
-# Prints the Abstract Syntax Tree (pretty-printed)
-```
-
-**Check Syntax Only (No Code Generation):**
-```bash
-./jvmbasic --check-only < program.bas
-# Parse and type-check only, useful for syntax validation
-```
-
-**All Command-Line Options:**
-```bash
-./jvmbasic --help
-
-Options:
-  -o <name>       Output class name (default: BasicProgram)
-  --dump-ast      Print AST and exit (for debugging)
-  --check-only    Parse and type-check, don't generate code
-  --help          Show this help message
-```
-
-### Run a Compiled Program
-
-**With Libraries (Recommended):**
-```bash
-java -cp ".:lib/*:basicrt" BasicProgram
-```
-
-**Without Libraries (Core Features Only):**
-```bash
-java -cp ".:basicrt" BasicProgram
-```
-
-**Windows:**
-```cmd
-java -cp ".;lib/*;basicrt" BasicProgram
-```
-
-**Custom Class Name:**
-```bash
-java -cp ".:lib/*:basicrt" MyProgram
-```
-
-### Complete Workflow
-
-**Using the Build Script (Easiest):**
-```bash
-./buildrun.sh program.bas
-# Automatically compiles runtime, compiles program, and runs it
-```
-
-**Manual Step-by-Step:**
-```bash
-# 1. Compile runtime (once)
-javac -cp "lib/*" BasicRuntime.java
-cp BasicRuntime.class basicrt/
-
-# 2. Compile your BASIC program
-./jvmbasic < program.bas
-
-# 3. Run it
-java -cp ".:lib/*:basicrt" BasicProgram
+# Run the compiled program
+java -cp '.:basicrt:lib/*' MyProgram
 ```
 
 ### Hello World
 
-**With String Interpolation (Phase 10):**
 ```basic
-' Modern string interpolation
+' hello.bas - Modern JVM BASIC
+Console.WriteLine("Hello, World!")
+
 Dim name As String = "Alice"
 Dim age As Integer = 30
-Console.WriteLine($"Hello {name}, you are {age} years old!")
+Console.WriteLine("Name: " + name + ", Age: " + age)
 ```
 
-**Modern Syntax:**
-```basic
-Console.WriteLine("Hello, World!")
-Console.WriteLine("Welcome to JVM BASIC!")
+---
 
-' With variables
+## Building from Source
+
+### Using rebuild.sh (Recommended)
+
+The `rebuild.sh` script handles clean builds of both the C++ compiler and Java runtime:
+
+```bash
+# Full clean rebuild
+./rebuild.sh
+
+# Options:
+./rebuild.sh --clean-only     # Only clean, don't rebuild
+./rebuild.sh --runtime-only   # Only rebuild Java runtime
+./rebuild.sh --compiler-only  # Only rebuild C++ compiler
+./rebuild.sh --test           # Run tests after building
+./rebuild.sh --help           # Show help
+```
+
+### Manual Build
+
+**Compile the C++ Compiler:**
+```bash
+make clean && make
+# Or manually:
+g++ -std=gnu++20 -O2 -c *.cpp
+g++ -std=gnu++20 -O2 *.o -o jvmbasic
+```
+
+**Compile the Java Runtime:**
+```bash
+javac -cp "lib/*" BasicRuntime.java
+cp BasicRuntime.class basicrt/
+```
+
+### Compiler Options
+
+```bash
+./jvmbasic [options] < input.bas
+
+Options:
+  -o <name>       Output class name (default: BasicProgram)
+  --dump-ast      Print AST and exit (for debugging)
+  --check-only    Parse and type-check only, don't generate code
+  --bytecode      Disassemble generated bytecode (runs javap)
+  --help          Show help
+```
+
+### Running Compiled Programs
+
+```bash
+# With all libraries (recommended)
+java -cp '.:basicrt:lib/*' MyProgram
+
+# Without libraries (core features only)
+java -cp '.:basicrt' MyProgram
+
+# Windows (use semicolons)
+java -cp ".;basicrt;lib/*" MyProgram
+```
+
+---
+
+## Language Features
+
+### Data Types
+
+| Type | Description | Example |
+|------|-------------|---------|
+| `Integer` | 32-bit signed integer | `Dim x As Integer = 42` |
+| `Single` / `Float` | 32-bit floating point | `Dim f As Single = 3.14` |
+| `Double` | 64-bit floating point | `Dim d As Double = 3.14159265359` |
+| `String` | Text string | `Dim s As String = "Hello"` |
+| `Boolean` | True/False | `Dim b As Boolean = True` |
+| `BigInt` | Arbitrary precision integer | `Dim big As Object = BigInt.FromString("12345678901234567890")` |
+| `Decimal` | Arbitrary precision decimal | `Dim dec As Object = Decimal.FromString("3.14159265358979323846")` |
+
+### Variable Declaration
+
+```basic
+' Modern VB-style syntax
+Dim x As Integer = 10
 Dim name As String = "Alice"
-Console.WriteLine("Hello, " + name + "!")
+Dim numbers(100) As Integer = 0
+
+' Arrays
+Dim arr(10) As Single = 0.0
+arr(0) = 3.14
 ```
 
-**Classic Syntax (Still Works):**
+### Control Flow
+
+**If/ElseIf/Else:**
 ```basic
-Print "Hello, World!"
+If x > 10 Then
+    Console.WriteLine("Large")
+ElseIf x > 5 Then
+    Console.WriteLine("Medium")
+Else
+    Console.WriteLine("Small")
+End If
 ```
 
-## Language Examples
+**For Loop:**
+```basic
+For i = 1 To 10 Step 2
+    Console.WriteLine(i)
+Next i
+```
+
+**While Loop:**
+```basic
+Dim i As Integer = 0
+While i < 10
+    Console.WriteLine(i)
+    i = i + 1
+Wend
+```
+
+**Do...While/Until Loop:**
+```basic
+Dim i As Integer = 0
+Do
+    Console.WriteLine(i)
+    i = i + 1
+While i < 10
+
+Do
+    Console.WriteLine(i)
+    i = i - 1
+Until i = 0
+```
+
+**Loop Control:**
+```basic
+For i = 1 To 100
+    If i = 50 Then Exit For      ' Break out of loop
+    If i Mod 2 = 0 Then Continue ' Skip to next iteration
+    Console.WriteLine(i)
+Next i
+```
+
+### Functions and Subroutines
+
+```basic
+' Function with return value
+Function Add(a As Integer, b As Integer) As Integer
+    Return a + b
+End Function
+
+' Subroutine (no return value)
+Sub PrintMessage(msg As String)
+    Console.WriteLine("Message: " + msg)
+End Sub
+
+' Usage
+Dim result As Integer = Add(5, 3)
+Call PrintMessage("Hello!")
+```
 
 ### Object-Oriented Programming
+
 ```basic
-' Define a class with constructor and methods
+' Class definition
 Class BankAccount
     Private balance As Single
     Public owner As String
-    
+
     Public Sub New(name As String, initial As Single)
         Me.owner = name
         Me.balance = initial
     End Sub
-    
+
     Public Sub Deposit(amount As Single)
-        If amount > 0.0 Then
-            Me.balance = Me.balance + amount
-            Console.WriteLine("Deposited: " + Str(amount))
-        End If
+        Me.balance = Me.balance + amount
     End Sub
-    
+
     Public Function GetBalance() As Single
         Return Me.balance
     End Function
 End Class
 
-' Create and use objects
+' Usage
 Dim account As New BankAccount("Alice", 1000.0)
 account.Deposit(500.0)
-Console.WriteLine(account.owner + " has $" + Str(account.GetBalance()))
+Console.WriteLine(account.owner + ": $" + account.GetBalance())
 ```
 
 ### User-Defined Types (Structs)
+
 ```basic
 Type Person
     name As String
-    age As Single
+    age As Integer
 End Type
 
-Dim person As Person
-person.name = "Alice"
-person.age = 30.0
-Console.WriteLine("Person: " + person.name + ", age " + Str(person.age))
+Dim p As Person
+p.name = "Bob"
+p.age = 25
+Console.WriteLine(p.name + " is " + p.age + " years old")
 ```
 
-### Functions with Recursion
+### Operators
+
+| Category | Operators |
+|----------|-----------|
+| Arithmetic | `+`, `-`, `*`, `/`, `Mod` |
+| Comparison | `=`, `<>`, `<`, `>`, `<=`, `>=` |
+| Logical | `And`, `Or`, `Not`, `Xor` |
+| Bitwise | `&` (AND), `\|` (OR), `^` (XOR), `<<` (SHL), `>>` (SHR) |
+
+---
+
+## Standard Library
+
+JVM BASIC provides 23 namespaces with 280+ functions for modern application development.
+
+### Console Namespace
+
+Console I/O operations.
+
+| Function | Description |
+|----------|-------------|
+| `Console.WriteLine(text)` | Print text with newline |
+| `Console.Write(text)` | Print text without newline |
+| `Console.ReadLine()` | Read a line of text |
+| `Console.ReadKey()` | Read a single character |
+
+### Math Namespace
+
+Mathematical functions.
+
+| Function | Description |
+|----------|-------------|
+| `Math.Sin(x)`, `Math.Cos(x)`, `Math.Tan(x)` | Trigonometric functions |
+| `Math.Asin(x)`, `Math.Acos(x)`, `Math.Atan(x)` | Inverse trig functions |
+| `Math.Sqrt(x)` | Square root |
+| `Math.Pow(x, y)` | Power (x^y) |
+| `Math.Exp(x)`, `Math.Log(x)`, `Math.Log10(x)` | Exponential/logarithmic |
+| `Math.Abs(x)` | Absolute value |
+| `Math.Floor(x)`, `Math.Ceil(x)`, `Math.Round(x)` | Rounding |
+| `Math.Min(a, b)`, `Math.Max(a, b)` | Minimum/maximum |
+| `Math.PI()`, `Math.E()` | Constants |
+
+### File Namespace
+
+File system operations.
+
+| Function | Description |
+|----------|-------------|
+| `File.ReadAllText(path)` | Read entire file as string |
+| `File.WriteAllText(path, content)` | Write string to file |
+| `File.Exists(path)` | Check if file exists |
+| `File.Delete(path)` | Delete a file |
+| `File.Copy(src, dest)` | Copy a file |
+| `File.Move(src, dest)` | Move/rename a file |
+| `File.Size(path)` | Get file size in bytes |
+| `File.IsDirectory(path)` | Check if path is directory |
+| `File.OpenReader(path)` | Open file for line-by-line reading |
+| `File.ReadLine(handle)` | Read next line |
+| `File.HasLine(handle)` | Check if more lines available |
+| `File.CloseReader(handle)` | Close reader |
+
+### Path Namespace
+
+Path manipulation.
+
+| Function | Description |
+|----------|-------------|
+| `Path.Combine(path1, path2)` | Join path components |
+| `Path.GetDirectory(path)` | Get directory portion |
+| `Path.GetFileName(path)` | Get filename portion |
+| `Path.GetExtension(path)` | Get file extension |
+| `Path.GetFileNameWithoutExtension(path)` | Get filename without extension |
+
+### Dir Namespace
+
+Directory operations.
+
+| Function | Description |
+|----------|-------------|
+| `Dir.Create(path)` | Create directory |
+| `Dir.Exists(path)` | Check if directory exists |
+| `Dir.GetFiles(path)` | List files in directory (semicolon-separated) |
+
+### Http Namespace
+
+HTTP client operations.
+
 ```basic
-Function Factorial(n As Single) As Single
-    If n <= 1.0 Then
-        Return 1.0
-    Else
-        Return n * Factorial(n - 1.0)
-    End If
-End Function
+' GET request
+Dim response As String = Http.Get("https://api.example.com/data")
 
-Console.WriteLine("5! = " + Str(Factorial(5.0)))  ' Output: 120.0
+' POST request
+Dim result As String = Http.Post("https://api.example.com/submit", "name=Alice&age=30")
+
+' URL encoding
+Dim encoded As String = Http.UrlEncode("Hello World!")
+Dim decoded As String = Http.UrlDecode(encoded)
 ```
 
-### Arrays and Array Functions
+### Json Namespace
+
+JSON parsing and generation using Google Gson.
+
 ```basic
-Dim numbers(10) As Single = 0.0
-For i = 0.0 To 9.0
-    numbers(Int(i)) = RndInt(1, 100)
-Next i
-
-ArraySort(numbers)
-Console.WriteLine("Min: " + Str(ArrayMin(numbers)))
-Console.WriteLine("Max: " + Str(ArrayMax(numbers)))
-Console.WriteLine("Average: " + Str(ArrayAvg(numbers)))
-```
-
-### File I/O (Phase 9)
-```basic
-' Modern namespace syntax with expression statements
-File.WriteAllText("data.txt", "Hello from JVM BASIC!")
-Dim content As String = File.ReadAllText("data.txt")
-Console.WriteLine(content)
-
-' Check if file exists
-If File.Exists("data.txt") Then
-    Console.WriteLine("File exists!")
-    Console.WriteLine("File size: " + Str(File.Size("data.txt")) + " bytes")
-End If
-
-' File operations
-File.Copy("data.txt", "backup.txt")
-File.Move("backup.txt", "backup2.txt")
-File.Delete("backup2.txt")
-```
-
-### Regular Expressions
-```basic
-Dim email As String = "user@example.com"
-' Classic function syntax: RegexMatch(pattern, text)
-If RegexMatch("\\w+@\\w+\\.\\w+", email) Then
-    Dim user As String = RegexGroup("(\\w+)@(\\w+\\.\\w+)", email, 1)
-    Dim domain As String = RegexGroup("(\\w+)@(\\w+\\.\\w+)", email, 2)
-    Console.WriteLine("User: " + user)
-    Console.WriteLine("Domain: " + domain)
-End If
-
-' Or use namespace syntax: Regex.Match(pattern, text)
-If Regex.Match("\\d+", "Order #12345") Then
-    Dim orderNum As String = Regex.Find("\\d+", "Order #12345")
-    Console.WriteLine("Order number: " + orderNum)
-End If
-```
-
-## Complete Feature List
-
-### Statements (Case-Insensitive)
-- `Print [expr [, | ;] ...] [, | ;]` - Output with optional separators
-- `Console.WriteLine(expr)` / `Console.Write(expr)` - Modern I/O
-- `Dim var = expr` - Variable assignment (modern) or `Let var = expr` (classic)
-- `var(index) = expr` - Array element assignment
-- `var.member = expr` - Struct/object member assignment
-- `Input var` - Read input (auto type conversion)
-- `Dim var(size) = init` - Array declaration
-- `Dim var As TypeName` - Typed variable declaration
-- `Dim var As New ClassName(args)` - Object instantiation
-- `If cond Then ... [ElseIf cond Then ...] [Else ...] EndIf`
-- `For var = start To end [Step step] ... Next var`
-- `While cond ... EndWhile` (or `Wend`)
-- `Do ... While cond` - Post-test loop
-- `Do ... Until cond` - Post-test until loop
-- `Return [expr]` - Return from function
-- `Call name(args)` - Call subroutine
-- `Rem comment` - Comment line
-- `' comment` - Apostrophe comment
-
-### Declarations (Case-Insensitive)
-- `Function name(params [As Type]) [As ReturnType] ... Return expr ... End Function`
-- `Sub name(params [As Type]) ... End Sub`
-- `Type name ... field As type ... EndType` - User-defined types
-- `Class name ... [Public/Private] fields/methods ... End Class` - Object-oriented
-
-### Built-in Functions (255 Total - All Case-Insensitive)
-
-See `docs/USER_GUIDE.md` for complete documentation with examples.
-
-**Console Namespace** (4): `Console.WriteLine()`, `Console.Write()`, `Console.ReadLine()`, `Console.ReadKey()`
-
-**Math Namespace** (20): `Math.Sin()`, `Math.Cos()`, `Math.Tan()`, `Math.Sqrt()`, `Math.Abs()`, `Math.Min()`, `Math.Max()`, `Math.Pow()`, `Math.Log()`, `Math.Exp()`, `Math.Floor()`, `Math.Ceil()`, `Math.Round()`, `Math.PI()`, `Math.E()`, etc.
-
-**File Namespace** (8): `File.ReadAllText()`, `File.WriteAllText()`, `File.Exists()`, `File.Delete()`, `File.Copy()`, `File.Move()`, `File.Size()`, `File.IsDirectory()`
-
-**Http Namespace** (4): `Http.Get()`, `Http.Post()`, `Http.UrlEncode()`, `Http.UrlDecode()`
-
-**Json Namespace** (8): `Json.Parse()`, `Json.NewObject()`, `Json.Put()`, `Json.PutInt()`, `Json.GetString()`, `Json.GetInt()`, `Json.GetFloat()`, `Json.ToString()`
-
-**Xml Namespace** (2): `Xml.Parse()`, `Xml.GetText()`
-
-**Db Namespace** (6): `Db.Connect()`, `Db.Query()`, `Db.Next()`, `Db.GetString()`, `Db.GetInt()`, `Db.Close()`
-
-**Classic Functions**: 199 additional functions including Math, String, Array, File I/O, Regex, Collections, Date/Time, and more
-
-## Architecture
-
-### Compiler Pipeline
-1. **Lexer** - Tokenization with keywords, operators, literals
-2. **Parser** - Recursive descent parser building typed AST
-3. **Type Inference** - Multi-pass inference for parameters and arrays
-4. **Code Generation** - JVM bytecode emission to `.class` file
-
-### Files
-- **Compiler** (8,782 lines C++):
-  - `main.cpp` - Entry point and CLI
-  - `lexer.cpp/.h` - Tokenization
-  - `parser.cpp/.h` - Recursive descent parser
-  - `ast.cpp/.h` - Abstract Syntax Tree definitions
-  - `semantic.cpp/.h` - Type inference and analysis
-  - `codegen.h` - JVM bytecode generator
-  - `ast_printer.cpp/.h` - Pretty-printing for debugging
-  - `builtin_functions.cpp/.h` - Built-in function registry
-- **Runtime** (2,108 lines Java):
-  - `BasicRuntime.java` - All 255 functions + namespace implementations
-
-### Code Generation
-- **Target**: JVM bytecode (Java 5 / version 49)
-- **Class Name**: `BasicProgram` (default)
-- **Method**: Single `public static void main(String[])`
-- **Locals**: Efficiently allocated local variable slots
-- **Structs**: Implemented as `Object[]` arrays with boxing/unboxing
-
-## Testing
-
-### Test Suite
-- **81 tests passing** ✅ (100% automated success rate)
-  - **Phase 10 tests (2)**: String interpolation (basic, types)
-- **Phase 9 tests (9)**: XML parsing, JSON (Gson), PostgreSQL, MariaDB, all types, bitwise ops, namespaces
-  - **Phase 8 tests (56)**: Built-in functions, string operations, math, file I/O, collections
-  - **Phase 7 OOP tests (7)**: Classes, inheritance, methods, constructors
-  - **Phase 6 tests (4)**: User-defined types (structs)
-  - **Core tests (5+)**: Variables, arrays, control flow, operators, functions
-  - **Stdin tests (3)**: Skipped in automation (test_input.bas, test_input_simple.bas, input.bas)
-- Automated test runner: `./test_runner.sh`
-
-### Run Tests
-```bash
-./test_runner.sh              # All 81 automated tests
-./dump_test_artifacts.sh      # Generate AST and bytecode dumps for debugging
-
-# Test results show:
-# Passed:  81
-# Failed:  0
-# Skipped: 3 (require stdin)
-# Total:   84
-```
-
-## Documentation
-
-### User Documentation (`docs/`)
-- `docs/USER_GUIDE.md` - Complete user guide with all 255 functions and examples
-- `docs/user/` - User example programs and showcases
-- `README.md` - This file (quick start and overview)
-
-### Developer Documentation (`docs/dev/`)
-- `docs/dev/CODE_GUIDE.md` - Complete developer guide
-- `docs/dev/AST_GUIDE.md` - AST structure and extension guide
-- `docs/dev/LEXER_GUIDE.md` - Lexer internals and extension
-- `docs/dev/DEBUGGING_GUIDE.md` - Debugging techniques
-- `docs/dev/MODULAR_ARCHITECTURE.md` - Modular compiler architecture
-- `docs/dev/PHASE7_IMPLEMENTATION_GUIDE.md` - OOP implementation details
-
-### Planning & Phase Documentation
-- `docs/planning/` - Design documents for each phase
-- `docs/phase9/` - Phase 9 (Modern Syntax) completion reports and progress
-- `docs/sessions/` - Historical session summaries
-
-## Development History
-
-### Phase 5 (Complete)
-- ✅ Functions with recursion
-- ✅ Array parameters
-- ✅ Multi-pass type inference
-- ✅ 93 built-in functions
-- ✅ File I/O
-- ✅ Regular expressions
-- ✅ REM comments
-- ✅ Modular architecture
-
-### Phase 6 (Complete)
-- ✅ TYPE...ENDTYPE declarations
-- ✅ User-defined types (structs)
-- ✅ DIM var AS TypeName syntax
-- ✅ Member access via dot operator
-- ✅ JVM bytecode generation with Object[]
-- ✅ Boxing/unboxing for primitives
-- ✅ Comprehensive testing
-
-### Phase 7 (Complete) ✅
-- ✅ Object-oriented programming
-- ✅ CLASS...END CLASS declarations
-- ✅ Constructors (SUB New with parameters)
-- ✅ Instance methods (SUB/FUNCTION)
-- ✅ NEW operator for instantiation
-- ✅ Field access and assignment (getfield/putfield)
-- ✅ Encapsulation (PUBLIC/PRIVATE fields)
-- ✅ ME keyword (self-reference)
-- ✅ Apostrophe comments (`'`)
-- ✅ Multiple classes per program
-
-### Phase 8 (Complete) ✅
-- ✅ 199 built-in functions (+106 from Phase 7)
-- ✅ Logical operators (AND, OR, NOT, XOR)
-- ✅ Collections (IntList, StringList, Map, Stack, Queue)
-- ✅ Date/Time functions (21 functions)
-- ✅ Enhanced string and file I/O
-
-### Phase 9 (Complete) ✅
-- ✅ Modern VB-style syntax (Dim x As Integer = 10)
-- ✅ Fully case-insensitive keywords
-- ✅ Modern function syntax (Function Add() As Integer)
-- ✅ Namespace/OO syntax (Console.WriteLine, Math.Sin)
-- ✅ Web capabilities (Http.Get, Http.Post)
-- ✅ JSON support (Json.Parse, Json.ToString)
-- ✅ File namespace (File.ReadAllText, File.WriteAllText)
-- ✅ Database support (Db.Connect, Db.Query)
-- ✅ Bitwise operators (<< >>)
-- ✅ Decimal and BigInt types
-- ✅ 255 total functions (+56 from Phase 8)
-
-### Phase 10 (In Progress) 🚧
-- ✅ String Interpolation (`$"Hello {name}!"`)
-- ✅ Comprehensive type system fixes (struct/class field types, return type validation)
-- ✅ All 89 automated tests passing
-- ⏭️ Enhanced File/IO for compiler development
-- ⏭️ Command-line arguments (Main function)
-- ⏭️ Crypto namespace
-- ⏭️ Module system and imports
-- ⏭️ Inheritance (Inherits keyword)
-- ⏭️ Method overriding
-- ⏭️ Interfaces
-
-## Examples
-
-### Complete Programs
-
-**17 examples in `examples/latest/`** - All using modern VB-style syntax:
-
-**Algorithms:**
-- `fibonacci_sequence.bas` - Recursive Fibonacci implementation
-- `math_algorithms.bas` - GCD, LCM, factorial algorithms
-- `sorting_algorithms.bas` - Bubble and selection sort
-- `prime_numbers.bas` - Prime number finder with optimization
-- `password_generator.bas` - Secure random password generation
-
-**Data & Statistics:**
-- `statistics.bas` - Mean, median, mode, standard deviation
-- `text_analyzer.bas` - Word frequency, text statistics
-- `log_processor.bas` - Log file parsing and analysis
-
-**Object-Oriented:**
-- `oop_bank_account.bas` - Banking system with classes and methods
-- `oop_geometry.bas` - Shape hierarchy with inheritance
-- `oop_contact_manager.bas` - Contact management with classes
-
-**File & Web:**
-- `file_backup_utility.bas` - File backup and restoration utility
-- `modern_web_app.bas` - Web API integration with JSON
-
-**Games & Utilities:**
-- `lotto.bas` - Lottery number generator
-- `lotto_improved.bas` - Advanced lottery with statistics
-
-**Demonstrations:**
-- `comprehensive_demo.bas` - All Phase 9 features in one program
-- `modern_syntax_demo.bas` - Modern VB syntax showcase
-
-### Test Programs
-
-**81 tests in `tests/` directory** - All automated:
-
-**Phase 9 Tests (9):**
-- `test_xml_namespace.bas` - XML parsing with javax.xml and XPath
-- `test_json_real.bas` - JSON with Google Gson library
-- `test_postgres.bas` - PostgreSQL database connectivity
-- `test_mariadb.bas` - MariaDB database connectivity
-- `test_db_namespace.bas` - Database wrapper functions
-- `test_all_types.bas` - All 8 type keywords
-- `test_bitwise_complete.bas` - All 5 bitwise operators
-- `test_console_readkey.bas` - Console namespace
-- `test_all_namespaces.bas` - Integration test for all 7 namespaces
-
-**Phase 8 Tests (56):** Built-in functions, string ops, math, file I/O  
-**Phase 7 OOP Tests (7):** Classes, inheritance, constructors  
-**Phase 6 Tests (4):** User-defined types (structs)  
-**Core Tests:** Variables, arrays, control flow, operators, functions
-- **Control Flow** (`test_if.bas`, `test_for.bas`, `test_while.bas`)
-- **I/O** (`test_input*.bas`, `test_print*.bas`)
-- **Advanced** (`test_algorithms.bas`, `test_comprehensive.bas`) - Complete feature demos
-
-## Building and Running
-
-### Requirements
-- C++20 compiler (g++ 10+, clang 12+)
-- JDK/JRE 11+ (for running compiled programs)
-- Make (optional, for build system)
-
-**Integrated Professional Libraries** (16 JARs - 22MB in `lib/`):
-- **Google Gson 2.10.1** - JSON parsing/generation
-- **PostgreSQL JDBC 42.7.1** - PostgreSQL database driver
-- **MariaDB JDBC 3.3.2** - MariaDB/MySQL database driver
-- **Apache Commons IO 2.15.1** - File I/O utilities
-- **Apache Commons Lang3 3.14.0** - String/Array utilities
-- **Apache Commons Text 1.11.0** - Advanced text processing
-- **Apache Commons Math3 3.6.1** - Mathematical algorithms
-- **Apache Commons Codec 1.16.0** - Encoding/decoding utilities
-- **Google Guava 33.0.0** - Collections and utilities
-- **Bouncy Castle Provider 1.77** - Comprehensive cryptography
-- **Bouncy Castle PKIX 1.77** - Certificate validation
-- **Jetty Server 11.0.19** - Embedded HTTP server
-- **Jetty Servlet 11.0.19** - Servlet support
-- **Jetty Util 11.0.19** - Web utilities
-- **ANTLR4 Complete 4.13.1** - Parser generation (self-hosting goal!)
-- **ANTLR4 Runtime 4.13.1** - Parser runtime
-
-📖 See `lib/README.md` and `PROFESSIONAL_CAPABILITIES.md` for full details.
-
-### Build Options
-```bash
-# Full build with Makefile
-make
-
-# Clean build
-make clean && make
-
-# Manual build (single file)
-g++ -std=gnu++20 -O2 jvmbasic.cpp builtin_functions.o -o jvmbasic
-
-# Build runtime library
-javac BasicRuntime.java
-```
-
-### Usage
-```bash
-# Compile from file
-./jvmbasic < program.bas
-
-# Compile from stdin
-cat program.bas | ./jvmbasic
-
-# Run compiled program
-java BasicProgram
-
-# With runtime library
-java -cp .:basicrt BasicProgram
-```
-
-### Web Capabilities (Phase 9)
-```basic
-' HTTP GET request with modern HttpClient (Java 11+)
-Dim response As String = Http.Get("https://api.github.com/zen")
-Console.WriteLine("GitHub Zen: " + response)
-
-' JSON parsing with Google Gson
-Dim jsonStr As String = "{\"name\":\"Alice\",\"age\":30}"
-Dim obj As Integer = Json.Parse(jsonStr)
+' Parse JSON
+Dim json As String = "{\"name\":\"Alice\",\"age\":30}"
+Dim obj As Integer = Json.Parse(json)
 Dim name As String = Json.GetString(obj, "name")
 Dim age As Integer = Json.GetInt(obj, "age")
-Console.WriteLine("Name: " + name + ", Age: " + Str(age))
 
-' Create and serialize JSON
+' Create JSON
 Dim newObj As Integer = Json.NewObject()
 Json.Put(newObj, "status", "success")
 Json.PutInt(newObj, "code", 200)
 Dim output As String = Json.ToString(newObj)
-Console.WriteLine("JSON: " + output)
 ```
 
-### Database Access (Phase 9)
+### Xml Namespace
+
+XML parsing with DOM and XPath.
+
 ```basic
-' Connect to PostgreSQL or MariaDB
-Dim conn As Integer = Db.Connect("jdbc:postgresql://localhost:5432/mydb", "user", "password")
+Dim xml As String = "<root><user name='Alice' age='30'/></root>"
+Dim doc As Integer = Xml.Parse(xml)
+Dim name As String = Xml.GetText(doc, "/root/user/@name")
+```
+
+### Db Namespace
+
+Database connectivity (PostgreSQL, MariaDB/MySQL).
+
+```basic
+' Connect to database
+Dim conn As Integer = Db.Connect("jdbc:postgresql://localhost:5432/mydb", "user", "pass")
+
 If conn >= 0 Then
-    Console.WriteLine("Connected to database!")
-    
     ' Execute query
-    Dim result As Integer = Db.Query(conn, "SELECT name, age FROM users WHERE active = true")
-    While Db.Next(result)
-        Dim name As String = Db.GetString(result, "name")
-        Dim age As Integer = Db.GetInt(result, "age")
-        Console.WriteLine("User: " + name + ", Age: " + Str(age))
-    End While
-    
-    ' Close connection
+    Dim result As Integer = Db.Query(conn, "SELECT name, age FROM users")
+    While Db.NextRow(result) > 0
+        Console.WriteLine(Db.GetString(result, "name"))
+    Wend
+    Db.CloseResult(result)
+
+    ' Execute INSERT/UPDATE/DELETE
+    Dim affected As Integer = Db.Execute(conn, "INSERT INTO users VALUES ('Bob', 25)")
+
+    ' Transactions
+    Db.BeginTransaction(conn)
+    Db.Execute(conn, "UPDATE accounts SET balance = balance - 100 WHERE id = 1")
+    Db.Execute(conn, "UPDATE accounts SET balance = balance + 100 WHERE id = 2")
+    Db.Commit(conn)  ' Or Db.Rollback(conn)
+
     Db.Close(conn)
-    Console.WriteLine("Connection closed")
 End If
 ```
 
-### XML Processing (Phase 9)
-```basic
-' Parse XML with javax.xml DOM
-Dim xml As String = "<root><user name='Alice' age='30'/></root>"
-Dim doc As Integer = Xml.Parse(xml)
+### Crypto Namespace
 
-' XPath queries
-Dim userName As String = Xml.GetText(doc, "/root/user/@name")
-Dim userAge As String = Xml.GetText(doc, "/root/user/@age")
-Console.WriteLine("User: " + userName + ", Age: " + userAge)
+Cryptographic functions using Bouncy Castle.
+
+| Function | Description |
+|----------|-------------|
+| `Crypto.Sha256(text)` | SHA-256 hash |
+| `Crypto.Sha512(text)` | SHA-512 hash |
+| `Crypto.Md5(text)` | MD5 hash |
+| `Crypto.AesEncrypt(plaintext, key)` | AES encryption |
+| `Crypto.AesDecrypt(ciphertext, key)` | AES decryption |
+| `Crypto.Base64Encode(text)` | Base64 encode |
+| `Crypto.Base64Decode(text)` | Base64 decode |
+| `Crypto.RandomBytes(count)` | Generate random bytes |
+
+### Thread Namespace
+
+Threading and synchronization.
+
+| Function | Description |
+|----------|-------------|
+| `Thread.Sleep(millis)` | Sleep for milliseconds |
+| `Thread.CurrentId()` | Get current thread ID |
+| `Thread.SetInt(name, value)` | Set shared integer |
+| `Thread.GetInt(name)` | Get shared integer |
+| `Thread.AtomicAdd(name, delta)` | Atomic add operation |
+| `Thread.Lock(name)` | Acquire named lock |
+| `Thread.Unlock(name)` | Release named lock |
+| `Thread.Yield()` | Yield to other threads |
+| `Thread.AvailableProcessors()` | Get CPU core count |
+
+### System Namespace
+
+Program control and system information.
+
+```basic
+' Exit program with code
+If error Then
+    Console.WriteLine("Fatal error!")
+    System.exit(1)
+End If
+
+' Environment variables
+Dim path As String = System.getenv("PATH")
+Dim home As String = System.getenv("HOME")
+
+' Timing
+Dim start As Float = System.nanoTime()
+' ... do work ...
+Dim elapsed As Float = System.nanoTime() - start
+
+' Request garbage collection
+System.gc()
 ```
 
-## Current Limitations
+### Args Namespace
 
-- **Arrays**: One-dimensional only (multi-dimensional planned for Phase 10+)
-- **Binary I/O**: Not yet implemented (text files work with File namespace)
-- **Networking**: Limited to HTTP GET/POST (WebSockets planned)
-- **Concurrency**: No threading support yet
-- **Generics**: Not implemented (collections are untyped)
-- **Module System**: Single file programs only (imports planned for Phase 11)
+Command-line argument access.
 
-## Contributing
+| Function | Description |
+|----------|-------------|
+| `Args.GetCount()` | Number of arguments |
+| `Args.Get(index)` | Get argument by index |
+| `Args.GetAll()` | Get all arguments as string |
+| `Args.Contains(value)` | Check if argument exists |
+| `Args.IndexOf(value)` | Find argument index |
 
-This is an educational project demonstrating compiler construction. Feel free to:
-- Study the code
-- Extend with new features
-- Use as a learning resource
-- Fork for your own projects
+### Regex Namespace
 
-## Repository
+Regular expression operations.
 
-**GitHub**: `git@github.com:jamesbuch/jvmbasic.git`  
-**Branch**: `phase9-modern-syntax` (Phase 9 complete)  
-**Development**: Ready for Phase 10
+```basic
+Dim email As String = "user@example.com"
+If Regex.Match("\\w+@\\w+\\.\\w+", email) Then
+    Dim user As String = Regex.Group("(\\w+)@(.+)", email, 1)
+    Console.WriteLine("User: " + user)
+End If
+
+Dim result As String = Regex.Replace("\\d+", "Order #123", "XXX")
+```
+
+### Array Namespace
+
+Array operations.
+
+| Function | Description |
+|----------|-------------|
+| `Array.Sort(arr)` / `Array.SortInt(arr)` | Sort array in place |
+| `Array.Min(arr)` / `Array.Max(arr)` | Find min/max value |
+| `Array.Sum(arr)` / `Array.Avg(arr)` | Sum/average of elements |
+| `Array.Length(arr)` | Get array length |
+| `Array.Reverse(arr)` | Reverse array in place |
+
+### Str Namespace
+
+String formatting and manipulation.
+
+| Function | Description |
+|----------|-------------|
+| `Str.Format(template, arg)` | Format string with placeholder |
+| `Str.Split(text, delimiter)` | Split string into array |
+| `Str.Join(arr, delimiter)` | Join array into string |
+
+### Collection Namespaces
+
+**IntList / StringList** - Dynamic lists:
+```basic
+Dim list As Integer = IntList.Create()
+IntList.Add(list, 10)
+IntList.Add(list, 20)
+Dim val As Integer = IntList.Get(list, 0)  ' Returns 10
+```
+
+**Map** - Key-value storage:
+```basic
+Dim m As Integer = Map.Create()
+Map.Put(m, "name", "Alice")
+Dim name As String = Map.Get(m, "name")
+```
+
+**Stack** - LIFO collection:
+```basic
+Dim s As Integer = Stack.Create()
+Stack.Push(s, "first")
+Stack.Push(s, "second")
+Dim top As String = Stack.Pop(s)  ' Returns "second"
+```
+
+**Queue** - FIFO collection:
+```basic
+Dim q As Integer = Queue.Create()
+Queue.Enqueue(q, "first")
+Queue.Enqueue(q, "second")
+Dim front As String = Queue.Dequeue(q)  ' Returns "first"
+```
+
+### BigInt Namespace
+
+Arbitrary precision integer arithmetic.
+
+```basic
+Dim a As Object = BigInt.FromString("12345678901234567890")
+Dim b As Object = BigInt.FromString("98765432109876543210")
+Dim sum As Object = BigInt.Add(a, b)
+Console.WriteLine(BigInt.ToString(sum))
+```
+
+### Decimal Namespace
+
+Arbitrary precision decimal arithmetic.
+
+```basic
+Dim price As Object = Decimal.FromString("19.99")
+Dim quantity As Object = Decimal.FromString("3")
+Dim total As Object = Decimal.Multiply(price, quantity)
+Console.WriteLine("Total: $" + Decimal.ToString(total))
+```
+
+---
+
+## Example Programs
+
+The `examples/` directory contains 25 example programs demonstrating various features:
+
+### Algorithms
+| File | Description |
+|------|-------------|
+| `fibonacci_sequence.bas` | Recursive Fibonacci implementation |
+| `math_algorithms.bas` | GCD, LCM, factorial algorithms |
+| `sorting_algorithms.bas` | Bubble and selection sort |
+| `prime_numbers.bas` | Prime number finder with optimization |
+| `password_generator.bas` | Secure random password generation |
+
+### Data Processing
+| File | Description |
+|------|-------------|
+| `statistics.bas` | Mean, median, mode, standard deviation |
+| `text_analyzer.bas` | Word frequency and text statistics |
+| `log_processor.bas` | Log file parsing and analysis |
+
+### Object-Oriented
+| File | Description |
+|------|-------------|
+| `oop_bank_account.bas` | Banking system with classes |
+| `oop_geometry.bas` | Shape hierarchy with methods |
+| `oop_contact_manager.bas` | Contact management system |
+
+### Database
+| File | Description |
+|------|-------------|
+| `postgresql_comprehensive.bas` | Complete PostgreSQL example (CRUD, JOINs, transactions) |
+| `mariadb_comprehensive.bas` | Complete MariaDB example |
+
+### Web & API
+| File | Description |
+|------|-------------|
+| `http_fetch_urls.bas` | HTTP GET requests |
+| `wikipedia_fetch.bas` | Wikipedia API example |
+| `modern_web_app.bas` | JSON API integration |
+
+### Utilities
+| File | Description |
+|------|-------------|
+| `file_backup_utility.bas` | File backup and restoration |
+| `crypto_bigint.bas` | Cryptography and big numbers |
+| `financial_calculator.bas` | Financial calculations with Decimal |
+
+### Running Examples
+
+```bash
+# Compile an example
+./jvmbasic -o Fibonacci < examples/fibonacci_sequence.bas
+
+# Run it
+java -cp '.:basicrt:lib/*' Fibonacci
+
+# For database examples, ensure database is running:
+# PostgreSQL: sudo systemctl start postgresql
+# MariaDB: sudo systemctl start mariadb
+```
+
+---
+
+## Running Tests
+
+### Test Suite
+
+The `tests/` directory contains 100 test programs covering all language features.
+
+```bash
+# Run all tests
+./test_runner.sh
+
+# Results show:
+# Passed:  98
+# Failed:  2
+# Total:   100
+```
+
+### Test Categories
+
+- **Phase 9-12 Tests**: JSON, XML, PostgreSQL, MariaDB, HTTP, Crypto, BigInt, Decimal, System
+- **Phase 8 Tests**: Built-in functions, collections, string operations
+- **Phase 7 OOP Tests**: Classes, constructors, methods, encapsulation
+- **Phase 6 Tests**: User-defined types (structs)
+- **Core Tests**: Variables, arrays, control flow, operators, functions
+
+---
+
+## Development History
+
+### Phase 12 (Current)
+- System namespace (`System.exit()`, `System.getenv()`, `System.nanoTime()`, `System.gc()`)
+- Database examples with comprehensive CRUD operations
+- Fixed standalone `End` statement handling
+
+### Phase 11
+- BigInt namespace (arbitrary precision integers)
+- Decimal namespace (arbitrary precision decimals)
+- Crypto namespace (SHA-256/512, MD5, AES, Base64)
+- Thread namespace (Sleep, Lock, AtomicAdd)
+
+### Phase 10
+- String interpolation (`$"Hello {name}!"`)
+- Type system fixes for struct/class fields
+- Enhanced error messages
+
+### Phase 9
+- Modern VB-style syntax (`Dim x As Integer = 10`)
+- 23 namespaces with namespace.Method() syntax
+- HTTP client, JSON parsing, XML processing
+- Database connectivity (PostgreSQL, MariaDB)
+- 16 professional library JARs
+
+### Phase 8
+- 199 built-in functions
+- Logical operators (AND, OR, NOT, XOR)
+- Collections (IntList, StringList, Map, Stack, Queue)
+- Date/Time functions
+
+### Phase 7
+- Object-oriented programming (CLASS...END CLASS)
+- Constructors, methods, encapsulation
+- NEW operator, ME keyword
+- PUBLIC/PRIVATE access modifiers
+
+### Phase 6
+- User-defined types (TYPE...END TYPE)
+- Struct member access with dot notation
+
+### Phase 5 and Earlier
+- Functions with recursion
+- Array parameters
+- Multi-pass type inference
+- File I/O, regular expressions
+- Modular compiler architecture
+
+---
+
+## Architecture
+
+### Compiler Pipeline
+
+1. **Lexer** (`lexer.cpp`) - Tokenization
+2. **Parser** (`parser.cpp`) - Recursive descent parser building AST
+3. **Semantic Analysis** (`semantic.cpp`) - Type inference and checking
+4. **Code Generation** (`codegen.h`) - JVM bytecode emission
+
+### Files
+
+| Component | Lines | Description |
+|-----------|-------|-------------|
+| Compiler (C++) | ~9,000 | Lexer, parser, semantic analyzer, code generator |
+| Runtime (Java) | 3,539 | All namespace implementations and built-in functions |
+| Libraries | 22MB | 16 professional JARs in `lib/` |
+
+### Included Libraries
+
+- **Google Gson 2.10.1** - JSON parsing
+- **PostgreSQL JDBC 42.7.1** - PostgreSQL driver
+- **MariaDB JDBC 3.3.2** - MariaDB/MySQL driver
+- **Apache Commons** (IO, Lang3, Text, Math3, Codec)
+- **Bouncy Castle 1.77** - Cryptography
+- **Jetty 11.0.19** - Web server
+- **ANTLR4 4.13.1** - Parser generation
+
+---
 
 ## License
 
@@ -696,4 +754,4 @@ Public domain / MIT - choose what fits your needs.
 
 ---
 
-**JVM BASIC** - A modern BASIC compiler for the JVM with Visual Basic-style syntax, web capabilities (HTTP, JSON), database support, and 255 built-in functions. Phase 9 complete! 🚀
+**JVM BASIC** - A modern BASIC compiler for the JVM with Visual Basic-style syntax, 23 namespaces, database support, cryptography, and arbitrary precision arithmetic.
