@@ -638,12 +638,24 @@ ExprPtr Parser::parsePrimary() {
                                nameUpper == "STRINGLIST" || nameUpper == "MAP" ||
                                nameUpper == "STACK" || nameUpper == "QUEUE" ||
                                nameUpper == "CRYPTO" || nameUpper == "THREAD" ||
-                               nameUpper == "BIGINT" || nameUpper == "DECIMAL");
-            
+                               nameUpper == "BIGINT" || nameUpper == "DECIMAL" ||
+                               nameUpper == "SYSTEM");  // Phase 12: System namespace
+
             if (isNamespace) {
                 // Parse Namespace.Method(args)
                 next();  // Consume DOT
-                string methodName = expect(TokenType::ID).val;
+                // Accept either ID or EXIT keyword as method name (for System.exit)
+                string methodName;
+                if (tok.type == TokenType::ID) {
+                    methodName = tok.val;
+                    next();
+                } else if (tok.type == TokenType::EXIT) {
+                    methodName = "exit";
+                    next();
+                } else {
+                    error("Expected identifier but got '" + tok.val + "'");
+                    methodName = "error";
+                }
                 // Store original method name for proper camelCase generation
                 
                 // Parse arguments
@@ -1266,16 +1278,27 @@ StmtPtr Parser::parseStmt() {
                            varUpper == "MAP" || varUpper == "STACK" ||
                            varUpper == "QUEUE" || varUpper == "CRYPTO" ||
                            varUpper == "THREAD" || varUpper == "BIGINT" ||
-                           varUpper == "DECIMAL");
-        
+                           varUpper == "DECIMAL" || varUpper == "SYSTEM");  // Phase 12
+
         next();
-        
+
         // Check for member access: var.member or Namespace.Method
         if (tok.type == TokenType::DOT) {
             // Phase 9: If it's a namespace, parse as expression statement (not assignment)
             if (isNamespace) {
                 next();  // Consume DOT
-                string methodName = expect(TokenType::ID).val;
+                // Accept either ID or EXIT keyword as method name (for System.exit)
+                string methodName;
+                if (tok.type == TokenType::ID) {
+                    methodName = tok.val;
+                    next();
+                } else if (tok.type == TokenType::EXIT) {
+                    methodName = "exit";
+                    next();
+                } else {
+                    error("Expected identifier but got '" + tok.val + "'");
+                    methodName = "error";
+                }
                 expect(TokenType::LPAREN);
                 vector<ExprPtr> args;
                 if (tok.type != TokenType::RPAREN) {

@@ -34,44 +34,47 @@ Dim testDb As String = "jvmbasic_test"
 ' Connect to PostgreSQL server
 Console.WriteLine("--- Connecting to PostgreSQL Server ---")
 Dim conn As Integer = Db.Connect(dbUrl, dbUser, dbPass)
+Dim connected As Boolean = False
 
 If conn < 0 Then
     Console.WriteLine("ERROR: Could not connect to PostgreSQL")
     Console.WriteLine("Make sure PostgreSQL is running and credentials are correct")
-    End
-End If
-
-Console.WriteLine("Connected! Connection ID: " + conn)
-Console.WriteLine("")
-
-' ============================================
-' SECTION 1: Database Creation
-' ============================================
-Console.WriteLine("--- Section 1: Create Test Database ---")
-
-' Drop database if exists (need to disconnect existing connections)
-Dim dropResult As Integer = Db.Execute(conn, "DROP DATABASE IF EXISTS " + testDb)
-Console.WriteLine("Dropped existing database (if any)")
-
-' Create new database
-Dim createDbResult As Integer = Db.Execute(conn, "CREATE DATABASE " + testDb)
-If createDbResult >= 0 Then
-    Console.WriteLine("Created database: " + testDb)
 Else
-    Console.WriteLine("Note: Database may already exist or user lacks permissions")
+    Console.WriteLine("Connected! Connection ID: " + conn)
+    Console.WriteLine("")
+
+    ' ============================================
+    ' SECTION 1: Database Creation
+    ' ============================================
+    Console.WriteLine("--- Section 1: Create Test Database ---")
+
+    ' Drop database if exists (need to disconnect existing connections)
+    Dim dropResult As Integer = Db.Execute(conn, "DROP DATABASE IF EXISTS " + testDb)
+    Console.WriteLine("Dropped existing database (if any)")
+
+    ' Create new database
+    Dim createDbResult As Integer = Db.Execute(conn, "CREATE DATABASE " + testDb)
+    If createDbResult >= 0 Then
+        Console.WriteLine("Created database: " + testDb)
+    Else
+        Console.WriteLine("Note: Database may already exist or user lacks permissions")
+    End If
+
+    ' Close connection and reconnect to new database
+    Db.Close(conn)
+    Console.WriteLine("Reconnecting to " + testDb + "...")
+
+    Dim newUrl As String = "jdbc:postgresql://localhost:5432/" + testDb
+    conn = Db.Connect(newUrl, dbUser, dbPass)
+    If conn < 0 Then
+        Console.WriteLine("ERROR: Could not connect to " + testDb)
+    Else
+        Console.WriteLine("Connected to " + testDb)
+        connected = True
+    End If
 End If
 
-' Close connection and reconnect to new database
-Db.Close(conn)
-Console.WriteLine("Reconnecting to " + testDb + "...")
-
-Dim newUrl As String = "jdbc:postgresql://localhost:5432/" + testDb
-conn = Db.Connect(newUrl, dbUser, dbPass)
-If conn < 0 Then
-    Console.WriteLine("ERROR: Could not connect to " + testDb)
-    End
-End If
-Console.WriteLine("Connected to " + testDb)
+If connected Then
 Console.WriteLine("")
 
 ' ============================================
@@ -80,48 +83,25 @@ Console.WriteLine("")
 Console.WriteLine("--- Section 2: Create Tables ---")
 
 ' Create customers table (uses SERIAL for auto-increment)
-Dim createCustomers As String = "CREATE TABLE customers (" + _
-    "id SERIAL PRIMARY KEY, " + _
-    "name VARCHAR(100) NOT NULL, " + _
-    "email VARCHAR(100) UNIQUE, " + _
-    "city VARCHAR(50), " + _
-    "credit_limit NUMERIC(10,2) DEFAULT 1000.00, " + _
-    "is_active BOOLEAN DEFAULT TRUE, " + _
-    "created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)"
+Dim createCustomers As String = "CREATE TABLE customers (id SERIAL PRIMARY KEY, name VARCHAR(100) NOT NULL, email VARCHAR(100) UNIQUE, city VARCHAR(50), credit_limit NUMERIC(10,2) DEFAULT 1000.00, is_active BOOLEAN DEFAULT TRUE, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)"
 
 Dim r1 As Integer = Db.Execute(conn, createCustomers)
 Console.WriteLine("Created 'customers' table")
 
 ' Create products table
-Dim createProducts As String = "CREATE TABLE products (" + _
-    "id SERIAL PRIMARY KEY, " + _
-    "name VARCHAR(100) NOT NULL, " + _
-    "price NUMERIC(10,2) NOT NULL, " + _
-    "stock INTEGER DEFAULT 0, " + _
-    "category VARCHAR(50), " + _
-    "in_stock BOOLEAN DEFAULT TRUE)"
+Dim createProducts As String = "CREATE TABLE products (id SERIAL PRIMARY KEY, name VARCHAR(100) NOT NULL, price NUMERIC(10,2) NOT NULL, stock INTEGER DEFAULT 0, category VARCHAR(50), in_stock BOOLEAN DEFAULT TRUE)"
 
 Dim r2 As Integer = Db.Execute(conn, createProducts)
 Console.WriteLine("Created 'products' table")
 
 ' Create orders table
-Dim createOrders As String = "CREATE TABLE orders (" + _
-    "id SERIAL PRIMARY KEY, " + _
-    "customer_id INTEGER NOT NULL REFERENCES customers(id), " + _
-    "order_date DATE NOT NULL, " + _
-    "total NUMERIC(10,2), " + _
-    "status VARCHAR(20) DEFAULT 'pending')"
+Dim createOrders As String = "CREATE TABLE orders (id SERIAL PRIMARY KEY, customer_id INTEGER NOT NULL REFERENCES customers(id), order_date DATE NOT NULL, total NUMERIC(10,2), status VARCHAR(20) DEFAULT 'pending')"
 
 Dim r3 As Integer = Db.Execute(conn, createOrders)
 Console.WriteLine("Created 'orders' table")
 
 ' Create order_items table
-Dim createOrderItems As String = "CREATE TABLE order_items (" + _
-    "id SERIAL PRIMARY KEY, " + _
-    "order_id INTEGER NOT NULL REFERENCES orders(id), " + _
-    "product_id INTEGER NOT NULL REFERENCES products(id), " + _
-    "quantity INTEGER NOT NULL, " + _
-    "unit_price NUMERIC(10,2) NOT NULL)"
+Dim createOrderItems As String = "CREATE TABLE order_items (id SERIAL PRIMARY KEY, order_id INTEGER NOT NULL REFERENCES orders(id), product_id INTEGER NOT NULL REFERENCES products(id), quantity INTEGER NOT NULL, unit_price NUMERIC(10,2) NOT NULL)"
 
 Dim r4 As Integer = Db.Execute(conn, createOrderItems)
 Console.WriteLine("Created 'order_items' table")
@@ -225,8 +205,7 @@ Console.WriteLine("--- Section 6: JOIN Queries ---")
 
 ' Inner join
 Console.WriteLine("Orders with customer names:")
-Dim joinQuery As String = "SELECT o.id, c.name, o.order_date, o.total, o.status " + _
-    "FROM orders o INNER JOIN customers c ON o.customer_id = c.id ORDER BY o.id"
+Dim joinQuery As String = "SELECT o.id, c.name, o.order_date, o.total, o.status FROM orders o INNER JOIN customers c ON o.customer_id = c.id ORDER BY o.id"
 result = Db.Query(conn, joinQuery)
 While Db.NextRow(result) > 0
     Dim oid As Integer = Db.GetInt(result, "id")
@@ -240,9 +219,7 @@ Console.WriteLine("")
 
 ' Left join (show customers with no orders)
 Console.WriteLine("Customers with order count (LEFT JOIN):")
-result = Db.Query(conn, "SELECT c.name, COUNT(o.id) AS order_count " + _
-    "FROM customers c LEFT JOIN orders o ON c.id = o.customer_id " + _
-    "GROUP BY c.id, c.name ORDER BY order_count DESC")
+result = Db.Query(conn, "SELECT c.name, COUNT(o.id) AS order_count FROM customers c LEFT JOIN orders o ON c.id = o.customer_id GROUP BY c.id, c.name ORDER BY order_count DESC")
 While Db.NextRow(result) > 0
     Console.WriteLine("  " + Db.GetString(result, "name") + ": " + Db.GetString(result, "order_count") + " orders")
 Wend
@@ -255,9 +232,7 @@ Console.WriteLine("")
 Console.WriteLine("--- Section 7: Aggregate Functions ---")
 
 ' Statistics
-result = Db.Query(conn, "SELECT COUNT(*) AS cnt, SUM(total)::TEXT AS total_sales, " + _
-    "AVG(total)::NUMERIC(10,2)::TEXT AS avg_order, " + _
-    "MIN(total)::TEXT AS min_order, MAX(total)::TEXT AS max_order FROM orders")
+result = Db.Query(conn, "SELECT COUNT(*) AS cnt, SUM(total)::TEXT AS total_sales, AVG(total)::NUMERIC(10,2)::TEXT AS avg_order, MIN(total)::TEXT AS min_order, MAX(total)::TEXT AS max_order FROM orders")
 If Db.NextRow(result) > 0 Then
     Console.WriteLine("Order statistics:")
     Console.WriteLine("  Count: " + Db.GetString(result, "cnt"))
@@ -372,3 +347,5 @@ Console.WriteLine("")
 Console.WriteLine("======================================================")
 Console.WriteLine("  PostgreSQL Comprehensive Test Complete!")
 Console.WriteLine("======================================================")
+
+End If  ' End of "If connected Then"

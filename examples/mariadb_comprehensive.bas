@@ -28,15 +28,18 @@ Dim testDb As String = "jvmbasic_test"
 ' Connect to MariaDB server (without database specified)
 Console.WriteLine("--- Connecting to MariaDB Server ---")
 Dim conn As Integer = Db.Connect(dbUrl, dbUser, dbPass)
+Dim connected As Boolean = False
 
 If conn < 0 Then
     Console.WriteLine("ERROR: Could not connect to MariaDB")
     Console.WriteLine("Make sure MariaDB is running and credentials are correct")
-    End
+Else
+    Console.WriteLine("Connected! Connection ID: " + conn)
+    Console.WriteLine("")
+    connected = True
 End If
 
-Console.WriteLine("Connected! Connection ID: " + conn)
-Console.WriteLine("")
+If connected Then
 
 ' ============================================
 ' SECTION 1: Database Creation
@@ -66,49 +69,25 @@ Console.WriteLine("")
 Console.WriteLine("--- Section 2: Create Tables ---")
 
 ' Create customers table
-Dim createCustomers As String = "CREATE TABLE customers (" + _
-    "id INT AUTO_INCREMENT PRIMARY KEY, " + _
-    "name VARCHAR(100) NOT NULL, " + _
-    "email VARCHAR(100) UNIQUE, " + _
-    "city VARCHAR(50), " + _
-    "credit_limit DECIMAL(10,2) DEFAULT 1000.00, " + _
-    "created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)"
+Dim createCustomers As String = "CREATE TABLE customers (id INT AUTO_INCREMENT PRIMARY KEY, name VARCHAR(100) NOT NULL, email VARCHAR(100) UNIQUE, city VARCHAR(50), credit_limit DECIMAL(10,2) DEFAULT 1000.00, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)"
 
 Dim r1 As Integer = Db.Execute(conn, createCustomers)
 Console.WriteLine("Created 'customers' table")
 
 ' Create products table
-Dim createProducts As String = "CREATE TABLE products (" + _
-    "id INT AUTO_INCREMENT PRIMARY KEY, " + _
-    "name VARCHAR(100) NOT NULL, " + _
-    "price DECIMAL(10,2) NOT NULL, " + _
-    "stock INT DEFAULT 0, " + _
-    "category VARCHAR(50))"
+Dim createProducts As String = "CREATE TABLE products (id INT AUTO_INCREMENT PRIMARY KEY, name VARCHAR(100) NOT NULL, price DECIMAL(10,2) NOT NULL, stock INT DEFAULT 0, category VARCHAR(50))"
 
 Dim r2 As Integer = Db.Execute(conn, createProducts)
 Console.WriteLine("Created 'products' table")
 
 ' Create orders table (foreign keys)
-Dim createOrders As String = "CREATE TABLE orders (" + _
-    "id INT AUTO_INCREMENT PRIMARY KEY, " + _
-    "customer_id INT NOT NULL, " + _
-    "order_date DATE NOT NULL, " + _
-    "total DECIMAL(10,2), " + _
-    "status VARCHAR(20) DEFAULT 'pending', " + _
-    "FOREIGN KEY (customer_id) REFERENCES customers(id))"
+Dim createOrders As String = "CREATE TABLE orders (id INT AUTO_INCREMENT PRIMARY KEY, customer_id INT NOT NULL, order_date DATE NOT NULL, total DECIMAL(10,2), status VARCHAR(20) DEFAULT 'pending', FOREIGN KEY (customer_id) REFERENCES customers(id))"
 
 Dim r3 As Integer = Db.Execute(conn, createOrders)
 Console.WriteLine("Created 'orders' table")
 
 ' Create order_items table (junction table)
-Dim createOrderItems As String = "CREATE TABLE order_items (" + _
-    "id INT AUTO_INCREMENT PRIMARY KEY, " + _
-    "order_id INT NOT NULL, " + _
-    "product_id INT NOT NULL, " + _
-    "quantity INT NOT NULL, " + _
-    "unit_price DECIMAL(10,2) NOT NULL, " + _
-    "FOREIGN KEY (order_id) REFERENCES orders(id), " + _
-    "FOREIGN KEY (product_id) REFERENCES products(id))"
+Dim createOrderItems As String = "CREATE TABLE order_items (id INT AUTO_INCREMENT PRIMARY KEY, order_id INT NOT NULL, product_id INT NOT NULL, quantity INT NOT NULL, unit_price DECIMAL(10,2) NOT NULL, FOREIGN KEY (order_id) REFERENCES orders(id), FOREIGN KEY (product_id) REFERENCES products(id))"
 
 Dim r4 As Integer = Db.Execute(conn, createOrderItems)
 Console.WriteLine("Created 'order_items' table")
@@ -187,8 +166,7 @@ Console.WriteLine("--- Section 5: JOIN Queries ---")
 
 ' Inner join - orders with customer names
 Console.WriteLine("Orders with customer names (INNER JOIN):")
-Dim joinQuery As String = "SELECT o.id, c.name, o.order_date, o.total, o.status " + _
-    "FROM orders o INNER JOIN customers c ON o.customer_id = c.id ORDER BY o.id"
+Dim joinQuery As String = "SELECT o.id, c.name, o.order_date, o.total, o.status FROM orders o INNER JOIN customers c ON o.customer_id = c.id ORDER BY o.id"
 result = Db.Query(conn, joinQuery)
 While Db.NextRow(result) > 0
     Dim oid As Integer = Db.GetInt(result, "id")
@@ -203,11 +181,7 @@ Console.WriteLine("")
 
 ' Three-way join - order details
 Console.WriteLine("Order #1 details (3-way JOIN):")
-Dim detailQuery As String = "SELECT p.name, oi.quantity, oi.unit_price, (oi.quantity * oi.unit_price) AS subtotal " + _
-    "FROM order_items oi " + _
-    "JOIN orders o ON oi.order_id = o.id " + _
-    "JOIN products p ON oi.product_id = p.id " + _
-    "WHERE o.id = 1"
+Dim detailQuery As String = "SELECT p.name, oi.quantity, oi.unit_price, (oi.quantity * oi.unit_price) AS subtotal FROM order_items oi JOIN orders o ON oi.order_id = o.id JOIN products p ON oi.product_id = p.id WHERE o.id = 1"
 result = Db.Query(conn, detailQuery)
 While Db.NextRow(result) > 0
     Dim prodName As String = Db.GetString(result, "name")
@@ -237,9 +211,7 @@ Console.WriteLine("")
 
 ' Group by with having
 Console.WriteLine("Customers with multiple orders:")
-result = Db.Query(conn, "SELECT c.name, COUNT(o.id) AS order_count FROM customers c " + _
-    "LEFT JOIN orders o ON c.id = o.customer_id " + _
-    "GROUP BY c.id, c.name HAVING COUNT(o.id) > 1")
+result = Db.Query(conn, "SELECT c.name, COUNT(o.id) AS order_count FROM customers c LEFT JOIN orders o ON c.id = o.customer_id GROUP BY c.id, c.name HAVING COUNT(o.id) > 1")
 While Db.NextRow(result) > 0
     Console.WriteLine("  " + Db.GetString(result, "name") + ": " + Db.GetString(result, "order_count") + " orders")
 Wend
@@ -357,3 +329,5 @@ Console.WriteLine("")
 Console.WriteLine("======================================================")
 Console.WriteLine("  MariaDB Comprehensive Test Complete!")
 Console.WriteLine("======================================================")
+
+End If  ' End of "If connected Then"
