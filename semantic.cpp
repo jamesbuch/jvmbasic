@@ -737,7 +737,7 @@ void SemanticAnalyzer::analyzeStmt(Stmt& stmt, SymbolTable& symbols) {
                     // DIM arr(size) AS Type - explicit type
                     if (ds.typeName == "INTEGER" || ds.typeName == "LONG") {
                         elemType = Type::Int;
-                    } else if (ds.typeName == "SINGLE" || ds.typeName == "DOUBLE") {
+                    } else if (ds.typeName == "SINGLE" || ds.typeName == "FLOAT" || ds.typeName == "DOUBLE") {
                         elemType = Type::Float;
                     } else if (ds.typeName == "BOOLEAN") {
                         elemType = Type::Bool;
@@ -761,8 +761,8 @@ void SemanticAnalyzer::analyzeStmt(Stmt& stmt, SymbolTable& symbols) {
                 symbols.define(ds.var, arrType);
             } else if (!ds.typeName.empty()) {
                 // Scalar variable: DIM var AS Type = value
-                bool isBuiltInType = (ds.typeName == "INTEGER" || ds.typeName == "SINGLE" || 
-                                     ds.typeName == "DOUBLE" || ds.typeName == "LONG" || 
+                bool isBuiltInType = (ds.typeName == "INTEGER" || ds.typeName == "SINGLE" ||
+                                     ds.typeName == "FLOAT" || ds.typeName == "DOUBLE" || ds.typeName == "LONG" || 
                                      ds.typeName == "BOOLEAN" || ds.typeName == "STRING" ||
                                      ds.typeName == "DECIMAL" || ds.typeName == "BIGINT");
                 
@@ -790,7 +790,7 @@ void SemanticAnalyzer::analyzeStmt(Stmt& stmt, SymbolTable& symbols) {
                     Type varType;
                     if (ds.typeName == "INTEGER" || ds.typeName == "LONG") {
                         varType = Type::Int;
-                    } else if (ds.typeName == "SINGLE" || ds.typeName == "DOUBLE") {
+                    } else if (ds.typeName == "SINGLE" || ds.typeName == "FLOAT" || ds.typeName == "DOUBLE") {
                         varType = Type::Float;
                     } else if (ds.typeName == "BOOLEAN") {
                         varType = Type::Bool;

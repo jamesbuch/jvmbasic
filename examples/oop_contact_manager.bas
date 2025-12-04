@@ -1,58 +1,46 @@
 ' Contact Manager - Demonstrates Real-World OOP Usage
 ' Shows: Multiple object types, data organization
 
-' Define Contact class
-CLASS Contact
-    PUBLIC firstName As String
-    PUBLIC lastName As String
-    PUBLIC email As String
-    PUBLIC phone As String
-END CLASS
+' Define Contact class with constructor
+Class Contact
+    Public firstName As String
+    Public lastName As String
+    Public email As String
+    Public phone As String
 
-' Define Address class
-CLASS Address
-    PUBLIC street As String
-    PUBLIC city As String
-    PUBLIC zip As String
-END CLASS
+    Public Sub New(first As String, last As String, mail As String, ph As String)
+        Me.firstName = first
+        Me.lastName = last
+        Me.email = mail
+        Me.phone = ph
+    End Sub
+End Class
+
+' Define Address class with constructor
+Class Address
+    Public street As String
+    Public city As String
+    Public zip As String
+
+    Public Sub New(st As String, ct As String, zp As String)
+        Me.street = st
+        Me.city = ct
+        Me.zip = zp
+    End Sub
+End Class
 
 Console.WriteLine("=== Contact Manager System ===")
 Console.WriteLine("")
 
-' Create contacts
-DIM contact1 AS NEW Contact()
-contact1.firstName = "John"
-contact1.lastName = "Doe"
-contact1.email = "john.doe@email.com"
-contact1.phone = "555-1234"
+' Create contacts using constructor
+Dim contact1 As New Contact("John", "Doe", "john.doe@email.com", "555-1234")
+Dim contact2 As New Contact("Jane", "Smith", "jane.smith@email.com", "555-5678")
+Dim contact3 As New Contact("Bob", "Johnson", "bob.johnson@email.com", "555-9012")
 
-DIM contact2 AS NEW Contact()
-contact2.firstName = "Jane"
-contact2.lastName = "Smith"
-contact2.email = "jane.smith@email.com"
-contact2.phone = "555-5678"
-
-DIM contact3 AS NEW Contact()
-contact3.firstName = "Bob"
-contact3.lastName = "Johnson"
-contact3.email = "bob.johnson@email.com"
-contact3.phone = "555-9012"
-
-' Create addresses
-DIM address1 AS NEW Address()
-address1.street = "123 Main St"
-address1.city = "Anytown"
-address1.zip = "12345"
-
-DIM address2 AS NEW Address()
-address2.street = "456 Oak Ave"
-address2.city = "Somewhere"
-address2.zip = "67890"
-
-DIM address3 AS NEW Address()
-address3.street = "789 Pine Rd"
-address3.city = "Elsewhere"
-address3.zip = "54321"
+' Create addresses using constructor
+Dim address1 As New Address("123 Main St", "Anytown", "12345")
+Dim address2 As New Address("456 Oak Ave", "Somewhere", "67890")
+Dim address3 As New Address("789 Pine Rd", "Elsewhere", "54321")
 
 Console.WriteLine("Contact 1:")
 Console.WriteLine("  Name: " + contact1.firstName + " " + contact1.lastName)
@@ -77,6 +65,7 @@ Console.WriteLine("")
 
 Console.WriteLine("=== Contact Manager Demo Complete ===")
 Console.WriteLine("OOP features demonstrated:")
-Console.WriteLine("- Multiple CLASS declarations")
+Console.WriteLine("- Multiple Class declarations")
+Console.WriteLine("- Constructor with parameters")
 Console.WriteLine("- Object instantiation")
 Console.WriteLine("- Field access and organization")

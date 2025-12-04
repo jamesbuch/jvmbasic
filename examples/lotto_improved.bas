@@ -21,7 +21,7 @@ games = 5
 Console.WriteLine("Generating " + games + " unique lotto games...")
 Console.WriteLine("")
 
-FOR gameNum = 1 TO games
+For gameNum = 1 To games
     num1 = RNDINT(1, 45)
     num2 = RNDINT(1, 45)
     num3 = RNDINT(1, 45)
@@ -35,7 +35,7 @@ FOR gameNum = 1 TO games
     sum = num1 + num2 + num3 + num4 + num5 + num6
     Console.WriteLine("  Sum: " + sum)
     Console.WriteLine("")
-NEXT gameNum
+Next gameNum
 
 Console.WriteLine("================================================")
 Console.WriteLine("  All games generated successfully!")

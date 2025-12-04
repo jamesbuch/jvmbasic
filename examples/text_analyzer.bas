@@ -8,7 +8,7 @@ Console.WriteLine("")
 ' Variable declarations
 Dim handle As Integer
 Dim dummy As Integer
-Dim size As Single
+Dim size As Float
 Dim totalChars As Integer
 Dim letters As Integer
 Dim digits As Integer
@@ -25,7 +25,7 @@ Dim deleted As Boolean
 
 ' Create sample file for analysis
 handle = OPENOUTPUT("sample_text.txt")
-IF handle >= 0 THEN
+If handle >= 0 Then
     dummy = WRITELINE(handle, "The quick brown fox jumps over the lazy dog.")
     dummy = WRITELINE(handle, "Hello World! This is a test file.")
     dummy = WRITELINE(handle, "JVM BASIC has powerful string functions!")
@@ -33,7 +33,7 @@ IF handle >= 0 THEN
     dummy = WRITELINE(handle, "Character-by-character I/O is now possible.")
     dummy = CLOSEFILE(handle)
     Console.WriteLine("Created sample_text.txt")
-ENDIF
+EndIf
 
 ' Get file information
 size = FILESIZE("sample_text.txt")
@@ -43,7 +43,7 @@ Console.WriteLine("")
 ' Analyze file character by character
 Console.WriteLine("Character Analysis:")
 handle = OPENINPUT("sample_text.txt")
-IF handle >= 0 THEN
+If handle >= 0 Then
     totalChars = 0
     letters = 0
     digits = 0
@@ -51,23 +51,23 @@ IF handle >= 0 THEN
     punctuation = 0
 
     ch = READCHAR(handle)
-    WHILE ch >= 0
+    While ch >= 0
         totalChars = totalChars + 1
 
-        IF ch >= 65 AND ch <= 90 THEN
+        If ch >= 65 And ch <= 90 Then
             letters = letters + 1
-        ELSEIF ch >= 97 AND ch <= 122 THEN
+        ElseIf ch >= 97 And ch <= 122 Then
             letters = letters + 1
-        ELSEIF ch >= 48 AND ch <= 57 THEN
+        ElseIf ch >= 48 And ch <= 57 Then
             digits = digits + 1
-        ELSEIF ch == 32 THEN
+        ElseIf ch == 32 Then
             spaces = spaces + 1
-        ELSE
+        Else
             punctuation = punctuation + 1
-        ENDIF
+        EndIf
 
         ch = READCHAR(handle)
-    ENDWHILE
+    EndWhile
     dummy = CLOSEFILE(handle)
 
     Console.WriteLine("Total characters: " + totalChars)
@@ -75,25 +75,25 @@ IF handle >= 0 THEN
     Console.WriteLine("Digits: " + digits)
     Console.WriteLine("Spaces: " + spaces)
     Console.WriteLine("Punctuation: " + punctuation)
-ENDIF
+EndIf
 
 Console.WriteLine("")
 
 ' Analyze file line by line
 Console.WriteLine("Line Analysis:")
 handle = OPENINPUT("sample_text.txt")
-IF handle >= 0 THEN
+If handle >= 0 Then
     totalLines = 0
     totalWords = 0
     longestLine = 0
 
     line = READLINE(handle)
-    WHILE LEN(line) > 0
+    While LEN(line) > 0
         totalLines = totalLines + 1
 
-        IF LEN(line) > longestLine THEN
+        If LEN(line) > longestLine Then
             longestLine = LEN(line)
-        ENDIF
+        EndIf
 
         ' Count words in line (simplified)
         words = 5
@@ -101,7 +101,7 @@ IF handle >= 0 THEN
 
         Console.WriteLine("Line " + totalLines + ": " + LEN(line) + " chars, " + words + " words")
         line = READLINE(handle)
-    ENDWHILE
+    EndWhile
     dummy = CLOSEFILE(handle)
 
     Console.WriteLine("")
@@ -110,7 +110,7 @@ IF handle >= 0 THEN
     Console.WriteLine("Total words: " + totalWords)
     Console.WriteLine("Longest line: " + longestLine + " characters")
     Console.WriteLine("Average words per line: " + (totalWords / totalLines))
-ENDIF
+EndIf
 
 Console.WriteLine("")
 
@@ -130,6 +130,6 @@ Console.WriteLine("=== Text Analysis Complete ===")
 
 ' Clean up
 deleted = DELETEFILE("sample_text.txt")
-IF deleted THEN
+If deleted Then
     Console.WriteLine("Sample file cleaned up")
-ENDIF
+EndIf

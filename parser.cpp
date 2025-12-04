@@ -97,8 +97,8 @@ DeclPtr Parser::parseTypeDecl() {
         if (tok.type == TokenType::INTEGER) {
             fieldTypeName = "INTEGER";
             next();
-        } else if (tok.type == TokenType::SINGLE) {
-            fieldTypeName = "SINGLE";
+        } else if (tok.type == TokenType::SINGLE || tok.type == TokenType::FLOAT) {
+            fieldTypeName = "FLOAT";
             next();
         } else if (tok.type == TokenType::DOUBLE) {
             fieldTypeName = "DOUBLE";
@@ -185,8 +185,8 @@ MethodDecl Parser::parseMethodDecl(bool isPublic) {
                     paramTypeName = "INTEGER";
                     paramType = Type::Int;
                     next();
-                } else if (tok.type == TokenType::SINGLE) {
-                    paramTypeName = "SINGLE";
+                } else if (tok.type == TokenType::SINGLE || tok.type == TokenType::FLOAT) {
+                    paramTypeName = "FLOAT";
                     paramType = Type::Float;
                     next();
                 } else if (tok.type == TokenType::DOUBLE) {
@@ -230,7 +230,7 @@ MethodDecl Parser::parseMethodDecl(bool isPublic) {
         if (tok.type == TokenType::INTEGER) {
             returnType = Type::Int;
             next();
-        } else if (tok.type == TokenType::SINGLE) {
+        } else if (tok.type == TokenType::SINGLE || tok.type == TokenType::FLOAT) {
             returnType = Type::Float;
             next();
         } else if (tok.type == TokenType::DOUBLE) {
@@ -325,8 +325,8 @@ DeclPtr Parser::parseClassDecl() {
             if (tok.type == TokenType::INTEGER) {
                 fieldTypeName = "INTEGER";
                 next();
-            } else if (tok.type == TokenType::SINGLE) {
-                fieldTypeName = "SINGLE";
+            } else if (tok.type == TokenType::SINGLE || tok.type == TokenType::FLOAT) {
+                fieldTypeName = "FLOAT";
                 next();
             } else if (tok.type == TokenType::DOUBLE) {
                 fieldTypeName = "DOUBLE";
@@ -349,7 +349,7 @@ DeclPtr Parser::parseClassDecl() {
             } else {
                 fieldTypeName = expect(TokenType::ID).val;
             }
-            
+
             Type fieldType = resolveTypeName(fieldTypeName);
             fields.push_back(Field{fieldName, fieldType, fieldTypeName, isPublic});
         } else {
@@ -881,8 +881,8 @@ StmtPtr Parser::parseStmt() {
                     typeName = "INTEGER";
                     arrayType = Type::IntArray;
                     next();
-                } else if (tok.type == TokenType::SINGLE) {
-                    typeName = "SINGLE";
+                } else if (tok.type == TokenType::SINGLE || tok.type == TokenType::FLOAT) {
+                    typeName = "FLOAT";
                     arrayType = Type::FloatArray;
                     next();
                 } else if (tok.type == TokenType::DOUBLE) {
@@ -951,8 +951,8 @@ StmtPtr Parser::parseStmt() {
                     typeName = "INTEGER";
                     next();
                     knownTypes[var] = Type::Int;
-                } else if (tok.type == TokenType::SINGLE) {
-                    typeName = "SINGLE";
+                } else if (tok.type == TokenType::SINGLE || tok.type == TokenType::FLOAT) {
+                    typeName = "FLOAT";
                     next();
                     knownTypes[var] = Type::Float;
                 } else if (tok.type == TokenType::DOUBLE) {
@@ -1372,8 +1372,8 @@ DeclPtr Parser::parseDecl() {
                         paramTypeName = "INTEGER";
                         paramType = Type::Int;
                         next();
-                    } else if (tok.type == TokenType::SINGLE) {
-                        paramTypeName = "SINGLE";
+                    } else if (tok.type == TokenType::SINGLE || tok.type == TokenType::FLOAT) {
+                        paramTypeName = "FLOAT";
                         paramType = Type::Float;
                         next();
                     } else if (tok.type == TokenType::DOUBLE) {
@@ -1408,12 +1408,12 @@ DeclPtr Parser::parseDecl() {
                     // Phase 10: Require explicit parameter types
                     error("Parameter must have explicit type (As TypeName)");
                 }
-                
+
                 params.push_back(Param{paramName, paramType, paramTypeName});
             } while (tok.type == TokenType::COMMA);
         }
         expect(TokenType::RPAREN);
-        
+
         // Phase 10: Require explicit return type for all functions
         Type returnType = Type::Float;  // Default fallback
         if (tok.type == TokenType::AS) {
@@ -1421,7 +1421,7 @@ DeclPtr Parser::parseDecl() {
             if (tok.type == TokenType::INTEGER) {
                 returnType = Type::Int;
                 next();
-            } else if (tok.type == TokenType::SINGLE) {
+            } else if (tok.type == TokenType::SINGLE || tok.type == TokenType::FLOAT) {
                 returnType = Type::Float;
                 next();
             } else if (tok.type == TokenType::DOUBLE) {
@@ -1487,8 +1487,8 @@ DeclPtr Parser::parseDecl() {
                         paramTypeName = "INTEGER";
                         paramType = Type::Int;
                         next();
-                    } else if (tok.type == TokenType::SINGLE) {
-                        paramTypeName = "SINGLE";
+                    } else if (tok.type == TokenType::SINGLE || tok.type == TokenType::FLOAT) {
+                        paramTypeName = "FLOAT";
                         paramType = Type::Float;
                         next();
                     } else if (tok.type == TokenType::DOUBLE) {
@@ -1523,7 +1523,7 @@ DeclPtr Parser::parseDecl() {
                     // Phase 10: Require explicit parameter types
                     error("Parameter must have explicit type (As TypeName)");
                 }
-                
+
                 params.push_back(Param{paramName, paramType, paramTypeName});
             } while (tok.type == TokenType::COMMA);
         }

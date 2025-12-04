@@ -45,7 +45,7 @@ End Function
 
 Console.WriteLine("5! = " + Str(Factorial(5.0)))  ' Output: 120.0
 
-Dim numbers(10) As Single = 0.0
+Dim numbers(10) As Float = 0.0
 For i = 0 To 9
     numbers(i) = RndInt(1, 100)
 Next i

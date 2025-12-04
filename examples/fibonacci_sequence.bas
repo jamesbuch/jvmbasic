@@ -1,14 +1,14 @@
 ' Fibonacci Sequence - Recursive and Iterative Implementations
 
-FUNCTION fibonacci(n As Integer) As Integer
-    IF n <= 1 THEN
-        RETURN n
-    ELSE
-        RETURN fibonacci(n - 1) + fibonacci(n - 2)
-    ENDIF
-ENDFUNCTION
+Function fibonacci(n As Integer) As Integer
+    If n <= 1 Then
+        Return n
+    Else
+        Return fibonacci(n - 1) + fibonacci(n - 2)
+    EndIf
+EndFunction
 
-FUNCTION fibonacciIterative(n As Integer) As Integer
+Function fibonacciIterative(n As Integer) As Integer
     Dim a As Integer
     Dim b As Integer
     Dim count As Integer
@@ -17,24 +17,24 @@ FUNCTION fibonacciIterative(n As Integer) As Integer
     b = 1
     count = 0
 
-    WHILE count < n
+    While count < n
         temp = a + b
         a = b
         b = temp
         count = count + 1
-    ENDWHILE
-    RETURN a
-ENDFUNCTION
+    EndWhile
+    Return a
+EndFunction
 
-SUB printFibSequence(n As Integer)
+Sub printFibSequence(n As Integer)
     Dim i As Integer
     Console.WriteLine("Fibonacci sequence (first " + n + " terms):")
     i = 0
-    WHILE i < n
+    While i < n
         Console.WriteLine("  fib(" + i + ") = " + fibonacciIterative(i))
         i = i + 1
-    ENDWHILE
-ENDSUB
+    EndWhile
+EndSub
 
 Console.WriteLine("=========================================")
 Console.WriteLine("  FIBONACCI - Recursive & Iterative")
@@ -53,7 +53,7 @@ Console.WriteLine("  fib(25) = " + fibonacciIterative(25))
 Console.WriteLine("  fib(30) = " + fibonacciIterative(30))
 Console.WriteLine("")
 
-CALL printFibSequence(12)
+Call printFibSequence(12)
 
 Console.WriteLine("")
 Console.WriteLine("=========================================")

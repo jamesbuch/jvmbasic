@@ -1,33 +1,33 @@
 ' JVM BASIC - Comprehensive Demonstration
 ' Shows recursion, arrays, math, strings, control structures
 
-FUNCTION gcd(a As Integer, b As Integer) As Integer
-    IF b == 0 THEN
-        RETURN a
-    ELSE
-        RETURN gcd(b, a MOD b)
-    ENDIF
-ENDFUNCTION
+Function gcd(a As Integer, b As Integer) As Integer
+    If b == 0 Then
+        Return a
+    Else
+        Return gcd(b, a Mod b)
+    EndIf
+EndFunction
 
-SUB printBanner(text As String, width As Integer)
+Sub printBanner(text As String, width As Integer)
     Dim i As Integer
     i = 0
-    WHILE i < width
+    While i < width
         Console.Write("=")
         i = i + 1
-    ENDWHILE
+    EndWhile
     Console.WriteLine("")
     Console.WriteLine(text)
     Dim j As Integer
     j = 0
-    WHILE j < width
+    While j < width
         Console.Write("=")
         j = j + 1
-    ENDWHILE
+    EndWhile
     Console.WriteLine("")
-ENDSUB
+EndSub
 
-CALL printBanner("JVM BASIC - COMPREHENSIVE DEMONSTRATION", 60)
+Call printBanner("JVM BASIC - COMPREHENSIVE DEMONSTRATION", 60)
 Console.WriteLine("")
 
 Console.WriteLine("1. RECURSION:")
@@ -67,9 +67,9 @@ Console.WriteLine("")
 Console.WriteLine("5. CONTROL STRUCTURES:")
 Dim x As Integer
 x = 0
-FOR i = 1 TO 5
+For i = 1 To 5
     x = x + i
-NEXT i
+Next i
 Console.WriteLine("   Sum 1-5: " + x)
 Console.WriteLine("")
 
@@ -88,4 +88,4 @@ Console.WriteLine("    Name: " + name)
 Console.WriteLine("    Age: " + age + " years")
 Console.WriteLine("")
 
-CALL printBanner("ALL FEATURES WORKING PERFECTLY!", 60)
+Call printBanner("ALL FEATURES WORKING PERFECTLY!", 60)

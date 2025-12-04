@@ -11,13 +11,13 @@ Console.WriteLine("")
 
 games = 3
 
-FOR i = 1 TO games
+For i = 1 To games
     Console.Write("Game " + i + ": ")
-    FOR j = 1 TO 6
+    For j = 1 To 6
         Console.Write(RNDINT(1, 45) + " ")
-    NEXT j
+    Next j
     Console.WriteLine("")
-NEXT i
+Next i
 
 Console.WriteLine("")
 Console.WriteLine("Lotto generation complete!")

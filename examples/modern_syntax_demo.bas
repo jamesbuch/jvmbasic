@@ -3,13 +3,13 @@
 ' Phase 10: Modern VB-style syntax showcase
 ' ====================================================
 
-FUNCTION Add(a As Integer, b As Integer) As Integer
-    RETURN a + b
-ENDFUNCTION
+Function Add(a As Integer, b As Integer) As Integer
+    Return a + b
+EndFunction
 
-FUNCTION Multiply(x As Float, y As Float) As Float
-    RETURN x * y
-ENDFUNCTION
+Function Multiply(x As Float, y As Float) As Float
+    Return x * y
+EndFunction
 
 ' ===== Main Program =====
 
@@ -17,12 +17,12 @@ ENDFUNCTION
 Dim x As Integer
 Dim y As Integer
 Dim sum As Integer
-Dim a As Single
-Dim b As Single
-Dim product As Single
-Dim angle As Single
-Dim sine As Single
-Dim pi As Single
+Dim a As Float
+Dim b As Float
+Dim product As Float
+Dim angle As Float
+Dim sine As Float
+Dim pi As Float
 Dim num As Integer
 Dim leftShift As Integer
 Dim rightShift As Integer

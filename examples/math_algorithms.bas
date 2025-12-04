@@ -1,72 +1,72 @@
 ' Mathematical Algorithms Demonstration
 ' Shows GCD, LCM, Factorial, Fibonacci, Prime checking
 
-FUNCTION gcd(a As Integer, b As Integer) As Integer
+Function gcd(a As Integer, b As Integer) As Integer
     Dim temp As Integer
-    WHILE b > 0
+    While b > 0
         temp = b
-        b = a MOD b
+        b = a Mod b
         a = temp
-    ENDWHILE
-    RETURN a
-ENDFUNCTION
+    EndWhile
+    Return a
+EndFunction
 
-FUNCTION lcm(a As Integer, b As Integer) As Integer
-    RETURN (a * b) / gcd(a, b)
-ENDFUNCTION
+Function lcm(a As Integer, b As Integer) As Integer
+    Return (a * b) / gcd(a, b)
+EndFunction
 
-FUNCTION factorial(n As Integer) As Integer
-    IF n <= 1 THEN
-        RETURN 1
-    ELSE
-        RETURN n * factorial(n - 1)
-    ENDIF
-ENDFUNCTION
+Function factorial(n As Integer) As Integer
+    If n <= 1 Then
+        Return 1
+    Else
+        Return n * factorial(n - 1)
+    EndIf
+EndFunction
 
-FUNCTION fibonacci(n As Integer) As Integer
-    IF n <= 1 THEN
-        RETURN n
-    ELSE
-        RETURN fibonacci(n - 1) + fibonacci(n - 2)
-    ENDIF
-ENDFUNCTION
+Function fibonacci(n As Integer) As Integer
+    If n <= 1 Then
+        Return n
+    Else
+        Return fibonacci(n - 1) + fibonacci(n - 2)
+    EndIf
+EndFunction
 
-FUNCTION fibonacciIterative(n As Integer) As Integer
+Function fibonacciIterative(n As Integer) As Integer
     Dim a As Integer
     Dim b As Integer
     Dim i As Integer
     Dim temp As Integer
-    IF n <= 1 THEN
-        RETURN n
-    ENDIF
+    If n <= 1 Then
+        Return n
+    EndIf
 
     a = 0
     b = 1
     i = 2
-    WHILE i <= n
+    While i <= n
         temp = a + b
         a = b
         b = temp
         i = i + 1
-    ENDWHILE
-    RETURN b
-ENDFUNCTION
+    EndWhile
+    Return b
+EndFunction
 
-FUNCTION isPrime(n As Integer) As Integer
+Function isPrime(n As Integer) As Integer
     Dim i As Integer
-    IF n < 2 THEN
-        RETURN 0
-    ENDIF
+    If n < 2 Then
+        Return 0
+    EndIf
 
     i = 2
-    WHILE i * i <= n
-        IF n MOD i == 0 THEN
-            RETURN 0
-        ENDIF
+    While i * i <= n
+        If n Mod i == 0 Then
+            Return 0
+        EndIf
         i = i + 1
-    ENDWHILE
-    RETURN 1
-ENDFUNCTION
+    EndWhile
+    Return 1
+EndFunction
 
 Console.WriteLine("================================================")
 Console.WriteLine("  MATHEMATICAL ALGORITHMS DEMONSTRATION")

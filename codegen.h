@@ -1898,7 +1898,7 @@ public:
                     if (ds.typeName == "INTEGER" || ds.typeName == "LONG") {
                         arrType = Type::IntArray;
                         newarray_int();
-                    } else if (ds.typeName == "SINGLE" || ds.typeName == "DOUBLE") {
+                    } else if (ds.typeName == "SINGLE" || ds.typeName == "FLOAT" || ds.typeName == "DOUBLE") {
                         arrType = Type::FloatArray;
                         newarray_float();
                     } else if (ds.typeName == "BOOLEAN") {
@@ -1943,8 +1943,8 @@ public:
                 // knownTypes[ds.var] = arrType; // Can't modify const map
             } else if (!ds.typeName.empty()) {
                 // Scalar variable: DIM var AS Type = value
-                bool isBuiltInType = (ds.typeName == "INTEGER" || ds.typeName == "SINGLE" || 
-                                     ds.typeName == "DOUBLE" || ds.typeName == "LONG" || 
+                bool isBuiltInType = (ds.typeName == "INTEGER" || ds.typeName == "SINGLE" ||
+                                     ds.typeName == "FLOAT" || ds.typeName == "DOUBLE" || ds.typeName == "LONG" ||
                                      ds.typeName == "BOOLEAN" || ds.typeName == "STRING" ||
                                      ds.typeName == "DECIMAL" || ds.typeName == "BIGINT");
                 
@@ -1961,7 +1961,7 @@ public:
                         // Store based on type
                         if (ds.typeName == "INTEGER" || ds.typeName == "LONG" || ds.typeName == "BOOLEAN") {
                             istore(idx);
-                        } else if (ds.typeName == "SINGLE" || ds.typeName == "DOUBLE") {
+                        } else if (ds.typeName == "SINGLE" || ds.typeName == "FLOAT" || ds.typeName == "DOUBLE") {
                             fstore(idx);
                         } else {  // STRING, DECIMAL, BIGINT (Object types)
                             astore(idx);
@@ -1974,7 +1974,7 @@ public:
                         } else if (ds.typeName == "BOOLEAN") {
                             iconst(0);  // false
                             istore(idx);
-                        } else if (ds.typeName == "SINGLE" || ds.typeName == "DOUBLE") {
+                        } else if (ds.typeName == "SINGLE" || ds.typeName == "FLOAT" || ds.typeName == "DOUBLE") {
                             fconst(0.0f);
                             fstore(idx);
                         } else if (ds.typeName == "STRING") {

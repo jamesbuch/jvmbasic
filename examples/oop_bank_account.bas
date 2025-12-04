@@ -1,31 +1,26 @@
 ' Bank Account Example - Demonstrating OOP in JVM BASIC
-' Shows: Classes, constructors, PUBLIC fields, object instantiation
+' Shows: Classes, constructors, Public fields, object instantiation
 
-' Define BankAccount class
-CLASS BankAccount
-    PUBLIC balance As Float
-    PUBLIC owner As String
-    PUBLIC accountNumber As Float
-END CLASS
+' Define BankAccount class with constructor
+Class BankAccount
+    Public balance As Float
+    Public owner As String
+    Public accountNumber As Float
 
-' Create bank accounts
+    Public Sub New(name As String, acctNum As Float, initial As Float)
+        Me.owner = name
+        Me.accountNumber = acctNum
+        Me.balance = initial
+    End Sub
+End Class
+
+' Create bank accounts using constructor syntax
 Console.WriteLine("=== Bank Account Management System ===")
 Console.WriteLine("")
 
-DIM account1 AS NEW BankAccount()
-account1.owner = "Alice Johnson"
-account1.accountNumber = 1001.0
-account1.balance = 5000.0
-
-DIM account2 AS NEW BankAccount()
-account2.owner = "Bob Smith"
-account2.accountNumber = 1002.0
-account2.balance = 3500.0
-
-DIM account3 AS NEW BankAccount()
-account3.owner = "Carol White"
-account3.accountNumber = 1003.0
-account3.balance = 10000.0
+Dim account1 As New BankAccount("Alice Johnson", 1001.0, 5000.0)
+Dim account2 As New BankAccount("Bob Smith", 1002.0, 3500.0)
+Dim account3 As New BankAccount("Carol White", 1003.0, 10000.0)
 
 Console.WriteLine("Account Holder: " + account1.owner)
 Console.WriteLine("Account Number: " + account1.accountNumber)
@@ -44,7 +39,7 @@ Console.WriteLine("")
 
 Console.WriteLine("=== Bank Account Demo Complete ===")
 Console.WriteLine("OOP features demonstrated:")
-Console.WriteLine("- CLASS declarations")
-Console.WriteLine("- PUBLIC fields")
-Console.WriteLine("- Object instantiation (NEW)")
+Console.WriteLine("- Class declarations")
+Console.WriteLine("- Constructor with parameters")
+Console.WriteLine("- Object instantiation (New)")
 Console.WriteLine("- Field access and assignment")

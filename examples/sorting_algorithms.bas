@@ -2,7 +2,7 @@
 ' Demonstrates bubble sort and linear search
 
 Console.WriteLine("================================================")
-Console.WriteLine("  SORTING AND SEARCHING ALGORITHMS")
+Console.WriteLine("  SORTING And SEARCHING ALGORITHMS")
 Console.WriteLine("================================================")
 Console.WriteLine("")
 
@@ -30,10 +30,10 @@ numbers(9) = 30
 
 Console.WriteLine("Original array:")
 i = 0
-WHILE i < 10
+While i < 10
     Console.Write(numbers(i) + " ")
     i = i + 1
-ENDWHILE
+EndWhile
 Console.WriteLine("")
 Console.WriteLine("")
 
@@ -42,26 +42,26 @@ Console.WriteLine("Performing bubble sort...")
 swaps = 0
 n = 10
 i = 0
-WHILE i < n - 1
+While i < n - 1
     j = 0
-    WHILE j < n - i - 1
-        IF numbers(j) > numbers(j + 1) THEN
+    While j < n - i - 1
+        If numbers(j) > numbers(j + 1) Then
             temp = numbers(j)
             numbers(j) = numbers(j + 1)
             numbers(j + 1) = temp
             swaps = swaps + 1
-        ENDIF
+        EndIf
         j = j + 1
-    ENDWHILE
+    EndWhile
     i = i + 1
-ENDWHILE
+EndWhile
 
 Console.WriteLine("After bubble sort:")
 i = 0
-WHILE i < 10
+While i < 10
     Console.Write(numbers(i) + " ")
     i = i + 1
-ENDWHILE
+EndWhile
 Console.WriteLine("")
 Console.WriteLine("Swaps performed: " + swaps)
 Console.WriteLine("")
@@ -70,36 +70,36 @@ Console.WriteLine("")
 target = 25
 found = -1
 i = 0
-WHILE i < 10
-    IF numbers(i) == target THEN
+While i < 10
+    If numbers(i) == target Then
         found = i
         i = 10
-    ENDIF
+    EndIf
     i = i + 1
-ENDWHILE
+EndWhile
 
-IF found >= 0 THEN
+If found >= 0 Then
     Console.WriteLine("Search for " + target + ": Found at index " + found)
-ELSE
+Else
     Console.WriteLine("Search for " + target + ": Not found")
-ENDIF
+EndIf
 
 target = 99
 found = -1
 i = 0
-WHILE i < 10
-    IF numbers(i) == target THEN
+While i < 10
+    If numbers(i) == target Then
         found = i
         i = 10
-    ENDIF
+    EndIf
     i = i + 1
-ENDWHILE
+EndWhile
 
-IF found >= 0 THEN
+If found >= 0 Then
     Console.WriteLine("Search for " + target + ": Found at index " + found)
-ELSE
+Else
     Console.WriteLine("Search for " + target + ": Not found")
-ENDIF
+EndIf
 
 Console.WriteLine("")
 Console.WriteLine("================================================")
