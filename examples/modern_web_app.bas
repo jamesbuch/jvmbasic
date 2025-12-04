@@ -4,11 +4,11 @@
 ' Features: Namespaces, typed variables, JSON, HTTP, File I/O, Bitwise
 ' ====================================================
 
-FUNCTION CalculateTotal(price As Float, taxRate As Float) As Float
+FUNCTION CalculateTotal(price As Single, taxRate As Single) As Single
     RETURN price * (1.0 + taxRate)
 ENDFUNCTION
 
-FUNCTION FormatCurrency(amount As Float) As String
+FUNCTION FormatCurrency(amount As Single) As String
     RETURN "$" + amount
 ENDFUNCTION
 
@@ -24,6 +24,27 @@ ENDSUB
 CALL DisplayBanner()
 
 ' Modern variable declarations
+Dim appName As String
+Dim version As Single
+Dim active As Boolean
+Dim price As Single
+Dim taxRate As Single
+Dim total As Single
+Dim obj As Integer
+Dim r As Integer
+Dim jsonStr As String
+Dim text As String
+Dim encoded As String
+Dim fileContent As String
+Dim readBack As String
+Dim flags As Integer
+Dim mask As Integer
+Dim result As Integer
+Dim shifted As Integer
+Dim angle As Single
+Dim sine As Single
+Dim pi As Single
+
 appName = "WebApp Demo"
 version = 1.0
 active = true
@@ -80,7 +101,7 @@ Console.WriteLine("")
 ' Math namespace
 angle = 1.5708
 sine = Math.Sin(angle)
-Console.WriteLine("Math.Sin(π/2) = " + sine)
+Console.WriteLine("Math.Sin(pi/2) = " + sine)
 
 pi = Math.PI()
 Console.WriteLine("Math.PI = " + pi)

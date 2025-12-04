@@ -1,3 +1,5 @@
+' Fibonacci Sequence - Recursive and Iterative Implementations
+
 FUNCTION fibonacci(n As Integer) As Integer
     IF n <= 1 THEN
         RETURN n
@@ -7,10 +9,14 @@ FUNCTION fibonacci(n As Integer) As Integer
 ENDFUNCTION
 
 FUNCTION fibonacciIterative(n As Integer) As Integer
+    Dim a As Integer
+    Dim b As Integer
+    Dim count As Integer
+    Dim temp As Integer
     a = 0
     b = 1
     count = 0
-    
+
     WHILE count < n
         temp = a + b
         a = b
@@ -21,6 +27,7 @@ FUNCTION fibonacciIterative(n As Integer) As Integer
 ENDFUNCTION
 
 SUB printFibSequence(n As Integer)
+    Dim i As Integer
     Console.WriteLine("Fibonacci sequence (first " + n + " terms):")
     i = 0
     WHILE i < n
@@ -52,4 +59,3 @@ Console.WriteLine("")
 Console.WriteLine("=========================================")
 Console.WriteLine("  Fibonacci Complete!")
 Console.WriteLine("=========================================")
-

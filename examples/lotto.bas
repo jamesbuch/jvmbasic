@@ -1,13 +1,23 @@
-games = 0
+' Simple Lotto Number Generator
+' Generates lottery numbers for multiple games
+
+Dim games As Integer
+Dim i As Integer
+Dim j As Integer
 
 Console.WriteLine("Welcome to the Lotto Simulator!")
-Console.WriteLine("Enter the number of games you want to generate:")
-INPUT games
+Console.WriteLine("Generating 3 games automatically...")
+Console.WriteLine("")
+
+games = 3
 
 FOR i = 1 TO games
-    Console.WriteLine("Game " + i + ": ")
+    Console.Write("Game " + i + ": ")
     FOR j = 1 TO 6
         Console.Write(RNDINT(1, 45) + " ")
     NEXT j
     Console.WriteLine("")
 NEXT i
+
+Console.WriteLine("")
+Console.WriteLine("Lotto generation complete!")

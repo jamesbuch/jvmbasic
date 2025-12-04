@@ -1,4 +1,10 @@
+' Password Generator
+' Generates random passwords of various lengths
+
 FUNCTION generatePassword(length As Integer) As String
+    Dim password As String
+    Dim count As Integer
+    Dim rand As Integer
     password = ""
     count = 0
     WHILE count < length
@@ -16,6 +22,9 @@ FUNCTION generatePassword(length As Integer) As String
 ENDFUNCTION
 
 FUNCTION generateSecurePassword(length As Integer) As String
+    Dim password As String
+    Dim count As Integer
+    Dim rand As Integer
     password = ""
     count = 0
     WHILE count < length
@@ -41,6 +50,11 @@ Console.WriteLine("")
 
 Console.WriteLine("Generating passwords...")
 Console.WriteLine("")
+
+Dim password1 As String
+Dim password2 As String
+Dim password3 As String
+Dim password4 As String
 
 password1 = generatePassword(8)
 password2 = generatePassword(12)

@@ -1,4 +1,8 @@
+' Mathematical Algorithms Demonstration
+' Shows GCD, LCM, Factorial, Fibonacci, Prime checking
+
 FUNCTION gcd(a As Integer, b As Integer) As Integer
+    Dim temp As Integer
     WHILE b > 0
         temp = b
         b = a MOD b
@@ -28,10 +32,14 @@ FUNCTION fibonacci(n As Integer) As Integer
 ENDFUNCTION
 
 FUNCTION fibonacciIterative(n As Integer) As Integer
+    Dim a As Integer
+    Dim b As Integer
+    Dim i As Integer
+    Dim temp As Integer
     IF n <= 1 THEN
         RETURN n
     ENDIF
-    
+
     a = 0
     b = 1
     i = 2
@@ -45,10 +53,11 @@ FUNCTION fibonacciIterative(n As Integer) As Integer
 ENDFUNCTION
 
 FUNCTION isPrime(n As Integer) As Integer
+    Dim i As Integer
     IF n < 2 THEN
         RETURN 0
     ENDIF
-    
+
     i = 2
     WHILE i * i <= n
         IF n MOD i == 0 THEN

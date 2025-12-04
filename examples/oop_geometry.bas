@@ -1,53 +1,54 @@
 ' Geometry Example - Multiple Classes Working Together
-' Shows: Multiple classes, constructors, field access, calculations
+' Shows: Multiple classes, field access, calculations
 
 ' Define Point class
 CLASS Point
-    PUBLIC x As Float
-    PUBLIC y As Float
-    
-SUB New(px As Float, py As Float)
-        x = px
-        y = py
-    END SUB
+    PUBLIC x As Single
+    PUBLIC y As Single
 END CLASS
 
 ' Define Rectangle class
 CLASS Rectangle
-    PUBLIC width As Float
-    PUBLIC height As Float
+    PUBLIC width As Single
+    PUBLIC height As Single
     PUBLIC color As String
-    
-SUB New(w As Float, h As Float, c As String)
-        width = w
-        height = h
-        color = c
-    END SUB
 END CLASS
 
 ' Define Circle class
 CLASS Circle
-    PUBLIC radius As Float
+    PUBLIC radius As Single
     PUBLIC color As String
-    
-SUB New(r As Float, c As String)
-        radius = r
-        color = c
-    END SUB
 END CLASS
 
 Console.WriteLine("=== Geometry Calculator ===")
 Console.WriteLine("")
 
 ' Create geometric objects
-DIM point1 AS NEW Point(5.0, 10.0)
-DIM point2 AS NEW Point(15.0, 20.0)
+DIM point1 AS NEW Point()
+point1.x = 5.0
+point1.y = 10.0
 
-DIM rect1 AS NEW Rectangle(10.0, 5.0, "red")
-DIM rect2 AS NEW Rectangle(20.0, 15.0, "blue")
+DIM point2 AS NEW Point()
+point2.x = 15.0
+point2.y = 20.0
 
-DIM circle1 AS NEW Circle(7.5, "green")
-DIM circle2 AS NEW Circle(12.0, "yellow")
+DIM rect1 AS NEW Rectangle()
+rect1.width = 10.0
+rect1.height = 5.0
+rect1.color = "red"
+
+DIM rect2 AS NEW Rectangle()
+rect2.width = 20.0
+rect2.height = 15.0
+rect2.color = "blue"
+
+DIM circle1 AS NEW Circle()
+circle1.radius = 7.5
+circle1.color = "green"
+
+DIM circle2 AS NEW Circle()
+circle2.radius = 12.0
+circle2.color = "yellow"
 
 Console.WriteLine("Points:")
 Console.WriteLine("  Point 1: x=" + point1.x)
@@ -73,10 +74,15 @@ Console.WriteLine("  Circle 2: color=" + circle2.color)
 Console.WriteLine("")
 
 ' Calculate areas
+Dim area1 As Single
+Dim area2 As Single
+Dim area3 As Single
+Dim area4 As Single
+
 area1 = rect1.width * rect1.height
 area2 = rect2.width * rect2.height
-area3 = PI * circle1.radius * circle1.radius
-area4 = PI * circle2.radius * circle2.radius
+area3 = PI() * circle1.radius * circle1.radius
+area4 = PI() * circle2.radius * circle2.radius
 
 Console.WriteLine("Areas:")
 Console.WriteLine("  Rectangle 1 area: " + area1)
@@ -87,7 +93,6 @@ Console.WriteLine("")
 
 Console.WriteLine("=== Geometry Demo Complete ===")
 Console.WriteLine("OOP features demonstrated:")
-Console.WriteLine("✓ Multiple CLASS declarations")
-Console.WriteLine("✓ Constructor parameters")
-Console.WriteLine("✓ Field access and calculations")
-Console.WriteLine("✓ Object instantiation")
+Console.WriteLine("- Multiple CLASS declarations")
+Console.WriteLine("- Field access and calculations")
+Console.WriteLine("- Object instantiation")

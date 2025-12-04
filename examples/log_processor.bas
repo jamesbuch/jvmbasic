@@ -5,6 +5,35 @@ Console.WriteLine("=== Log File Processor ===")
 Console.WriteLine("Showcases: String parsing, Pattern matching, Statistics")
 Console.WriteLine("")
 
+' Variable declarations
+Dim logFile As String
+Dim handle As Integer
+Dim dummy As Integer
+Dim totalLines As Integer
+Dim infoCount As Integer
+Dim debugCount As Integer
+Dim warningCount As Integer
+Dim errorCount As Integer
+Dim line As String
+Dim errorNum As Integer
+Dim tsStart As Integer
+Dim tsEnd As Integer
+Dim timestamp As String
+Dim msgStart As Integer
+Dim message As String
+Dim sample As String
+Dim bracketPos As Integer
+Dim datePart As String
+Dim colonPos As Integer
+Dim afterBracket As String
+Dim spacePos As Integer
+Dim level As String
+Dim level1 As String
+Dim level2 As String
+Dim cmp As Integer
+Dim deleted As Boolean
+Dim deleted2 As Boolean
+
 ' Create sample log file
 logFile = "application.log"
 handle = OPENOUTPUT(logFile)
@@ -34,12 +63,12 @@ IF handle >= 0 THEN
     debugCount = 0
     warningCount = 0
     errorCount = 0
-    
+
     line = READLINE(handle)
     WHILE LEN(line) > 0
         totalLines = totalLines + 1
-        
-        REM Count by level
+
+        ' Count by level
         IF CONTAINS(line, "INFO:") THEN
             infoCount = infoCount + 1
         ENDIF
@@ -52,11 +81,11 @@ IF handle >= 0 THEN
         IF CONTAINS(line, "ERROR:") THEN
             errorCount = errorCount + 1
         ENDIF
-        
+
         line = READLINE(handle)
     ENDWHILE
     dummy = CLOSEFILE(handle)
-    
+
     Console.WriteLine("Total log entries: " + totalLines)
     Console.WriteLine("INFO: " + infoCount)
     Console.WriteLine("DEBUG: " + debugCount)
@@ -75,15 +104,15 @@ IF handle >= 0 THEN
     WHILE LEN(line) > 0
         IF CONTAINS(line, "ERROR:") THEN
             errorNum = errorNum + 1
-            
-            REM Extract timestamp
+
+            ' Extract timestamp
             tsStart = INDEXOF(line, "[")
             tsEnd = INDEXOF(line, "]")
             IF tsStart >= 0 THEN
                 IF tsEnd > tsStart THEN
                     timestamp = SUBSTRINGLEN(line, tsStart + 1, tsEnd - tsStart - 1)
-                    
-                    REM Extract message
+
+                    ' Extract message
                     msgStart = INDEXOF(line, "ERROR:")
                     IF msgStart >= 0 THEN
                         message = SUBSTRING(line, msgStart + 7)
@@ -92,7 +121,7 @@ IF handle >= 0 THEN
                 ENDIF
             ENDIF
         ENDIF
-        
+
         line = READLINE(handle)
     ENDWHILE
     dummy = CLOSEFILE(handle)
@@ -146,5 +175,3 @@ Console.WriteLine("Processed at: " + DATETIME())
 
 ' Cleanup
 deleted = DELETEFILE(logFile)
-deleted2 = DELETEFILE("application.log")
-

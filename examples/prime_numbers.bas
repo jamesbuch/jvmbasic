@@ -1,4 +1,8 @@
+' Prime Number Calculator
+' Checks primality, counts primes, and finds nth prime
+
 FUNCTION isPrime(num As Integer) As Integer
+    Dim divisor As Integer
     IF num <= 1 THEN
         RETURN 0
     ENDIF
@@ -8,7 +12,7 @@ FUNCTION isPrime(num As Integer) As Integer
     IF num MOD 2 == 0 THEN
         RETURN 0
     ENDIF
-    
+
     divisor = 3
     WHILE divisor * divisor <= num
         IF num MOD divisor == 0 THEN
@@ -20,6 +24,8 @@ FUNCTION isPrime(num As Integer) As Integer
 ENDFUNCTION
 
 FUNCTION countPrimes(limit As Integer) As Integer
+    Dim count As Integer
+    Dim num As Integer
     count = 0
     num = 2
     WHILE num <= limit
@@ -32,6 +38,8 @@ FUNCTION countPrimes(limit As Integer) As Integer
 ENDFUNCTION
 
 FUNCTION findNthPrime(n As Integer) As Integer
+    Dim count As Integer
+    Dim num As Integer
     count = 0
     num = 2
     WHILE count < n
@@ -68,6 +76,8 @@ Console.WriteLine("20th prime: " + findNthPrime(20))
 Console.WriteLine("")
 
 Console.WriteLine("Prime number list (first 20):")
+Dim count As Integer
+Dim num As Integer
 count = 0
 num = 2
 WHILE count < 20

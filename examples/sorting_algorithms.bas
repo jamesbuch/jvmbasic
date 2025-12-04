@@ -1,7 +1,19 @@
+' Sorting and Searching Algorithms
+' Demonstrates bubble sort and linear search
+
 Console.WriteLine("================================================")
 Console.WriteLine("  SORTING AND SEARCHING ALGORITHMS")
 Console.WriteLine("================================================")
 Console.WriteLine("")
+
+' Variable declarations
+Dim i As Integer
+Dim j As Integer
+Dim n As Integer
+Dim swaps As Integer
+Dim temp As Integer
+Dim target As Integer
+Dim found As Integer
 
 ' Test data
 DIM numbers(10) As Integer

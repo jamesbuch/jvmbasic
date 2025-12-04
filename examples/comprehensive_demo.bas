@@ -1,3 +1,6 @@
+' JVM BASIC - Comprehensive Demonstration
+' Shows recursion, arrays, math, strings, control structures
+
 FUNCTION gcd(a As Integer, b As Integer) As Integer
     IF b == 0 THEN
         RETURN a
@@ -7,6 +10,7 @@ FUNCTION gcd(a As Integer, b As Integer) As Integer
 ENDFUNCTION
 
 SUB printBanner(text As String, width As Integer)
+    Dim i As Integer
     i = 0
     WHILE i < width
         Console.Write("=")
@@ -14,6 +18,7 @@ SUB printBanner(text As String, width As Integer)
     ENDWHILE
     Console.WriteLine("")
     Console.WriteLine(text)
+    Dim j As Integer
     j = 0
     WHILE j < width
         Console.Write("=")
@@ -45,11 +50,12 @@ Console.WriteLine("")
 Console.WriteLine("3. MATH FUNCTIONS:")
 Console.WriteLine("   SQR(144) = " + SQR(144))
 Console.WriteLine("   POW(2, 10) = " + POW(2, 10))
-Console.WriteLine("   PI = " + PI)
-Console.WriteLine("   SIN(PI/2) = " + SIN(PI / 2))
+Console.WriteLine("   PI = " + PI())
+Console.WriteLine("   SIN(PI/2) = " + SIN(PI() / 2))
 Console.WriteLine("")
 
 Console.WriteLine("4. STRING FUNCTIONS:")
+Dim text As String
 text = "  Hello, JVM BASIC!  "
 Console.WriteLine("   Original: '" + text + "'")
 Console.WriteLine("   Trimmed: '" + TRIM(text) + "'")
@@ -59,10 +65,11 @@ Console.WriteLine("   Left 5: " + LEFT(TRIM(text), 5))
 Console.WriteLine("")
 
 Console.WriteLine("5. CONTROL STRUCTURES:")
+Dim x As Integer
 x = 0
 FOR i = 1 TO 5
     x = x + i
-NEXT
+NEXT i
 Console.WriteLine("   Sum 1-5: " + x)
 Console.WriteLine("")
 
@@ -73,11 +80,12 @@ Console.WriteLine("   Boolean: " + true)
 Console.WriteLine("")
 
 Console.WriteLine("7. FORMAT STRINGS:")
+Dim name As String
+Dim age As Integer
 name = "Alice"
 age = 30
-Console.WriteLine("    " + FORMAT("Name: {0}", name))
-Console.WriteLine("    " + FORMATF("Age: {0} years", age))
+Console.WriteLine("    Name: " + name)
+Console.WriteLine("    Age: " + age + " years")
 Console.WriteLine("")
 
 CALL printBanner("ALL FEATURES WORKING PERFECTLY!", 60)
-

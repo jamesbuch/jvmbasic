@@ -1,26 +1,31 @@
 ' Bank Account Example - Demonstrating OOP in JVM BASIC
-' Shows: Classes, constructors, PUBLIC/PRIVATE fields, object instantiation
+' Shows: Classes, constructors, PUBLIC fields, object instantiation
 
 ' Define BankAccount class
 CLASS BankAccount
-    PRIVATE balance As Float
+    PUBLIC balance As Single
     PUBLIC owner As String
-    PUBLIC accountNumber As Float
-    
-SUB New(name As String, accountNum As Float, initialBalance As Float)
-        owner = name
-        accountNumber = accountNum
-        balance = initialBalance
-    END SUB
+    PUBLIC accountNumber As Single
 END CLASS
 
 ' Create bank accounts
 Console.WriteLine("=== Bank Account Management System ===")
 Console.WriteLine("")
 
-DIM account1 AS NEW BankAccount("Alice Johnson", 1001.0, 5000.0)
-DIM account2 AS NEW BankAccount("Bob Smith", 1002.0, 3500.0)
-DIM account3 AS NEW BankAccount("Carol White", 1003.0, 10000.0)
+DIM account1 AS NEW BankAccount()
+account1.owner = "Alice Johnson"
+account1.accountNumber = 1001.0
+account1.balance = 5000.0
+
+DIM account2 AS NEW BankAccount()
+account2.owner = "Bob Smith"
+account2.accountNumber = 1002.0
+account2.balance = 3500.0
+
+DIM account3 AS NEW BankAccount()
+account3.owner = "Carol White"
+account3.accountNumber = 1003.0
+account3.balance = 10000.0
 
 Console.WriteLine("Account Holder: " + account1.owner)
 Console.WriteLine("Account Number: " + account1.accountNumber)
@@ -39,8 +44,7 @@ Console.WriteLine("")
 
 Console.WriteLine("=== Bank Account Demo Complete ===")
 Console.WriteLine("OOP features demonstrated:")
-Console.WriteLine("✓ CLASS declarations")
-Console.WriteLine("✓ PUBLIC/PRIVATE fields")
-Console.WriteLine("✓ Constructor (SUB New)")
-Console.WriteLine("✓ Object instantiation (NEW)")
-Console.WriteLine("✓ Field access")
+Console.WriteLine("- CLASS declarations")
+Console.WriteLine("- PUBLIC fields")
+Console.WriteLine("- Object instantiation (NEW)")
+Console.WriteLine("- Field access and assignment")

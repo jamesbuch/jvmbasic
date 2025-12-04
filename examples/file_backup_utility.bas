@@ -6,6 +6,23 @@ Console.WriteLine("Showcases: File operations, Date/Time formatting")
 Console.WriteLine("")
 
 ' Create a sample file to backup
+Dim original As String
+Dim handle As Integer
+Dim dummy As Integer
+Dim size As Single
+Dim backupSize As Single
+Dim origSize As Single
+Dim now As Single
+Dim timestamp As String
+Dim backupName As String
+Dim yr As Integer
+Dim mo As Integer
+Dim dy As Integer
+Dim oneWeek As Single
+Dim oneMonth As Single
+Dim oneYear As Single
+Dim deleted As Boolean
+
 original = "important_data.txt"
 handle = OPENOUTPUT(original)
 IF handle >= 0 THEN
@@ -35,12 +52,12 @@ backupName = CONCAT3("backup_", timestamp, ".txt")
 Console.WriteLine("Creating backup: " + backupName)
 IF COPY(original, backupName) THEN
     Console.WriteLine("Backup created successfully")
-    
-    REM Verify backup
+
+    ' Verify backup
     IF FILEEXISTS(backupName) THEN
         backupSize = FILESIZE(backupName)
         Console.WriteLine("Backup size: " + backupSize + " bytes")
-        
+
         origSize = FILESIZE(original)
         IF backupSize == origSize THEN
             Console.WriteLine("Backup verified: sizes match")
@@ -91,7 +108,7 @@ Console.WriteLine("One month from now: " + FORMATDATE(oneMonth, "yyyy-MM-dd"))
 Console.WriteLine("One year from now: " + FORMATDATE(oneYear, "yyyy-MM-dd"))
 
 Console.WriteLine("")
-Console.WriteLine("Cleanup: Deleting backup...")
+Console.WriteLine("Cleanup: Deleting backup and original...")
 deleted = DELETEFILE(backupName)
 IF deleted THEN
     Console.WriteLine("Backup deleted")
@@ -99,6 +116,10 @@ ELSE
     Console.WriteLine("Could not delete backup")
 ENDIF
 
+deleted = DELETEFILE(original)
+IF deleted THEN
+    Console.WriteLine("Original deleted")
+ENDIF
+
 Console.WriteLine("")
 Console.WriteLine("=== Backup Utility Complete ===")
-

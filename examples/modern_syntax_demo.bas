@@ -7,73 +7,92 @@ FUNCTION Add(a As Integer, b As Integer) As Integer
     RETURN a + b
 ENDFUNCTION
 
-FUNCTION Multiply(x As Float, y As Float) As Float
+FUNCTION Multiply(x As Single, y As Single) As Single
     RETURN x * y
 ENDFUNCTION
 
 ' ===== Main Program =====
 
 ' Modern variable declarations
+Dim x As Integer
+Dim y As Integer
+Dim sum As Integer
+Dim a As Single
+Dim b As Single
+Dim product As Single
+Dim angle As Single
+Dim sine As Single
+Dim pi As Single
+Dim num As Integer
+Dim leftShift As Integer
+Dim rightShift As Integer
+Dim obj As Integer
+Dim r As Integer
+Dim jsonStr As String
+Dim text As String
+Dim encoded As String
+Dim fileContent As String
+Dim readBack As String
+
 x = 10
 y = 20
 sum = Add(x, y)
 
 ' Console namespace
-dummy = Console.WriteLine("=== Modern JVM BASIC Demo ===")
-dummy = Console.WriteLine("")
+Console.WriteLine("=== Modern JVM BASIC Demo ===")
+Console.WriteLine("")
 
 ' Math operations
-dummy = Console.WriteLine("Addition: 10 + 20 = " + sum)
+Console.WriteLine("Addition: 10 + 20 = " + sum)
 
 a = 3.5
 b = 2.0
 product = Multiply(a, b)
-dummy = Console.WriteLine("Multiplication: 3.5 * 2.0 = " + product)
+Console.WriteLine("Multiplication: 3.5 * 2.0 = " + product)
 
 ' Math namespace
 angle = 1.5708
 sine = Math.Sin(angle)
-dummy = Console.WriteLine("Math.Sin(1.5708) = " + sine)
+Console.WriteLine("Math.Sin(1.5708) = " + sine)
 
 pi = Math.PI()
-dummy = Console.WriteLine("Math.PI = " + pi)
+Console.WriteLine("Math.PI = " + pi)
 
 ' Bitwise operations
-dummy = Console.WriteLine("")
-dummy = Console.WriteLine("Bitwise operations:")
+Console.WriteLine("")
+Console.WriteLine("Bitwise operations:")
 num = 5
 leftShift = num << 2
-dummy = Console.WriteLine("5 << 2 = " + leftShift)
+Console.WriteLine("5 << 2 = " + leftShift)
 
 rightShift = 20 >> 1
-dummy = Console.WriteLine("20 >> 1 = " + rightShift)
+Console.WriteLine("20 >> 1 = " + rightShift)
 
 ' JSON operations
-dummy = Console.WriteLine("")
-dummy = Console.WriteLine("JSON operations:")
+Console.WriteLine("")
+Console.WriteLine("JSON operations:")
 obj = Json.NewObject()
 r = Json.Put(obj, "language", "JVM BASIC")
 r = Json.PutInt(obj, "version", 9)
 jsonStr = Json.ToString(obj)
-dummy = Console.WriteLine(jsonStr)
+Console.WriteLine(jsonStr)
 
 ' HTTP URL encoding
-dummy = Console.WriteLine("")
-dummy = Console.WriteLine("HTTP operations:")
+Console.WriteLine("")
+Console.WriteLine("HTTP operations:")
 text = "Hello World"
 encoded = Http.UrlEncode(text)
-dummy = Console.WriteLine("Encoded: " + encoded)
+Console.WriteLine("Encoded: " + encoded)
 
-' File operations  
-dummy = Console.WriteLine("")
-dummy = Console.WriteLine("File operations:")
+' File operations
+Console.WriteLine("")
+Console.WriteLine("File operations:")
 fileContent = "Modern JVM BASIC rocks!"
 r = File.WriteAllText("demo.txt", fileContent)
 readBack = File.ReadAllText("demo.txt")
-dummy = Console.WriteLine("File content: " + readBack)
+Console.WriteLine("File content: " + readBack)
 r = File.Delete("demo.txt")
 
-dummy = Console.WriteLine("")
-dummy = Console.WriteLine("=== Demo Complete ===")
+Console.WriteLine("")
+Console.WriteLine("=== Demo Complete ===")
 Console.WriteLine("JVM BASIC is now a modern, professional language!")
-
