@@ -192,6 +192,7 @@ Token Lexer::nextToken() {
         
         // Phase 9: Modern VB-style type keywords
         if (upper == "SINGLE") return {TokenType::SINGLE, s, 0.0, tokenLine};
+        if (upper == "FLOAT") return {TokenType::FLOAT, s, 0.0, tokenLine};
         if (upper == "DOUBLE") return {TokenType::DOUBLE, s, 0.0, tokenLine};
         if (upper == "LONG") return {TokenType::LONG, s, 0.0, tokenLine};
         if (upper == "BOOLEAN") return {TokenType::BOOLEAN, s, 0.0, tokenLine};

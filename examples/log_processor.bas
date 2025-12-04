@@ -5,10 +5,39 @@ Console.WriteLine("=== Log File Processor ===")
 Console.WriteLine("Showcases: String parsing, Pattern matching, Statistics")
 Console.WriteLine("")
 
+' Variable declarations
+Dim logFile As String
+Dim handle As Integer
+Dim dummy As Integer
+Dim totalLines As Integer
+Dim infoCount As Integer
+Dim debugCount As Integer
+Dim warningCount As Integer
+Dim errorCount As Integer
+Dim line As String
+Dim errorNum As Integer
+Dim tsStart As Integer
+Dim tsEnd As Integer
+Dim timestamp As String
+Dim msgStart As Integer
+Dim message As String
+Dim sample As String
+Dim bracketPos As Integer
+Dim datePart As String
+Dim colonPos As Integer
+Dim afterBracket As String
+Dim spacePos As Integer
+Dim level As String
+Dim level1 As String
+Dim level2 As String
+Dim cmp As Integer
+Dim deleted As Boolean
+Dim deleted2 As Boolean
+
 ' Create sample log file
 logFile = "application.log"
 handle = OPENOUTPUT(logFile)
-IF handle >= 0 THEN
+If handle >= 0 Then
     dummy = WRITELINE(handle, "[2025-10-18 10:15:30] INFO: Application started")
     dummy = WRITELINE(handle, "[2025-10-18 10:15:31] DEBUG: Loading configuration")
     dummy = WRITELINE(handle, "[2025-10-18 10:15:32] INFO: Server listening on port 8080")
@@ -21,82 +50,82 @@ IF handle >= 0 THEN
     dummy = WRITELINE(handle, "[2025-10-18 10:20:00] ERROR: Invalid user credentials")
     dummy = CLOSEFILE(handle)
     Console.WriteLine("Created " + logFile)
-ENDIF
+EndIf
 
 Console.WriteLine("")
 Console.WriteLine("Log File Statistics:")
 
 ' Count log levels
 handle = OPENINPUT(logFile)
-IF handle >= 0 THEN
+If handle >= 0 Then
     totalLines = 0
     infoCount = 0
     debugCount = 0
     warningCount = 0
     errorCount = 0
-    
+
     line = READLINE(handle)
-    WHILE LEN(line) > 0
+    While LEN(line) > 0
         totalLines = totalLines + 1
-        
-        REM Count by level
-        IF CONTAINS(line, "INFO:") THEN
+
+        ' Count by level
+        If CONTAINS(line, "INFO:") Then
             infoCount = infoCount + 1
-        ENDIF
-        IF CONTAINS(line, "DEBUG:") THEN
+        EndIf
+        If CONTAINS(line, "DEBUG:") Then
             debugCount = debugCount + 1
-        ENDIF
-        IF CONTAINS(line, "WARNING:") THEN
+        EndIf
+        If CONTAINS(line, "WARNING:") Then
             warningCount = warningCount + 1
-        ENDIF
-        IF CONTAINS(line, "ERROR:") THEN
+        EndIf
+        If CONTAINS(line, "ERROR:") Then
             errorCount = errorCount + 1
-        ENDIF
-        
+        EndIf
+
         line = READLINE(handle)
-    ENDWHILE
+    EndWhile
     dummy = CLOSEFILE(handle)
-    
+
     Console.WriteLine("Total log entries: " + totalLines)
     Console.WriteLine("INFO: " + infoCount)
     Console.WriteLine("DEBUG: " + debugCount)
     Console.WriteLine("WARNING: " + warningCount)
     Console.WriteLine("ERROR: " + errorCount)
-ENDIF
+EndIf
 
 Console.WriteLine("")
 Console.WriteLine("Error Messages:")
 
 ' Extract error messages
 handle = OPENINPUT(logFile)
-IF handle >= 0 THEN
+If handle >= 0 Then
     errorNum = 0
     line = READLINE(handle)
-    WHILE LEN(line) > 0
-        IF CONTAINS(line, "ERROR:") THEN
+    While LEN(line) > 0
+        If CONTAINS(line, "ERROR:") Then
             errorNum = errorNum + 1
-            
-            REM Extract timestamp
+
+            ' Extract timestamp
             tsStart = INDEXOF(line, "[")
             tsEnd = INDEXOF(line, "]")
-            IF tsStart >= 0 THEN
-                IF tsEnd > tsStart THEN
+            If tsStart >= 0 Then
+                If tsEnd > tsStart Then
                     timestamp = SUBSTRINGLEN(line, tsStart + 1, tsEnd - tsStart - 1)
-                    
-                    REM Extract message
+
+                    ' Extract message
                     msgStart = INDEXOF(line, "ERROR:")
-                    IF msgStart >= 0 THEN
+                    If msgStart >= 0 Then
                         message = SUBSTRING(line, msgStart + 7)
                         Console.WriteLine(errorNum + ". [" + timestamp + "] " + message)
-                    ENDIF
-                ENDIF
-            ENDIF
-        ENDIF
-        
+                    EndIf
+                EndIf
+            EndIf
+        EndIf
+
         line = READLINE(handle)
-    ENDWHILE
+    EndWhile
     dummy = CLOSEFILE(handle)
-ENDIF
+EndIf
 
 Console.WriteLine("")
 Console.WriteLine("String Function Demonstrations:")
@@ -108,20 +137,20 @@ Console.WriteLine("")
 
 ' Extract parts using string functions
 bracketPos = INDEXOF(sample, "]")
-IF bracketPos > 0 THEN
+If bracketPos > 0 Then
     datePart = SUBSTRINGLEN(sample, 1, bracketPos - 1)
     Console.WriteLine("Timestamp: " + datePart)
-ENDIF
+EndIf
 
 colonPos = INDEXOF(sample, ":")
-IF colonPos > 0 THEN
+If colonPos > 0 Then
     afterBracket = SUBSTRING(sample, bracketPos + 2)
     spacePos = INDEXOF(afterBracket, ":")
-    IF spacePos > 0 THEN
+    If spacePos > 0 Then
         level = SUBSTRINGLEN(afterBracket, 0, spacePos)
         Console.WriteLine("Level: " + level)
-    ENDIF
-ENDIF
+    EndIf
+EndIf
 
 Console.WriteLine("")
 Console.WriteLine("Padding Demonstration:")
@@ -134,11 +163,11 @@ Console.WriteLine("String Comparison:")
 level1 = "ERROR"
 level2 = "WARNING"
 cmp = STRCMP(level1, level2)
-IF cmp < 0 THEN
+If cmp < 0 Then
     Console.WriteLine(level1 + " comes before " + level2)
-ELSE
+Else
     Console.WriteLine(level1 + " comes after " + level2)
-ENDIF
+EndIf
 
 Console.WriteLine("")
 Console.WriteLine("=== Log Processing Complete ===")
@@ -146,5 +175,3 @@ Console.WriteLine("Processed at: " + DATETIME())
 
 ' Cleanup
 deleted = DELETEFILE(logFile)
-deleted2 = DELETEFILE("application.log")
-

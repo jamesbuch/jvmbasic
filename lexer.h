@@ -28,7 +28,7 @@ enum class TokenType {
     AND, OR, NOT, XOR,
     EXIT, CONTINUE, SELECT, CASE,
     // Phase 9: Modern VB-style keywords and types
-    SINGLE, DOUBLE, LONG, BOOLEAN, STRINGTYPE,
+    SINGLE, FLOAT, DOUBLE, LONG, BOOLEAN, STRINGTYPE,
     DECIMAL, BIGINT,
     CONSOLE, IMPORT, IMPORTS,
     // Phase 9: Bitwise operators

@@ -4,26 +4,47 @@
 ' Features: Namespaces, typed variables, JSON, HTTP, File I/O, Bitwise
 ' ====================================================
 
-FUNCTION CalculateTotal(price As Float, taxRate As Float) As Float
-    RETURN price * (1.0 + taxRate)
-ENDFUNCTION
+Function CalculateTotal(price As Float, taxRate As Float) As Float
+    Return price * (1.0 + taxRate)
+EndFunction
 
-FUNCTION FormatCurrency(amount As Float) As String
-    RETURN "$" + amount
-ENDFUNCTION
+Function FormatCurrency(amount As Float) As String
+    Return "$" + amount
+EndFunction
 
-SUB DisplayBanner()
+Sub DisplayBanner()
     Console.WriteLine("=====================================")
     Console.WriteLine("  Modern JVM BASIC Web Application  ")
     Console.WriteLine("  Phase 10 - VB-Style Syntax Demo    ")
     Console.WriteLine("=====================================")
-ENDSUB
+EndSub
 
 ' ===== Main Program =====
 
-CALL DisplayBanner()
+Call DisplayBanner()
 
 ' Modern variable declarations
+Dim appName As String
+Dim version As Float
+Dim active As Boolean
+Dim price As Float
+Dim taxRate As Float
+Dim total As Float
+Dim obj As Integer
+Dim r As Integer
+Dim jsonStr As String
+Dim text As String
+Dim encoded As String
+Dim fileContent As String
+Dim readBack As String
+Dim flags As Integer
+Dim mask As Integer
+Dim result As Integer
+Dim shifted As Integer
+Dim angle As Float
+Dim sine As Float
+Dim pi As Float
+
 appName = "WebApp Demo"
 version = 1.0
 active = true
@@ -80,7 +101,7 @@ Console.WriteLine("")
 ' Math namespace
 angle = 1.5708
 sine = Math.Sin(angle)
-Console.WriteLine("Math.Sin(π/2) = " + sine)
+Console.WriteLine("Math.Sin(pi/2) = " + sine)
 
 pi = Math.PI()
 Console.WriteLine("Math.PI = " + pi)

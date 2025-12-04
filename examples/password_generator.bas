@@ -1,38 +1,47 @@
-FUNCTION generatePassword(length As Integer) As String
-    password = ""
-    count = 0
-    WHILE count < length
-        rand = RNDINT(0, 2)
-        IF rand == 0 THEN
-            password = password + CHR(RNDINT(97, 122))
-        ELSEIF rand == 1 THEN
-            password = password + CHR(RNDINT(65, 90))
-        ELSE
-            password = password + CHR(RNDINT(48, 57))
-        ENDIF
-        count = count + 1
-    ENDWHILE
-    RETURN password
-ENDFUNCTION
+' Password Generator
+' Generates random passwords of various lengths
 
-FUNCTION generateSecurePassword(length As Integer) As String
+Function generatePassword(length As Integer) As String
+    Dim password As String
+    Dim count As Integer
+    Dim rand As Integer
     password = ""
     count = 0
-    WHILE count < length
-        rand = RNDINT(0, 3)
-        IF rand == 0 THEN
+    While count < length
+        rand = RNDINT(0, 2)
+        If rand == 0 Then
             password = password + CHR(RNDINT(97, 122))
-        ELSEIF rand == 1 THEN
+        ElseIf rand == 1 Then
             password = password + CHR(RNDINT(65, 90))
-        ELSEIF rand == 2 THEN
+        Else
             password = password + CHR(RNDINT(48, 57))
-        ELSE
-            password = password + "!"
-        ENDIF
+        EndIf
         count = count + 1
-    ENDWHILE
-    RETURN password
-ENDFUNCTION
+    EndWhile
+    Return password
+EndFunction
+
+Function generateSecurePassword(length As Integer) As String
+    Dim password As String
+    Dim count As Integer
+    Dim rand As Integer
+    password = ""
+    count = 0
+    While count < length
+        rand = RNDINT(0, 3)
+        If rand == 0 Then
+            password = password + CHR(RNDINT(97, 122))
+        ElseIf rand == 1 Then
+            password = password + CHR(RNDINT(65, 90))
+        ElseIf rand == 2 Then
+            password = password + CHR(RNDINT(48, 57))
+        Else
+            password = password + "!"
+        EndIf
+        count = count + 1
+    EndWhile
+    Return password
+EndFunction
 
 Console.WriteLine("================================================")
 Console.WriteLine("  PASSWORD GENERATOR")
@@ -41,6 +50,11 @@ Console.WriteLine("")
 
 Console.WriteLine("Generating passwords...")
 Console.WriteLine("")
+
+Dim password1 As String
+Dim password2 As String
+Dim password3 As String
+Dim password4 As String
 
 password1 = generatePassword(8)
 password2 = generatePassword(12)

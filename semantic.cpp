@@ -27,11 +27,13 @@ void SemanticAnalyzer::error(const string& msg) {
 }
 
 bool SemanticAnalyzer::isNumericType(Type t) {
-    return t == Type::Int || t == Type::Float;
+    return t == Type::Int || t == Type::Float || t == Type::Double;
 }
 
 Type SemanticAnalyzer::promoteTypes(Type a, Type b) {
     if (a == b) return a;
+    // Double is the widest numeric type
+    if (a == Type::Double || b == Type::Double) return Type::Double;
     if (isNumericType(a) && isNumericType(b)) return Type::Float;
     return a;  // Default to first type
 }
@@ -40,9 +42,10 @@ Type SemanticAnalyzer::getArrayElementType(Type arrayType) {
     switch(arrayType) {
         case Type::IntArray: return Type::Int;
         case Type::FloatArray: return Type::Float;
+        case Type::DoubleArray: return Type::Double;
         case Type::StringArray: return Type::String;
         case Type::BoolArray: return Type::Bool;
-        default: 
+        default:
             error("Not an array type");
             return Type::Int;
     }
@@ -52,6 +55,7 @@ Type SemanticAnalyzer::makeArrayType(Type elemType) {
     switch(elemType) {
         case Type::Int: return Type::IntArray;
         case Type::Float: return Type::FloatArray;
+        case Type::Double: return Type::DoubleArray;
         case Type::String: return Type::StringArray;
         case Type::Bool: return Type::BoolArray;
         default: return Type::IntArray;
@@ -674,7 +678,11 @@ void SemanticAnalyzer::analyzeStmt(Stmt& stmt, SymbolTable& symbols) {
                 // Scalar assignment
                 if (symbols.isDefined(ls.var)) {
                     Type existingType = symbols.getType(ls.var);
-                    if (existingType != ls.expr->type) {
+                    // Allow widening conversions: Int->Float, Int->Double, Float->Double
+                    bool compatible = (existingType == ls.expr->type) ||
+                        (existingType == Type::Float && ls.expr->type == Type::Int) ||
+                        (existingType == Type::Double && (ls.expr->type == Type::Int || ls.expr->type == Type::Float));
+                    if (!compatible) {
                         error("Type mismatch: cannot reassign " + ls.var +
                               " from " + typeToString(existingType) +
                               " to " + typeToString(ls.expr->type));
@@ -737,8 +745,10 @@ void SemanticAnalyzer::analyzeStmt(Stmt& stmt, SymbolTable& symbols) {
                     // DIM arr(size) AS Type - explicit type
                     if (ds.typeName == "INTEGER" || ds.typeName == "LONG") {
                         elemType = Type::Int;
-                    } else if (ds.typeName == "SINGLE" || ds.typeName == "DOUBLE") {
+                    } else if (ds.typeName == "SINGLE" || ds.typeName == "FLOAT") {
                         elemType = Type::Float;
+                    } else if (ds.typeName == "DOUBLE") {
+                        elemType = Type::Double;
                     } else if (ds.typeName == "BOOLEAN") {
                         elemType = Type::Bool;
                     } else if (ds.typeName == "STRING") {
@@ -761,8 +771,8 @@ void SemanticAnalyzer::analyzeStmt(Stmt& stmt, SymbolTable& symbols) {
                 symbols.define(ds.var, arrType);
             } else if (!ds.typeName.empty()) {
                 // Scalar variable: DIM var AS Type = value
-                bool isBuiltInType = (ds.typeName == "INTEGER" || ds.typeName == "SINGLE" || 
-                                     ds.typeName == "DOUBLE" || ds.typeName == "LONG" || 
+                bool isBuiltInType = (ds.typeName == "INTEGER" || ds.typeName == "SINGLE" ||
+                                     ds.typeName == "FLOAT" || ds.typeName == "DOUBLE" || ds.typeName == "LONG" || 
                                      ds.typeName == "BOOLEAN" || ds.typeName == "STRING" ||
                                      ds.typeName == "DECIMAL" || ds.typeName == "BIGINT");
                 
@@ -790,8 +800,10 @@ void SemanticAnalyzer::analyzeStmt(Stmt& stmt, SymbolTable& symbols) {
                     Type varType;
                     if (ds.typeName == "INTEGER" || ds.typeName == "LONG") {
                         varType = Type::Int;
-                    } else if (ds.typeName == "SINGLE" || ds.typeName == "DOUBLE") {
+                    } else if (ds.typeName == "SINGLE" || ds.typeName == "FLOAT") {
                         varType = Type::Float;
+                    } else if (ds.typeName == "DOUBLE") {
+                        varType = Type::Double;
                     } else if (ds.typeName == "BOOLEAN") {
                         varType = Type::Bool;
                     } else if (ds.typeName == "STRING") {

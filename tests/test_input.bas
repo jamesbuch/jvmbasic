@@ -1,8 +1,8 @@
-' Test Console.ReadLine for user input (requires interactive stdin)
-name = ""
-age = 0
-height = 0.0
-student = false
+' Test Console.ReadLine for user input
+Dim name As String
+Dim ageStr As String
+Dim heightStr As String
+Dim studentStr As String
 
 Console.Write("Enter your name: ")
 name = Console.ReadLine()

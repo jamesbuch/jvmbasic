@@ -1,7 +1,19 @@
+' Statistical Analysis
+' Demonstrates mean, variance, and standard deviation calculations
+
 Console.WriteLine("================================================")
 Console.WriteLine("  STATISTICAL ANALYSIS")
 Console.WriteLine("================================================")
 Console.WriteLine("")
+
+' Variable declarations
+Dim i As Integer
+Dim total As Float
+Dim mean As Float
+Dim sumSq As Float
+Dim diff As Float
+Dim variance As Float
+Dim stdDev As Float
 
 ' Test data
 DIM data(10) As Integer
@@ -18,32 +30,32 @@ data(9) = 89
 
 Console.WriteLine("Dataset:")
 i = 0
-WHILE i < 10
+While i < 10
     Console.Write(data(i) + " ")
     i = i + 1
-ENDWHILE
+EndWhile
 Console.WriteLine("")
 Console.WriteLine("")
 
 ' Calculate statistics
-total = 0
+total = 0.0
 i = 0
-WHILE i < 10
+While i < 10
     total = total + data(i)
     i = i + 1
-ENDWHILE
+EndWhile
 
 mean = total / 10
 Console.WriteLine("Mean: " + mean)
 
 ' Calculate variance
-sumSq = 0
+sumSq = 0.0
 i = 0
-WHILE i < 10
+While i < 10
     diff = data(i) - mean
     sumSq = sumSq + (diff * diff)
     i = i + 1
-ENDWHILE
+EndWhile
 
 variance = sumSq / 10
 stdDev = SQR(variance)

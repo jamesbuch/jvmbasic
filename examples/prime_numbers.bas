@@ -1,47 +1,55 @@
-FUNCTION isPrime(num As Integer) As Integer
-    IF num <= 1 THEN
-        RETURN 0
-    ENDIF
-    IF num == 2 THEN
-        RETURN 1
-    ENDIF
-    IF num MOD 2 == 0 THEN
-        RETURN 0
-    ENDIF
-    
+' Prime Number Calculator
+' Checks primality, counts primes, and finds nth prime
+
+Function isPrime(num As Integer) As Integer
+    Dim divisor As Integer
+    If num <= 1 Then
+        Return 0
+    EndIf
+    If num == 2 Then
+        Return 1
+    EndIf
+    If num Mod 2 == 0 Then
+        Return 0
+    EndIf
+
     divisor = 3
-    WHILE divisor * divisor <= num
-        IF num MOD divisor == 0 THEN
-            RETURN 0
-        ENDIF
+    While divisor * divisor <= num
+        If num Mod divisor == 0 Then
+            Return 0
+        EndIf
         divisor = divisor + 2
-    ENDWHILE
-    RETURN 1
-ENDFUNCTION
+    EndWhile
+    Return 1
+EndFunction
 
-FUNCTION countPrimes(limit As Integer) As Integer
+Function countPrimes(limit As Integer) As Integer
+    Dim count As Integer
+    Dim num As Integer
     count = 0
     num = 2
-    WHILE num <= limit
-        IF isPrime(num) THEN
+    While num <= limit
+        If isPrime(num) Then
             count = count + 1
-        ENDIF
+        EndIf
         num = num + 1
-    ENDWHILE
-    RETURN count
-ENDFUNCTION
+    EndWhile
+    Return count
+EndFunction
 
-FUNCTION findNthPrime(n As Integer) As Integer
+Function findNthPrime(n As Integer) As Integer
+    Dim count As Integer
+    Dim num As Integer
     count = 0
     num = 2
-    WHILE count < n
-        IF isPrime(num) THEN
+    While count < n
+        If isPrime(num) Then
             count = count + 1
-        ENDIF
+        EndIf
         num = num + 1
-    ENDWHILE
-    RETURN num - 1
-ENDFUNCTION
+    EndWhile
+    Return num - 1
+EndFunction
 
 Console.WriteLine("================================================")
 Console.WriteLine("  PRIME NUMBER CALCULATOR")
@@ -68,15 +76,17 @@ Console.WriteLine("20th prime: " + findNthPrime(20))
 Console.WriteLine("")
 
 Console.WriteLine("Prime number list (first 20):")
+Dim count As Integer
+Dim num As Integer
 count = 0
 num = 2
-WHILE count < 20
-    IF isPrime(num) THEN
+While count < 20
+    If isPrime(num) Then
         count = count + 1
         Console.WriteLine("Prime " + count + ": " + num)
-    ENDIF
+    EndIf
     num = num + 1
-ENDWHILE
+EndWhile
 
 Console.WriteLine("")
 Console.WriteLine("================================================")

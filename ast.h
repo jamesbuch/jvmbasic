@@ -8,9 +8,9 @@
 using namespace std;
 
 // Type system
-enum class Type { 
-    Int, Float, String, Bool, 
-    IntArray, FloatArray, StringArray, BoolArray,
+enum class Type {
+    Int, Float, Double, String, Bool,
+    IntArray, FloatArray, DoubleArray, StringArray, BoolArray,
     UserDefined,  // For user-defined types (structs)
     Decimal,      // Phase 9: java.math.BigDecimal (arbitrary precision)
     BigInt        // Phase 9: java.math.BigInteger (arbitrary precision integers)

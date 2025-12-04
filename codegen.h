@@ -63,6 +63,22 @@ struct ConstantPool {
         return addEntry(move(e));
     }
 
+    u2 addDouble(uint64_t bits) {
+        CpEntry e{6};  // CONSTANT_Double tag
+        e.push_back(static_cast<u1>((bits >> 56) & 0xFF));
+        e.push_back(static_cast<u1>((bits >> 48) & 0xFF));
+        e.push_back(static_cast<u1>((bits >> 40) & 0xFF));
+        e.push_back(static_cast<u1>((bits >> 32) & 0xFF));
+        e.push_back(static_cast<u1>((bits >> 24) & 0xFF));
+        e.push_back(static_cast<u1>((bits >> 16) & 0xFF));
+        e.push_back(static_cast<u1>((bits >> 8) & 0xFF));
+        e.push_back(static_cast<u1>(bits & 0xFF));
+        u2 idx = addEntry(move(e));
+        // Double and Long constants take 2 slots - add a placeholder
+        entries.push_back(CpEntry{});  // Unusable entry
+        return idx;
+    }
+
     u2 addNameAndType(u2 nameIdx, u2 descIdx) {
         CpEntry e{12, static_cast<u1>(nameIdx >> 8), static_cast<u1>(nameIdx & 0xFF),
                   static_cast<u1>(descIdx >> 8), static_cast<u1>(descIdx & 0xFF)};
@@ -339,6 +355,15 @@ public:
             ldc(fidx);
         }
     }
+    void dconst(double d) {
+        if (d == 0.0) emit(0x0E);  // dconst_0
+        else if (d == 1.0) emit(0x0F);  // dconst_1
+        else {
+            uint64_t bits = *reinterpret_cast<uint64_t*>(&d);
+            u2 didx = cp.addDouble(bits);
+            emit(0x14, didx);  // ldc2_w for double constant
+        }
+    }
     void iload(u1 idx) {
         if (idx < 4) emit(0x1A + idx);
         else emit(0x15, idx);
@@ -346,6 +371,10 @@ public:
     void fload(u1 idx) {
         if (idx < 4) emit(0x22 + idx);
         else emit(0x17, idx);
+    }
+    void dload(u1 idx) {  // Note: double takes 2 slots
+        if (idx < 4) emit(0x26 + idx);  // dload_0 to dload_3
+        else emit(0x18, idx);  // dload
     }
     void aload(u1 idx) {
         if (idx < 4) emit(0x2A + idx);
@@ -358,6 +387,10 @@ public:
     void fstore(u1 idx) {
         if (idx < 4) emit(0x43 + idx);
         else emit(0x38, idx);
+    }
+    void dstore(u1 idx) {  // Note: double takes 2 slots
+        if (idx < 4) emit(0x47 + idx);  // dstore_0 to dstore_3
+        else emit(0x39, idx);  // dstore
     }
     void astore(u1 idx) {
         if (idx < 4) emit(0x4B + idx);
@@ -373,15 +406,28 @@ public:
     void fsub() { emit(0x66); }
     void fmul() { emit(0x6A); }
     void fdiv() { emit(0x6E); }
+    void dadd() { emit(0x63); }  // Double arithmetic
+    void dsub() { emit(0x67); }
+    void dmul() { emit(0x6B); }
+    void ddiv() { emit(0x6F); }
     void irem() { emit(0x70); }
     void frem() { emit(0x72); }
+    void drem() { emit(0x73); }
     void ineg() { emit(0x74); }
     void fneg() { emit(0x76); }
-    void i2f() { emit(0x86); } // Convert int to float
-    void f2i() { emit(0x8b); } // Convert float to int
+    void dneg() { emit(0x77); }
+    void i2f() { emit(0x86); }  // Convert int to float
+    void i2d() { emit(0x87); }  // Convert int to double
+    void f2i() { emit(0x8B); }  // Convert float to int
+    void f2d() { emit(0x8D); }  // Convert float to double
+    void d2i() { emit(0x8E); }  // Convert double to int
+    void d2f() { emit(0x90); }  // Convert double to float
+    void dcmpg() { emit(0x98); }  // Compare double (greater on NaN)
+    void dcmpl() { emit(0x97); }  // Compare double (less on NaN)
     void _return() { emit(0xB1); }
     void ireturn() { emit(0xAC); }
     void freturn() { emit(0xAE); }
+    void dreturn() { emit(0xAF); }  // Return double
     void areturn() { emit(0xB0); }
     void new_(u2 idx) { emit(0xBB, idx); }
     void dup() { emit(0x59); }
@@ -401,15 +447,18 @@ public:
     // Array instructions
     void newarray_int() { emit(0xBC); emit(10); }      // T_INT = 10
     void newarray_float() { emit(0xBC); emit(6); }     // T_FLOAT = 6
+    void newarray_double() { emit(0xBC); emit(7); }    // T_DOUBLE = 7
     void newarray_bool() { emit(0xBC); emit(4); }      // T_BOOLEAN = 4
     void anewarray(u2 idx) { emit(0xBD, idx); }        // For String arrays
     void checkcast(u2 idx) { emit(0xC0, idx); }        // Cast object to type
     void iaload() { emit(0x2E); }
     void faload() { emit(0x30); }
+    void daload() { emit(0x31); }  // Double array load
     void aaload() { emit(0x32); }
     void baload() { emit(0x33); }
     void iastore() { emit(0x4F); }
     void fastore() { emit(0x51); }
+    void dastore() { emit(0x52); }  // Double array store
     void aastore() { emit(0x53); }
     void bastore() { emit(0x54); }
     
@@ -483,17 +532,47 @@ public:
             return;
         }
         
+        // Handle double comparisons
+        if (leftType == Type::Double || rightType == Type::Double) {
+            load(*co.left, varIdx);
+            if (leftType == Type::Int) i2d();
+            else if (leftType == Type::Float) f2d();
+            load(*co.right, varIdx);
+            if (rightType == Type::Int) i2d();
+            else if (rightType == Type::Float) f2d();
+
+            // For double comparisons, we use dcmpg/dcmpl
+            dcmpg();
+
+            Label trueLabel, endLabel;
+            switch (co.op) {
+                case Op::Lt: iflt(trueLabel); break;
+                case Op::Gt: ifgt(trueLabel); break;
+                case Op::Le: ifle(trueLabel); break;
+                case Op::Ge: ifge(trueLabel); break;
+                case Op::Eq: ifeq(trueLabel); break;
+                case Op::Ne: ifne(trueLabel); break;
+                default: throw runtime_error("Unknown comparison operator");
+            }
+            iconst(0);
+            goto_(endLabel);
+            mark(trueLabel);
+            iconst(1);
+            mark(endLabel);
+            return;
+        }
+
         // Handle float comparisons with epsilon
         if (leftType == Type::Float || rightType == Type::Float) {
             load(*co.left, varIdx);
             if (leftType == Type::Int) i2f();
             load(*co.right, varIdx);
             if (rightType == Type::Int) i2f();
-            
+
             // For float comparisons, we use fcmpg/fcmpl and then conditional branches
             // fcmpg: pushes 1 if left > right, 0 if equal, -1 if left < right (or either NaN)
             fcmpg();
-            
+
             Label trueLabel, endLabel;
             switch (co.op) {
                 case Op::Lt: iflt(trueLabel); break;
@@ -544,8 +623,8 @@ public:
             const NumLit& nl = get<NumLit>(e.data);
             if (e.type == Type::Int) {
                 iconst(static_cast<int>(nl.value));
-                if (e.type != Type::Float) return; // No conversion needed
-                i2f(); // Convert int to float for Float-typed expression
+            } else if (e.type == Type::Double) {
+                dconst(nl.value);  // Load full double precision
             } else {
                 fconst(static_cast<float>(nl.value));
             }
@@ -623,6 +702,7 @@ public:
                 // Load element based on type
                 if (e.type == Type::Int) iaload();
                 else if (e.type == Type::Float) faload();
+                else if (e.type == Type::Double) daload();
                 else if (e.type == Type::Bool) baload();
                 else if (e.type == Type::String) aaload();
             } else {
@@ -636,15 +716,20 @@ public:
                 
                 // Arrays are reference types - use aload
                 if (actualType == Type::IntArray || actualType == Type::FloatArray ||
-                    actualType == Type::StringArray || actualType == Type::BoolArray) {
+                    actualType == Type::DoubleArray || actualType == Type::StringArray ||
+                    actualType == Type::BoolArray) {
                     aload(idx);
                 }
                 // Scalar types
                 else if (actualType == Type::Int || actualType == Type::Bool) {
                     iload(idx);
                     if (e.type == Type::Float) i2f(); // Convert int to float if needed
+                    else if (e.type == Type::Double) i2d(); // Convert int to double if needed
                 } else if (actualType == Type::Float) {
                     fload(idx);
+                    if (e.type == Type::Double) f2d(); // Convert float to double if needed
+                } else if (actualType == Type::Double) {
+                    dload(idx);
                 } else {
                     // String or other reference
                     aload(idx);
@@ -943,12 +1028,14 @@ public:
                     append_desc = cp.addUtf8("(I)Ljava/lang/StringBuilder;");
                 } else if (opType == Type::Float) {
                     append_desc = cp.addUtf8("(F)Ljava/lang/StringBuilder;");
+                } else if (opType == Type::Double) {
+                    append_desc = cp.addUtf8("(D)Ljava/lang/StringBuilder;");
                 } else if (opType == Type::Bool) {
                     append_desc = cp.addUtf8("(Z)Ljava/lang/StringBuilder;");
                 } else {
                     append_desc = cp.addUtf8("(Ljava/lang/String;)Ljava/lang/StringBuilder;");
                 }
-                
+
                 u2 append_nat = cp.addNameAndType(append_utf8, append_desc);
                 u2 append_methodref = cp.addMethodRef(sb_class_idx, append_nat);
                 invokevirtual(append_methodref);
@@ -1038,6 +1125,8 @@ public:
                             append_desc_r = cp.addUtf8("(I)Ljava/lang/StringBuilder;");
                         } else if (rightType == Type::Float) {
                             append_desc_r = cp.addUtf8("(F)Ljava/lang/StringBuilder;");
+                        } else if (rightType == Type::Double) {
+                            append_desc_r = cp.addUtf8("(D)Ljava/lang/StringBuilder;");
                         } else if (rightType == Type::Bool) {
                             append_desc_r = cp.addUtf8("(Z)Ljava/lang/StringBuilder;");
                         } else {
@@ -1124,6 +1213,8 @@ public:
                             append_desc = cp.addUtf8("(I)Ljava/lang/StringBuilder;");
                         } else if (leftType == Type::Float) {
                             append_desc = cp.addUtf8("(F)Ljava/lang/StringBuilder;");
+                        } else if (leftType == Type::Double) {
+                            append_desc = cp.addUtf8("(D)Ljava/lang/StringBuilder;");
                         } else if (leftType == Type::Bool) {
                             append_desc = cp.addUtf8("(Z)Ljava/lang/StringBuilder;");
                         } else {
@@ -1132,7 +1223,7 @@ public:
                         u2 append_nat = cp.addNameAndType(append_utf8, append_desc);
                         u2 append_methodref = cp.addMethodRef(sb_class_idx, append_nat);
                         invokevirtual(append_methodref);
-                        
+
                         // append(right)
                         load(*bo.right, varIdx);
                         
@@ -1158,6 +1249,8 @@ public:
                             append_desc = cp.addUtf8("(I)Ljava/lang/StringBuilder;");
                         } else if (rightType == Type::Float) {
                             append_desc = cp.addUtf8("(F)Ljava/lang/StringBuilder;");
+                        } else if (rightType == Type::Double) {
+                            append_desc = cp.addUtf8("(D)Ljava/lang/StringBuilder;");
                         } else if (rightType == Type::Bool) {
                             append_desc = cp.addUtf8("(Z)Ljava/lang/StringBuilder;");
                         } else {
@@ -1167,7 +1260,7 @@ public:
                         append_methodref = cp.addMethodRef(sb_class_idx, append_nat);
                         invokevirtual(append_methodref);
                     }
-                    
+
                     // toString()
                     u2 tostring_utf8 = cp.addUtf8("toString");
                     u2 tostring_desc = cp.addUtf8("()Ljava/lang/String;");
@@ -1798,9 +1891,28 @@ public:
                         }
                         u1 idx = varIdx[ls.var];
                         load(*ls.expr, varIdx);
-                        if (ls.expr->type == Type::Int || ls.expr->type == Type::Bool) istore(idx);
-                        else if (ls.expr->type == Type::Float) fstore(idx);
-                        else astore(idx);
+
+                        // Get the declared type if available (for proper widening conversion)
+                        Type targetType = ls.expr->type;
+                        auto typeIt = knownTypes.find(ls.var);
+                        if (typeIt != knownTypes.end()) {
+                            targetType = typeIt->second;
+                        }
+
+                        // Handle store with conversion if needed
+                        if (targetType == Type::Double) {
+                            // Convert to double if needed
+                            if (ls.expr->type == Type::Int) i2d();
+                            else if (ls.expr->type == Type::Float) f2d();
+                            dstore(idx);
+                        } else if (targetType == Type::Float) {
+                            if (ls.expr->type == Type::Int) i2f();
+                            fstore(idx);
+                        } else if (targetType == Type::Int || targetType == Type::Bool) {
+                            istore(idx);
+                        } else {
+                            astore(idx);
+                        }
                         max_locals = max(max_locals, static_cast<u2>(nextLocal));
                     }
                 }
@@ -1898,7 +2010,7 @@ public:
                     if (ds.typeName == "INTEGER" || ds.typeName == "LONG") {
                         arrType = Type::IntArray;
                         newarray_int();
-                    } else if (ds.typeName == "SINGLE" || ds.typeName == "DOUBLE") {
+                    } else if (ds.typeName == "SINGLE" || ds.typeName == "FLOAT" || ds.typeName == "DOUBLE") {
                         arrType = Type::FloatArray;
                         newarray_float();
                     } else if (ds.typeName == "BOOLEAN") {
@@ -1943,28 +2055,47 @@ public:
                 // knownTypes[ds.var] = arrType; // Can't modify const map
             } else if (!ds.typeName.empty()) {
                 // Scalar variable: DIM var AS Type = value
-                bool isBuiltInType = (ds.typeName == "INTEGER" || ds.typeName == "SINGLE" || 
-                                     ds.typeName == "DOUBLE" || ds.typeName == "LONG" || 
+                bool isBuiltInType = (ds.typeName == "INTEGER" || ds.typeName == "SINGLE" ||
+                                     ds.typeName == "FLOAT" || ds.typeName == "DOUBLE" || ds.typeName == "LONG" ||
                                      ds.typeName == "BOOLEAN" || ds.typeName == "STRING" ||
                                      ds.typeName == "DECIMAL" || ds.typeName == "BIGINT");
                 
                 if (isBuiltInType) {
                     // Phase 9: DIM var AS Integer = value (scalar typed variable)
-                    varIdx[ds.var] = nextLocal++;
+                    // Note: Double takes 2 local variable slots
+                    varIdx[ds.var] = nextLocal;
+                    if (ds.typeName == "DOUBLE") {
+                        nextLocal += 2;  // Double takes 2 slots
+                    } else {
+                        nextLocal++;
+                    }
                     max_locals = max(max_locals, static_cast<u2>(nextLocal));
                     u1 idx = varIdx[ds.var];
-                    
+
                     if (ds.initVal) {
                         // Initialize with provided value
-                        load(*ds.initVal, varIdx);
-                        
-                        // Store based on type
-                        if (ds.typeName == "INTEGER" || ds.typeName == "LONG" || ds.typeName == "BOOLEAN") {
-                            istore(idx);
-                        } else if (ds.typeName == "SINGLE" || ds.typeName == "DOUBLE") {
-                            fstore(idx);
-                        } else {  // STRING, DECIMAL, BIGINT (Object types)
-                            astore(idx);
+                        // For DOUBLE, load directly as double to preserve precision
+                        if (ds.typeName == "DOUBLE" && ds.initVal->kind == ExprKind::Num) {
+                            const NumLit& nl = get<NumLit>(ds.initVal->data);
+                            dconst(nl.value);  // Load full double precision
+                            dstore(idx);
+                        } else {
+                            load(*ds.initVal, varIdx);
+
+                            // Store based on type (with conversion if needed)
+                            if (ds.typeName == "INTEGER" || ds.typeName == "LONG" || ds.typeName == "BOOLEAN") {
+                                istore(idx);
+                            } else if (ds.typeName == "SINGLE" || ds.typeName == "FLOAT") {
+                                if (ds.initVal->type == Type::Int) i2f();
+                                fstore(idx);
+                            } else if (ds.typeName == "DOUBLE") {
+                                // Convert to double if needed
+                                if (ds.initVal->type == Type::Int) i2d();
+                                else if (ds.initVal->type == Type::Float) f2d();
+                                dstore(idx);
+                            } else {  // STRING, DECIMAL, BIGINT (Object types)
+                                astore(idx);
+                            }
                         }
                     } else {
                         // Initialize with default value (0, 0.0, false, "", null for Decimal/BigInt)
@@ -1974,9 +2105,12 @@ public:
                         } else if (ds.typeName == "BOOLEAN") {
                             iconst(0);  // false
                             istore(idx);
-                        } else if (ds.typeName == "SINGLE" || ds.typeName == "DOUBLE") {
+                        } else if (ds.typeName == "SINGLE" || ds.typeName == "FLOAT") {
                             fconst(0.0f);
                             fstore(idx);
+                        } else if (ds.typeName == "DOUBLE") {
+                            dconst(0.0);
+                            dstore(idx);
                         } else if (ds.typeName == "STRING") {
                             u2 emptyStrIdx = cp.addUtf8("");
                             ldc(cp.addString(emptyStrIdx));

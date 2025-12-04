@@ -5,7 +5,17 @@ package basicrt;
  * Provides built-in math and string functions
  */
 public class BasicRuntime {
-    
+
+    // Shared scanner for console input (to prevent buffer loss)
+    private static java.util.Scanner consoleScanner = null;
+
+    private static java.util.Scanner getConsoleScanner() {
+        if (consoleScanner == null) {
+            consoleScanner = new java.util.Scanner(System.in);
+        }
+        return consoleScanner;
+    }
+
     // ===== MATH FUNCTIONS =====
     
     public static int abs_i(int x) {
@@ -1738,11 +1748,12 @@ public class BasicRuntime {
     
     public static String console_ReadLine() {
         try {
-            java.io.BufferedReader reader = new java.io.BufferedReader(
-                new java.io.InputStreamReader(System.in));
-            String line = reader.readLine();
-            return line == null ? "" : line;
-        } catch (java.io.IOException e) {
+            java.util.Scanner scanner = getConsoleScanner();
+            if (scanner.hasNextLine()) {
+                return scanner.nextLine();
+            }
+            return "";
+        } catch (Exception e) {
             return "";
         }
     }
