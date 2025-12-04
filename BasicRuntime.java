@@ -2606,6 +2606,7 @@ public class BasicRuntime {
             java.net.http.HttpClient client = java.net.http.HttpClient.newHttpClient();
             java.net.http.HttpRequest request = java.net.http.HttpRequest.newBuilder()
                 .uri(java.net.URI.create(url))
+                .header("User-Agent", "JVMBasic/1.0 (https://github.com/jvmbasic)")
                 .GET()
                 .build();
             
@@ -2627,6 +2628,7 @@ public class BasicRuntime {
                 .uri(java.net.URI.create(url))
                 .POST(java.net.http.HttpRequest.BodyPublishers.ofString(data))
                 .header("Content-Type", "application/json")
+                .header("User-Agent", "JVMBasic/1.0 (https://github.com/jvmbasic)")
                 .build();
             
             java.net.http.HttpResponse<String> response = client.send(
@@ -2640,6 +2642,68 @@ public class BasicRuntime {
         }
     }
     
+    public static String http_Put(String url, String data) {
+        try {
+            java.net.http.HttpClient client = java.net.http.HttpClient.newHttpClient();
+            java.net.http.HttpRequest request = java.net.http.HttpRequest.newBuilder()
+                .uri(java.net.URI.create(url))
+                .PUT(java.net.http.HttpRequest.BodyPublishers.ofString(data))
+                .header("Content-Type", "application/json")
+                .header("User-Agent", "JVMBasic/1.0 (https://github.com/jvmbasic)")
+                .build();
+
+            java.net.http.HttpResponse<String> response = client.send(
+                request,
+                java.net.http.HttpResponse.BodyHandlers.ofString()
+            );
+
+            return response.body();
+        } catch (Exception e) {
+            return "";
+        }
+    }
+
+    public static String http_Patch(String url, String data) {
+        try {
+            java.net.http.HttpClient client = java.net.http.HttpClient.newHttpClient();
+            java.net.http.HttpRequest request = java.net.http.HttpRequest.newBuilder()
+                .uri(java.net.URI.create(url))
+                .method("PATCH", java.net.http.HttpRequest.BodyPublishers.ofString(data))
+                .header("Content-Type", "application/json")
+                .header("User-Agent", "JVMBasic/1.0 (https://github.com/jvmbasic)")
+                .build();
+
+            java.net.http.HttpResponse<String> response = client.send(
+                request,
+                java.net.http.HttpResponse.BodyHandlers.ofString()
+            );
+
+            return response.body();
+        } catch (Exception e) {
+            return "";
+        }
+    }
+
+    public static String http_Delete(String url) {
+        try {
+            java.net.http.HttpClient client = java.net.http.HttpClient.newHttpClient();
+            java.net.http.HttpRequest request = java.net.http.HttpRequest.newBuilder()
+                .uri(java.net.URI.create(url))
+                .DELETE()
+                .header("User-Agent", "JVMBasic/1.0 (https://github.com/jvmbasic)")
+                .build();
+
+            java.net.http.HttpResponse<String> response = client.send(
+                request,
+                java.net.http.HttpResponse.BodyHandlers.ofString()
+            );
+
+            return response.body();
+        } catch (Exception e) {
+            return "";
+        }
+    }
+
     public static String http_UrlEncode(String text) {
         try {
             return java.net.URLEncoder.encode(text, "UTF-8");

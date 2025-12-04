@@ -258,7 +258,8 @@ Type SemanticAnalyzer::inferExprType(const Expr& expr, const SymbolTable& symbol
                     return Type::Float;
                 }
             } else if (nce.namespaceName == "HTTP") {
-                if (methodUpper == "GET" || methodUpper == "POST" || 
+                if (methodUpper == "GET" || methodUpper == "POST" ||
+                    methodUpper == "PUT" || methodUpper == "PATCH" || methodUpper == "DELETE" ||
                     methodUpper == "URLENCODE" || methodUpper == "URLDECODE") {
                     return Type::String;
                 }
