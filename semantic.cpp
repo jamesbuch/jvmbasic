@@ -401,6 +401,34 @@ Type SemanticAnalyzer::inferExprType(const Expr& expr, const SymbolTable& symbol
                 } else if (methodUpper == "ISEMPTY") {
                     return Type::Bool;
                 }
+            } else if (nce.namespaceName == "BIGINT") {
+                // Phase 11: BigInteger support
+                if (methodUpper == "TOSTRING") {
+                    return Type::String;
+                } else if (methodUpper == "TOINT" || methodUpper == "TOLONG" ||
+                           methodUpper == "COMPARETO" || methodUpper == "SIGNUM" ||
+                           methodUpper == "BITLENGTH") {
+                    return Type::Int;
+                } else if (methodUpper == "EQUALS" || methodUpper == "ISPROBABLEPRIME") {
+                    return Type::Bool;
+                }
+                // All other methods return BigInt
+                return Type::BigInt;
+            } else if (nce.namespaceName == "DECIMAL") {
+                // Phase 11: BigDecimal support
+                if (methodUpper == "TOSTRING") {
+                    return Type::String;
+                } else if (methodUpper == "TOINT" || methodUpper == "COMPARETO" ||
+                           methodUpper == "SIGNUM" || methodUpper == "SCALE" ||
+                           methodUpper == "PRECISION") {
+                    return Type::Int;
+                } else if (methodUpper == "TODOUBLE") {
+                    return Type::Double;
+                } else if (methodUpper == "EQUALS") {
+                    return Type::Bool;
+                }
+                // All other methods return Decimal
+                return Type::Decimal;
             }
             return Type::Float;  // Default
         }

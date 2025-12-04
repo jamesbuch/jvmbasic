@@ -1544,11 +1544,12 @@ public:
                 for (const auto& arg : nce.args) {
                     if (arg->type == Type::Int || arg->type == Type::Bool) descriptor += "I";
                     else if (arg->type == Type::Float) descriptor += "F";
+                    else if (arg->type == Type::Double) descriptor += "D";  // Phase 11: Double support
                     else if (arg->type == Type::String) descriptor += "Ljava/lang/String;";
                     else descriptor += "Ljava/lang/Object;";  // For Decimal, BigInt, etc.
                 }
                 descriptor += ")";
-                
+
                 // Determine return type based on method name
                 string returnType = "I"; // Default to Int
                 if (e.type == Type::String) {
@@ -1559,6 +1560,8 @@ public:
                     returnType = "I";
                 } else if (e.type == Type::Float) {
                     returnType = "F";
+                } else if (e.type == Type::Double) {
+                    returnType = "D";  // Phase 11: Double support
                 } else if (e.type == Type::IntArray) {
                     returnType = "[I";
                 } else if (e.type == Type::FloatArray) {
