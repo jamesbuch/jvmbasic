@@ -5,9 +5,9 @@
 # Object files and binaries
 *.o
 *.out
-jvmbasic
-jvmbasic-new
-jvmbasic-modular
+/jvmbasic
+/jvmbasic-new
+/jvmbasic-modular
 
 # Test output artifacts
 test_output/

@@ -29,8 +29,10 @@ public class IRTry implements IRStatement {
     public List<IRStatement> getFinallyBlock() { return finallyBlock; }
 
     public void addTry(IRStatement stmt) { tryBlock.add(stmt); }
+    public void addTryStatement(IRStatement stmt) { tryBlock.add(stmt); }
     public void addCatch(String var, IRType type, List<IRStatement> body) { catchClauses.add(new CatchClause(var, type, body)); }
     public void addFinally(IRStatement stmt) { finallyBlock.add(stmt); }
+    public void addFinallyStatement(IRStatement stmt) { finallyBlock.add(stmt); }
 
     @Override
     public <T> T accept(IRVisitor<T> visitor) { return visitor.visitTry(this); }

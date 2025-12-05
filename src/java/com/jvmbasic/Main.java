@@ -1,6 +1,7 @@
 package com.jvmbasic;
 
 import com.jvmbasic.grammar.*;
+import com.jvmbasic.ir.*;
 import com.jvmbasic.visitor.CompilerVisitor;
 import com.jvmbasic.visitor.DebugListener;
 import com.jvmbasic.visitor.SymbolCollector;
@@ -32,6 +33,7 @@ public class Main {
     private static boolean showAst = false;
     private static boolean showTokens = false;
     private static boolean showTree = false;
+    private static boolean showIr = false;
     private static boolean parseOnly = false;
     private static String outputName = null;
     private static String sourceFile = null;
@@ -79,6 +81,9 @@ public class Main {
                 case "-parse-only":
                     parseOnly = true;
                     break;
+                case "-ir":
+                    showIr = true;
+                    break;
                 case "-help":
                 case "--help":
                     printUsage();
@@ -104,6 +109,7 @@ public class Main {
               -d            Enable debug output (uses listener for trace)
               -ast          Print AST structure (compact, single line)
               -tree         Print parse tree (pretty-printed, indented)
+              -ir           Print intermediate representation
               -tokens       Print token stream
               -parse-only   Parse without code generation
               -help         Show this help
@@ -165,6 +171,18 @@ public class Main {
         if (showTree) {
             System.out.println("\nParse Tree (pretty):");
             printTree(tree, parser, 0);
+        }
+
+        // Build IR if requested or needed
+        if (showIr || !parseOnly) {
+            System.out.println("\n=== Building IR ===");
+            IRBuilder irBuilder = new IRBuilder(outputName);
+            IRCompilationUnit irUnit = irBuilder.build(tree);
+
+            if (showIr) {
+                System.out.println("\nIntermediate Representation:");
+                System.out.println(irUnit.toString());
+            }
         }
 
         // If parse-only mode, stop here

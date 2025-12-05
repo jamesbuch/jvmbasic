@@ -34,8 +34,10 @@ public class IRIf implements IRStatement {
     public List<IRStatement> getElseBranch() { return elseBranch; }
 
     public void addThen(IRStatement stmt) { thenBranch.add(stmt); }
+    public void addThenStatement(IRStatement stmt) { thenBranch.add(stmt); }
     public void addElseIf(IRExpression cond, List<IRStatement> body) { elseIfs.add(new ElseIf(cond, body)); }
     public void addElse(IRStatement stmt) { elseBranch.add(stmt); }
+    public void addElseStatement(IRStatement stmt) { elseBranch.add(stmt); }
 
     @Override
     public <T> T accept(IRVisitor<T> visitor) {

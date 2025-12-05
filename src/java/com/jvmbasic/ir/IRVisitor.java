@@ -1,8 +1,8 @@
 package com.jvmbasic.ir;
 
+import com.jvmbasic.ir.decl.*;
 import com.jvmbasic.ir.expr.*;
 import com.jvmbasic.ir.stmt.*;
-import com.jvmbasic.ir.decl.*;
 
 /**
  * Visitor interface for IR nodes.
@@ -50,4 +50,5 @@ public interface IRVisitor<T> {
     T visitNewObject(IRNewObject expr);
     T visitNewArray(IRNewArray expr);
     T visitCast(IRCast expr);
+    T visitTernary(IRTernary expr);
 }

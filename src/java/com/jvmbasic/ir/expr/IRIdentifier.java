@@ -6,6 +6,11 @@ import com.jvmbasic.ir.*;
  * IR node for identifier references (variable names).
  */
 public record IRIdentifier(String name, IRType type, int slot, int line, int column) implements IRExpression {
+    // Convenience constructor - slot will be assigned later
+    public IRIdentifier(String name, IRType type, int line, int column) {
+        this(name, type, -1, line, column);
+    }
+
     @Override
     public IRType getType() { return type; }
 

@@ -8,7 +8,9 @@ import com.jvmbasic.ir.*;
 public record IRUnaryOp(Operator op, IRExpression operand, IRType type, int line, int column) implements IRExpression {
 
     public enum Operator {
-        NEG,       // -x
+        PLUS,      // +x (identity)
+        MINUS,     // -x (negation)
+        NEG,       // -x (alias for MINUS)
         NOT,       // Not x (logical)
         BIT_NOT    // ~x (bitwise)
     }
