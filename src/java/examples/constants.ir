@@ -13,45 +13,45 @@ CompilationUnit(constants.jvmb)
     var MAX_SIZE: Primitive[kind=INT] = 100
     var APP_NAME: Reference[name=java.lang.String] = "JVM BASIC 2.0"
     var DEBUG: Primitive[kind=BOOLEAN] = true
-    $lambda$("=== Constants ===")
-    $lambda$(("PI = " CONCAT $lambda$()))
-    $lambda$(("E = " CONCAT $lambda$()))
-    $lambda$(("Golden Ratio = " CONCAT $lambda$()))
-    $lambda$(("Max Size = " CONCAT $lambda$()))
-    $lambda$(("App Name = " CONCAT APP_NAME))
-    $lambda$(("Debug = " CONCAT $lambda$()))
-    $lambda$("")
-    $lambda$("=== Using Constants in Calculations ===")
+    Console.WriteLine("=== Constants ===")
+    Console.WriteLine(("PI = " CONCAT PI.ToString()))
+    Console.WriteLine(("E = " CONCAT E.ToString()))
+    Console.WriteLine(("Golden Ratio = " CONCAT GOLDEN_RATIO.ToString()))
+    Console.WriteLine(("Max Size = " CONCAT MAX_SIZE.ToString()))
+    Console.WriteLine(("App Name = " CONCAT APP_NAME))
+    Console.WriteLine(("Debug = " CONCAT DEBUG.ToString()))
+    Console.WriteLine("")
+    Console.WriteLine("=== Using Constants in Calculations ===")
     var radius: Primitive[kind=DOUBLE] = 5.0F
     var circumference: Primitive[kind=DOUBLE] = ((2 MUL PI) MUL radius)
     var area: Primitive[kind=DOUBLE] = ((PI MUL radius) MUL radius)
-    $lambda$((("Circle with radius " CONCAT $lambda$()) CONCAT ":"))
-    $lambda$(("  Circumference = " CONCAT $lambda$()))
-    $lambda$(("  Area = " CONCAT $lambda$()))
-    $lambda$("")
-    $lambda$("=== Class Constants ===")
-    $lambda$((("Speed of Light: " CONCAT $lambda$()) CONCAT " m/s"))
-    $lambda$((("Gravity: " CONCAT $lambda$()) CONCAT " m/s^2"))
+    Console.WriteLine((("Circle with radius " CONCAT radius.ToString()) CONCAT ":"))
+    Console.WriteLine(("  Circumference = " CONCAT circumference.ToString()))
+    Console.WriteLine(("  Area = " CONCAT area.ToString()))
+    Console.WriteLine("")
+    Console.WriteLine("=== Class Constants ===")
+    Console.WriteLine((("Speed of Light: " CONCAT Physics.SPEED_OF_LIGHT.ToString()) CONCAT " m/s"))
+    Console.WriteLine((("Gravity: " CONCAT Physics.GRAVITY.ToString()) CONCAT " m/s^2"))
     var mass: Primitive[kind=DOUBLE] = 10.0F
-    $lambda$((((("Weight of " CONCAT $lambda$()) CONCAT " kg: ") CONCAT $lambda$()) CONCAT " N"))
-    $lambda$("")
-    $lambda$("=== Constants in Switch ===")
+    Console.WriteLine((((("Weight of " CONCAT mass.ToString()) CONCAT " kg: ") CONCAT Physics.calculateWeight(mass).ToString()) CONCAT " N"))
+    Console.WriteLine("")
+    Console.WriteLine("=== Constants in Switch ===")
     var OPTION_A: Primitive[kind=INT] = 1
     var OPTION_B: Primitive[kind=INT] = 2
     var OPTION_C: Primitive[kind=INT] = 3
     var selection: Primitive[kind=INT] = 2
     if ((selection EQ OPTION_A)) { ... }
-    $lambda$("")
-    $lambda$("=== String Constants ===")
+    Console.WriteLine("")
+    Console.WriteLine("=== String Constants ===")
     var GREETING: Reference[name=java.lang.String] = "Welcome to "
     var FAREWELL: Reference[name=java.lang.String] = "Goodbye from "
-    $lambda$((GREETING ADD APP_NAME))
-    $lambda$((FAREWELL ADD APP_NAME))
-    $lambda$("")
-    $lambda$("=== Debug Constants ===")
+    Console.WriteLine((GREETING ADD APP_NAME))
+    Console.WriteLine((FAREWELL ADD APP_NAME))
+    Console.WriteLine("")
+    Console.WriteLine("=== Debug Constants ===")
     if (DEBUG) { ... }
-    $lambda$("")
-    $lambda$("All constant tests complete!")
+    Console.WriteLine("")
+    Console.WriteLine("All constant tests complete!")
 
 
 Parse successful - no code generation (parse-only mode)

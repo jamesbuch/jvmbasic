@@ -51,4 +51,5 @@ public interface IRVisitor<T> {
     T visitNewArray(IRNewArray expr);
     T visitCast(IRCast expr);
     T visitTernary(IRTernary expr);
+    T visitInterpolatedString(IRInterpolatedString expr);
 }

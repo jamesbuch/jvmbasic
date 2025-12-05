@@ -9,7 +9,7 @@ CompilationUnit(functions.jvmb)
     Function printGreeting(name: Reference[name=java.lang.String]) -> Primitive[kind=VOID]
   Statements:
     var result: Primitive[kind=INT] = factorial(5)
-    $lambda$(("5! = " CONCAT $lambda$()))
+    Console.WriteLine($"5! = {result}")
     printGreeting("JVM BASIC")
     var i: Primitive[kind=INT] = 0
     while ((i LT 3)) { ... }

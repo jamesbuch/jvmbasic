@@ -8,7 +8,7 @@ CompilationUnit(hello.jvmb)
     var message: Reference[name=java.lang.String] = "Hello, World!"
     var count: Primitive[kind=INT] = 5
     for i = 1 to count { ... }
-    $lambda$(nil)
+    Console.WriteLine($"Done counting to {count}")
 
 
 Parse successful - no code generation (parse-only mode)

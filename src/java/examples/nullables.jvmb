@@ -15,7 +15,7 @@ end if
 maybeString = "Hello"
 
 if maybeString <> Nil then
-    Console.WriteLine("maybeString is: " + maybeString)
+    Console.WriteLine($"maybeString is: {maybeString}")
 end if
 
 // ============================================================================
@@ -34,7 +34,7 @@ end if
 maybeInt = 42
 
 if maybeInt <> Nothing then
-    Console.WriteLine("maybeInt is: " + maybeInt.ToString())
+    Console.WriteLine($"maybeInt is: {maybeInt}")
 end if
 
 // ============================================================================
@@ -48,7 +48,7 @@ function greet(name as String?) as String
     if name = Nil then
         return "Hello, stranger!"
     else
-        return "Hello, " + name + "!"
+        return $"Hello, {name}!"
     end if
 end function
 
@@ -79,9 +79,9 @@ end function
 for i = 1 to 5
     var name as String? = findName(i)
     if name = Nil then
-        Console.WriteLine("ID " + i.ToString() + ": Not found")
+        Console.WriteLine($"ID {i}: Not found")
     else
-        Console.WriteLine("ID " + i.ToString() + ": " + name)
+        Console.WriteLine($"ID {i}: {name}")
     end if
 next i
 
@@ -119,20 +119,20 @@ public class OptionalValue
 
     public function toString() as String
         if _value = Nil then
-            return _label + ": <empty>"
+            return $"{_label}: <empty>"
         else
-            return _label + ": " + _value.ToString()
+            return $"{_label}: {_value}"
         end if
     end function
 end class
 
 var opt as OptionalValue = new OptionalValue("Score")
 Console.WriteLine(opt.toString())
-Console.WriteLine("Has value: " + opt.hasValue().ToString())
+Console.WriteLine($"Has value: {opt.hasValue()}")
 
 opt.setValue(100)
 Console.WriteLine(opt.toString())
-Console.WriteLine("Has value: " + opt.hasValue().ToString())
+Console.WriteLine($"Has value: {opt.hasValue()}")
 
 opt.clearValue()
 Console.WriteLine(opt.toString())
@@ -158,9 +158,9 @@ var result1 as Integer? = safeDivide(10, 2)
 var result2 as Integer? = safeDivide(10, 0)
 var result3 as Integer? = safeDivide(10, Nil)
 
-Console.WriteLine("10 / 2 = " + (result1 = Nil ? "Nil" : result1.ToString()))
-Console.WriteLine("10 / 0 = " + (result2 = Nil ? "Nil" : result2.ToString()))
-Console.WriteLine("10 / Nil = " + (result3 = Nil ? "Nil" : result3.ToString()))
+Console.WriteLine($"10 / 2 = {result1 = Nil ? \"Nil\" : result1}")
+Console.WriteLine($"10 / 0 = {result2 = Nil ? \"Nil\" : result2}")
+Console.WriteLine($"10 / Nil = {result3 = Nil ? \"Nil\" : result3}")
 
 Console.WriteLine("")
 Console.WriteLine("All nullable tests complete!")

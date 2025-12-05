@@ -7,32 +7,32 @@
 var a as Integer = 10
 var b as Integer = 3
 
-Console.WriteLine("Arithmetic operators (a=" + a.ToString() + ", b=" + b.ToString() + "):")
-Console.WriteLine("  a + b = " + (a + b).ToString())
-Console.WriteLine("  a - b = " + (a - b).ToString())
-Console.WriteLine("  a * b = " + (a * b).ToString())
-Console.WriteLine("  a / b = " + (a / b).ToString())
-Console.WriteLine("  a \\ b = " + (a \ b).ToString())  // Integer division
-Console.WriteLine("  a mod b = " + (a mod b).ToString())
-Console.WriteLine("  a ^ 2 = " + (a ^ 2).ToString())   // Power
+Console.WriteLine($"Arithmetic operators (a={a}, b={b}):")
+Console.WriteLine($"  a + b = {a + b}")
+Console.WriteLine($"  a - b = {a - b}")
+Console.WriteLine($"  a * b = {a * b}")
+Console.WriteLine($"  a / b = {a / b}")
+Console.WriteLine($"  a \\ b = {a \ b}")  // Integer division
+Console.WriteLine($"  a mod b = {a mod b}")
+Console.WriteLine($"  a ^ 2 = {a ^ 2}")   // Power
 
 // Floating point
 var x as Double = 10.5
 var y as Double = 3.2
-Console.WriteLine("Floating point (x=" + x.ToString() + ", y=" + y.ToString() + "):")
-Console.WriteLine("  x / y = " + (x / y).ToString())
+Console.WriteLine($"Floating point (x={x}, y={y}):")
+Console.WriteLine($"  x / y = {x / y}")
 
 // ============================================================================
 // Comparison Operators
 // ============================================================================
 
 Console.WriteLine("Comparison operators:")
-Console.WriteLine("  10 = 10: " + (10 = 10).ToString())
-Console.WriteLine("  10 <> 5: " + (10 <> 5).ToString())
-Console.WriteLine("  10 < 20: " + (10 < 20).ToString())
-Console.WriteLine("  10 > 5: " + (10 > 5).ToString())
-Console.WriteLine("  10 <= 10: " + (10 <= 10).ToString())
-Console.WriteLine("  10 >= 5: " + (10 >= 5).ToString())
+Console.WriteLine($"  10 = 10: {10 = 10}")
+Console.WriteLine($"  10 <> 5: {10 <> 5}")
+Console.WriteLine($"  10 < 20: {10 < 20}")
+Console.WriteLine($"  10 > 5: {10 > 5}")
+Console.WriteLine($"  10 <= 10: {10 <= 10}")
+Console.WriteLine($"  10 >= 5: {10 >= 5}")
 
 // ============================================================================
 // Logical Operators
@@ -42,14 +42,14 @@ var t as Boolean = true
 var f as Boolean = false
 
 Console.WriteLine("Logical operators:")
-Console.WriteLine("  true and true: " + (t and t).ToString())
-Console.WriteLine("  true and false: " + (t and f).ToString())
-Console.WriteLine("  true or false: " + (t or f).ToString())
-Console.WriteLine("  false or false: " + (f or f).ToString())
-Console.WriteLine("  true xor true: " + (t xor t).ToString())
-Console.WriteLine("  true xor false: " + (t xor f).ToString())
-Console.WriteLine("  not true: " + (not t).ToString())
-Console.WriteLine("  not false: " + (not f).ToString())
+Console.WriteLine($"  true and true: {t and t}")
+Console.WriteLine($"  true and false: {t and f}")
+Console.WriteLine($"  true or false: {t or f}")
+Console.WriteLine($"  false or false: {f or f}")
+Console.WriteLine($"  true xor true: {t xor t}")
+Console.WriteLine($"  true xor false: {t xor f}")
+Console.WriteLine($"  not true: {not t}")
+Console.WriteLine($"  not false: {not f}")
 
 // ============================================================================
 // Bitwise Operators
@@ -59,12 +59,12 @@ var m as Integer = 0b1010  // 10
 var n as Integer = 0b1100  // 12
 
 Console.WriteLine("Bitwise operators (m=0b1010=10, n=0b1100=12):")
-Console.WriteLine("  m + n = " + (m + n).ToString())    // AND = 0b1000 = 8
-Console.WriteLine("  m | n = " + (m | n).ToString())    // OR = 0b1110 = 14
-Console.WriteLine("  m xor n = " + (m xor n).ToString()) // XOR = 0b0110 = 6
-Console.WriteLine("  ~m = " + (~m).ToString())           // NOT
-Console.WriteLine("  m << 2 = " + (m << 2).ToString())  // Shift left = 40
-Console.WriteLine("  n >> 1 = " + (n >> 1).ToString())  // Shift right = 6
+Console.WriteLine($"  m + n = {m + n}")    // AND = 0b1000 = 8
+Console.WriteLine($"  m | n = {m | n}")    // OR = 0b1110 = 14
+Console.WriteLine($"  m xor n = {m xor n}") // XOR = 0b0110 = 6
+Console.WriteLine($"  ~m = {~m}")           // NOT
+Console.WriteLine($"  m << 2 = {m << 2}")  // Shift left = 40
+Console.WriteLine($"  n >> 1 = {n >> 1}")  // Shift right = 6
 
 // ============================================================================
 // String Operators
@@ -74,7 +74,7 @@ var firstName as String = "John"
 var lastName as String = "Doe"
 
 Console.WriteLine("String concatenation:")
-Console.WriteLine("  firstName + lastName = " + firstName + " " + lastName)
+Console.WriteLine($"  firstName + lastName = {firstName} {lastName}")
 
 // ============================================================================
 // Compound Assignment
@@ -84,16 +84,16 @@ var c as Integer = 10
 Console.WriteLine("Compound assignment (starting c=10):")
 
 c += 5
-Console.WriteLine("  c += 5: c = " + c.ToString())
+Console.WriteLine($"  c += 5: c = {c}")
 
 c -= 3
-Console.WriteLine("  c -= 3: c = " + c.ToString())
+Console.WriteLine($"  c -= 3: c = {c}")
 
 c *= 2
-Console.WriteLine("  c *= 2: c = " + c.ToString())
+Console.WriteLine($"  c *= 2: c = {c}")
 
 c /= 4
-Console.WriteLine("  c /= 4: c = " + c.ToString())
+Console.WriteLine($"  c /= 4: c = {c}")
 
 // ============================================================================
 // Unary Operators
@@ -103,19 +103,19 @@ var p as Integer = 5
 var q as Integer = -5
 
 Console.WriteLine("Unary operators:")
-Console.WriteLine("  +p = " + (+p).ToString())
-Console.WriteLine("  -p = " + (-p).ToString())
-Console.WriteLine("  -q = " + (-q).ToString())
+Console.WriteLine($"  +p = {+p}")
+Console.WriteLine($"  -p = {-p}")
+Console.WriteLine($"  -q = {-q}")
 
 // ============================================================================
 // Operator Precedence
 // ============================================================================
 
 Console.WriteLine("Operator precedence:")
-Console.WriteLine("  2 + 3 * 4 = " + (2 + 3 * 4).ToString())      // 14
-Console.WriteLine("  (2 + 3) * 4 = " + ((2 + 3) * 4).ToString())  // 20
-Console.WriteLine("  2 ^ 3 ^ 2 = " + (2 ^ 3 ^ 2).ToString())      // Power is right-assoc
-Console.WriteLine("  10 - 5 - 2 = " + (10 - 5 - 2).ToString())    // Left-assoc = 3
+Console.WriteLine($"  2 + 3 * 4 = {2 + 3 * 4}")      // 14
+Console.WriteLine($"  (2 + 3) * 4 = {(2 + 3) * 4}")  // 20
+Console.WriteLine($"  2 ^ 3 ^ 2 = {2 ^ 3 ^ 2}")      // Power is right-assoc
+Console.WriteLine($"  10 - 5 - 2 = {10 - 5 - 2}")    // Left-assoc = 3
 
 // ============================================================================
 // Ternary Operator
@@ -123,8 +123,8 @@ Console.WriteLine("  10 - 5 - 2 = " + (10 - 5 - 2).ToString())    // Left-assoc 
 
 var age as Integer = 21
 var status as String = age >= 18 ? "Adult" : "Minor"
-Console.WriteLine("Ternary: age " + age.ToString() + " is " + status)
+Console.WriteLine($"Ternary: age {age} is {status}")
 
 age = 15
 status = age >= 18 ? "Adult" : "Minor"
-Console.WriteLine("Ternary: age " + age.ToString() + " is " + status)
+Console.WriteLine($"Ternary: age {age} is {status}")

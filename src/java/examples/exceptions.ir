@@ -10,32 +10,32 @@ CompilationUnit(exceptions.jvmb)
     Function wrapper() -> Primitive[kind=INT]
     Function safeDivide(a: Primitive[kind=INT], b: Primitive[kind=INT]) -> Primitive[kind=INT]
   Statements:
-    $lambda$("=== Basic Try/Catch ===")
+    Console.WriteLine("=== Basic Try/Catch ===")
     try { ... }
-    $lambda$("Execution continues after catch")
-    $lambda$("")
-    $lambda$("=== Try/Catch/Finally ===")
+    Console.WriteLine("Execution continues after catch")
+    Console.WriteLine("")
+    Console.WriteLine("=== Try/Catch/Finally ===")
     try { ... }
-    $lambda$("")
-    $lambda$("=== Finally Without Exception ===")
+    Console.WriteLine("")
+    Console.WriteLine("=== Finally Without Exception ===")
     try { ... }
-    $lambda$("")
-    $lambda$("=== Multiple Catch Blocks ===")
-    $lambda$(testException(1))
-    $lambda$(testException(2))
-    $lambda$(testException(3))
-    $lambda$("")
-    $lambda$("=== Rethrow ===")
+    Console.WriteLine("")
+    Console.WriteLine("=== Multiple Catch Blocks ===")
+    Console.WriteLine(testException(1))
+    Console.WriteLine(testException(2))
+    Console.WriteLine(testException(3))
+    Console.WriteLine("")
+    Console.WriteLine("=== Rethrow ===")
     try { ... }
-    $lambda$("")
-    $lambda$("=== Nested Try Blocks ===")
+    Console.WriteLine("")
+    Console.WriteLine("=== Nested Try Blocks ===")
     try { ... }
-    $lambda$("")
-    $lambda$("=== Exception with Return ===")
-    $lambda$(("10 / 2 = " CONCAT $lambda$()))
-    $lambda$(("10 / 0 = " CONCAT $lambda$()))
-    $lambda$("")
-    $lambda$("All exception tests complete!")
+    Console.WriteLine("")
+    Console.WriteLine("=== Exception with Return ===")
+    Console.WriteLine(("10 / 2 = " CONCAT safeDivide(10, 2).ToString()))
+    Console.WriteLine(("10 / 0 = " CONCAT safeDivide(10, 0).ToString()))
+    Console.WriteLine("")
+    Console.WriteLine("All exception tests complete!")
 
 
 Parse successful - no code generation (parse-only mode)

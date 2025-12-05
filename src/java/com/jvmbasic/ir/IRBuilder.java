@@ -904,7 +904,7 @@ public class IRBuilder extends JvmBasicParserBaseVisitor<Object> {
             return new IRArrayAccess(base, index, elementType,
                                     token.getLine(), token.getCharPositionInLine());
         } else if (ctx instanceof JvmBasicParser.FunctionCallContext funcCtx) {
-            // This is a function call on an expression (like lambdas)
+            // This is a function call on an expression
             List<IRExpression> args = new ArrayList<>();
             if (funcCtx.argumentList() != null) {
                 for (JvmBasicParser.ArgumentContext arg : funcCtx.argumentList().argument()) {
@@ -920,8 +920,32 @@ public class IRBuilder extends JvmBasicParserBaseVisitor<Object> {
                                  token.getLine(), token.getCharPositionInLine());
             }
 
-            // Otherwise, it's a call on a function value
-            return new IRCall("$lambda$", args, IRType.Reference.OBJECT,
+            // If base is a member access, convert to method call
+            // e.g., Console.WriteLine becomes member access, then () makes it a method call
+            if (base instanceof IRMemberAccess member) {
+                String methodName = member.memberName();
+                IRExpression receiver = member.object();
+
+                // Check if receiver is an identifier (could be static class name)
+                if (receiver instanceof IRIdentifier id) {
+                    String className = id.name();
+                    // Known static classes
+                    if (className.equals("Console") || className.equals("Math") || className.equals("File") ||
+                        className.equals("Integer") || className.equals("String") || className.equals("System")) {
+                        return new IRMethodCall(null, className, methodName, args,
+                                               guessMethodReturnType(className, methodName),
+                                               true, token.getLine(), token.getCharPositionInLine());
+                    }
+                }
+
+                // Instance method call
+                return new IRMethodCall(receiver, null, methodName, args,
+                                       guessMethodReturnType(null, methodName),
+                                       false, token.getLine(), token.getCharPositionInLine());
+            }
+
+            // Otherwise, it's a call on a function value (lambda invocation)
+            return new IRCall("$invoke$", args, IRType.Reference.OBJECT,
                              token.getLine(), token.getCharPositionInLine());
         } else if (ctx instanceof JvmBasicParser.SuperConstructorCallContext superCtx) {
             // Handle MyBase.new() - super constructor call
@@ -1016,9 +1040,81 @@ public class IRBuilder extends JvmBasicParserBaseVisitor<Object> {
             // Extract character from 'x' format
             char value = text.charAt(1);
             return new IRIntLiteral(value, token.getLine(), token.getCharPositionInLine());
+        } else if (ctx instanceof JvmBasicParser.InterpolatedStringLiteralContext interpCtx) {
+            Token token = interpCtx.INTERPOLATED_STRING().getSymbol();
+            String text = interpCtx.INTERPOLATED_STRING().getText();
+            return parseInterpolatedString(text, token.getLine(), token.getCharPositionInLine());
         }
 
         return new IRNullLiteral(null, 0, 0);
+    }
+
+    /**
+     * Parse an interpolated string like $"Hello {name}!" into IR nodes.
+     * Produces an IRInterpolatedString with alternating literal and expression parts.
+     */
+    private IRExpression parseInterpolatedString(String text, int line, int column) {
+        // Remove $" prefix and " suffix
+        String content = text.substring(2, text.length() - 1);
+
+        List<IRExpression> parts = new ArrayList<>();
+        StringBuilder literal = new StringBuilder();
+        int i = 0;
+
+        while (i < content.length()) {
+            char c = content.charAt(i);
+            if (c == '{') {
+                // Flush any accumulated literal
+                if (literal.length() > 0) {
+                    parts.add(new IRStringLiteral(literal.toString(), line, column));
+                    literal.setLength(0);
+                }
+                // Find matching closing brace
+                int braceCount = 1;
+                int start = i + 1;
+                i++;
+                while (i < content.length() && braceCount > 0) {
+                    if (content.charAt(i) == '{') braceCount++;
+                    else if (content.charAt(i) == '}') braceCount--;
+                    if (braceCount > 0) i++;
+                }
+                String exprText = content.substring(start, i);
+                i++; // Skip closing brace
+
+                // Parse the expression - for now, treat as identifier
+                // TODO: Full expression parsing within interpolated strings
+                parts.add(new IRIdentifier(exprText.trim(), null, line, column));
+            } else if (c == '\\' && i + 1 < content.length()) {
+                // Handle escape sequences
+                char next = content.charAt(i + 1);
+                switch (next) {
+                    case 'n' -> literal.append('\n');
+                    case 't' -> literal.append('\t');
+                    case 'r' -> literal.append('\r');
+                    case '\\' -> literal.append('\\');
+                    case '"' -> literal.append('"');
+                    case '{' -> literal.append('{');
+                    case '}' -> literal.append('}');
+                    default -> { literal.append(c); literal.append(next); }
+                }
+                i += 2;
+            } else {
+                literal.append(c);
+                i++;
+            }
+        }
+
+        // Flush any remaining literal
+        if (literal.length() > 0) {
+            parts.add(new IRStringLiteral(literal.toString(), line, column));
+        }
+
+        // If only one part and it's a string, return just the string
+        if (parts.size() == 1 && parts.get(0) instanceof IRStringLiteral) {
+            return parts.get(0);
+        }
+
+        return new IRInterpolatedString(parts, line, column);
     }
 
     private IRExpression visitLambdaExpression(JvmBasicParser.LambdaExprContext ctx) {

@@ -10,38 +10,38 @@ CompilationUnit(control_flow.jvmb)
     var x: Primitive[kind=INT] = 10
     var y: Primitive[kind=INT] = 20
     if ((x GT 0)) { ... }
-    $lambda$("For loop 1 to 5:")
+    Console.WriteLine("For loop 1 to 5:")
     for i = 1 to 5 { ... }
-    $lambda$("")
-    $lambda$("For loop with step 2:")
+    Console.WriteLine("")
+    Console.WriteLine("For loop with step 2:")
     for i = 0 to 10 { ... }
-    $lambda$("")
-    $lambda$("Countdown:")
+    Console.WriteLine("")
+    Console.WriteLine("Countdown:")
     for i = 5 to 1 { ... }
-    $lambda$("Blast off!")
-    $lambda$("While loop:")
+    Console.WriteLine("Blast off!")
+    Console.WriteLine("While loop:")
     var counter: Primitive[kind=INT] = 0
     while ((counter LT 5)) { ... }
-    $lambda$("")
-    $lambda$("Do While:")
+    Console.WriteLine("")
+    Console.WriteLine("Do While:")
     counter = 0
     while ((counter LT 3)) { ... }
-    $lambda$("Do Until:")
+    Console.WriteLine("Do Until:")
     counter = 0
-    while ((NOT $lambda$(($lambda$() CONCAT " ")))) { ... }
-    $lambda$("")
+    while ((NOT Console.Write($"{counter} "))) { ... }
+    Console.WriteLine("")
     var day: Primitive[kind=INT] = 3
-    $lambda$((("Day " CONCAT $lambda$()) CONCAT " is: "))
+    Console.Write($"Day {day} is: ")
     if ((day EQ 1)) { ... }
-    $lambda$("Exit For at 5:")
+    Console.WriteLine("Exit For at 5:")
     for i = 1 to 10 { ... }
-    $lambda$("")
-    $lambda$("Continue (skip even):")
+    Console.WriteLine("")
+    Console.WriteLine("Continue (skip even):")
     for i = 1 to 10 { ... }
-    $lambda$("")
-    $lambda$("Nested loops (exit inner at j=2):")
+    Console.WriteLine("")
+    Console.WriteLine("Nested loops (exit inner at j=2):")
     for i = 1 to 3 { ... }
-    $lambda$("")
+    Console.WriteLine("")
 
 
 Parse successful - no code generation (parse-only mode)

@@ -7,10 +7,12 @@ A modern BASIC dialect targeting the JVM, featuring clean syntax, object-oriente
 JVM BASIC 2.0 is a complete rewrite of the original compiler using ANTLR4 for parsing and ASM for bytecode generation. It provides a modern BASIC experience with:
 
 - **Modern syntax**: `var` declarations, nullable types (`Type?`), lambdas
+- **String interpolation**: `$"Hello, {name}!"` with embedded expressions
 - **Object-oriented**: Classes, interfaces, inheritance, properties
 - **No legacy cruft**: No PRINT, INPUT, WEND, CALL, REM - all I/O via namespaced calls
 - **Clean formatting**: Newlines not required (but recommended for readability)
 - **Full Unicode support**: UTF-8 identifiers throughout
+- **IR output**: View intermediate representation for debugging
 
 ## Quick Start
 
@@ -24,10 +26,13 @@ JVM BASIC 2.0 is a complete rewrite of the original compiler using ANTLR4 for pa
 
 ```bash
 # Show parse tree
-java -jar build/libs/jvmbasic.jar -tree -parse-only examples/hello.jvmb
+java -jar build/libs/jvmbasic-compiler-2.0.0-SNAPSHOT.jar -tree -parse-only examples/hello.jvmb
 
-# Compile to bytecode
-java -jar build/libs/jvmbasic.jar -o HelloWorld examples/hello.jvmb
+# Show intermediate representation (IR)
+java -jar build/libs/jvmbasic-compiler-2.0.0-SNAPSHOT.jar -ir -parse-only examples/hello.jvmb
+
+# Compile to bytecode (when codegen is complete)
+java -jar build/libs/jvmbasic-compiler-2.0.0-SNAPSHOT.jar -o HelloWorld examples/hello.jvmb
 java HelloWorld
 ```
 
@@ -111,7 +116,7 @@ end sub
 
 // Parameters with defaults
 function greet(name as String, greeting as String = "Hello") as String
-    return greeting & ", " & name & "!"
+    return $"{greeting}, {name}!"
 end function
 
 // ByRef parameters
@@ -147,7 +152,7 @@ public class Person
 
     // Method
     public function greet() as String
-        return "Hello, I'm " & _name
+        return $"Hello, I'm {_name}"
     end function
 end class
 
@@ -161,7 +166,7 @@ public class Employee extends Person
     end sub
 
     public override function greet() as String
-        return MyBase.greet() & ", " & _title
+        return $"{MyBase.greet()}, {_title}"
     end function
 end class
 
@@ -201,8 +206,11 @@ throw new InvalidArgumentException("Value must be positive")
 // Arithmetic
 var result as Integer = (a + b) * c / d - e ^ 2
 
-// String concatenation
-var fullName as String = firstName & " " & lastName
+// String concatenation (use + or &)
+var fullName as String = firstName + " " + lastName
+
+// String interpolation (preferred)
+var message as String = $"Hello, {firstName} {lastName}!"
 
 // Comparison
 if x >= 0 and x <= 100 then
@@ -312,15 +320,41 @@ src/java/
       IRNode.java
       IRType.java
       IRVisitor.java
+      IRBuilder.java   # Converts parse tree to IR
       decl/           # Declarations (function, class, etc.)
       stmt/           # Statements
       expr/           # Expressions
-    listener/         # Parse tree listeners
-    visitor/          # Parse tree visitors (code gen)
     Main.java
-  examples/           # Example programs
+  examples/           # Example programs (.jvmb files)
+  docs/               # Documentation
+    USER_GUIDE.md     # Complete language reference
+    DEVELOPER_GUIDE.md # Compiler internals
+    LANGUAGE_FEATURES.md # Feature summary
   build.gradle.kts    # Gradle build configuration
 ```
+
+## Examples
+
+The `examples/` directory contains 14 example programs demonstrating various features:
+
+| File | Description |
+|------|-------------|
+| `hello.jvmb` | Simple Hello World with variables and loops |
+| `types.jvmb` | All primitive types and literals |
+| `control_flow.jvmb` | If/else, for, while, select case |
+| `functions.jvmb` | Functions and subroutines |
+| `classes.jvmb` | Classes, inheritance, interfaces |
+| `arrays.jvmb` | Array creation and manipulation |
+| `expressions.jvmb` | All operators and precedence |
+| `exceptions.jvmb` | Try/catch/finally, throw |
+| `nullables.jvmb` | Nullable types and null handling |
+| `lambdas.jvmb` | Lambda expressions |
+| `enums.jvmb` | Enumeration types |
+| `constants.jvmb` | Const declarations |
+| `imports.jvmb` | Import statements |
+| `methods.jvmb` | Static methods and constructors |
+
+Each example has a corresponding `.ir` file showing the intermediate representation.
 
 ## Building from Source
 
@@ -356,9 +390,13 @@ src/java/
 | Flag | Description |
 |------|-------------|
 | `-o <name>` | Output class name |
-| `-tree` | Show parse tree |
-| `-parse-only` | Parse without compiling |
+| `-d` | Enable debug output |
+| `-ast` | Show AST (compact) |
+| `-tree` | Show parse tree (pretty-printed) |
 | `-ir` | Show intermediate representation |
+| `-tokens` | Print token stream |
+| `-parse-only` | Parse without compiling |
+| `-help` | Show help |
 
 ## License
 
