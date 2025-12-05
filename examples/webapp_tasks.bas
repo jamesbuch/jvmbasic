@@ -33,18 +33,26 @@
 ' java -cp '.:basicrt:lib/*' TaskApp
 ' Visit: http://localhost:8080/
 
-' Initialize database connection
+' Database connection string constants
+' Note: Each request handler gets its own connection
+
+' Test database connection at startup
 Sub InitDatabase()
-    ' Note: In a real app, you would store the connection handle
-    ' For this demo, we just test the connection
     Dim testConn As Integer = Db.Connect("jdbc:mariadb://localhost:3306/tasks_db", "developer", "test")
     If testConn < 0 Then
-        Console.WriteLine("Warning: Database connection failed. Running in demo mode.")
+        Console.WriteLine("ERROR: Database connection failed!")
+        Console.WriteLine("Make sure MariaDB is running and tasks_db exists.")
     Else
         Console.WriteLine("Database connected successfully.")
         Db.Close(testConn)
     End If
 End Sub
+
+' Helper function to get a database connection
+Function GetDbConnection() As Integer
+    Dim conn As Integer = Db.Connect("jdbc:mariadb://localhost:3306/tasks_db", "developer", "test")
+    Return conn
+End Function
 
 ' ==========================================
 ' HTML Templates
@@ -160,85 +168,128 @@ Sub HandleIndex()
     Response.Write("</body></html>")
 End Sub
 
+' Helper to render task card given DB values
+Sub RenderTaskCardFromDB(taskId As Integer, title As String, desc As String, status As String, priority As Integer)
+    Dim badgeClass As String = ""
+    Dim badgeText As String = ""
+    Dim cmpResult As Integer = 0
+
+    ' Check status using StrCmp (returns 0 if equal)
+    cmpResult = StrCmp(status, "completed")
+    If cmpResult < 1 Then
+        badgeClass = "bg-green-100 text-green-800"
+        badgeText = "Completed"
+    Else
+        cmpResult = StrCmp(status, "in_progress")
+        If cmpResult < 1 Then
+            badgeClass = "bg-yellow-100 text-yellow-800"
+            badgeText = "In Progress"
+        Else
+            badgeClass = "bg-gray-100 text-gray-800"
+            badgeText = "Pending"
+        End If
+    End If
+
+    Response.Write("<div class=\"border rounded-lg p-4 hover:shadow-md transition\" x-data=\"{ expanded: false }\">")
+    Response.Write("<div class=\"flex justify-between items-start\">")
+    Response.Write("<div>")
+    Response.Write("<h3 class=\"font-semibold text-lg\">")
+    Response.Write(title)
+    Response.Write("</h3>")
+    Response.Write("<span class=\"inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ")
+    Response.Write(badgeClass)
+    Response.Write("\">")
+    Response.Write(badgeText)
+    Response.Write("</span>")
+    Response.Write("</div>")
+    Response.Write("<div class=\"flex space-x-2\">")
+    Response.Write("<button @click=\"expanded = !expanded\" class=\"text-gray-500 hover:text-gray-700\">")
+    Response.Write("<svg class=\"w-5 h-5\" fill=\"none\" stroke=\"currentColor\" viewBox=\"0 0 24 24\"><path stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"2\" d=\"M19 9l-7 7-7-7\"></path></svg>")
+    Response.Write("</button>")
+    Response.Write("<button hx-delete=\"/api/tasks/")
+    Response.Write(Str(taskId))
+    Response.Write("\" hx-target=\"#task-list\" hx-swap=\"innerHTML\" class=\"text-red-500 hover:text-red-700\">")
+    Response.Write("<svg class=\"w-5 h-5\" fill=\"none\" stroke=\"currentColor\" viewBox=\"0 0 24 24\"><path stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"2\" d=\"M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16\"></path></svg>")
+    Response.Write("</button>")
+    Response.Write("</div>")
+    Response.Write("</div>")
+    Response.Write("<p x-show=\"expanded\" x-cloak class=\"mt-2 text-gray-600\">")
+    Response.Write(desc)
+    Response.Write("</p>")
+    Response.Write("</div>")
+End Sub
+
 ' GET /api/tasks - Get task list as HTML fragment (for HTMX)
 Sub HandleGetTasks()
     Response.SetContentType("text/html")
 
-    ' Demo tasks (in real app, fetch from database)
-    Response.Write("<div class=\"space-y-4\">")
+    Dim conn As Integer = GetDbConnection()
+    Dim hasRows As Integer = 0
+    Dim taskId As Integer = 0
+    Dim title As String = ""
+    Dim desc As String = ""
+    Dim status As String = ""
+    Dim priorityVal As Integer = 0
+    Dim rowCount As Integer = 0
 
-    ' Task 1
-    Response.Write("<div class=\"border rounded-lg p-4 hover:shadow-md transition\" x-data=\"{ expanded: false }\">")
-    Response.Write("<div class=\"flex justify-between items-start\">")
-    Response.Write("<div>")
-    Response.Write("<h3 class=\"font-semibold text-lg\">Build Web Application</h3>")
-    Response.Write("<span class=\"inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800\">In Progress</span>")
-    Response.Write("</div>")
-    Response.Write("<div class=\"flex space-x-2\">")
-    Response.Write("<button @click=\"expanded = !expanded\" class=\"text-gray-500 hover:text-gray-700\">")
-    Response.Write("<svg class=\"w-5 h-5\" fill=\"none\" stroke=\"currentColor\" viewBox=\"0 0 24 24\"><path stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"2\" d=\"M19 9l-7 7-7-7\"></path></svg>")
-    Response.Write("</button>")
-    Response.Write("<button hx-delete=\"/api/tasks/1\" hx-target=\"#task-list\" hx-swap=\"innerHTML\" class=\"text-red-500 hover:text-red-700\">")
-    Response.Write("<svg class=\"w-5 h-5\" fill=\"none\" stroke=\"currentColor\" viewBox=\"0 0 24 24\"><path stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"2\" d=\"M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16\"></path></svg>")
-    Response.Write("</button>")
-    Response.Write("</div>")
-    Response.Write("</div>")
-    Response.Write("<p x-show=\"expanded\" x-cloak class=\"mt-2 text-gray-600\">Create a full-featured task management web app using JVM BASIC with Tailwind CSS, Alpine.js, and HTMX.</p>")
-    Response.Write("</div>")
+    If conn < 0 Then
+        Response.Write("<p class=\"text-red-500\">Database connection failed.</p>")
+    Else
+        ' Query all tasks from database
+        Dim result As Integer = Db.Query(conn, "SELECT id, title, description, status, priority FROM tasks ORDER BY priority DESC, created_at DESC")
 
-    ' Task 2
-    Response.Write("<div class=\"border rounded-lg p-4 hover:shadow-md transition\" x-data=\"{ expanded: false }\">")
-    Response.Write("<div class=\"flex justify-between items-start\">")
-    Response.Write("<div>")
-    Response.Write("<h3 class=\"font-semibold text-lg\">Add Database Support</h3>")
-    Response.Write("<span class=\"inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800\">Completed</span>")
-    Response.Write("</div>")
-    Response.Write("<div class=\"flex space-x-2\">")
-    Response.Write("<button @click=\"expanded = !expanded\" class=\"text-gray-500 hover:text-gray-700\">")
-    Response.Write("<svg class=\"w-5 h-5\" fill=\"none\" stroke=\"currentColor\" viewBox=\"0 0 24 24\"><path stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"2\" d=\"M19 9l-7 7-7-7\"></path></svg>")
-    Response.Write("</button>")
-    Response.Write("<button hx-delete=\"/api/tasks/2\" hx-target=\"#task-list\" hx-swap=\"innerHTML\" class=\"text-red-500 hover:text-red-700\">")
-    Response.Write("<svg class=\"w-5 h-5\" fill=\"none\" stroke=\"currentColor\" viewBox=\"0 0 24 24\"><path stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"2\" d=\"M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16\"></path></svg>")
-    Response.Write("</button>")
-    Response.Write("</div>")
-    Response.Write("</div>")
-    Response.Write("<p x-show=\"expanded\" x-cloak class=\"mt-2 text-gray-600\">Implement MariaDB database connection with parameterized queries for secure data access.</p>")
-    Response.Write("</div>")
+        If result < 0 Then
+            Response.Write("<p class=\"text-red-500\">Error loading tasks from database.</p>")
+        Else
+            Response.Write("<div class=\"space-y-4\">")
+            hasRows = Db.NextRow(result)
+            While hasRows > 0
+                taskId = Db.GetInt(result, "id")
+                title = Db.GetString(result, "title")
+                desc = Db.GetString(result, "description")
+                status = Db.GetString(result, "status")
+                priorityVal = Db.GetInt(result, "priority")
+                Call RenderTaskCardFromDB(taskId, title, desc, status, priorityVal)
+                rowCount = rowCount + 1
+                hasRows = Db.NextRow(result)
+            Wend
+            Response.Write("</div>")
+            Db.CloseResult(result)
 
-    ' Task 3
-    Response.Write("<div class=\"border rounded-lg p-4 hover:shadow-md transition\" x-data=\"{ expanded: false }\">")
-    Response.Write("<div class=\"flex justify-between items-start\">")
-    Response.Write("<div>")
-    Response.Write("<h3 class=\"font-semibold text-lg\">Implement File Uploads</h3>")
-    Response.Write("<span class=\"inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800\">Pending</span>")
-    Response.Write("</div>")
-    Response.Write("<div class=\"flex space-x-2\">")
-    Response.Write("<button @click=\"expanded = !expanded\" class=\"text-gray-500 hover:text-gray-700\">")
-    Response.Write("<svg class=\"w-5 h-5\" fill=\"none\" stroke=\"currentColor\" viewBox=\"0 0 24 24\"><path stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"2\" d=\"M19 9l-7 7-7-7\"></path></svg>")
-    Response.Write("</button>")
-    Response.Write("<button hx-delete=\"/api/tasks/3\" hx-target=\"#task-list\" hx-swap=\"innerHTML\" class=\"text-red-500 hover:text-red-700\">")
-    Response.Write("<svg class=\"w-5 h-5\" fill=\"none\" stroke=\"currentColor\" viewBox=\"0 0 24 24\"><path stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"2\" d=\"M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16\"></path></svg>")
-    Response.Write("</button>")
-    Response.Write("</div>")
-    Response.Write("</div>")
-    Response.Write("<p x-show=\"expanded\" x-cloak class=\"mt-2 text-gray-600\">Add multipart form handling for file uploads with progress indication.</p>")
-    Response.Write("</div>")
-
-    Response.Write("</div>")
+            If rowCount < 1 Then
+                Response.Write("<p class=\"text-gray-500\">No tasks yet. Add one above!</p>")
+            End If
+        End If
+        Db.Close(conn)
+    End If
 End Sub
 
 ' POST /api/tasks - Create new task
 Sub HandleCreateTask()
     Dim title As String = Request.GetParameter("title")
     Dim description As String = Request.GetParameter("description")
-    Dim priority As String = Request.GetParameter("priority")
+    Dim priorityStr As String = Request.GetParameter("priority")
+    Dim priorityVal As Integer = 1
+    Dim stmt As Integer = -1
+    Dim rows As Integer = 0
+    Dim conn As Integer = GetDbConnection()
 
-    ' In real app, insert into database using parameterized query:
-    ' Db.Prepare(dbConn, "INSERT INTO tasks (title, description, priority) VALUES (?, ?, ?)")
-    ' Db.SetString(1, title)
-    ' Db.SetString(2, description)
-    ' Db.SetInt(3, Val(priority))
-    ' Db.ExecuteUpdate()
+    If Len(priorityStr) > 0 Then
+        priorityVal = Int(Val(priorityStr))
+    End If
+
+    If conn > -1 Then
+        ' Insert into database using parameterized query
+        stmt = Db.Prepare(conn, "INSERT INTO tasks (title, description, priority, status) VALUES (?, ?, ?, 'pending')")
+        If stmt > -1 Then
+            Db.SetString(stmt, 1, title)
+            Db.SetString(stmt, 2, description)
+            Db.SetInt(stmt, 3, priorityVal)
+            rows = Db.ExecuteUpdate(stmt)
+            Db.CloseStmt(stmt)
+        End If
+        Db.Close(conn)
+    End If
 
     ' Return updated task list
     HandleGetTasks()
@@ -246,12 +297,26 @@ End Sub
 
 ' DELETE /api/tasks/{id} - Delete task
 Sub HandleDeleteTask()
-    Dim taskId As String = Request.GetPathParam("id")
+    Dim taskIdStr As String = Request.GetPathParam("id")
+    Dim taskIdVal As Integer = 0
+    Dim stmt As Integer = -1
+    Dim rows As Integer = 0
+    Dim conn As Integer = GetDbConnection()
 
-    ' In real app, delete from database:
-    ' Db.Prepare(dbConn, "DELETE FROM tasks WHERE id = ?")
-    ' Db.SetInt(1, Val(taskId))
-    ' Db.ExecuteUpdate()
+    If Len(taskIdStr) > 0 Then
+        taskIdVal = Int(Val(taskIdStr))
+    End If
+
+    If conn > -1 Then
+        ' Delete from database using parameterized query
+        stmt = Db.Prepare(conn, "DELETE FROM tasks WHERE id = ?")
+        If stmt > -1 Then
+            Db.SetInt(stmt, 1, taskIdVal)
+            rows = Db.ExecuteUpdate(stmt)
+            Db.CloseStmt(stmt)
+        End If
+        Db.Close(conn)
+    End If
 
     ' Return updated task list
     HandleGetTasks()
