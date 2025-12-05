@@ -1743,9 +1743,81 @@ public class BasicRuntime {
         System.out.println(text);
         return 0;
     }
-    
+
+    // Multi-arg overloads for string interpolation support
+    public static int console_WriteLine(String a, String b) {
+        System.out.println(a + b);
+        return 0;
+    }
+
+    public static int console_WriteLine(String a, String b, String c) {
+        System.out.println(a + b + c);
+        return 0;
+    }
+
+    public static int console_WriteLine(String a, String b, String c, String d) {
+        System.out.println(a + b + c + d);
+        return 0;
+    }
+
+    public static int console_WriteLine(String a, String b, String c, String d, String e) {
+        System.out.println(a + b + c + d + e);
+        return 0;
+    }
+
+    public static int console_WriteLine(String a, String b, String c, String d, String e, String f) {
+        System.out.println(a + b + c + d + e + f);
+        return 0;
+    }
+
+    public static int console_WriteLine(String a, String b, String c, String d, String e, String f, String g) {
+        System.out.println(a + b + c + d + e + f + g);
+        return 0;
+    }
+
+    public static int console_WriteLine(String a, String b, String c, String d, String e, String f, String g, String h) {
+        System.out.println(a + b + c + d + e + f + g + h);
+        return 0;
+    }
+
     public static int console_Write(String text) {
         System.out.print(text);
+        return 0;
+    }
+
+    // Multi-arg overloads for string interpolation support
+    public static int console_Write(String a, String b) {
+        System.out.print(a + b);
+        return 0;
+    }
+
+    public static int console_Write(String a, String b, String c) {
+        System.out.print(a + b + c);
+        return 0;
+    }
+
+    public static int console_Write(String a, String b, String c, String d) {
+        System.out.print(a + b + c + d);
+        return 0;
+    }
+
+    public static int console_Write(String a, String b, String c, String d, String e) {
+        System.out.print(a + b + c + d + e);
+        return 0;
+    }
+
+    public static int console_Write(String a, String b, String c, String d, String e, String f) {
+        System.out.print(a + b + c + d + e + f);
+        return 0;
+    }
+
+    public static int console_Write(String a, String b, String c, String d, String e, String f, String g) {
+        System.out.print(a + b + c + d + e + f + g);
+        return 0;
+    }
+
+    public static int console_Write(String a, String b, String c, String d, String e, String f, String g, String h) {
+        System.out.print(a + b + c + d + e + f + g + h);
         return 0;
     }
     
@@ -3819,6 +3891,944 @@ public class BasicRuntime {
 
     public static Object decimal_Ten() {
         return java.math.BigDecimal.TEN;
+    }
+
+    // ========================================
+    // WebServer Namespace - Embedded Jetty Web Server
+    // ========================================
+
+    // Server management
+    private static java.util.Map<Integer, org.eclipse.jetty.server.Server> webServers = new java.util.HashMap<>();
+    private static java.util.Map<Integer, org.eclipse.jetty.servlet.ServletContextHandler> webContexts = new java.util.HashMap<>();
+    private static int nextWebServerId = 1;
+
+    // Route registration: "METHOD:path" -> RouteInfo (exact routes) and pattern routes list
+    private static java.util.Map<Integer, java.util.Map<String, RouteInfo>> serverRoutes = new java.util.HashMap<>();
+    private static java.util.Map<Integer, java.util.List<RouteInfo>> serverPatternRoutes = new java.util.HashMap<>();
+
+    // Static file directories: serverId -> List of (urlPrefix, fileSystemPath)
+    private static java.util.Map<Integer, java.util.List<String[]>> serverStaticDirs = new java.util.HashMap<>();
+
+    // Thread-local storage for current request/response context and path params
+    private static ThreadLocal<jakarta.servlet.http.HttpServletRequest> currentRequest = new ThreadLocal<>();
+    private static ThreadLocal<jakarta.servlet.http.HttpServletResponse> currentResponse = new ThreadLocal<>();
+    private static ThreadLocal<java.util.Map<String, String>> currentPathParams = new ThreadLocal<>();
+
+    // Route information storage
+    private static class RouteInfo {
+        String className;
+        String methodName;
+        String method;           // HTTP method (GET, POST, etc.)
+        String pathPattern;      // Original pattern e.g. "/users/{id}"
+        java.util.regex.Pattern regex;  // Compiled regex for matching
+        java.util.List<String> paramNames;  // Parameter names in order
+        boolean hasParams;       // True if route has path parameters
+
+        RouteInfo(String className, String methodName, String method, String pathPattern) {
+            this.className = className;
+            this.methodName = methodName;
+            this.method = method;
+            this.pathPattern = pathPattern;
+            this.paramNames = new java.util.ArrayList<>();
+            this.hasParams = pathPattern.contains("{");
+
+            if (hasParams) {
+                // Convert pattern like "/users/{id}/posts/{postId}" to regex
+                // and extract parameter names
+                StringBuilder regexBuilder = new StringBuilder("^");
+                java.util.regex.Matcher m = java.util.regex.Pattern.compile("\\{([^}]+)\\}").matcher(pathPattern);
+                int lastEnd = 0;
+                while (m.find()) {
+                    // Escape and append literal part before this param
+                    regexBuilder.append(java.util.regex.Pattern.quote(pathPattern.substring(lastEnd, m.start())));
+                    // Add capturing group for the parameter
+                    regexBuilder.append("([^/]+)");
+                    paramNames.add(m.group(1));
+                    lastEnd = m.end();
+                }
+                // Append any trailing literal part
+                regexBuilder.append(java.util.regex.Pattern.quote(pathPattern.substring(lastEnd)));
+                regexBuilder.append("$");
+                this.regex = java.util.regex.Pattern.compile(regexBuilder.toString());
+            }
+        }
+
+        // Try to match a path and extract parameters; returns null if no match
+        java.util.Map<String, String> match(String path) {
+            if (!hasParams) {
+                return pathPattern.equals(path) ? new java.util.HashMap<>() : null;
+            }
+            java.util.regex.Matcher m = regex.matcher(path);
+            if (m.matches()) {
+                java.util.Map<String, String> params = new java.util.HashMap<>();
+                for (int i = 0; i < paramNames.size(); i++) {
+                    params.put(paramNames.get(i), m.group(i + 1));
+                }
+                return params;
+            }
+            return null;
+        }
+    }
+
+    /**
+     * WebServer.Create - Create a new web server on specified port
+     * @param port Port number to listen on
+     * @return Server ID, or -1 on error
+     */
+    public static int webserver_Create(int port) {
+        try {
+            org.eclipse.jetty.server.Server server = new org.eclipse.jetty.server.Server(port);
+            org.eclipse.jetty.servlet.ServletContextHandler context =
+                new org.eclipse.jetty.servlet.ServletContextHandler(org.eclipse.jetty.servlet.ServletContextHandler.SESSIONS);
+            context.setContextPath("/");
+            server.setHandler(context);
+
+            int id = nextWebServerId++;
+            webServers.put(id, server);
+            webContexts.put(id, context);
+            serverRoutes.put(id, new java.util.concurrent.ConcurrentHashMap<>());
+            serverPatternRoutes.put(id, new java.util.concurrent.CopyOnWriteArrayList<>());
+            serverStaticDirs.put(id, new java.util.concurrent.CopyOnWriteArrayList<>());
+
+            // Add the dispatcher servlet to handle all routes
+            context.addServlet(new org.eclipse.jetty.servlet.ServletHolder(new BasicWebDispatcher(id)), "/*");
+
+            return id;
+        } catch (Exception e) {
+            System.err.println("WebServer Create Error: " + e.getMessage());
+            return -1;
+        }
+    }
+
+    /**
+     * WebServer.AddRoute - Register a route handler
+     * @param serverId Server ID
+     * @param method HTTP method (GET, POST, PUT, DELETE, etc.)
+     * @param path URL path pattern (supports {param} placeholders)
+     * @param className Name of the compiled BASIC class
+     * @param handlerMethod Name of the handler method
+     * @return 0 on success, -1 on error
+     */
+    public static int webserver_AddRoute(int serverId, String method, String path, String className, String handlerMethod) {
+        try {
+            RouteInfo route = new RouteInfo(className, handlerMethod, method.toUpperCase(), path);
+
+            if (route.hasParams) {
+                // Routes with path parameters go in the pattern list
+                java.util.List<RouteInfo> patterns = serverPatternRoutes.get(serverId);
+                if (patterns != null) {
+                    patterns.add(route);
+                    return 0;
+                }
+            } else {
+                // Exact routes go in the map for O(1) lookup
+                java.util.Map<String, RouteInfo> routes = serverRoutes.get(serverId);
+                if (routes != null) {
+                    String key = method.toUpperCase() + ":" + path;
+                    routes.put(key, route);
+                    return 0;
+                }
+            }
+            return -1;
+        } catch (Exception e) {
+            System.err.println("WebServer AddRoute Error: " + e.getMessage());
+            return -1;
+        }
+    }
+
+    /**
+     * WebServer.ServeStatic - Register a directory for serving static files
+     * @param serverId Server ID
+     * @param urlPrefix URL path prefix (e.g., "/static")
+     * @param directory File system directory path
+     * @return 0 on success, -1 on error
+     */
+    public static int webserver_ServeStatic(int serverId, String urlPrefix, String directory) {
+        try {
+            java.util.List<String[]> staticDirs = serverStaticDirs.get(serverId);
+            if (staticDirs != null) {
+                // Ensure urlPrefix starts with / and doesn't end with /
+                if (!urlPrefix.startsWith("/")) urlPrefix = "/" + urlPrefix;
+                if (urlPrefix.endsWith("/") && urlPrefix.length() > 1) {
+                    urlPrefix = urlPrefix.substring(0, urlPrefix.length() - 1);
+                }
+                // Resolve directory to absolute path
+                java.io.File dir = new java.io.File(directory);
+                if (!dir.isAbsolute()) {
+                    dir = new java.io.File(System.getProperty("user.dir"), directory);
+                }
+                staticDirs.add(new String[] { urlPrefix, dir.getAbsolutePath() });
+                return 0;
+            }
+            return -1;
+        } catch (Exception e) {
+            System.err.println("WebServer ServeStatic Error: " + e.getMessage());
+            return -1;
+        }
+    }
+
+    /**
+     * WebServer.Start - Start the web server
+     * @param serverId Server ID
+     * @return 0 on success, -1 on error
+     */
+    public static int webserver_Start(int serverId) {
+        try {
+            org.eclipse.jetty.server.Server server = webServers.get(serverId);
+            if (server != null) {
+                server.start();
+                return 0;
+            }
+            return -1;
+        } catch (Exception e) {
+            System.err.println("WebServer Start Error: " + e.getMessage());
+            return -1;
+        }
+    }
+
+    /**
+     * WebServer.Stop - Stop the web server
+     * @param serverId Server ID
+     * @return 0 on success, -1 on error
+     */
+    public static int webserver_Stop(int serverId) {
+        try {
+            org.eclipse.jetty.server.Server server = webServers.get(serverId);
+            if (server != null) {
+                server.stop();
+                return 0;
+            }
+            return -1;
+        } catch (Exception e) {
+            System.err.println("WebServer Stop Error: " + e.getMessage());
+            return -1;
+        }
+    }
+
+    /**
+     * WebServer.Join - Block until the server stops
+     * @param serverId Server ID
+     * @return 0 on success, -1 on error
+     */
+    public static int webserver_Join(int serverId) {
+        try {
+            org.eclipse.jetty.server.Server server = webServers.get(serverId);
+            if (server != null) {
+                server.join();
+                return 0;
+            }
+            return -1;
+        } catch (Exception e) {
+            System.err.println("WebServer Join Error: " + e.getMessage());
+            return -1;
+        }
+    }
+
+    /**
+     * WebServer.IsRunning - Check if server is running
+     * @param serverId Server ID
+     * @return 1 if running, 0 if not, -1 on error
+     */
+    public static int webserver_IsRunning(int serverId) {
+        try {
+            org.eclipse.jetty.server.Server server = webServers.get(serverId);
+            if (server != null) {
+                return server.isRunning() ? 1 : 0;
+            }
+            return -1;
+        } catch (Exception e) {
+            return -1;
+        }
+    }
+
+    // ========================================
+    // WebRequest Namespace - HTTP Request Access
+    // ========================================
+
+    /**
+     * Request.GetMethod - Get HTTP method (GET, POST, etc.)
+     */
+    public static String request_GetMethod() {
+        jakarta.servlet.http.HttpServletRequest req = currentRequest.get();
+        return req != null ? req.getMethod() : "";
+    }
+
+    /**
+     * Request.GetPath - Get request path
+     */
+    public static String request_GetPath() {
+        jakarta.servlet.http.HttpServletRequest req = currentRequest.get();
+        return req != null ? req.getPathInfo() : "";
+    }
+
+    /**
+     * Request.GetQueryString - Get query string
+     */
+    public static String request_GetQueryString() {
+        jakarta.servlet.http.HttpServletRequest req = currentRequest.get();
+        String qs = req != null ? req.getQueryString() : null;
+        return qs != null ? qs : "";
+    }
+
+    /**
+     * Request.GetParameter - Get query or form parameter
+     */
+    public static String request_GetParameter(String name) {
+        jakarta.servlet.http.HttpServletRequest req = currentRequest.get();
+        String val = req != null ? req.getParameter(name) : null;
+        return val != null ? val : "";
+    }
+
+    /**
+     * Request.GetHeader - Get HTTP header
+     */
+    public static String request_GetHeader(String name) {
+        jakarta.servlet.http.HttpServletRequest req = currentRequest.get();
+        String val = req != null ? req.getHeader(name) : null;
+        return val != null ? val : "";
+    }
+
+    /**
+     * Request.GetBody - Get request body as string
+     */
+    public static String request_GetBody() {
+        jakarta.servlet.http.HttpServletRequest req = currentRequest.get();
+        if (req == null) return "";
+        try {
+            java.io.BufferedReader reader = req.getReader();
+            StringBuilder sb = new StringBuilder();
+            String line;
+            while ((line = reader.readLine()) != null) {
+                sb.append(line);
+            }
+            return sb.toString();
+        } catch (Exception e) {
+            return "";
+        }
+    }
+
+    /**
+     * Request.GetContentType - Get content type header
+     */
+    public static String request_GetContentType() {
+        jakarta.servlet.http.HttpServletRequest req = currentRequest.get();
+        String ct = req != null ? req.getContentType() : null;
+        return ct != null ? ct : "";
+    }
+
+    /**
+     * Request.GetRemoteAddr - Get client IP address
+     */
+    public static String request_GetRemoteAddr() {
+        jakarta.servlet.http.HttpServletRequest req = currentRequest.get();
+        return req != null ? req.getRemoteAddr() : "";
+    }
+
+    /**
+     * Request.GetPathParam - Get path parameter from route pattern
+     * e.g., for route "/users/{id}" and path "/users/123", GetPathParam("id") returns "123"
+     */
+    public static String request_GetPathParam(String name) {
+        java.util.Map<String, String> params = currentPathParams.get();
+        if (params != null) {
+            String val = params.get(name);
+            return val != null ? val : "";
+        }
+        return "";
+    }
+
+    /**
+     * Request.GetJsonBody - Parse request body as JSON and return as Gson JsonObject handle
+     * Returns an integer handle that can be used with Json.Get* methods
+     */
+    public static int request_GetJsonBody() {
+        String body = request_GetBody();
+        if (body == null || body.isEmpty()) {
+            return -1;
+        }
+        try {
+            return json_Parse(body);
+        } catch (Exception e) {
+            return -1;
+        }
+    }
+
+    // ========================================
+    // Cookie Support
+    // ========================================
+
+    /**
+     * Request.GetCookie - Get cookie value by name
+     */
+    public static String request_GetCookie(String name) {
+        jakarta.servlet.http.HttpServletRequest req = currentRequest.get();
+        if (req != null) {
+            jakarta.servlet.http.Cookie[] cookies = req.getCookies();
+            if (cookies != null) {
+                for (jakarta.servlet.http.Cookie cookie : cookies) {
+                    if (cookie.getName().equals(name)) {
+                        return cookie.getValue();
+                    }
+                }
+            }
+        }
+        return "";
+    }
+
+    /**
+     * Request.HasCookie - Check if cookie exists
+     */
+    public static int request_HasCookie(String name) {
+        jakarta.servlet.http.HttpServletRequest req = currentRequest.get();
+        if (req != null) {
+            jakarta.servlet.http.Cookie[] cookies = req.getCookies();
+            if (cookies != null) {
+                for (jakarta.servlet.http.Cookie cookie : cookies) {
+                    if (cookie.getName().equals(name)) {
+                        return 1;
+                    }
+                }
+            }
+        }
+        return 0;
+    }
+
+    /**
+     * Response.SetCookie - Set a cookie with name and value (session cookie)
+     */
+    public static int response_SetCookie(String name, String value) {
+        jakarta.servlet.http.HttpServletResponse resp = currentResponse.get();
+        if (resp != null) {
+            jakarta.servlet.http.Cookie cookie = new jakarta.servlet.http.Cookie(name, value);
+            cookie.setPath("/");
+            resp.addCookie(cookie);
+            return 0;
+        }
+        return -1;
+    }
+
+    /**
+     * Response.SetCookieEx - Set a cookie with full options
+     * @param name Cookie name
+     * @param value Cookie value
+     * @param maxAge Max age in seconds (-1 for session, 0 to delete)
+     * @param path Cookie path
+     * @param httpOnly 1 for HttpOnly, 0 for accessible to JS
+     * @param secure 1 for HTTPS only, 0 for any
+     */
+    public static int response_SetCookieEx(String name, String value, int maxAge, String path, int httpOnly, int secure) {
+        jakarta.servlet.http.HttpServletResponse resp = currentResponse.get();
+        if (resp != null) {
+            jakarta.servlet.http.Cookie cookie = new jakarta.servlet.http.Cookie(name, value);
+            cookie.setMaxAge(maxAge);
+            cookie.setPath(path);
+            cookie.setHttpOnly(httpOnly != 0);
+            cookie.setSecure(secure != 0);
+            resp.addCookie(cookie);
+            return 0;
+        }
+        return -1;
+    }
+
+    /**
+     * Response.DeleteCookie - Delete a cookie by setting maxAge to 0
+     */
+    public static int response_DeleteCookie(String name) {
+        jakarta.servlet.http.HttpServletResponse resp = currentResponse.get();
+        if (resp != null) {
+            jakarta.servlet.http.Cookie cookie = new jakarta.servlet.http.Cookie(name, "");
+            cookie.setMaxAge(0);
+            cookie.setPath("/");
+            resp.addCookie(cookie);
+            return 0;
+        }
+        return -1;
+    }
+
+    // ========================================
+    // File Upload Support
+    // ========================================
+
+    // Storage for uploaded files per request (thread-local)
+    private static ThreadLocal<java.util.Map<String, UploadedFile>> currentUploads = new ThreadLocal<>();
+
+    private static class UploadedFile {
+        String fileName;
+        String contentType;
+        byte[] data;
+        long size;
+
+        UploadedFile(String fileName, String contentType, byte[] data) {
+            this.fileName = fileName;
+            this.contentType = contentType;
+            this.data = data;
+            this.size = data.length;
+        }
+    }
+
+    /**
+     * Request.IsMultipart - Check if request is multipart form data
+     */
+    public static int request_IsMultipart() {
+        jakarta.servlet.http.HttpServletRequest req = currentRequest.get();
+        if (req != null) {
+            String contentType = req.getContentType();
+            if (contentType != null && contentType.toLowerCase().startsWith("multipart/")) {
+                return 1;
+            }
+        }
+        return 0;
+    }
+
+    /**
+     * Request.ParseMultipart - Parse multipart form data
+     * Must be called before accessing uploaded files
+     * Returns number of parts parsed, or -1 on error
+     */
+    public static int request_ParseMultipart() {
+        jakarta.servlet.http.HttpServletRequest req = currentRequest.get();
+        if (req == null) return -1;
+
+        try {
+            java.util.Map<String, UploadedFile> uploads = new java.util.HashMap<>();
+            java.util.Collection<jakarta.servlet.http.Part> parts = req.getParts();
+            int count = 0;
+
+            for (jakarta.servlet.http.Part part : parts) {
+                String fileName = part.getSubmittedFileName();
+                if (fileName != null && !fileName.isEmpty()) {
+                    // This is a file upload
+                    java.io.InputStream is = part.getInputStream();
+                    java.io.ByteArrayOutputStream bos = new java.io.ByteArrayOutputStream();
+                    byte[] buffer = new byte[8192];
+                    int bytesRead;
+                    while ((bytesRead = is.read(buffer)) != -1) {
+                        bos.write(buffer, 0, bytesRead);
+                    }
+                    uploads.put(part.getName(), new UploadedFile(fileName, part.getContentType(), bos.toByteArray()));
+                    count++;
+                }
+            }
+
+            currentUploads.set(uploads);
+            return count;
+        } catch (Exception e) {
+            System.err.println("Multipart parse error: " + e.getMessage());
+            return -1;
+        }
+    }
+
+    /**
+     * Request.HasUpload - Check if a file was uploaded with given field name
+     */
+    public static int request_HasUpload(String fieldName) {
+        java.util.Map<String, UploadedFile> uploads = currentUploads.get();
+        if (uploads != null && uploads.containsKey(fieldName)) {
+            return 1;
+        }
+        return 0;
+    }
+
+    /**
+     * Request.GetUploadFileName - Get original filename of uploaded file
+     */
+    public static String request_GetUploadFileName(String fieldName) {
+        java.util.Map<String, UploadedFile> uploads = currentUploads.get();
+        if (uploads != null) {
+            UploadedFile file = uploads.get(fieldName);
+            if (file != null) {
+                return file.fileName;
+            }
+        }
+        return "";
+    }
+
+    /**
+     * Request.GetUploadContentType - Get content type of uploaded file
+     */
+    public static String request_GetUploadContentType(String fieldName) {
+        java.util.Map<String, UploadedFile> uploads = currentUploads.get();
+        if (uploads != null) {
+            UploadedFile file = uploads.get(fieldName);
+            if (file != null) {
+                return file.contentType;
+            }
+        }
+        return "";
+    }
+
+    /**
+     * Request.GetUploadSize - Get size of uploaded file in bytes
+     */
+    public static int request_GetUploadSize(String fieldName) {
+        java.util.Map<String, UploadedFile> uploads = currentUploads.get();
+        if (uploads != null) {
+            UploadedFile file = uploads.get(fieldName);
+            if (file != null) {
+                return (int) file.size;
+            }
+        }
+        return 0;
+    }
+
+    /**
+     * Request.SaveUpload - Save uploaded file to disk
+     * @param fieldName Form field name
+     * @param destPath Destination file path
+     * @return 0 on success, -1 on error
+     */
+    public static int request_SaveUpload(String fieldName, String destPath) {
+        java.util.Map<String, UploadedFile> uploads = currentUploads.get();
+        if (uploads != null) {
+            UploadedFile file = uploads.get(fieldName);
+            if (file != null) {
+                try {
+                    java.io.FileOutputStream fos = new java.io.FileOutputStream(destPath);
+                    fos.write(file.data);
+                    fos.close();
+                    return 0;
+                } catch (Exception e) {
+                    System.err.println("Save upload error: " + e.getMessage());
+                    return -1;
+                }
+            }
+        }
+        return -1;
+    }
+
+    /**
+     * Request.GetUploadData - Get uploaded file data as base64 string
+     * Useful for storing in database or processing
+     */
+    public static String request_GetUploadData(String fieldName) {
+        java.util.Map<String, UploadedFile> uploads = currentUploads.get();
+        if (uploads != null) {
+            UploadedFile file = uploads.get(fieldName);
+            if (file != null) {
+                return java.util.Base64.getEncoder().encodeToString(file.data);
+            }
+        }
+        return "";
+    }
+
+    // ========================================
+    // WebResponse Namespace - HTTP Response Access
+    // ========================================
+
+    /**
+     * Response.SetStatus - Set HTTP status code
+     */
+    public static int response_SetStatus(int status) {
+        jakarta.servlet.http.HttpServletResponse resp = currentResponse.get();
+        if (resp != null) {
+            resp.setStatus(status);
+            return 0;
+        }
+        return -1;
+    }
+
+    /**
+     * Response.SetContentType - Set content type header
+     */
+    public static int response_SetContentType(String contentType) {
+        jakarta.servlet.http.HttpServletResponse resp = currentResponse.get();
+        if (resp != null) {
+            resp.setContentType(contentType);
+            return 0;
+        }
+        return -1;
+    }
+
+    /**
+     * Response.SetHeader - Set HTTP response header
+     */
+    public static int response_SetHeader(String name, String value) {
+        jakarta.servlet.http.HttpServletResponse resp = currentResponse.get();
+        if (resp != null) {
+            resp.setHeader(name, value);
+            return 0;
+        }
+        return -1;
+    }
+
+    /**
+     * Response.Write - Write string to response body
+     */
+    public static int response_Write(String content) {
+        jakarta.servlet.http.HttpServletResponse resp = currentResponse.get();
+        if (resp != null) {
+            try {
+                resp.getWriter().print(content);
+                return 0;
+            } catch (Exception e) {
+                return -1;
+            }
+        }
+        return -1;
+    }
+
+    // Multi-arg overloads for string interpolation support
+    public static int response_Write(String a, String b) {
+        return response_Write(a + b);
+    }
+
+    public static int response_Write(String a, String b, String c) {
+        return response_Write(a + b + c);
+    }
+
+    public static int response_Write(String a, String b, String c, String d) {
+        return response_Write(a + b + c + d);
+    }
+
+    public static int response_Write(String a, String b, String c, String d, String e) {
+        return response_Write(a + b + c + d + e);
+    }
+
+    public static int response_Write(String a, String b, String c, String d, String e, String f) {
+        return response_Write(a + b + c + d + e + f);
+    }
+
+    public static int response_Write(String a, String b, String c, String d, String e, String f, String g) {
+        return response_Write(a + b + c + d + e + f + g);
+    }
+
+    public static int response_Write(String a, String b, String c, String d, String e, String f, String g, String h) {
+        return response_Write(a + b + c + d + e + f + g + h);
+    }
+
+    /**
+     * Response.WriteLine - Write string with newline to response body
+     */
+    public static int response_WriteLine(String content) {
+        jakarta.servlet.http.HttpServletResponse resp = currentResponse.get();
+        if (resp != null) {
+            try {
+                resp.getWriter().println(content);
+                return 0;
+            } catch (Exception e) {
+                return -1;
+            }
+        }
+        return -1;
+    }
+
+    // Multi-arg overloads for string interpolation support
+    public static int response_WriteLine(String a, String b) {
+        return response_WriteLine(a + b);
+    }
+
+    public static int response_WriteLine(String a, String b, String c) {
+        return response_WriteLine(a + b + c);
+    }
+
+    public static int response_WriteLine(String a, String b, String c, String d) {
+        return response_WriteLine(a + b + c + d);
+    }
+
+    public static int response_WriteLine(String a, String b, String c, String d, String e) {
+        return response_WriteLine(a + b + c + d + e);
+    }
+
+    public static int response_WriteLine(String a, String b, String c, String d, String e, String f) {
+        return response_WriteLine(a + b + c + d + e + f);
+    }
+
+    public static int response_WriteLine(String a, String b, String c, String d, String e, String f, String g) {
+        return response_WriteLine(a + b + c + d + e + f + g);
+    }
+
+    public static int response_WriteLine(String a, String b, String c, String d, String e, String f, String g, String h) {
+        return response_WriteLine(a + b + c + d + e + f + g + h);
+    }
+
+    /**
+     * Response.Redirect - Send redirect response
+     */
+    public static int response_Redirect(String url) {
+        jakarta.servlet.http.HttpServletResponse resp = currentResponse.get();
+        if (resp != null) {
+            try {
+                resp.sendRedirect(url);
+                return 0;
+            } catch (Exception e) {
+                return -1;
+            }
+        }
+        return -1;
+    }
+
+    // ========================================
+    // BasicWebDispatcher - Internal Servlet for Route Dispatching
+    // ========================================
+
+    /**
+     * Dispatcher servlet that routes requests to BASIC handlers via reflection
+     */
+    public static class BasicWebDispatcher extends jakarta.servlet.http.HttpServlet {
+        private final int serverId;
+
+        // MIME types for static file serving
+        private static final java.util.Map<String, String> MIME_TYPES = new java.util.HashMap<>();
+        static {
+            MIME_TYPES.put("html", "text/html");
+            MIME_TYPES.put("htm", "text/html");
+            MIME_TYPES.put("css", "text/css");
+            MIME_TYPES.put("js", "application/javascript");
+            MIME_TYPES.put("json", "application/json");
+            MIME_TYPES.put("xml", "application/xml");
+            MIME_TYPES.put("txt", "text/plain");
+            MIME_TYPES.put("png", "image/png");
+            MIME_TYPES.put("jpg", "image/jpeg");
+            MIME_TYPES.put("jpeg", "image/jpeg");
+            MIME_TYPES.put("gif", "image/gif");
+            MIME_TYPES.put("svg", "image/svg+xml");
+            MIME_TYPES.put("ico", "image/x-icon");
+            MIME_TYPES.put("woff", "font/woff");
+            MIME_TYPES.put("woff2", "font/woff2");
+            MIME_TYPES.put("ttf", "font/ttf");
+            MIME_TYPES.put("eot", "application/vnd.ms-fontobject");
+            MIME_TYPES.put("pdf", "application/pdf");
+            MIME_TYPES.put("zip", "application/zip");
+        }
+
+        public BasicWebDispatcher(int serverId) {
+            this.serverId = serverId;
+        }
+
+        @Override
+        protected void service(jakarta.servlet.http.HttpServletRequest req,
+                              jakarta.servlet.http.HttpServletResponse resp)
+                throws jakarta.servlet.ServletException, java.io.IOException {
+
+            String method = req.getMethod();
+            String path = req.getPathInfo();
+            if (path == null) path = "/";
+
+            // Check for static file serving first
+            java.util.List<String[]> staticDirs = serverStaticDirs.get(serverId);
+            if (staticDirs != null && "GET".equals(method)) {
+                for (String[] mapping : staticDirs) {
+                    String urlPrefix = mapping[0];
+                    String fileDir = mapping[1];
+                    if (path.startsWith(urlPrefix + "/") || path.equals(urlPrefix)) {
+                        String relativePath = path.substring(urlPrefix.length());
+                        if (relativePath.isEmpty()) relativePath = "/index.html";
+                        if (serveStaticFile(resp, fileDir, relativePath)) {
+                            return;  // Static file served successfully
+                        }
+                    }
+                }
+            }
+
+            // Look up the route
+            java.util.Map<String, RouteInfo> routes = serverRoutes.get(serverId);
+            if (routes == null) {
+                resp.sendError(500, "Server not configured");
+                return;
+            }
+
+            RouteInfo info = null;
+            java.util.Map<String, String> pathParams = null;
+
+            // Try exact match first
+            String key = method + ":" + path;
+            info = routes.get(key);
+
+            // If no exact match, try pattern matching
+            if (info == null) {
+                java.util.List<RouteInfo> patterns = serverPatternRoutes.get(serverId);
+                if (patterns != null) {
+                    for (RouteInfo route : patterns) {
+                        if (route.method.equals(method)) {
+                            java.util.Map<String, String> params = route.match(path);
+                            if (params != null) {
+                                info = route;
+                                pathParams = params;
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+
+            if (info == null) {
+                resp.sendError(404, "Not Found: " + path);
+                return;
+            }
+
+            // Set thread-local context
+            currentRequest.set(req);
+            currentResponse.set(resp);
+            currentPathParams.set(pathParams != null ? pathParams : new java.util.HashMap<>());
+
+            try {
+                // Call BASIC handler via reflection
+                Class<?> clazz = Class.forName(info.className);
+                java.lang.reflect.Method handlerMethod = clazz.getMethod(info.methodName);
+                handlerMethod.invoke(null);
+            } catch (ClassNotFoundException e) {
+                resp.sendError(500, "Handler class not found: " + info.className);
+            } catch (NoSuchMethodException e) {
+                resp.sendError(500, "Handler method not found: " + info.methodName);
+            } catch (Exception e) {
+                resp.sendError(500, "Handler error: " + e.getMessage());
+                e.printStackTrace();
+            } finally {
+                // Clear thread-local context
+                currentRequest.remove();
+                currentResponse.remove();
+                currentPathParams.remove();
+                currentUploads.remove();
+            }
+        }
+
+        /**
+         * Serve a static file from the file system
+         * @return true if file was served, false if not found
+         */
+        private boolean serveStaticFile(jakarta.servlet.http.HttpServletResponse resp,
+                                        String baseDir, String relativePath)
+                throws java.io.IOException {
+            // Security: prevent directory traversal
+            if (relativePath.contains("..")) {
+                return false;
+            }
+
+            java.io.File file = new java.io.File(baseDir, relativePath);
+            if (!file.exists() || !file.isFile() || !file.canRead()) {
+                return false;
+            }
+
+            // Check that the resolved path is still under baseDir (security)
+            String canonicalBase = new java.io.File(baseDir).getCanonicalPath();
+            String canonicalFile = file.getCanonicalPath();
+            if (!canonicalFile.startsWith(canonicalBase)) {
+                return false;
+            }
+
+            // Determine MIME type
+            String fileName = file.getName();
+            String ext = "";
+            int dotIdx = fileName.lastIndexOf('.');
+            if (dotIdx > 0) {
+                ext = fileName.substring(dotIdx + 1).toLowerCase();
+            }
+            String mimeType = MIME_TYPES.getOrDefault(ext, "application/octet-stream");
+
+            resp.setContentType(mimeType);
+            resp.setContentLengthLong(file.length());
+
+            // Stream the file
+            try (java.io.FileInputStream fis = new java.io.FileInputStream(file);
+                 java.io.OutputStream out = resp.getOutputStream()) {
+                byte[] buffer = new byte[8192];
+                int bytesRead;
+                while ((bytesRead = fis.read(buffer)) != -1) {
+                    out.write(buffer, 0, bytesRead);
+                }
+            }
+            return true;
+        }
     }
 }
 

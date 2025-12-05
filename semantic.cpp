@@ -344,6 +344,39 @@ Type SemanticAnalyzer::inferExprType(const Expr& expr, const SymbolTable& symbol
                 } else if (methodUpper == "GETSTRING") {
                     return Type::String;
                 }
+            } else if (nce.namespaceName == "WEBSERVER") {
+                // WebServer namespace for embedded Jetty web server
+                if (methodUpper == "CREATE" || methodUpper == "ADDROUTE" ||
+                    methodUpper == "START" || methodUpper == "STOP" ||
+                    methodUpper == "JOIN" || methodUpper == "ISRUNNING" ||
+                    methodUpper == "SERVESTATIC") {
+                    return Type::Int;
+                }
+            } else if (nce.namespaceName == "REQUEST") {
+                // Request namespace for HTTP request access
+                if (methodUpper == "GETMETHOD" || methodUpper == "GETPATH" ||
+                    methodUpper == "GETQUERYSTRING" || methodUpper == "GETPARAMETER" ||
+                    methodUpper == "GETHEADER" || methodUpper == "GETBODY" ||
+                    methodUpper == "GETCONTENTTYPE" || methodUpper == "GETREMOTEADDR" ||
+                    methodUpper == "GETPATHPARAM" || methodUpper == "GETCOOKIE" ||
+                    methodUpper == "GETUPLOADFILENAME" || methodUpper == "GETUPLOADCONTENTTYPE" ||
+                    methodUpper == "GETUPLOADDATA") {
+                    return Type::String;
+                } else if (methodUpper == "GETJSONBODY" || methodUpper == "HASCOOKIE" ||
+                           methodUpper == "ISMULTIPART" || methodUpper == "PARSEMULTIPART" ||
+                           methodUpper == "HASUPLOAD" || methodUpper == "GETUPLOADSIZE" ||
+                           methodUpper == "SAVEUPLOAD") {
+                    return Type::Int;
+                }
+            } else if (nce.namespaceName == "RESPONSE") {
+                // Response namespace for HTTP response access
+                if (methodUpper == "SETSTATUS" || methodUpper == "SETCONTENTTYPE" ||
+                    methodUpper == "SETHEADER" || methodUpper == "WRITE" ||
+                    methodUpper == "WRITELINE" || methodUpper == "REDIRECT" ||
+                    methodUpper == "SETCOOKIE" || methodUpper == "SETCOOKIEEX" ||
+                    methodUpper == "DELETECOOKIE") {
+                    return Type::Int;
+                }
             } else if (nce.namespaceName == "REGEX") {
                 if (methodUpper == "MATCH") {
                     return Type::Bool;
@@ -1106,7 +1139,7 @@ void SemanticAnalyzer::analyzeSubDecl(SubDecl& sd) {
     for (const auto& param : sd.params) {
         paramTypes.push_back(param.type);
     }
-    userFunctions[sd.name] = FuncSignature{sd.name, paramTypes, Type::Int, true};
+    userFunctions[sd.name] = FuncSignature{sd.name, paramTypes, Type::Void, true};
     
     // Register parameters
     for (const auto& param : sd.params) {
@@ -1282,7 +1315,7 @@ bool SemanticAnalyzer::analyze(Program& program) {
             FunctionDecl& fd = get<FunctionDecl>(decl->data);
             userFunctions[fd.name] = FuncSignature{fd.name, paramTypes, fd.returnType, false};
         } else {
-            userFunctions[funcName] = FuncSignature{funcName, paramTypes, Type::Int, true};
+            userFunctions[funcName] = FuncSignature{funcName, paramTypes, Type::Void, true};
         }
     }
     

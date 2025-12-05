@@ -639,7 +639,9 @@ ExprPtr Parser::parsePrimary() {
                                nameUpper == "STACK" || nameUpper == "QUEUE" ||
                                nameUpper == "CRYPTO" || nameUpper == "THREAD" ||
                                nameUpper == "BIGINT" || nameUpper == "DECIMAL" ||
-                               nameUpper == "SYSTEM");  // Phase 12: System namespace
+                               nameUpper == "SYSTEM" ||  // Phase 12: System namespace
+                               nameUpper == "WEBSERVER" || nameUpper == "REQUEST" ||
+                               nameUpper == "RESPONSE");  // Phase 12: Web server namespaces
 
             if (isNamespace) {
                 // Parse Namespace.Method(args)
@@ -1278,7 +1280,9 @@ StmtPtr Parser::parseStmt() {
                            varUpper == "MAP" || varUpper == "STACK" ||
                            varUpper == "QUEUE" || varUpper == "CRYPTO" ||
                            varUpper == "THREAD" || varUpper == "BIGINT" ||
-                           varUpper == "DECIMAL" || varUpper == "SYSTEM");  // Phase 12
+                           varUpper == "DECIMAL" || varUpper == "SYSTEM" ||  // Phase 12
+                           varUpper == "WEBSERVER" || varUpper == "REQUEST" ||
+                           varUpper == "RESPONSE");  // Phase 12: Web server namespaces
 
         next();
 
