@@ -1,3 +1,7 @@
+Compiling: examples/expressions.jvmb -> expressions.jvmb.class
+
+=== Building IR ===
+
 Intermediate Representation:
 CompilationUnit(expressions.jvmb)
   Statements:
@@ -36,7 +40,7 @@ CompilationUnit(expressions.jvmb)
     var m: Primitive[kind=INT] = 10
     var n: Primitive[kind=INT] = 12
     $lambda$("Bitwise operators (m=0b1010=10, n=0b1100=12):")
-    $lambda$(("  m & n = " CONCAT $lambda$()))
+    $lambda$(("  m + n = " CONCAT $lambda$()))
     $lambda$(("  m | n = " CONCAT $lambda$()))
     $lambda$(("  m xor n = " CONCAT $lambda$()))
     $lambda$(("  ~m = " CONCAT $lambda$()))
@@ -45,7 +49,7 @@ CompilationUnit(expressions.jvmb)
     var firstName: Reference[name=java.lang.String] = "John"
     var lastName: Reference[name=java.lang.String] = "Doe"
     $lambda$("String concatenation:")
-    $lambda$(((("  firstName & lastName = " CONCAT firstName) CONCAT " ") CONCAT lastName))
+    $lambda$(((("  firstName + lastName = " CONCAT firstName) CONCAT " ") CONCAT lastName))
     var c: Primitive[kind=INT] = 10
     $lambda$("Compound assignment (starting c=10):")
     c += 5

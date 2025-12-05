@@ -10,7 +10,7 @@ try
     var result as Integer = 10 / 0
     Console.WriteLine("This should not print")
 catch ex as ArithmeticException
-    Console.WriteLine("Caught ArithmeticException: " & ex.getMessage())
+    Console.WriteLine("Caught ArithmeticException: " + ex.getMessage())
 end try
 
 Console.WriteLine("Execution continues after catch")
@@ -26,7 +26,7 @@ try
     Console.WriteLine("In try block")
     throw new Exception("Test exception")
 catch ex as Exception
-    Console.WriteLine("Caught: " & ex.getMessage())
+    Console.WriteLine("Caught: " + ex.getMessage())
 finally
     Console.WriteLine("Finally block always executes")
 end try
@@ -61,11 +61,11 @@ function testException(which as Integer) as String
             throw new RuntimeException("Generic error")
         end if
     catch ex as IllegalArgumentException
-        return "IllegalArgumentException: " & ex.getMessage()
+        return "IllegalArgumentException: " + ex.getMessage()
     catch ex as NullPointerException
-        return "NullPointerException: " & ex.getMessage()
+        return "NullPointerException: " + ex.getMessage()
     catch ex as Exception
-        return "Exception: " & ex.getMessage()
+        return "Exception: " + ex.getMessage()
     end try
     return "No exception"
 end function
@@ -89,7 +89,7 @@ function wrapper() as Integer
     try
         return dangerousOperation()
     catch ex as RuntimeException
-        Console.WriteLine("Wrapper caught and rethrowing: " & ex.getMessage())
+        Console.WriteLine("Wrapper caught and rethrowing: " + ex.getMessage())
         throw ex
     end try
 end function
@@ -97,7 +97,7 @@ end function
 try
     var result as Integer = wrapper()
 catch ex as RuntimeException
-    Console.WriteLine("Outer catch: " & ex.getMessage())
+    Console.WriteLine("Outer catch: " + ex.getMessage())
 end try
 
 // ============================================================================
@@ -113,13 +113,13 @@ try
         Console.WriteLine("Inner try")
         throw new Exception("Inner exception")
     catch ex as Exception
-        Console.WriteLine("Inner catch: " & ex.getMessage())
+        Console.WriteLine("Inner catch: " + ex.getMessage())
         throw new Exception("Rethrown from inner")
     finally
         Console.WriteLine("Inner finally")
     end try
 catch ex as Exception
-    Console.WriteLine("Outer catch: " & ex.getMessage())
+    Console.WriteLine("Outer catch: " + ex.getMessage())
 finally
     Console.WriteLine("Outer finally")
 end try
@@ -140,8 +140,8 @@ function safeDivide(a as Integer, b as Integer) as Integer
     end try
 end function
 
-Console.WriteLine("10 / 2 = " & safeDivide(10, 2).ToString())
-Console.WriteLine("10 / 0 = " & safeDivide(10, 0).ToString())
+Console.WriteLine("10 / 2 = " + safeDivide(10, 2).ToString())
+Console.WriteLine("10 / 0 = " + safeDivide(10, 0).ToString())
 
 Console.WriteLine("")
 Console.WriteLine("All exception tests complete!")

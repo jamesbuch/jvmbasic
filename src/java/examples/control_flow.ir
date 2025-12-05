@@ -1,3 +1,7 @@
+Compiling: examples/control_flow.jvmb -> control_flow.jvmb.class
+
+=== Building IR ===
+
 Intermediate Representation:
 CompilationUnit(control_flow.jvmb)
   Statements:

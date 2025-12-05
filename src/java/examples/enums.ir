@@ -1,3 +1,7 @@
+Compiling: examples/enums.jvmb -> enums.jvmb.class
+
+=== Building IR ===
+
 Intermediate Representation:
 CompilationUnit(enums.jvmb)
   Functions:

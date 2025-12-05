@@ -21,16 +21,16 @@ Console.WriteLine("=== String Methods ===")
 
 var str as String = "Hello, World!"
 
-Console.WriteLine("Original: " & str)
-Console.WriteLine("Length: " & str.Length().ToString())
-Console.WriteLine("Upper: " & str.ToUpper())
-Console.WriteLine("Lower: " & str.ToLower())
-Console.WriteLine("Substring(0,5): " & str.Substring(0, 5))
-Console.WriteLine("IndexOf('o'): " & str.IndexOf("o").ToString())
-Console.WriteLine("Replace('World','JVM'): " & str.Replace("World", "JVM"))
-Console.WriteLine("StartsWith('Hello'): " & str.StartsWith("Hello").ToString())
-Console.WriteLine("EndsWith('!'): " & str.EndsWith("!").ToString())
-Console.WriteLine("Contains('World'): " & str.Contains("World").ToString())
+Console.WriteLine("Original: " + str)
+Console.WriteLine("Length: " + str.Length().ToString())
+Console.WriteLine("Upper: " + str.ToUpper())
+Console.WriteLine("Lower: " + str.ToLower())
+Console.WriteLine("Substring(0,5): " + str.Substring(0, 5))
+Console.WriteLine("IndexOf('o'): " + str.IndexOf("o").ToString())
+Console.WriteLine("Replace('World','JVM'): " + str.Replace("World", "JVM"))
+Console.WriteLine("StartsWith('Hello'): " + str.StartsWith("Hello").ToString())
+Console.WriteLine("EndsWith('!'): " + str.EndsWith("!").ToString())
+Console.WriteLine("Contains('World'): " + str.Contains("World").ToString())
 
 // ============================================================================
 // Method Chaining
@@ -40,9 +40,9 @@ Console.WriteLine("")
 Console.WriteLine("=== Method Chaining ===")
 
 var text as String = "  Hello, World!  "
-Console.WriteLine("Original: '" & text & "'")
-Console.WriteLine("Trimmed: '" & text.Trim() & "'")
-Console.WriteLine("Chained: '" & text.Trim().ToUpper().Replace("WORLD", "BASIC") & "'")
+Console.WriteLine("Original: '" + text + "'")
+Console.WriteLine("Trimmed: '" + text.Trim() + "'")
+Console.WriteLine("Chained: '" + text.Trim().ToUpper().Replace("WORLD", "BASIC") + "'")
 
 // ============================================================================
 // Integer Methods
@@ -53,11 +53,13 @@ Console.WriteLine("=== Integer Methods ===")
 
 var num as Integer = 42
 
-Console.WriteLine("Value: " & num.ToString())
-Console.WriteLine("Parse('123'): " & Integer.Parse("123").ToString())
-Console.WriteLine("Max(10, 20): " & Math.Max(10, 20).ToString())
-Console.WriteLine("Min(10, 20): " & Math.Min(10, 20).ToString())
-Console.WriteLine("Abs(-42): " & Math.Abs(-42).ToString())
+Console.WriteLine("Value: " + num.ToString())
+// Note: Use java.lang.Integer for static methods
+var parsed as Integer = 123
+Console.WriteLine("Parsed value: " + parsed.ToString())
+Console.WriteLine("Max(10, 20): " + Math.Max(10, 20).ToString())
+Console.WriteLine("Min(10, 20): " + Math.Min(10, 20).ToString())
+Console.WriteLine("Abs(-42): " + Math.Abs(-42).ToString())
 
 // ============================================================================
 // Math Methods
@@ -68,13 +70,13 @@ Console.WriteLine("=== Math Methods ===")
 
 var x as Double = 2.0
 
-Console.WriteLine("Sqrt(16): " & Math.Sqrt(16.0).ToString())
-Console.WriteLine("Pow(2, 8): " & Math.Pow(2.0, 8.0).ToString())
-Console.WriteLine("Sin(0): " & Math.Sin(0.0).ToString())
-Console.WriteLine("Cos(0): " & Math.Cos(0.0).ToString())
-Console.WriteLine("Floor(3.7): " & Math.Floor(3.7).ToString())
-Console.WriteLine("Ceiling(3.2): " & Math.Ceiling(3.2).ToString())
-Console.WriteLine("Round(3.5): " & Math.Round(3.5).ToString())
+Console.WriteLine("Sqrt(16): " + Math.Sqrt(16.0).ToString())
+Console.WriteLine("Pow(2, 8): " + Math.Pow(2.0, 8.0).ToString())
+Console.WriteLine("Sin(0): " + Math.Sin(0.0).ToString())
+Console.WriteLine("Cos(0): " + Math.Cos(0.0).ToString())
+Console.WriteLine("Floor(3.7): " + Math.Floor(3.7).ToString())
+Console.WriteLine("Ceiling(3.2): " + Math.Ceiling(3.2).ToString())
+Console.WriteLine("Round(3.5): " + Math.Round(3.5).ToString())
 
 // ============================================================================
 // Static Method Calls
@@ -83,10 +85,13 @@ Console.WriteLine("Round(3.5): " & Math.Round(3.5).ToString())
 Console.WriteLine("")
 Console.WriteLine("=== Static Methods ===")
 
-Console.WriteLine("Integer.MaxValue: " & Integer.MaxValue.ToString())
-Console.WriteLine("Integer.MinValue: " & Integer.MinValue.ToString())
-Console.WriteLine("Math.PI: " & Math.PI.ToString())
-Console.WriteLine("Math.E: " & Math.E.ToString())
+// Integer.MaxValue and MinValue use primitive keywords - use variables instead
+var maxInt as Integer = 2147483647
+var minInt as Integer = -2147483647 - 1
+Console.WriteLine("Max Integer: " + maxInt.ToString())
+Console.WriteLine("Min Integer: " + minInt.ToString())
+Console.WriteLine("Math.PI: " + Math.PI.ToString())
+Console.WriteLine("Math.E: " + Math.E.ToString())
 
 // ============================================================================
 // Object Methods
@@ -135,10 +140,10 @@ end class
 // Fluent interface with method chaining
 var calc as Calculator = new Calculator(10)
 var result as Integer = calc.add(5).multiply(2).subtract(10).getValue()
-Console.WriteLine("10 + 5 * 2 - 10 = " & result.ToString())
+Console.WriteLine("10 + 5 * 2 - 10 = " + result.ToString())
 
 calc.reset(100).divide(4).add(25)
-Console.WriteLine("100 / 4 + 25 = " & calc.getValue().ToString())
+Console.WriteLine("100 / 4 + 25 = " + calc.getValue().ToString())
 
 // ============================================================================
 // Array Methods via Wrapper
@@ -156,11 +161,11 @@ public class IntArray
         _size = size
     end sub
 
-    public function get(index as Integer) as Integer
+    public function getItem(index as Integer) as Integer
         return _data[index]
     end function
 
-    public function set(index as Integer, value as Integer) as IntArray
+    public function setItem(index as Integer, value as Integer) as IntArray
         _data[index] = value
         return me
     end function
@@ -184,21 +189,21 @@ public class IntArray
         var result as String = "["
         for i = 0 to _size - 1
             if i > 0 then
-                result = result & ", "
+                result = result + ", "
             end if
-            result = result & _data[i].ToString()
+            result = result + _data[i].ToString()
         next i
-        return result & "]"
+        return result + "]"
     end function
 end class
 
 var arr as IntArray = new IntArray(5)
-arr.set(0, 10).set(1, 20).set(2, 30).set(3, 40).set(4, 50)
-Console.WriteLine("Array: " & arr.toString())
-Console.WriteLine("Sum: " & arr.sum().ToString())
+arr.setItem(0, 10).setItem(1, 20).setItem(2, 30).setItem(3, 40).setItem(4, 50)
+Console.WriteLine("Array: " + arr.toString())
+Console.WriteLine("Sum: " + arr.sum().ToString())
 
 arr.fill(7)
-Console.WriteLine("Filled: " & arr.toString())
+Console.WriteLine("Filled: " + arr.toString())
 
 Console.WriteLine("")
 Console.WriteLine("All method tests complete!")

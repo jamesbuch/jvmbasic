@@ -1,3 +1,7 @@
+Compiling: examples/types.jvmb -> types.jvmb.class
+
+=== Building IR ===
+
 Intermediate Representation:
 CompilationUnit(types.jvmb)
   Statements:

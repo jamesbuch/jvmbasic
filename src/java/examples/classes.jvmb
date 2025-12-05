@@ -29,7 +29,7 @@ public class Point
     end function
 
     public function toString() as String
-        return "(" & _x.ToString() & ", " & _y.ToString() & ")"
+        return "(" + _x.ToString() + ", " + _y.ToString() + ")"
     end function
 end class
 
@@ -67,7 +67,7 @@ public class Person
     end property
 
     public function greet() as String
-        return "Hi, I'm " & _name & " and I'm " & _age.ToString() & " years old"
+        return "Hi, I'm " + _name + " and I'm " + _age.ToString() + " years old"
     end function
 end class
 
@@ -95,7 +95,7 @@ public class Employee extends Person
     end property
 
     public override function greet() as String
-        return MyBase.greet() & ". I work as a " & _title
+        return MyBase.greet() + ". I work as a " + _title
     end function
 
     public function getAnnualSalary() as Double
@@ -134,7 +134,7 @@ public class Rectangle implements IShape
     end function
 
     public function toString() as String
-        return "Rectangle(" & _width.ToString() & " x " & _height.ToString() & ")"
+        return "Rectangle(" + _width.ToString() + " x " + _height.ToString() + ")"
     end function
 end class
 
@@ -154,7 +154,7 @@ public class Circle implements IShape
     end function
 
     public function toString() as String
-        return "Circle(r=" & _radius.ToString() & ")"
+        return "Circle(r=" + _radius.ToString() + ")"
     end function
 end class
 
@@ -185,7 +185,7 @@ public class Dog extends Animal
     end sub
 
     public override function speak() as String
-        return _name & " says: Woof!"
+        return _name + " says: Woof!"
     end function
 end class
 
@@ -195,7 +195,7 @@ public class Cat extends Animal
     end sub
 
     public override function speak() as String
-        return _name & " says: Meow!"
+        return _name + " says: Meow!"
     end function
 end class
 
@@ -221,8 +221,8 @@ end class
 
 // Test Point
 var p as Point = new Point(3, 4)
-Console.WriteLine("Point: " & p.toString())
-Console.WriteLine("Distance from origin: " & p.distanceFromOrigin().ToString())
+Console.WriteLine("Point: " + p.toString())
+Console.WriteLine("Distance from origin: " + p.distanceFromOrigin().ToString())
 
 // Test Person
 var person as Person = new Person("Alice", 30)
@@ -234,14 +234,14 @@ Console.WriteLine(person.greet())
 // Test Employee (inheritance)
 var emp as Employee = new Employee("Charlie", 35, "Developer", 5000.0)
 Console.WriteLine(emp.greet())
-Console.WriteLine("Annual salary: $" & emp.getAnnualSalary().ToString())
+Console.WriteLine("Annual salary: $" + emp.getAnnualSalary().ToString())
 
 // Test interface with different shapes
 var rect as Rectangle = new Rectangle(10.0, 5.0)
 var circle as Circle = new Circle(7.0)
 
-Console.WriteLine(rect.toString() & " - Area: " & rect.area().ToString() & ", Perimeter: " & rect.perimeter().ToString())
-Console.WriteLine(circle.toString() & " - Area: " & circle.area().ToString() & ", Perimeter: " & circle.perimeter().ToString())
+Console.WriteLine(rect.toString() + " - Area: " + rect.area().ToString() + ", Perimeter: " + rect.perimeter().ToString())
+Console.WriteLine(circle.toString() + " - Area: " + circle.area().ToString() + ", Perimeter: " + circle.perimeter().ToString())
 
 // Test abstract class and polymorphism
 var dog as Dog = new Dog("Buddy")
@@ -253,4 +253,4 @@ Console.WriteLine(cat.speak())
 var c1 as Counter = new Counter()
 var c2 as Counter = new Counter()
 var c3 as Counter = new Counter()
-Console.WriteLine("Counter instances created: " & Counter.getCount().ToString())
+Console.WriteLine("Counter instances created: " + Counter.getCount().ToString())

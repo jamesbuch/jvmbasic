@@ -1,0 +1,82 @@
+Compiling: examples/methods.jvmb -> methods.jvmb.class
+
+=== Building IR ===
+
+Intermediate Representation:
+CompilationUnit(methods.jvmb)
+  Classes:
+    class Calculator extends java.lang.Object
+    class IntArray extends java.lang.Object
+  Statements:
+    $lambda$("=== Console Methods ===")
+    $lambda$("This is a line")
+    $lambda$("This is ")
+    $lambda$("on ")
+    $lambda$("one ")
+    $lambda$("line")
+    $lambda$("")
+    $lambda$("=== String Methods ===")
+    var str: Reference[name=java.lang.String] = "Hello, World!"
+    $lambda$(("Original: " CONCAT str))
+    $lambda$(("Length: " CONCAT $lambda$()))
+    $lambda$(("Upper: " CONCAT $lambda$()))
+    $lambda$(("Lower: " CONCAT $lambda$()))
+    $lambda$(("Substring(0,5): " CONCAT $lambda$(0, 5)))
+    $lambda$(("IndexOf('o'): " CONCAT $lambda$()))
+    $lambda$(("Replace('World','JVM'): " CONCAT $lambda$("World", "JVM")))
+    $lambda$(("StartsWith('Hello'): " CONCAT $lambda$()))
+    $lambda$(("EndsWith('!'): " CONCAT $lambda$()))
+    $lambda$(("Contains('World'): " CONCAT $lambda$()))
+    $lambda$("")
+    $lambda$("=== Method Chaining ===")
+    var text: Reference[name=java.lang.String] = "  Hello, World!  "
+    $lambda$((("Original: '" CONCAT text) CONCAT "'"))
+    $lambda$((("Trimmed: '" CONCAT $lambda$()) CONCAT "'"))
+    $lambda$((("Chained: '" CONCAT $lambda$("WORLD", "BASIC")) CONCAT "'"))
+    $lambda$("")
+    $lambda$("=== Integer Methods ===")
+    var num: Primitive[kind=INT] = 42
+    $lambda$(("Value: " CONCAT $lambda$()))
+    var parsed: Primitive[kind=INT] = 123
+    $lambda$(("Parsed value: " CONCAT $lambda$()))
+    $lambda$(("Max(10, 20): " CONCAT $lambda$()))
+    $lambda$(("Min(10, 20): " CONCAT $lambda$()))
+    $lambda$(("Abs(-42): " CONCAT $lambda$()))
+    $lambda$("")
+    $lambda$("=== Math Methods ===")
+    var x: Primitive[kind=DOUBLE] = 2.0F
+    $lambda$(("Sqrt(16): " CONCAT $lambda$()))
+    $lambda$(("Pow(2, 8): " CONCAT $lambda$()))
+    $lambda$(("Sin(0): " CONCAT $lambda$()))
+    $lambda$(("Cos(0): " CONCAT $lambda$()))
+    $lambda$(("Floor(3.7): " CONCAT $lambda$()))
+    $lambda$(("Ceiling(3.2): " CONCAT $lambda$()))
+    $lambda$(("Round(3.5): " CONCAT $lambda$()))
+    $lambda$("")
+    $lambda$("=== Static Methods ===")
+    var maxInt: Primitive[kind=INT] = 2147483647
+    var minInt: Primitive[kind=INT] = ((MINUS 2147483647) SUB 1)
+    $lambda$(("Max Integer: " CONCAT $lambda$()))
+    $lambda$(("Min Integer: " CONCAT $lambda$()))
+    $lambda$(("Math.PI: " CONCAT $lambda$()))
+    $lambda$(("Math.E: " CONCAT $lambda$()))
+    $lambda$("")
+    $lambda$("=== Object Methods ===")
+    var calc: Reference[name=Calculator] = new Reference[name=Calculator](10)
+    var result: Primitive[kind=INT] = $lambda$()
+    $lambda$(("10 + 5 * 2 - 10 = " CONCAT $lambda$()))
+    $lambda$(25)
+    $lambda$(("100 / 4 + 25 = " CONCAT $lambda$()))
+    $lambda$("")
+    $lambda$("=== Array-like Operations ===")
+    var arr: Reference[name=IntArray] = new Reference[name=IntArray](5)
+    $lambda$(4, 50)
+    $lambda$(("Array: " CONCAT $lambda$()))
+    $lambda$(("Sum: " CONCAT $lambda$()))
+    $lambda$(7)
+    $lambda$(("Filled: " CONCAT $lambda$()))
+    $lambda$("")
+    $lambda$("All method tests complete!")
+
+
+Parse successful - no code generation (parse-only mode)

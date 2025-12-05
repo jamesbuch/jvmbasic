@@ -1,3 +1,7 @@
+Compiling: examples/nullables.jvmb -> nullables.jvmb.class
+
+=== Building IR ===
+
 Intermediate Representation:
 CompilationUnit(nullables.jvmb)
   Functions:

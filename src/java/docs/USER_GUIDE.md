@@ -220,11 +220,29 @@ end if
 | `xor`    | Exclusive OR    |
 | `not`    | Logical NOT     |
 
+### String Operators
+
+| Operator | Description      | Example                    |
+|----------|-----------------|----------------------------|
+| `+`      | String concatenation (modern) | `"Hello, " + name` |
+| `&`      | String concatenation (legacy) | `"Hello, " & name` |
+
+### String Interpolation
+
+JVM BASIC 2.0 supports string interpolation with `$"..."`:
+
+```basic
+var name as String = "World"
+var count as Integer = 42
+Console.WriteLine($"Hello, {name}!")
+Console.WriteLine($"The answer is {count}")
+Console.WriteLine($"1 + 1 = {1 + 1}")
+```
+
 ### Bitwise Operators
 
 | Operator | Description      |
 |----------|-----------------|
-| `&`      | Bitwise AND / String concat |
 | `\|`     | Bitwise OR      |
 | `~`      | Bitwise NOT     |
 | `<<`     | Left shift      |

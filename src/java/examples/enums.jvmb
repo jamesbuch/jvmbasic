@@ -48,8 +48,8 @@ Console.WriteLine("=== Basic Enum Usage ===")
 var myColor as Color = Color.Blue
 var mySize as Size = Size.Large
 
-Console.WriteLine("Color: " & myColor.ToString())
-Console.WriteLine("Size: " & mySize.ToString())
+Console.WriteLine("Color: " + myColor.ToString())
+Console.WriteLine("Size: " + mySize.ToString())
 
 // ============================================================================
 // Enum in if statement
@@ -70,8 +70,8 @@ function getColorName(c as Color) as String
     end if
 end function
 
-Console.WriteLine("Red is called: " & getColorName(Color.Red))
-Console.WriteLine("Blue is called: " & getColorName(Color.Blue))
+Console.WriteLine("Red is called: " + getColorName(Color.Red))
+Console.WriteLine("Blue is called: " + getColorName(Color.Blue))
 
 // ============================================================================
 // Enum in Select Case
@@ -95,10 +95,10 @@ function getSizePrice(s as Size) as Double
     end select
 end function
 
-Console.WriteLine("Small: $" & getSizePrice(Size.Small).ToString())
-Console.WriteLine("Medium: $" & getSizePrice(Size.Medium).ToString())
-Console.WriteLine("Large: $" & getSizePrice(Size.Large).ToString())
-Console.WriteLine("ExtraLarge: $" & getSizePrice(Size.ExtraLarge).ToString())
+Console.WriteLine("Small: $" + getSizePrice(Size.Small).ToString())
+Console.WriteLine("Medium: $" + getSizePrice(Size.Medium).ToString())
+Console.WriteLine("Large: $" + getSizePrice(Size.Large).ToString())
+Console.WriteLine("ExtraLarge: $" + getSizePrice(Size.ExtraLarge).ToString())
 
 // ============================================================================
 // Enum with explicit values
@@ -124,9 +124,9 @@ function getStatusMessage(status as HttpStatus) as String
     end select
 end function
 
-Console.WriteLine("200: " & getStatusMessage(HttpStatus.OK))
-Console.WriteLine("404: " & getStatusMessage(HttpStatus.NotFound))
-Console.WriteLine("500: " & getStatusMessage(HttpStatus.InternalError))
+Console.WriteLine("200: " + getStatusMessage(HttpStatus.OK))
+Console.WriteLine("404: " + getStatusMessage(HttpStatus.NotFound))
+Console.WriteLine("500: " + getStatusMessage(HttpStatus.InternalError))
 
 // ============================================================================
 // Enum in Class
@@ -153,7 +153,7 @@ public class Task
     end function
 
     public function toString() as String
-        return _name & " [" & _priority.ToString() & "]"
+        return _name + " [" + _priority.ToString() + "]"
     end function
 end class
 
@@ -161,9 +161,9 @@ var task1 as Task = new Task("Write docs", Priority.Low)
 var task2 as Task = new Task("Fix bug", Priority.High)
 var task3 as Task = new Task("Security patch", Priority.Critical)
 
-Console.WriteLine(task1.toString() & " - Urgent: " & task1.isUrgent().ToString())
-Console.WriteLine(task2.toString() & " - Urgent: " & task2.isUrgent().ToString())
-Console.WriteLine(task3.toString() & " - Urgent: " & task3.isUrgent().ToString())
+Console.WriteLine(task1.toString() + " - Urgent: " + task1.isUrgent().ToString())
+Console.WriteLine(task2.toString() + " - Urgent: " + task2.isUrgent().ToString())
+Console.WriteLine(task3.toString() + " - Urgent: " + task3.isUrgent().ToString())
 
 Console.WriteLine("")
 Console.WriteLine("All enum tests complete!")

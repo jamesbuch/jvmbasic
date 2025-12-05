@@ -1,0 +1,78 @@
+Compiling: examples/lambdas.jvmb -> lambdas.jvmb.class
+
+=== Building IR ===
+
+Intermediate Representation:
+CompilationUnit(lambdas.jvmb)
+  Functions:
+    Function applyToRange(start: Primitive[kind=INT], finish: Primitive[kind=INT], fn: Function[paramTypes=[Primitive[kind=INT]], returnType=Primitive[kind=INT]]) -> Primitive[kind=INT]
+    Function transform(arr: Array[elementType=Primitive[kind=INT]], length: Primitive[kind=INT], fn: Function[paramTypes=[Primitive[kind=INT]], returnType=Primitive[kind=INT]]) -> Array[elementType=Primitive[kind=INT]]
+    Function countMatching(arr: Array[elementType=Primitive[kind=INT]], length: Primitive[kind=INT], predicate: Function[paramTypes=[Primitive[kind=INT]], returnType=Primitive[kind=BOOLEAN]]) -> Primitive[kind=INT]
+    Function multiplier(factor: Primitive[kind=INT]) -> Function[paramTypes=[Primitive[kind=INT]], returnType=Primitive[kind=INT]]
+    Function reduce(arr: Array[elementType=Primitive[kind=INT]], length: Primitive[kind=INT], initial: Primitive[kind=INT], fn: Function[paramTypes=[Primitive[kind=INT], Primitive[kind=INT]], returnType=Primitive[kind=INT]]) -> Primitive[kind=INT]
+  Statements:
+    $lambda$("=== Simple Lambdas ===")
+    var doubler: Function[paramTypes=[Primitive[kind=INT]], returnType=Primitive[kind=INT]] = nil
+    $lambda$(("doubler(5) = " CONCAT $lambda$()))
+    $lambda$(("doubler(10) = " CONCAT $lambda$()))
+    var add: Function[paramTypes=[Primitive[kind=INT], Primitive[kind=INT]], returnType=Primitive[kind=INT]] = nil
+    $lambda$(("add(3, 4) = " CONCAT $lambda$()))
+    $lambda$("")
+    $lambda$("=== String Lambdas ===")
+    var greet: Function[paramTypes=[Reference[name=java.lang.String]], returnType=Reference[name=java.lang.String]] = nil
+    $lambda$(greet("World"))
+    $lambda$(greet("JVM BASIC"))
+    $lambda$("")
+    $lambda$("=== Lambda as Parameter ===")
+    var sumResult: Primitive[kind=INT] = applyToRange(1, 10, nil)
+    $lambda$(("Sum 1-10: " CONCAT $lambda$()))
+    var squareSumResult: Primitive[kind=INT] = applyToRange(1, 5, nil)
+    $lambda$(("Sum of squares 1-5: " CONCAT $lambda$()))
+    $lambda$("")
+    $lambda$("=== Higher-Order Functions ===")
+    var numbers: Array[elementType=Primitive[kind=INT]] = new Primitive[kind=INT][5]
+    numbers[0] = 1
+    numbers[1] = 2
+    numbers[2] = 3
+    numbers[3] = 4
+    numbers[4] = 5
+    var doubled: Array[elementType=Primitive[kind=INT]] = transform(numbers, 5, nil)
+    var squared: Array[elementType=Primitive[kind=INT]] = transform(numbers, 5, nil)
+    $lambda$("Original: ")
+    for i = 0 to 4 { ... }
+    $lambda$("")
+    $lambda$("Doubled:  ")
+    for i = 0 to 4 { ... }
+    $lambda$("")
+    $lambda$("Squared:  ")
+    for i = 0 to 4 { ... }
+    $lambda$("")
+    $lambda$("")
+    $lambda$("=== Predicate Lambda ===")
+    var data: Array[elementType=Primitive[kind=INT]] = new Primitive[kind=INT][10]
+    for i = 0 to 9 { ... }
+    var evenCount: Primitive[kind=INT] = countMatching(data, 10, nil)
+    var oddCount: Primitive[kind=INT] = countMatching(data, 10, nil)
+    var gtFive: Primitive[kind=INT] = countMatching(data, 10, nil)
+    $lambda$(("Even numbers: " CONCAT $lambda$()))
+    $lambda$(("Odd numbers: " CONCAT $lambda$()))
+    $lambda$(("Greater than 5: " CONCAT $lambda$()))
+    $lambda$("")
+    $lambda$("=== Currying ===")
+    var times2: Function[paramTypes=[Primitive[kind=INT]], returnType=Primitive[kind=INT]] = multiplier(2)
+    var times10: Function[paramTypes=[Primitive[kind=INT]], returnType=Primitive[kind=INT]] = multiplier(10)
+    $lambda$(("times2(5) = " CONCAT $lambda$()))
+    $lambda$(("times10(5) = " CONCAT $lambda$()))
+    $lambda$("")
+    $lambda$("=== Reduce ===")
+    var sum: Primitive[kind=INT] = reduce(data, 10, 0, nil)
+    var product: Primitive[kind=INT] = reduce(numbers, 5, 1, nil)
+    var max: Primitive[kind=INT] = reduce(data, 10, data[0], (nil ? a : b))
+    $lambda$(("Sum of 1-10: " CONCAT $lambda$()))
+    $lambda$(("Product of 1-5: " CONCAT $lambda$()))
+    $lambda$(("Max of 1-10: " CONCAT $lambda$()))
+    $lambda$("")
+    $lambda$("All lambda tests complete!")
+
+
+Parse successful - no code generation (parse-only mode)

@@ -36,21 +36,21 @@ end if
 
 Console.WriteLine("For loop 1 to 5:")
 for i = 1 to 5
-    Console.Write(i.ToString() & " ")
+    Console.Write(i.ToString() + " ")
 next i
 Console.WriteLine("")
 
 // For loop with step
 Console.WriteLine("For loop with step 2:")
 for i = 0 to 10 step 2
-    Console.Write(i.ToString() & " ")
+    Console.Write(i.ToString() + " ")
 next i
 Console.WriteLine("")
 
 // For loop with negative step
 Console.WriteLine("Countdown:")
 for i = 5 to 1 step -1
-    Console.Write(i.ToString() & " ")
+    Console.Write(i.ToString() + " ")
 next i
 Console.WriteLine("Blast off!")
 
@@ -61,7 +61,7 @@ Console.WriteLine("Blast off!")
 Console.WriteLine("While loop:")
 var counter as Integer = 0
 while counter < 5
-    Console.Write(counter.ToString() & " ")
+    Console.Write(counter.ToString() + " ")
     counter += 1
 end while
 Console.WriteLine("")
@@ -74,7 +74,7 @@ Console.WriteLine("")
 Console.WriteLine("Do While:")
 counter = 0
 do while counter < 3
-    Console.Write(counter.ToString() & " ")
+    Console.Write(counter.ToString() + " ")
     counter += 1
 loop
 Console.WriteLine("")
@@ -83,7 +83,7 @@ Console.WriteLine("")
 Console.WriteLine("Do Until:")
 counter = 0
 do
-    Console.Write(counter.ToString() & " ")
+    Console.Write(counter.ToString() + " ")
     counter += 1
 loop until counter >= 3
 Console.WriteLine("")
@@ -94,7 +94,7 @@ Console.WriteLine("")
 
 var day as Integer = 3
 
-Console.Write("Day " & day.ToString() & " is: ")
+Console.Write("Day " + day.ToString() + " is: ")
 select case day
 case 1
     Console.WriteLine("Monday")
@@ -121,7 +121,7 @@ for i = 1 to 10
     if i = 5 then
         exit for
     end if
-    Console.Write(i.ToString() & " ")
+    Console.Write(i.ToString() + " ")
 next i
 Console.WriteLine("")
 
@@ -130,7 +130,7 @@ for i = 1 to 10
     if i mod 2 = 0 then
         continue for
     end if
-    Console.Write(i.ToString() & " ")
+    Console.Write(i.ToString() + " ")
 next i
 Console.WriteLine("")
 
@@ -144,7 +144,7 @@ for i = 1 to 3
         if j = 3 then
             exit for
         end if
-        Console.Write("(" & i.ToString() & "," & j.ToString() & ") ")
+        Console.Write("(" + i.ToString() + "," + j.ToString() + ") ")
     next j
 next i
 Console.WriteLine("")

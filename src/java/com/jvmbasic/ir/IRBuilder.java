@@ -770,17 +770,32 @@ public class IRBuilder extends JvmBasicParserBaseVisitor<Object> {
         for (int i = 1; i < ctx.multiplicativeExpression().size(); i++) {
             IRExpression right = visitMultiplicativeExpression(ctx.multiplicativeExpression(i));
             String opText = ctx.getChild(2 * i - 1).getText();
-            IRBinaryOp.Operator op = switch (opText) {
-                case "+" -> IRBinaryOp.Operator.ADD;
-                case "-" -> IRBinaryOp.Operator.SUB;
-                case "&" -> IRBinaryOp.Operator.CONCAT;
-                default -> IRBinaryOp.Operator.ADD;
-            };
+
+            // Determine operator - & is always concat, + is concat if either operand is string
+            IRBinaryOp.Operator op;
+            if (opText.equals("&")) {
+                op = IRBinaryOp.Operator.CONCAT;
+            } else if (opText.equals("+") && (isStringType(result.getType()) || isStringType(right.getType()))) {
+                // + with strings is string concatenation (modern syntax)
+                op = IRBinaryOp.Operator.CONCAT;
+            } else {
+                op = switch (opText) {
+                    case "+" -> IRBinaryOp.Operator.ADD;
+                    case "-" -> IRBinaryOp.Operator.SUB;
+                    default -> IRBinaryOp.Operator.ADD;
+                };
+            }
+
             IRType type = op == IRBinaryOp.Operator.CONCAT ? IRType.Reference.STRING : inferType(result);
             result = new IRBinaryOp(op, result, right, type, result.getLine(), result.getColumn());
         }
 
         return result;
+    }
+
+    private boolean isStringType(IRType type) {
+        return type instanceof IRType.Reference ref &&
+               (ref.equals(IRType.Reference.STRING) || ref.name().equals("java.lang.String"));
     }
 
     public IRExpression visitMultiplicativeExpression(JvmBasicParser.MultiplicativeExpressionContext ctx) {

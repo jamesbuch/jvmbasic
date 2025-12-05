@@ -10,18 +10,18 @@ end function
 
 // Sub (void function)
 sub printGreeting(name as String)
-    Console.WriteLine("Hello, " & name & "!")
+    Console.WriteLine("Hello, " + name + "!")
 end sub
 
 // Main program
 var result as Integer = factorial(5)
-Console.WriteLine("5! = " & result.ToString())
+Console.WriteLine("5! = " + result.ToString())
 
 printGreeting("JVM BASIC")
 
 // While loop
 var i as Integer = 0
 while i < 3
-    Console.WriteLine("Loop iteration: " & i.ToString())
+    Console.WriteLine("Loop iteration: " + i.ToString())
     i += 1
 end while

@@ -1,3 +1,7 @@
+Compiling: examples/exceptions.jvmb -> exceptions.jvmb.class
+
+=== Building IR ===
+
 Intermediate Representation:
 CompilationUnit(exceptions.jvmb)
   Functions:

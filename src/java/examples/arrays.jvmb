@@ -15,7 +15,7 @@ numbers[4] = 50
 
 Console.Write("Array contents: ")
 for i = 0 to 4
-    Console.Write(numbers[i].ToString() & " ")
+    Console.Write(numbers[i].ToString() + " ")
 next i
 Console.WriteLine("")
 
@@ -24,7 +24,7 @@ var sum as Integer = 0
 for i = 0 to 4
     sum += numbers[i]
 next i
-Console.WriteLine("Sum: " & sum.ToString())
+Console.WriteLine("Sum: " + sum.ToString())
 
 // ============================================================================
 // String Array
@@ -40,7 +40,7 @@ names[2] = "Charlie"
 
 Console.WriteLine("Names in array:")
 for i = 0 to 2
-    Console.WriteLine("  " & i.ToString() & ": " & names[i])
+    Console.WriteLine("  " + i.ToString() + ": " + names[i])
 next i
 
 // ============================================================================
@@ -52,7 +52,7 @@ Console.WriteLine("=== For Each ===")
 
 Console.WriteLine("Names using for-each:")
 for each name in names
-    Console.WriteLine("  Hello, " & name & "!")
+    Console.WriteLine("  Hello, " + name + "!")
 next name
 
 // ============================================================================
@@ -90,9 +90,9 @@ function findMin(arr as Integer[], length as Integer) as Integer
     return min
 end function
 
-Console.WriteLine("Sum: " & sumArray(numbers, 5).ToString())
-Console.WriteLine("Max: " & findMax(numbers, 5).ToString())
-Console.WriteLine("Min: " & findMin(numbers, 5).ToString())
+Console.WriteLine("Sum: " + sumArray(numbers, 5).ToString())
+Console.WriteLine("Max: " + findMax(numbers, 5).ToString())
+Console.WriteLine("Min: " + findMin(numbers, 5).ToString())
 
 // ============================================================================
 // Array Initialization and Modification
@@ -104,7 +104,7 @@ Console.WriteLine("=== Array Modification ===")
 // Double each element
 Console.WriteLine("Original array:")
 for i = 0 to 4
-    Console.Write(numbers[i].ToString() & " ")
+    Console.Write(numbers[i].ToString() + " ")
 next i
 Console.WriteLine("")
 
@@ -114,7 +114,7 @@ next i
 
 Console.WriteLine("After doubling:")
 for i = 0 to 4
-    Console.Write(numbers[i].ToString() & " ")
+    Console.Write(numbers[i].ToString() + " ")
 next i
 Console.WriteLine("")
 
@@ -137,7 +137,7 @@ data[9] = temp
 
 Console.WriteLine("After swap (first and last):")
 for i = 0 to 9
-    Console.Write(data[i].ToString() & " ")
+    Console.Write(data[i].ToString() + " ")
 next i
 Console.WriteLine("")
 
@@ -150,7 +150,7 @@ next i
 
 Console.WriteLine("After reverse:")
 for i = 0 to 9
-    Console.Write(data[i].ToString() & " ")
+    Console.Write(data[i].ToString() + " ")
 next i
 Console.WriteLine("")
 
@@ -174,4 +174,4 @@ for i = 0 to 4
         trueCount += 1
     end if
 next i
-Console.WriteLine("True count: " & trueCount.ToString() & " out of 5")
+Console.WriteLine("True count: " + trueCount.ToString() + " out of 5")
