@@ -1,0 +1,14 @@
+' Simple function test
+' Define a function that adds two numbers
+function add(a as Integer, b as Integer) as Integer
+    return a + b
+end function
+
+' Call the function
+var result as Integer = add(5, 3)
+Console.WriteLine("5 + 3 = ")
+Console.WriteLine(result)
+
+' Call function directly in expression
+Console.WriteLine("10 + 20 = ")
+Console.WriteLine(add(10, 20))

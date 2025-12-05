@@ -1,0 +1,32 @@
+' Do loop tests
+Console.WriteLine("=== DO WHILE test ===")
+var i as Integer = 1
+do while i <= 5
+    Console.WriteLine(i)
+    i = i + 1
+loop
+Console.WriteLine("Done!")
+
+Console.WriteLine("=== DO UNTIL test ===")
+i = 1
+do until i > 5
+    Console.WriteLine(i)
+    i = i + 1
+loop
+Console.WriteLine("Done!")
+
+Console.WriteLine("=== DO ... LOOP WHILE test ===")
+i = 1
+do
+    Console.WriteLine(i)
+    i = i + 1
+loop while i <= 5
+Console.WriteLine("Done!")
+
+Console.WriteLine("=== DO ... LOOP UNTIL test ===")
+i = 1
+do
+    Console.WriteLine(i)
+    i = i + 1
+loop until i > 5
+Console.WriteLine("Done!")

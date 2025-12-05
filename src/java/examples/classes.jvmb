@@ -5,31 +5,31 @@
 // ============================================================================
 
 public class Point
-    private var _x as Integer
-    private var _y as Integer
+    private var x as Integer
+    private var y as Integer
 
-    // Constructor
+    // Constructor - use this.x to disambiguate from parameter x
     public sub new(x as Integer, y as Integer)
-        _x = x
-        _y = y
+        this.x = x
+        this.y = y
     end sub
 
     // Getters
     public function getX() as Integer
-        return _x
+        return x
     end function
 
     public function getY() as Integer
-        return _y
+        return y
     end function
 
     // Method
     public function distanceFromOrigin() as Double
-        return Math.Sqrt(_x * _x + _y * _y)
+        return Math.Sqrt(x * x + y * y)
     end function
 
     public function toString() as String
-        return $"({_x}, {_y})"
+        return $"({x}, {y})"
     end function
 end class
 
@@ -38,36 +38,36 @@ end class
 // ============================================================================
 
 public class Person
-    private var _name as String
-    private var _age as Integer
+    private var name as String
+    private var age as Integer
 
     public sub new(name as String, age as Integer)
-        _name = name
-        _age = age
+        this.name = name
+        this.age = age
     end sub
 
     public property Name as String
         get
-            return _name
+            return name
         end get
         set(value as String)
-            _name = value
+            name = value
         end set
     end property
 
     public property Age as Integer
         get
-            return _age
+            return age
         end get
         set(value as Integer)
             if value >= 0 then
-                _age = value
+                age = value
             end if
         end set
     end property
 
     public function greet() as String
-        return $"Hi, I'm {_name} and I'm {_age} years old"
+        return $"Hi, I'm {name} and I'm {age} years old"
     end function
 end class
 
@@ -76,30 +76,30 @@ end class
 // ============================================================================
 
 public class Employee extends Person
-    private var _title as String
-    private var _salary as Double
+    private var title as String
+    private var salary as Double
 
     public sub new(name as String, age as Integer, title as String, salary as Double)
-        MyBase.new(name, age)
-        _title = title
-        _salary = salary
+        Super.new(name, age)
+        this.title = title
+        this.salary = salary
     end sub
 
     public property Title as String
         get
-            return _title
+            return title
         end get
         set(value as String)
-            _title = value
+            title = value
         end set
     end property
 
     public override function greet() as String
-        return $"{MyBase.greet()}. I work as a {_title}"
+        return $"{Super.greet()}. I work as a {title}"
     end function
 
     public function getAnnualSalary() as Double
-        return _salary * 12
+        return salary * 12
     end function
 end class
 
@@ -117,44 +117,44 @@ end interface
 // ============================================================================
 
 public class Rectangle implements IShape
-    private var _width as Double
-    private var _height as Double
+    private var width as Double
+    private var height as Double
 
     public sub new(width as Double, height as Double)
-        _width = width
-        _height = height
+        this.width = width
+        this.height = height
     end sub
 
     public function area() as Double
-        return _width * _height
+        return width * height
     end function
 
     public function perimeter() as Double
-        return 2 * (_width + _height)
+        return 2 * (width + height)
     end function
 
     public function toString() as String
-        return $"Rectangle({_width} x {_height})"
+        return $"Rectangle({width} x {height})"
     end function
 end class
 
 public class Circle implements IShape
-    private var _radius as Double
+    private var radius as Double
 
     public sub new(radius as Double)
-        _radius = radius
+        this.radius = radius
     end sub
 
     public function area() as Double
-        return 3.14159 * _radius * _radius
+        return 3.14159 * radius * radius
     end function
 
     public function perimeter() as Double
-        return 2 * 3.14159 * _radius
+        return 2 * 3.14159 * radius
     end function
 
     public function toString() as String
-        return $"Circle(r={_radius})"
+        return $"Circle(r={radius})"
     end function
 end class
 
@@ -163,14 +163,14 @@ end class
 // ============================================================================
 
 public abstract class Animal
-    protected var _name as String
+    protected var name as String
 
     public sub new(name as String)
-        _name = name
+        this.name = name
     end sub
 
     public function getName() as String
-        return _name
+        return name
     end function
 
     // Abstract method - must be overridden
@@ -181,21 +181,21 @@ end class
 
 public class Dog extends Animal
     public sub new(name as String)
-        MyBase.new(name)
+        Super.new(name)
     end sub
 
     public override function speak() as String
-        return $"{_name} says: Woof!"
+        return $"{name} says: Woof!"
     end function
 end class
 
 public class Cat extends Animal
     public sub new(name as String)
-        MyBase.new(name)
+        Super.new(name)
     end sub
 
     public override function speak() as String
-        return $"{_name} says: Meow!"
+        return $"{name} says: Meow!"
     end function
 end class
 
@@ -204,14 +204,14 @@ end class
 // ============================================================================
 
 public class Counter
-    shared var _count as Integer = 0
+    shared var count as Integer = 0
 
     public sub new()
-        _count += 1
+        count += 1
     end sub
 
     shared function getCount() as Integer
-        return _count
+        return count
     end function
 end class
 
@@ -234,7 +234,7 @@ Console.WriteLine(person.greet())
 // Test Employee (inheritance)
 var emp as Employee = new Employee("Charlie", 35, "Developer", 5000.0)
 Console.WriteLine(emp.greet())
-Console.WriteLine($"Annual salary: ${emp.getAnnualSalary()}")
+Console.WriteLine($"Annual salary: {emp.getAnnualSalary()}")
 
 // Test interface with different shapes
 var rect as Rectangle = new Rectangle(10.0, 5.0)

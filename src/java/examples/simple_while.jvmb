@@ -1,0 +1,9 @@
+' Simple while loop test
+var i as Integer = 0
+
+while i < 5
+    Console.WriteLine(i)
+    i = i + 1
+end while
+
+Console.WriteLine("Done")

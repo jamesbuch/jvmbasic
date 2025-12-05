@@ -1,0 +1,42 @@
+' JVM BASIC 2.0 Demo - Demonstrating working features
+
+' Variables and arithmetic
+var x as Integer = 10
+var y as Integer = 25
+var sum as Integer = x + y
+var diff as Integer = y - x
+var product as Integer = x * y
+var quotient as Integer = y / x
+
+Console.WriteLine("=== JVM BASIC 2.0 Demo ===")
+Console.WriteLine("x = 10, y = 25")
+Console.WriteLine("sum (x + y):")
+Console.WriteLine(sum)
+Console.WriteLine("difference (y - x):")
+Console.WriteLine(diff)
+Console.WriteLine("product (x * y):")
+Console.WriteLine(product)
+Console.WriteLine("quotient (y / x):")
+Console.WriteLine(quotient)
+
+' Conditionals
+Console.WriteLine("")
+Console.WriteLine("=== Conditionals ===")
+if sum > 30 then
+    Console.WriteLine("Sum is greater than 30")
+else
+    Console.WriteLine("Sum is not greater than 30")
+end if
+
+' While loop
+Console.WriteLine("")
+Console.WriteLine("=== While Loop (countdown from 5) ===")
+var count as Integer = 5
+while count > 0
+    Console.WriteLine(count)
+    count = count - 1
+end while
+Console.WriteLine("Liftoff!")
+
+Console.WriteLine("")
+Console.WriteLine("=== Demo Complete ===")

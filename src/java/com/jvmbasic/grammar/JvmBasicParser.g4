@@ -314,9 +314,9 @@ whileStatement
 
 // --- Do Loop ---
 doStatement
-    : DO (WHILE | UNTIL)? expression?
+    : DO ((WHILE | UNTIL) expression)?
       statement*
-      LOOP (WHILE | UNTIL)? expression?
+      LOOP ((WHILE | UNTIL) expression)?
     ;
 
 // --- Try/Catch/Finally ---
@@ -417,8 +417,11 @@ multiplicativeExpression
     : powerExpression ((STAR | SLASH | BACKSLASH | MOD) powerExpression)*
     ;
 
+// Exponentiation is right-associative: 2^3^4 = 2^(3^4) = 2^81
+// Uses ANTLR4's <assoc=right> with direct left recursion
 powerExpression
-    : unaryExpression (CARET unaryExpression)*
+    : <assoc=right> powerExpression CARET powerExpression   # PowerExpr
+    | unaryExpression                                        # PowerBase
     ;
 
 unaryExpression
@@ -443,7 +446,9 @@ primaryExpression
     | literal                                            # LiteralExpr
     | IDENTIFIER                                         # IdentifierExpr
     | ME                                                 # MeExpr
+    | THIS                                               # ThisExpr
     | MYBASE                                             # MyBaseExpr
+    | SUPER                                              # SuperExpr
     | NEW typeName LPAREN argumentList? RPAREN           # NewObjectExpr
     | NEW typeName LBRACKET expression RBRACKET          # NewArrayExpr
     | TYPEOF expression                                  # TypeOfExpr

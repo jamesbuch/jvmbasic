@@ -1,0 +1,21 @@
+' Function with local variables
+function multiply(x as Integer, y as Integer) as Integer
+    var result as Integer = x * y
+    return result
+end function
+
+function factorial(n as Integer) as Integer
+    if n <= 1 then
+        return 1
+    end if
+    return n * factorial(n - 1)
+end function
+
+Console.WriteLine("3 * 4 = ")
+Console.WriteLine(multiply(3, 4))
+
+Console.WriteLine("factorial(5) = ")
+Console.WriteLine(factorial(5))
+
+Console.WriteLine("factorial(6) = ")
+Console.WriteLine(factorial(6))

@@ -130,43 +130,43 @@ end sub
 ```basic
 // Class declaration
 public class Person
-    // Fields
-    private var _name as String
-    private var _age as Integer
+    // Fields (use same name as constructor params, disambiguate with this)
+    private var name as String
+    private var age as Integer
 
-    // Constructor
+    // Constructor - use this.name to disambiguate from parameter
     public sub new(name as String, age as Integer)
-        _name = name
-        _age = age
+        this.name = name
+        this.age = age
     end sub
 
     // Property with getter/setter
     public property Name as String
         get
-            return _name
+            return name
         end get
         set(value as String)
-            _name = value
+            name = value
         end set
     end property
 
     // Method
     public function greet() as String
-        return $"Hello, I'm {_name}"
+        return $"Hello, I'm {name}"
     end function
 end class
 
 // Inheritance
 public class Employee extends Person
-    private var _title as String
+    private var title as String
 
     public sub new(name as String, age as Integer, title as String)
-        MyBase.new(name, age)
-        _title = title
+        Super.new(name, age)
+        this.title = title
     end sub
 
     public override function greet() as String
-        return $"{MyBase.greet()}, {_title}"
+        return $"{Super.greet()}, {title}"
     end function
 end class
 

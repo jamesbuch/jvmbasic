@@ -1,0 +1,24 @@
+' Float and Long type test
+Console.WriteLine("=== Float Test ===")
+var f1 as Float = 1.5F
+var f2 as Float = 2.5F
+Console.WriteLine("f1 = ")
+Console.WriteLine(f1)
+Console.WriteLine("f2 = ")
+Console.WriteLine(f2)
+Console.WriteLine("f1 + f2 = ")
+Console.WriteLine(f1 + f2)
+Console.WriteLine("f1 * f2 = ")
+Console.WriteLine(f1 * f2)
+
+Console.WriteLine("=== Long Test ===")
+var l1 as Long = 1000000000L
+var l2 as Long = 2000000000L
+Console.WriteLine("l1 = ")
+Console.WriteLine(l1)
+Console.WriteLine("l2 = ")
+Console.WriteLine(l2)
+Console.WriteLine("l1 + l2 = ")
+Console.WriteLine(l1 + l2)
+Console.WriteLine("l1 * 3 = ")
+Console.WriteLine(l1 * 3L)

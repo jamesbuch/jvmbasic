@@ -1,0 +1,23 @@
+' Double type test
+var pi as Double = 3.14159D
+var radius as Double = 2.5D
+var area as Double = pi * radius * radius
+
+Console.WriteLine("Pi = ")
+Console.WriteLine(pi)
+Console.WriteLine("Radius = ")
+Console.WriteLine(radius)
+Console.WriteLine("Area = ")
+Console.WriteLine(area)
+
+' Test arithmetic
+var a as Double = 10.5D
+var b as Double = 3.2D
+Console.WriteLine("a + b = ")
+Console.WriteLine(a + b)
+Console.WriteLine("a - b = ")
+Console.WriteLine(a - b)
+Console.WriteLine("a * b = ")
+Console.WriteLine(a * b)
+Console.WriteLine("a / b = ")
+Console.WriteLine(a / b)

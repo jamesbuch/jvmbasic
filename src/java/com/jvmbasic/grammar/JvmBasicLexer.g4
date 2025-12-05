@@ -88,8 +88,10 @@ INTERFACE   : I N T E R F A C E ;
 EXTENDS     : E X T E N D S ;
 IMPLEMENTS  : I M P L E M E N T S ;
 NEW         : N E W ;
-ME          : M E ;
-MYBASE      : M Y B A S E ;
+ME          : M E ;           // Deprecated: use THIS
+THIS        : T H I S ;       // Current instance reference
+MYBASE      : M Y B A S E ;   // Deprecated: use SUPER
+SUPER       : S U P E R ;     // Parent class reference
 PUBLIC      : P U B L I C ;
 PRIVATE     : P R I V A T E ;
 PROTECTED   : P R O T E C T E D ;

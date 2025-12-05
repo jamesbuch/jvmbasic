@@ -819,16 +819,23 @@ public class IRBuilder extends JvmBasicParserBaseVisitor<Object> {
     }
 
     public IRExpression visitPowerExpression(JvmBasicParser.PowerExpressionContext ctx) {
-        IRExpression result = visitUnaryExpression(ctx.unaryExpression(0));
-
-        // Power is right-associative, but for simplicity treat it left-to-right
-        for (int i = 1; i < ctx.unaryExpression().size(); i++) {
-            IRExpression right = visitUnaryExpression(ctx.unaryExpression(i));
-            result = new IRBinaryOp(IRBinaryOp.Operator.POWER, result, right, IRType.Primitive.DOUBLE,
-                                   result.getLine(), result.getColumn());
+        // Handle labeled alternatives from grammar:
+        // powerExpression : <assoc=right> powerExpression CARET powerExpression # PowerExpr
+        //                 | unaryExpression                                      # PowerBase
+        if (ctx instanceof JvmBasicParser.PowerExprContext powerCtx) {
+            // Right-associative power: a^b^c = a^(b^c)
+            // ANTLR handles right-associativity automatically with <assoc=right>
+            IRExpression left = visitPowerExpression(powerCtx.powerExpression(0));
+            IRExpression right = visitPowerExpression(powerCtx.powerExpression(1));
+            return new IRBinaryOp(IRBinaryOp.Operator.POWER, left, right, IRType.Primitive.DOUBLE,
+                                 left.getLine(), left.getColumn());
+        } else if (ctx instanceof JvmBasicParser.PowerBaseContext baseCtx) {
+            return visitUnaryExpression(baseCtx.unaryExpression());
         }
 
-        return result;
+        // Fallback - should not reach here
+        Token token = ctx.getStart();
+        return new IRNullLiteral(null, token.getLine(), token.getCharPositionInLine());
     }
 
     public IRExpression visitUnaryExpression(JvmBasicParser.UnaryExpressionContext ctx) {
@@ -975,8 +982,22 @@ public class IRBuilder extends JvmBasicParserBaseVisitor<Object> {
             return new IRIdentifier(name, IRType.Reference.OBJECT,
                                    token.getLine(), token.getCharPositionInLine());
         } else if (ctx instanceof JvmBasicParser.MeExprContext meCtx) {
+            // Deprecated: ME - use THIS instead
             Token token = meCtx.ME().getSymbol();
             return new IRIdentifier("this", IRType.Reference.OBJECT,
+                                   token.getLine(), token.getCharPositionInLine());
+        } else if (ctx instanceof JvmBasicParser.ThisExprContext thisCtx) {
+            Token token = thisCtx.THIS().getSymbol();
+            return new IRIdentifier("this", IRType.Reference.OBJECT,
+                                   token.getLine(), token.getCharPositionInLine());
+        } else if (ctx instanceof JvmBasicParser.MyBaseExprContext myBaseCtx) {
+            // Deprecated: MYBASE - use SUPER instead
+            Token token = myBaseCtx.MYBASE().getSymbol();
+            return new IRIdentifier("super", IRType.Reference.OBJECT,
+                                   token.getLine(), token.getCharPositionInLine());
+        } else if (ctx instanceof JvmBasicParser.SuperExprContext superCtx) {
+            Token token = superCtx.SUPER().getSymbol();
+            return new IRIdentifier("super", IRType.Reference.OBJECT,
                                    token.getLine(), token.getCharPositionInLine());
         } else if (ctx instanceof JvmBasicParser.NewObjectExprContext newCtx) {
             IRType type = visitTypeName(newCtx.typeName());

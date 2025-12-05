@@ -1,0 +1,4 @@
+' Minimal test - no Console
+var x as Integer = 5
+var y as Integer = 10
+var z as Integer = x + y

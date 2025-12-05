@@ -485,8 +485,6 @@ public interface IRVisitor<T> {
 
 ## Code Generation
 
-**Note:** JVM BASIC 2.0 uses **visitor-based code generation** directly from the ANTLR parse tree. We do NOT use the IR for code generation in the MVP. The IR exists for debugging and potential future optimization passes.
-
 ### CompilerVisitor Overview
 
 ```java
@@ -495,7 +493,6 @@ public class CompilerVisitor extends JvmBasicParserBaseVisitor<Object> {
     private MethodVisitor mv;      // Current method
     private SymbolTable symbols;   // Variable tracking
     private int localVarSlot;      // Local variable index
-    private String lastExprType;   // Type of last expression (for println overloads)
 
     // Entry point
     @Override
@@ -570,212 +567,6 @@ public Object visitMethodCall(MethodCallContext ctx) {
         }
         mv.visitMethodInsn(INVOKEVIRTUAL, ...);
     }
-    return null;
-}
-```
-
-### For Loop Code Generation
-
-For loops use a loop counter stored in a local variable:
-
-```java
-@Override
-public Object visitForStatement(ForStatementContext ctx) {
-    String varName = ctx.IDENTIFIER(0).getText();  // Note: (0) for first IDENTIFIER
-
-    // Initialize loop variable
-    visit(ctx.expression(0));  // start expression
-    int slot = allocateSlot("Integer");
-    mv.visitVarInsn(ISTORE, slot);
-
-    // Store end value
-    visit(ctx.expression(1));  // end expression
-    int endSlot = allocateSlot("Integer");
-    mv.visitVarInsn(ISTORE, endSlot);
-
-    // Optional STEP value
-    int stepSlot = -1;
-    boolean hasStep = ctx.expression().size() > 2;
-    if (hasStep) {
-        visit(ctx.expression(2));
-        stepSlot = allocateSlot("Integer");
-        mv.visitVarInsn(ISTORE, stepSlot);
-    }
-
-    Label startLabel = new Label();
-    Label endLabel = new Label();
-
-    // Loop condition: i <= end
-    mv.visitLabel(startLabel);
-    mv.visitVarInsn(ILOAD, slot);
-    mv.visitVarInsn(ILOAD, endSlot);
-    mv.visitJumpInsn(IF_ICMPGT, endLabel);
-
-    // Loop body
-    for (var stmt : ctx.statement()) {
-        visit(stmt);
-    }
-
-    // Increment by STEP or 1
-    mv.visitVarInsn(ILOAD, slot);
-    if (hasStep) {
-        mv.visitVarInsn(ILOAD, stepSlot);
-    } else {
-        mv.visitInsn(ICONST_1);
-    }
-    mv.visitInsn(IADD);
-    mv.visitVarInsn(ISTORE, slot);
-
-    mv.visitJumpInsn(GOTO, startLabel);
-    mv.visitLabel(endLabel);
-    return null;
-}
-```
-
-### Do Loop Code Generation
-
-Do loops support four variants:
-- `DO WHILE condition ... LOOP` - Test condition at start
-- `DO UNTIL condition ... LOOP` - Test inverted condition at start
-- `DO ... LOOP WHILE condition` - Test condition at end (executes at least once)
-- `DO ... LOOP UNTIL condition` - Test inverted condition at end
-
-```java
-@Override
-public Object visitDoStatement(DoStatementContext ctx) {
-    Label startLabel = new Label();
-    Label endLabel = new Label();
-
-    // Detect loop variant by parsing children
-    boolean hasPreWhile = false, hasPreUntil = false;
-    boolean hasPostWhile = false, hasPostUntil = false;
-    // ... detect variant from parse tree children
-
-    mv.visitLabel(startLabel);
-
-    // Pre-condition (DO WHILE/UNTIL)
-    if ((hasPreWhile || hasPreUntil) && !ctx.expression().isEmpty()) {
-        visit(ctx.expression(0));
-        if (hasPreUntil) {
-            mv.visitJumpInsn(IFNE, endLabel);  // Exit if true
-        } else {
-            mv.visitJumpInsn(IFEQ, endLabel);  // Exit if false
-        }
-    }
-
-    // Loop body
-    for (var stmt : ctx.statement()) {
-        visit(stmt);
-    }
-
-    // Post-condition (LOOP WHILE/UNTIL)
-    if (hasPostWhile || hasPostUntil) {
-        visit(ctx.expression(postExprIndex));
-        if (hasPostUntil) {
-            mv.visitJumpInsn(IFEQ, startLabel);  // Loop if false
-        } else {
-            mv.visitJumpInsn(IFNE, startLabel);  // Loop if true
-        }
-    } else {
-        mv.visitJumpInsn(GOTO, startLabel);
-    }
-
-    mv.visitLabel(endLabel);
-    return null;
-}
-```
-
-### User-Defined Function Code Generation
-
-Functions are compiled to static methods. Parameters occupy local variable slots 0, 1, 2...
-
-```java
-@Override
-public Object visitFunctionDeclaration(FunctionDeclarationContext ctx) {
-    String funcName = ctx.IDENTIFIER().getText();
-    String descriptor = buildMethodDescriptor(func);  // e.g., "(II)I"
-
-    mv = cw.visitMethod(ACC_PUBLIC | ACC_STATIC, funcName, descriptor, null, null);
-    mv.visitCode();
-
-    // Parameters are already in slots 0, 1, 2...
-    // Local variables start after parameters
-    localVarSlot = func.getParameters().size();
-
-    // Visit function body
-    for (var stmt : ctx.statement()) {
-        visit(stmt);
-    }
-
-    // Return (with default for missing return)
-    mv.visitInsn(IRETURN);
-    mv.visitMaxs(0, 0);  // Computed automatically
-    mv.visitEnd();
-    return null;
-}
-```
-
-### Calling User Functions
-
-```java
-private void handleUserFunctionCall(String funcName, ArgumentListContext argList) {
-    FunctionSymbol func = symbols.getFunction(funcName);
-
-    // Push arguments onto stack
-    if (argList != null) {
-        for (var arg : argList.argument()) {
-            visit(arg.expression());
-        }
-    }
-
-    // INVOKESTATIC for static method
-    String descriptor = buildMethodDescriptor(func);
-    mv.visitMethodInsn(INVOKESTATIC, className, funcName, descriptor, false);
-
-    lastExprType = func.returnType;
-}
-```
-
-### Numeric Types and Wide Values
-
-Long and Double types require 2 local variable slots on the JVM:
-
-```java
-// Slot allocation for wide types
-private int allocateSlot(String type) {
-    int slot = localVarSlot;
-    localVarSlot += isWideType(type) ? 2 : 1;
-    return slot;
-}
-
-private boolean isWideType(String type) {
-    String t = type.toLowerCase();
-    return t.equals("long") || t.equals("double");
-}
-```
-
-Type-aware arithmetic uses different opcodes:
-
-```java
-private void emitAdd(String type) {
-    switch (type.toLowerCase()) {
-        case "long" -> mv.visitInsn(LADD);
-        case "float" -> mv.visitInsn(FADD);
-        case "double" -> mv.visitInsn(DADD);
-        default -> mv.visitInsn(IADD);
-    }
-}
-
-// Literal visitors set lastExprType for proper println overload
-@Override
-public Object visitDoubleLiteral(DoubleLiteralContext ctx) {
-    String text = ctx.DOUBLE_LITERAL().getText();
-    if (text.toUpperCase().endsWith("D")) {
-        text = text.substring(0, text.length() - 1);
-    }
-    double value = Double.parseDouble(text);
-    mv.visitLdcInsn(value);
-    lastExprType = "Double";
     return null;
 }
 ```
@@ -953,25 +744,8 @@ fragment UNICODE_DIGIT  : [\p{Nd}] ;
 
 ---
 
-## Implementation Status
+## Future Work
 
-### Completed
-- [x] Variables with initialization (`var x as Integer = 10`)
-- [x] Console.WriteLine for all primitive types (Integer, Long, Float, Double, String, Boolean)
-- [x] Arithmetic expressions (+, -, *, /, mod, ^)
-- [x] Comparison operators (<, >, <=, >=, =, <>)
-- [x] Logical operators (And, Or, Not)
-- [x] If/ElseIf/Else statements
-- [x] While loops
-- [x] For loops with optional STEP
-- [x] Do loops (DO WHILE, DO UNTIL, DO...LOOP WHILE, DO...LOOP UNTIL)
-- [x] User-defined functions with parameters and return values
-- [x] Numeric type support (Integer, Long, Float, Double)
-- [x] String literals and string concatenation
-
-### Future Work
-- [ ] For Each loops
-- [ ] Arrays
 - [ ] Full class code generation
 - [ ] Interface implementation
 - [ ] Generic types support

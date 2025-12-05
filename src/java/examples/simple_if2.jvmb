@@ -1,0 +1,10 @@
+' Simple if/then test with else
+var x as Integer = 3
+
+if x > 5 then
+    Console.WriteLine("x is greater than 5")
+else
+    Console.WriteLine("x is less than or equal to 5")
+end if
+
+Console.WriteLine("Done")

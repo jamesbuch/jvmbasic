@@ -1,0 +1,7 @@
+' Simple do loop test
+var i as Integer = 1
+do while i <= 3
+    Console.WriteLine(i)
+    i = i + 1
+loop
+Console.WriteLine("Done!")

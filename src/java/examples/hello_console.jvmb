@@ -1,0 +1,7 @@
+' Hello World with Console output
+Console.WriteLine("Hello, World!")
+var x as Integer = 5
+var y as Integer = 10
+var z as Integer = x + y
+Console.WriteLine("Sum is:")
+Console.WriteLine(z)
