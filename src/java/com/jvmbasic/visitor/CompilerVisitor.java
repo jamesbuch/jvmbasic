@@ -232,13 +232,51 @@ public class CompilerVisitor extends JvmBasicParserBaseVisitor<Object> {
 
     @Override
     public Object visitAssignmentStatement(JvmBasicParser.AssignmentStatementContext ctx) {
-        // Evaluate RHS expression
-        visit(ctx.expression());
+        // Check if LHS is an array index assignment
+        if (ctx.lvalue() instanceof JvmBasicParser.IndexLValueContext indexLValue) {
+            // For array assignment: arr[index] = value
+            // We need to: push arr ref, push index, push value, then XASTORE
 
-        // Store to LHS
+            // Get the array variable from the inner lvalue
+            JvmBasicParser.LvalueContext innerLValue = indexLValue.lvalue();
+            if (innerLValue instanceof JvmBasicParser.SimpleLValueContext simpleLValue) {
+                String arrayName = simpleLValue.IDENTIFIER().getText();
+                loadVariable(arrayName);  // Push array ref
+
+                visit(indexLValue.expression());  // Push index
+                visit(ctx.expression());  // Push value
+
+                // Determine element type
+                String elementType = getArrayElementTypeFromVariable(arrayName);
+                emitArrayStore(elementType);
+            }
+            return null;
+        }
+
+        // Regular assignment: evaluate RHS expression, then store
+        visit(ctx.expression());
         visitLValueStore(ctx.lvalue());
 
         return null;
+    }
+
+    private String getArrayElementTypeFromVariable(String varName) {
+        // Check in main locals
+        if ("main".equals(currentMethod)) {
+            LocalVar local = mainLocals.get(varName);
+            if (local != null && local.type().endsWith("[]")) {
+                return local.type().substring(0, local.type().length() - 2);
+            }
+        } else if (currentMethod != null) {
+            FunctionSymbol func = symbols.getFunction(currentMethod);
+            if (func != null) {
+                VariableSymbol local = func.getLocal(varName);
+                if (local != null && local.type.endsWith("[]")) {
+                    return local.type.substring(0, local.type.length() - 2);
+                }
+            }
+        }
+        return "Integer";  // Default
     }
 
     @Override
@@ -465,6 +503,72 @@ public class CompilerVisitor extends JvmBasicParserBaseVisitor<Object> {
     }
 
     @Override
+    public Object visitForEachStatement(JvmBasicParser.ForEachStatementContext ctx) {
+        // FOR EACH item IN collection
+        //   statements
+        // NEXT
+        //
+        // For arrays, this compiles to:
+        //   arr = <collection>
+        //   i = 0
+        //   while (i < arr.length)
+        //     item = arr[i]
+        //     <statements>
+        //     i++
+
+        String itemName = ctx.IDENTIFIER(0).getText();
+
+        // Evaluate and store the collection (array)
+        visit(ctx.expression());
+        String arrayType = lastExprType;  // e.g., "Integer[]"
+        String elementType = getArrayElementType(arrayType);
+
+        int arraySlot = localVarSlot++;
+        mv.visitVarInsn(ASTORE, arraySlot);  // Store array reference
+
+        // Initialize index counter i = 0
+        int indexSlot = localVarSlot++;
+        mv.visitInsn(ICONST_0);
+        mv.visitVarInsn(ISTORE, indexSlot);
+
+        // Allocate slot for loop variable
+        int itemSlot = allocateSlot(elementType);
+        if ("main".equals(currentMethod)) {
+            mainLocals.put(itemName, new LocalVar(itemName, elementType, itemSlot));
+        }
+
+        Label startLabel = new Label();
+        Label endLabel = new Label();
+
+        mv.visitLabel(startLabel);
+
+        // Condition: i < arr.length
+        mv.visitVarInsn(ILOAD, indexSlot);
+        mv.visitVarInsn(ALOAD, arraySlot);
+        mv.visitInsn(ARRAYLENGTH);
+        mv.visitJumpInsn(IF_ICMPGE, endLabel);  // if i >= length, exit
+
+        // Load current element: item = arr[i]
+        mv.visitVarInsn(ALOAD, arraySlot);
+        mv.visitVarInsn(ILOAD, indexSlot);
+        emitArrayLoad(elementType);
+        storeLocal(itemSlot, elementType);
+
+        // Execute loop body
+        for (var stmt : ctx.statement()) {
+            visit(stmt);
+        }
+
+        // Increment index: i++
+        mv.visitIincInsn(indexSlot, 1);
+
+        mv.visitJumpInsn(GOTO, startLabel);
+        mv.visitLabel(endLabel);
+
+        return null;
+    }
+
+    @Override
     public Object visitExpressionStatement(JvmBasicParser.ExpressionStatementContext ctx) {
         visit(ctx.expression());
         // Pop result if expression leaves value on stack
@@ -559,6 +663,104 @@ public class CompilerVisitor extends JvmBasicParserBaseVisitor<Object> {
         mv.visitInsn(ACONST_NULL);
         lastExprType = "Object";
         return null;
+    }
+
+    // ========================================================================
+    // Array Operations
+    // ========================================================================
+
+    @Override
+    public Object visitNewArrayExpr(JvmBasicParser.NewArrayExprContext ctx) {
+        // new Integer[size]
+        String elementType = ctx.typeName().getText();
+        visit(ctx.expression());  // Push size onto stack
+
+        // Determine array type and emit NEWARRAY or ANEWARRAY
+        String desc = primitiveArrayType(elementType);
+        if (desc != null) {
+            // Primitive array: NEWARRAY
+            mv.visitIntInsn(NEWARRAY, desc.charAt(0) == 'I' ? T_INT :
+                           desc.charAt(0) == 'J' ? T_LONG :
+                           desc.charAt(0) == 'F' ? T_FLOAT :
+                           desc.charAt(0) == 'D' ? T_DOUBLE :
+                           desc.charAt(0) == 'Z' ? T_BOOLEAN :
+                           desc.charAt(0) == 'B' ? T_BYTE :
+                           desc.charAt(0) == 'C' ? T_CHAR :
+                           desc.charAt(0) == 'S' ? T_SHORT : T_INT);
+        } else {
+            // Reference array: ANEWARRAY
+            mv.visitTypeInsn(ANEWARRAY, elementType.equals("String") ?
+                            "java/lang/String" : elementType);
+        }
+
+        lastExprType = elementType + "[]";
+        return null;
+    }
+
+    // Return primitive type descriptor, or null for reference types
+    private String primitiveArrayType(String type) {
+        return switch (type.toLowerCase()) {
+            case "integer", "int" -> "I";
+            case "long" -> "J";
+            case "float" -> "F";
+            case "double" -> "D";
+            case "boolean" -> "Z";
+            case "byte" -> "B";
+            case "char" -> "C";
+            case "short" -> "S";
+            default -> null;
+        };
+    }
+
+    @Override
+    public Object visitIndexAccess(JvmBasicParser.IndexAccessContext ctx) {
+        // arr[index] - load array element
+        // The array reference is already on the stack from visiting the primary
+        // Save the array type before visiting the index expression (which may change lastExprType)
+        String arrayType = lastExprType;
+
+        visit(ctx.expression());  // Push index
+
+        // Determine element type from saved array type
+        String elementType = getArrayElementType(arrayType);
+
+        // Emit appropriate XALOAD instruction
+        emitArrayLoad(elementType);
+        lastExprType = elementType;
+        return null;
+    }
+
+    private String getArrayElementType(String arrayType) {
+        if (arrayType != null && arrayType.endsWith("[]")) {
+            return arrayType.substring(0, arrayType.length() - 2);
+        }
+        return "Object";  // Default
+    }
+
+    private void emitArrayLoad(String elementType) {
+        switch (elementType.toLowerCase()) {
+            case "integer", "int" -> mv.visitInsn(IALOAD);
+            case "long" -> mv.visitInsn(LALOAD);
+            case "float" -> mv.visitInsn(FALOAD);
+            case "double" -> mv.visitInsn(DALOAD);
+            case "boolean", "byte" -> mv.visitInsn(BALOAD);
+            case "char" -> mv.visitInsn(CALOAD);
+            case "short" -> mv.visitInsn(SALOAD);
+            default -> mv.visitInsn(AALOAD);  // Reference type
+        }
+    }
+
+    private void emitArrayStore(String elementType) {
+        switch (elementType.toLowerCase()) {
+            case "integer", "int" -> mv.visitInsn(IASTORE);
+            case "long" -> mv.visitInsn(LASTORE);
+            case "float" -> mv.visitInsn(FASTORE);
+            case "double" -> mv.visitInsn(DASTORE);
+            case "boolean", "byte" -> mv.visitInsn(BASTORE);
+            case "char" -> mv.visitInsn(CASTORE);
+            case "short" -> mv.visitInsn(SASTORE);
+            default -> mv.visitInsn(AASTORE);  // Reference type
+        }
     }
 
     @Override

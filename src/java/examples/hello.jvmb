@@ -10,5 +10,5 @@ for i = 1 to count
     Console.WriteLine(message)
 next i
 
-// Call with string interpolation
-Console.WriteLine($"Done counting to {count}")
+// Done message
+Console.WriteLine("Done!")

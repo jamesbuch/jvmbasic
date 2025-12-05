@@ -1,0 +1,16 @@
+' For Each loop test
+var numbers as Integer[] = new Integer[5]
+numbers[0] = 10
+numbers[1] = 20
+numbers[2] = 30
+numbers[3] = 40
+numbers[4] = 50
+
+Console.WriteLine("For Each loop:")
+var sum as Integer = 0
+for each n in numbers
+    Console.WriteLine(n)
+    sum = sum + n
+next
+Console.WriteLine("Sum:")
+Console.WriteLine(sum)
