@@ -4254,6 +4254,264 @@ public class BasicRuntime {
     }
 
     // ========================================
+    // Cookie Support
+    // ========================================
+
+    /**
+     * Request.GetCookie - Get cookie value by name
+     */
+    public static String request_GetCookie(String name) {
+        jakarta.servlet.http.HttpServletRequest req = currentRequest.get();
+        if (req != null) {
+            jakarta.servlet.http.Cookie[] cookies = req.getCookies();
+            if (cookies != null) {
+                for (jakarta.servlet.http.Cookie cookie : cookies) {
+                    if (cookie.getName().equals(name)) {
+                        return cookie.getValue();
+                    }
+                }
+            }
+        }
+        return "";
+    }
+
+    /**
+     * Request.HasCookie - Check if cookie exists
+     */
+    public static int request_HasCookie(String name) {
+        jakarta.servlet.http.HttpServletRequest req = currentRequest.get();
+        if (req != null) {
+            jakarta.servlet.http.Cookie[] cookies = req.getCookies();
+            if (cookies != null) {
+                for (jakarta.servlet.http.Cookie cookie : cookies) {
+                    if (cookie.getName().equals(name)) {
+                        return 1;
+                    }
+                }
+            }
+        }
+        return 0;
+    }
+
+    /**
+     * Response.SetCookie - Set a cookie with name and value (session cookie)
+     */
+    public static int response_SetCookie(String name, String value) {
+        jakarta.servlet.http.HttpServletResponse resp = currentResponse.get();
+        if (resp != null) {
+            jakarta.servlet.http.Cookie cookie = new jakarta.servlet.http.Cookie(name, value);
+            cookie.setPath("/");
+            resp.addCookie(cookie);
+            return 0;
+        }
+        return -1;
+    }
+
+    /**
+     * Response.SetCookieEx - Set a cookie with full options
+     * @param name Cookie name
+     * @param value Cookie value
+     * @param maxAge Max age in seconds (-1 for session, 0 to delete)
+     * @param path Cookie path
+     * @param httpOnly 1 for HttpOnly, 0 for accessible to JS
+     * @param secure 1 for HTTPS only, 0 for any
+     */
+    public static int response_SetCookieEx(String name, String value, int maxAge, String path, int httpOnly, int secure) {
+        jakarta.servlet.http.HttpServletResponse resp = currentResponse.get();
+        if (resp != null) {
+            jakarta.servlet.http.Cookie cookie = new jakarta.servlet.http.Cookie(name, value);
+            cookie.setMaxAge(maxAge);
+            cookie.setPath(path);
+            cookie.setHttpOnly(httpOnly != 0);
+            cookie.setSecure(secure != 0);
+            resp.addCookie(cookie);
+            return 0;
+        }
+        return -1;
+    }
+
+    /**
+     * Response.DeleteCookie - Delete a cookie by setting maxAge to 0
+     */
+    public static int response_DeleteCookie(String name) {
+        jakarta.servlet.http.HttpServletResponse resp = currentResponse.get();
+        if (resp != null) {
+            jakarta.servlet.http.Cookie cookie = new jakarta.servlet.http.Cookie(name, "");
+            cookie.setMaxAge(0);
+            cookie.setPath("/");
+            resp.addCookie(cookie);
+            return 0;
+        }
+        return -1;
+    }
+
+    // ========================================
+    // File Upload Support
+    // ========================================
+
+    // Storage for uploaded files per request (thread-local)
+    private static ThreadLocal<java.util.Map<String, UploadedFile>> currentUploads = new ThreadLocal<>();
+
+    private static class UploadedFile {
+        String fileName;
+        String contentType;
+        byte[] data;
+        long size;
+
+        UploadedFile(String fileName, String contentType, byte[] data) {
+            this.fileName = fileName;
+            this.contentType = contentType;
+            this.data = data;
+            this.size = data.length;
+        }
+    }
+
+    /**
+     * Request.IsMultipart - Check if request is multipart form data
+     */
+    public static int request_IsMultipart() {
+        jakarta.servlet.http.HttpServletRequest req = currentRequest.get();
+        if (req != null) {
+            String contentType = req.getContentType();
+            if (contentType != null && contentType.toLowerCase().startsWith("multipart/")) {
+                return 1;
+            }
+        }
+        return 0;
+    }
+
+    /**
+     * Request.ParseMultipart - Parse multipart form data
+     * Must be called before accessing uploaded files
+     * Returns number of parts parsed, or -1 on error
+     */
+    public static int request_ParseMultipart() {
+        jakarta.servlet.http.HttpServletRequest req = currentRequest.get();
+        if (req == null) return -1;
+
+        try {
+            java.util.Map<String, UploadedFile> uploads = new java.util.HashMap<>();
+            java.util.Collection<jakarta.servlet.http.Part> parts = req.getParts();
+            int count = 0;
+
+            for (jakarta.servlet.http.Part part : parts) {
+                String fileName = part.getSubmittedFileName();
+                if (fileName != null && !fileName.isEmpty()) {
+                    // This is a file upload
+                    java.io.InputStream is = part.getInputStream();
+                    java.io.ByteArrayOutputStream bos = new java.io.ByteArrayOutputStream();
+                    byte[] buffer = new byte[8192];
+                    int bytesRead;
+                    while ((bytesRead = is.read(buffer)) != -1) {
+                        bos.write(buffer, 0, bytesRead);
+                    }
+                    uploads.put(part.getName(), new UploadedFile(fileName, part.getContentType(), bos.toByteArray()));
+                    count++;
+                }
+            }
+
+            currentUploads.set(uploads);
+            return count;
+        } catch (Exception e) {
+            System.err.println("Multipart parse error: " + e.getMessage());
+            return -1;
+        }
+    }
+
+    /**
+     * Request.HasUpload - Check if a file was uploaded with given field name
+     */
+    public static int request_HasUpload(String fieldName) {
+        java.util.Map<String, UploadedFile> uploads = currentUploads.get();
+        if (uploads != null && uploads.containsKey(fieldName)) {
+            return 1;
+        }
+        return 0;
+    }
+
+    /**
+     * Request.GetUploadFileName - Get original filename of uploaded file
+     */
+    public static String request_GetUploadFileName(String fieldName) {
+        java.util.Map<String, UploadedFile> uploads = currentUploads.get();
+        if (uploads != null) {
+            UploadedFile file = uploads.get(fieldName);
+            if (file != null) {
+                return file.fileName;
+            }
+        }
+        return "";
+    }
+
+    /**
+     * Request.GetUploadContentType - Get content type of uploaded file
+     */
+    public static String request_GetUploadContentType(String fieldName) {
+        java.util.Map<String, UploadedFile> uploads = currentUploads.get();
+        if (uploads != null) {
+            UploadedFile file = uploads.get(fieldName);
+            if (file != null) {
+                return file.contentType;
+            }
+        }
+        return "";
+    }
+
+    /**
+     * Request.GetUploadSize - Get size of uploaded file in bytes
+     */
+    public static int request_GetUploadSize(String fieldName) {
+        java.util.Map<String, UploadedFile> uploads = currentUploads.get();
+        if (uploads != null) {
+            UploadedFile file = uploads.get(fieldName);
+            if (file != null) {
+                return (int) file.size;
+            }
+        }
+        return 0;
+    }
+
+    /**
+     * Request.SaveUpload - Save uploaded file to disk
+     * @param fieldName Form field name
+     * @param destPath Destination file path
+     * @return 0 on success, -1 on error
+     */
+    public static int request_SaveUpload(String fieldName, String destPath) {
+        java.util.Map<String, UploadedFile> uploads = currentUploads.get();
+        if (uploads != null) {
+            UploadedFile file = uploads.get(fieldName);
+            if (file != null) {
+                try {
+                    java.io.FileOutputStream fos = new java.io.FileOutputStream(destPath);
+                    fos.write(file.data);
+                    fos.close();
+                    return 0;
+                } catch (Exception e) {
+                    System.err.println("Save upload error: " + e.getMessage());
+                    return -1;
+                }
+            }
+        }
+        return -1;
+    }
+
+    /**
+     * Request.GetUploadData - Get uploaded file data as base64 string
+     * Useful for storing in database or processing
+     */
+    public static String request_GetUploadData(String fieldName) {
+        java.util.Map<String, UploadedFile> uploads = currentUploads.get();
+        if (uploads != null) {
+            UploadedFile file = uploads.get(fieldName);
+            if (file != null) {
+                return java.util.Base64.getEncoder().encodeToString(file.data);
+            }
+        }
+        return "";
+    }
+
+    // ========================================
     // WebResponse Namespace - HTTP Response Access
     // ========================================
 
@@ -4520,6 +4778,7 @@ public class BasicRuntime {
                 currentRequest.remove();
                 currentResponse.remove();
                 currentPathParams.remove();
+                currentUploads.remove();
             }
         }
 

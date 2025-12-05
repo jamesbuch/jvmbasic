@@ -13,7 +13,8 @@ enum class Type {
     IntArray, FloatArray, DoubleArray, StringArray, BoolArray,
     UserDefined,  // For user-defined types (structs)
     Decimal,      // Phase 9: java.math.BigDecimal (arbitrary precision)
-    BigInt        // Phase 9: java.math.BigInteger (arbitrary precision integers)
+    BigInt,       // Phase 9: java.math.BigInteger (arbitrary precision integers)
+    Void          // For Sub return type (no value)
 };
 
 // Operators

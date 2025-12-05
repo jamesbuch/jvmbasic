@@ -950,7 +950,8 @@ public:
                         else if (ptype == Type::String) descriptor += "Ljava/lang/String;";
                     }
                     descriptor += ")";
-                    if (returnType == Type::Int || returnType == Type::Bool) descriptor += "I";
+                    if (returnType == Type::Void) descriptor += "V";  // Sub (void return)
+                    else if (returnType == Type::Int || returnType == Type::Bool) descriptor += "I";
                     else if (returnType == Type::Float) descriptor += "F";
                     else if (returnType == Type::String) descriptor += "Ljava/lang/String;";
                     
@@ -3188,12 +3189,18 @@ public:
         runtimeVarTypes.clear();
         
         // Build userFunctions map from declarations for use in load()
+        // Include both Functions and Subs (Subs have Type::Void return type)
         for (const auto& decl : declarations) {
             if (decl->kind == DeclKind::Function) {
                 const FunctionDecl& fd = get<FunctionDecl>(decl->data);
                 vector<Type> paramTypes;
                 for (const auto& p : fd.params) paramTypes.push_back(p.type);
                 userFunctions[fd.name] = {paramTypes, fd.returnType};
+            } else if (decl->kind == DeclKind::Sub) {
+                const SubDecl& sd = get<SubDecl>(decl->data);
+                vector<Type> paramTypes;
+                for (const auto& p : sd.params) paramTypes.push_back(p.type);
+                userFunctions[sd.name] = {paramTypes, Type::Void};  // Subs return void
             }
         }
         
