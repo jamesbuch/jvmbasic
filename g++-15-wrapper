@@ -1,4 +1,4 @@
 #!/usr/bin/env bash
-# Wrapper for g++-13
-exec /usr/bin/g++-13 "$@"
+# Wrapper for g++-15
+exec /usr/bin/g++-15 "$@"
 
