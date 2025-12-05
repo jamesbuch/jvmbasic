@@ -580,3 +580,127 @@ public class LocalVariableTable {
     }
 }
 ```
+
+---
+
+## Appendix: ASM vs Apache BCEL Comparison
+
+When implementing JVM bytecode generation, two mature libraries are available: **ASM** and **Apache BCEL** (Bytecode Engineering Library). Both are viable options for this project.
+
+### Library Versions (as of December 2025)
+
+| Library | Latest Version | Release Date | Notes |
+|---------|---------------|--------------|-------|
+| ASM | 9.9 | October 4, 2025 | Supports Java 26 (preview) |
+| Apache BCEL | 6.11.0 | 2025 | Part of Apache Commons |
+| ANTLR4 | 4.13.2 | Available | Already in lib/ |
+
+### ASM Overview
+
+ASM is a low-level, high-performance bytecode manipulation framework. It uses the visitor pattern and operates on raw bytecode streams.
+
+**Pros:**
+- Extremely fast and memory-efficient
+- Small footprint (~400KB)
+- Used extensively in production (Gradle, Mockito, Spring, Kotlin compiler)
+- Actively maintained with rapid Java version support
+- Two APIs: visitor (streaming) and tree (object model)
+- Well-documented with many examples
+
+**Cons:**
+- Lower-level API requires more JVM bytecode knowledge
+- Visitor pattern can be verbose for complex transformations
+- Stack management is manual (must track operand stack yourself)
+
+**Example (ASM):**
+```java
+MethodVisitor mv = cw.visitMethod(ACC_PUBLIC, "add", "(II)I", null, null);
+mv.visitCode();
+mv.visitVarInsn(ILOAD, 1);
+mv.visitVarInsn(ILOAD, 2);
+mv.visitInsn(IADD);
+mv.visitInsn(IRETURN);
+mv.visitMaxs(2, 3);
+mv.visitEnd();
+```
+
+### Apache BCEL Overview
+
+BCEL provides a higher-level object model for bytecode manipulation. It represents classes, methods, and instructions as objects that can be created, modified, and queried.
+
+**Pros:**
+- Higher-level, more intuitive API
+- Instructions are objects with methods and properties
+- Built-in instruction list management
+- Part of Apache Commons ecosystem
+- Good for learning JVM internals
+- Automatic stack depth calculation available
+
+**Cons:**
+- Slower than ASM (creates more objects)
+- Larger memory footprint
+- Less frequently updated than ASM
+- Smaller community and fewer modern examples
+
+**Example (BCEL):**
+```java
+InstructionList il = new InstructionList();
+il.append(new ILOAD(1));
+il.append(new ILOAD(2));
+il.append(new IADD());
+il.append(new IRETURN());
+
+MethodGen mg = new MethodGen(ACC_PUBLIC, Type.INT,
+    new Type[]{Type.INT, Type.INT}, new String[]{"a", "b"},
+    "add", className, il, cp);
+mg.setMaxStack();
+mg.setMaxLocals();
+```
+
+### Comparison Table
+
+| Aspect | ASM 9.9 | Apache BCEL 6.11.0 |
+|--------|---------|-------------------|
+| **Performance** | Excellent (streaming) | Good (object-based) |
+| **Memory Usage** | Low | Higher |
+| **API Level** | Low-level | Higher-level |
+| **Learning Curve** | Steeper | Gentler |
+| **Java Version Support** | Java 26 (latest) | Java 21+ |
+| **Stack Management** | Manual | Auto-calculate option |
+| **Industry Adoption** | Very High | Moderate |
+| **Documentation** | Excellent | Good |
+| **JAR Size** | ~400KB | ~700KB |
+
+### Recommendation
+
+For the JVM BASIC compiler, **ASM is recommended** for the following reasons:
+
+1. **Performance**: Compiler performance matters for rapid iteration during development
+2. **Modern Java Support**: ASM 9.9 already supports Java 26; critical for staying current
+3. **Industry Standard**: Used by Kotlin, Groovy, and other JVM language compilers
+4. **Small Footprint**: Keeps the compiler distribution lean
+5. **Proven in Similar Projects**: Many language compilers use ASM successfully
+
+However, BCEL remains a valid alternative if:
+- Team is less familiar with JVM bytecode internals
+- Development speed is prioritized over runtime performance
+- The higher-level API would reduce bugs in initial implementation
+
+### Hybrid Approach
+
+It's also possible to use both libraries:
+- Use BCEL during prototyping for its clearer API
+- Migrate to ASM for production once patterns are established
+- Both libraries can read standard .class files, enabling verification
+
+### Resources
+
+**ASM:**
+- Website: https://asm.ow2.io/
+- User Guide: https://asm.ow2.io/asm4-guide.pdf
+- Maven: `org.ow2.asm:asm:9.9`
+
+**Apache BCEL:**
+- Website: https://commons.apache.org/proper/commons-bcel/
+- User Guide: https://commons.apache.org/proper/commons-bcel/manual.html
+- Maven: `org.apache.bcel:bcel:6.11.0`

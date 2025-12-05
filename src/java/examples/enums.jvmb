@@ -1,0 +1,169 @@
+// enums.jvmb - Test enum types
+
+// ============================================================================
+// Simple Enum
+// ============================================================================
+
+public enum Color
+    Red
+    Green
+    Blue
+    Yellow
+    Orange
+    Purple
+end enum
+
+public enum Size
+    Small
+    Medium
+    Large
+    ExtraLarge
+end enum
+
+// ============================================================================
+// Enum with explicit values
+// ============================================================================
+
+public enum HttpStatus
+    OK = 200
+    Created = 201
+    BadRequest = 400
+    NotFound = 404
+    InternalError = 500
+end enum
+
+public enum Priority
+    Low = 1
+    Normal = 5
+    High = 10
+    Critical = 100
+end enum
+
+// ============================================================================
+// Using Enums
+// ============================================================================
+
+Console.WriteLine("=== Basic Enum Usage ===")
+
+var myColor as Color = Color.Blue
+var mySize as Size = Size.Large
+
+Console.WriteLine("Color: " & myColor.ToString())
+Console.WriteLine("Size: " & mySize.ToString())
+
+// ============================================================================
+// Enum in if statement
+// ============================================================================
+
+Console.WriteLine("")
+Console.WriteLine("=== Enum in Conditions ===")
+
+function getColorName(c as Color) as String
+    if c = Color.Red then
+        return "Crimson"
+    elseif c = Color.Green then
+        return "Emerald"
+    elseif c = Color.Blue then
+        return "Sapphire"
+    else
+        return "Unknown"
+    end if
+end function
+
+Console.WriteLine("Red is called: " & getColorName(Color.Red))
+Console.WriteLine("Blue is called: " & getColorName(Color.Blue))
+
+// ============================================================================
+// Enum in Select Case
+// ============================================================================
+
+Console.WriteLine("")
+Console.WriteLine("=== Enum in Select Case ===")
+
+function getSizePrice(s as Size) as Double
+    select case s
+    case Size.Small
+        return 9.99
+    case Size.Medium
+        return 14.99
+    case Size.Large
+        return 19.99
+    case Size.ExtraLarge
+        return 24.99
+    case else
+        return 0.0
+    end select
+end function
+
+Console.WriteLine("Small: $" & getSizePrice(Size.Small).ToString())
+Console.WriteLine("Medium: $" & getSizePrice(Size.Medium).ToString())
+Console.WriteLine("Large: $" & getSizePrice(Size.Large).ToString())
+Console.WriteLine("ExtraLarge: $" & getSizePrice(Size.ExtraLarge).ToString())
+
+// ============================================================================
+// Enum with explicit values
+// ============================================================================
+
+Console.WriteLine("")
+Console.WriteLine("=== Enum with Values ===")
+
+function getStatusMessage(status as HttpStatus) as String
+    select case status
+    case HttpStatus.OK
+        return "Success"
+    case HttpStatus.Created
+        return "Resource created"
+    case HttpStatus.BadRequest
+        return "Invalid request"
+    case HttpStatus.NotFound
+        return "Resource not found"
+    case HttpStatus.InternalError
+        return "Server error"
+    case else
+        return "Unknown status"
+    end select
+end function
+
+Console.WriteLine("200: " & getStatusMessage(HttpStatus.OK))
+Console.WriteLine("404: " & getStatusMessage(HttpStatus.NotFound))
+Console.WriteLine("500: " & getStatusMessage(HttpStatus.InternalError))
+
+// ============================================================================
+// Enum in Class
+// ============================================================================
+
+Console.WriteLine("")
+Console.WriteLine("=== Enum in Class ===")
+
+public class Task
+    private var _name as String
+    private var _priority as Priority
+
+    public sub new(name as String, priority as Priority)
+        _name = name
+        _priority = priority
+    end sub
+
+    public function getPriority() as Priority
+        return _priority
+    end function
+
+    public function isUrgent() as Boolean
+        return _priority = Priority.High or _priority = Priority.Critical
+    end function
+
+    public function toString() as String
+        return _name & " [" & _priority.ToString() & "]"
+    end function
+end class
+
+var task1 as Task = new Task("Write docs", Priority.Low)
+var task2 as Task = new Task("Fix bug", Priority.High)
+var task3 as Task = new Task("Security patch", Priority.Critical)
+
+Console.WriteLine(task1.toString() & " - Urgent: " & task1.isUrgent().ToString())
+Console.WriteLine(task2.toString() & " - Urgent: " & task2.isUrgent().ToString())
+Console.WriteLine(task3.toString() & " - Urgent: " & task3.isUrgent().ToString())
+
+Console.WriteLine("")
+Console.WriteLine("All enum tests complete!")

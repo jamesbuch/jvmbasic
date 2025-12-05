@@ -1,0 +1,14 @@
+// hello.jvmb - Simple Hello World in JVM BASIC
+// Modern syntax: no PRINT, use Console.WriteLine
+
+// Variable declaration using 'var' (not Dim)
+var message as String = "Hello, World!"
+var count as Integer = 5
+
+// Loop using modern syntax
+for i = 1 to count
+    Console.WriteLine(message)
+next i
+
+// Call with expression
+Console.WriteLine("Done counting to " & count.ToString())

@@ -1,0 +1,166 @@
+// nullables.jvmb - Test nullable types and null handling
+
+// ============================================================================
+// Nullable String
+// ============================================================================
+
+Console.WriteLine("=== Nullable String ===")
+
+var maybeString as String? = Nil
+
+if maybeString = Nil then
+    Console.WriteLine("maybeString is Nil")
+end if
+
+maybeString = "Hello"
+
+if maybeString <> Nil then
+    Console.WriteLine("maybeString is: " & maybeString)
+end if
+
+// ============================================================================
+// Nullable Integer (boxed)
+// ============================================================================
+
+Console.WriteLine("")
+Console.WriteLine("=== Nullable Integer ===")
+
+var maybeInt as Integer? = Nothing
+
+if maybeInt = Nothing then
+    Console.WriteLine("maybeInt is Nothing")
+end if
+
+maybeInt = 42
+
+if maybeInt <> Nothing then
+    Console.WriteLine("maybeInt is: " & maybeInt.ToString())
+end if
+
+// ============================================================================
+// Function with nullable parameter
+// ============================================================================
+
+Console.WriteLine("")
+Console.WriteLine("=== Nullable Parameters ===")
+
+function greet(name as String?) as String
+    if name = Nil then
+        return "Hello, stranger!"
+    else
+        return "Hello, " & name & "!"
+    end if
+end function
+
+Console.WriteLine(greet(Nil))
+Console.WriteLine(greet("Alice"))
+Console.WriteLine(greet(Nothing))
+Console.WriteLine(greet("Bob"))
+
+// ============================================================================
+// Nullable return type
+// ============================================================================
+
+Console.WriteLine("")
+Console.WriteLine("=== Nullable Return Type ===")
+
+function findName(id as Integer) as String?
+    if id = 1 then
+        return "Alice"
+    elseif id = 2 then
+        return "Bob"
+    elseif id = 3 then
+        return "Charlie"
+    else
+        return Nil
+    end if
+end function
+
+for i = 1 to 5
+    var name as String? = findName(i)
+    if name = Nil then
+        Console.WriteLine("ID " & i.ToString() & ": Not found")
+    else
+        Console.WriteLine("ID " & i.ToString() & ": " & name)
+    end if
+next i
+
+// ============================================================================
+// Nullable in class
+// ============================================================================
+
+Console.WriteLine("")
+Console.WriteLine("=== Nullable in Class ===")
+
+public class OptionalValue
+    private var _value as Integer?
+    private var _label as String
+
+    public sub new(label as String)
+        _label = label
+        _value = Nil
+    end sub
+
+    public function hasValue() as Boolean
+        return _value <> Nil
+    end function
+
+    public function getValue() as Integer?
+        return _value
+    end function
+
+    public sub setValue(val as Integer)
+        _value = val
+    end sub
+
+    public sub clearValue()
+        _value = Nil
+    end sub
+
+    public function toString() as String
+        if _value = Nil then
+            return _label & ": <empty>"
+        else
+            return _label & ": " & _value.ToString()
+        end if
+    end function
+end class
+
+var opt as OptionalValue = new OptionalValue("Score")
+Console.WriteLine(opt.toString())
+Console.WriteLine("Has value: " & opt.hasValue().ToString())
+
+opt.setValue(100)
+Console.WriteLine(opt.toString())
+Console.WriteLine("Has value: " & opt.hasValue().ToString())
+
+opt.clearValue()
+Console.WriteLine(opt.toString())
+
+// ============================================================================
+// Chained null checks
+// ============================================================================
+
+Console.WriteLine("")
+Console.WriteLine("=== Chained Null Checks ===")
+
+function safeDivide(a as Integer, b as Integer?) as Integer?
+    if b = Nil then
+        return Nil
+    end if
+    if b = 0 then
+        return Nil
+    end if
+    return a / b
+end function
+
+var result1 as Integer? = safeDivide(10, 2)
+var result2 as Integer? = safeDivide(10, 0)
+var result3 as Integer? = safeDivide(10, Nil)
+
+Console.WriteLine("10 / 2 = " & (result1 = Nil ? "Nil" : result1.ToString()))
+Console.WriteLine("10 / 0 = " & (result2 = Nil ? "Nil" : result2.ToString()))
+Console.WriteLine("10 / Nil = " & (result3 = Nil ? "Nil" : result3.ToString()))
+
+Console.WriteLine("")
+Console.WriteLine("All nullable tests complete!")

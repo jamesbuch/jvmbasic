@@ -1,0 +1,118 @@
+// constants.jvmb - Test constants and imports
+
+// ============================================================================
+// Module-level Constants
+// ============================================================================
+
+const PI as Double = 3.14159265358979
+const E as Double = 2.71828182845904
+const GOLDEN_RATIO as Double = 1.61803398874989
+const MAX_SIZE as Integer = 100
+const APP_NAME as String = "JVM BASIC 2.0"
+const DEBUG as Boolean = true
+
+// ============================================================================
+// Using Constants
+// ============================================================================
+
+Console.WriteLine("=== Constants ===")
+Console.WriteLine("PI = " & PI.ToString())
+Console.WriteLine("E = " & E.ToString())
+Console.WriteLine("Golden Ratio = " & GOLDEN_RATIO.ToString())
+Console.WriteLine("Max Size = " & MAX_SIZE.ToString())
+Console.WriteLine("App Name = " & APP_NAME)
+Console.WriteLine("Debug = " & DEBUG.ToString())
+
+// ============================================================================
+// Constants in Calculations
+// ============================================================================
+
+Console.WriteLine("")
+Console.WriteLine("=== Using Constants in Calculations ===")
+
+var radius as Double = 5.0
+var circumference as Double = 2 * PI * radius
+var area as Double = PI * radius * radius
+
+Console.WriteLine("Circle with radius " & radius.ToString() & ":")
+Console.WriteLine("  Circumference = " & circumference.ToString())
+Console.WriteLine("  Area = " & area.ToString())
+
+// ============================================================================
+// Class with Constants
+// ============================================================================
+
+Console.WriteLine("")
+Console.WriteLine("=== Class Constants ===")
+
+public class Physics
+    public const SPEED_OF_LIGHT as Long = 299792458L   // m/s
+    public const GRAVITY as Double = 9.80665           // m/s^2
+    public const PLANCK as Double = 6.62607015e-34     // J*s
+
+    shared function calculateEnergy(mass as Double) as Double
+        return mass * SPEED_OF_LIGHT * SPEED_OF_LIGHT
+    end function
+
+    shared function calculateWeight(mass as Double) as Double
+        return mass * GRAVITY
+    end function
+end class
+
+Console.WriteLine("Speed of Light: " & Physics.SPEED_OF_LIGHT.ToString() & " m/s")
+Console.WriteLine("Gravity: " & Physics.GRAVITY.ToString() & " m/s^2")
+
+var mass as Double = 10.0
+Console.WriteLine("Weight of " & mass.ToString() & " kg: " & Physics.calculateWeight(mass).ToString() & " N")
+
+// ============================================================================
+// Constants in Select Case
+// ============================================================================
+
+Console.WriteLine("")
+Console.WriteLine("=== Constants in Switch ===")
+
+const OPTION_A as Integer = 1
+const OPTION_B as Integer = 2
+const OPTION_C as Integer = 3
+
+var selection as Integer = 2
+
+select case selection
+case OPTION_A
+    Console.WriteLine("Selected Option A")
+case OPTION_B
+    Console.WriteLine("Selected Option B")
+case OPTION_C
+    Console.WriteLine("Selected Option C")
+case else
+    Console.WriteLine("Unknown option")
+end select
+
+// ============================================================================
+// String Constants
+// ============================================================================
+
+Console.WriteLine("")
+Console.WriteLine("=== String Constants ===")
+
+const GREETING as String = "Welcome to "
+const FAREWELL as String = "Goodbye from "
+
+Console.WriteLine(GREETING & APP_NAME)
+Console.WriteLine(FAREWELL & APP_NAME)
+
+// ============================================================================
+// Conditional Compilation-like Pattern
+// ============================================================================
+
+Console.WriteLine("")
+Console.WriteLine("=== Debug Constants ===")
+
+if DEBUG then
+    Console.WriteLine("[DEBUG] Debugging is enabled")
+    Console.WriteLine("[DEBUG] Max size configured: " & MAX_SIZE.ToString())
+end if
+
+Console.WriteLine("")
+Console.WriteLine("All constant tests complete!")

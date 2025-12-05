@@ -1,0 +1,85 @@
+// imports.jvmb - Test import statements
+
+// ============================================================================
+// Import Statements
+// ============================================================================
+
+import java.util.ArrayList
+import java.util.HashMap
+import java.util.Date
+import java.io.File
+import java.io.*
+
+// ============================================================================
+// Using ArrayList
+// ============================================================================
+
+Console.WriteLine("=== ArrayList ===")
+
+var list as ArrayList = new ArrayList()
+list.add("First")
+list.add("Second")
+list.add("Third")
+
+Console.WriteLine("List size: " & list.size().ToString())
+Console.WriteLine("First item: " & list.get(0).ToString())
+Console.WriteLine("Contains 'Second': " & list.contains("Second").ToString())
+
+for i = 0 to list.size() - 1
+    Console.WriteLine("  [" & i.ToString() & "] = " & list.get(i).ToString())
+next i
+
+// ============================================================================
+// Using HashMap
+// ============================================================================
+
+Console.WriteLine("")
+Console.WriteLine("=== HashMap ===")
+
+var map as HashMap = new HashMap()
+map.put("name", "Alice")
+map.put("age", 30)
+map.put("city", "New York")
+
+Console.WriteLine("Map size: " & map.size().ToString())
+Console.WriteLine("Name: " & map.get("name").ToString())
+Console.WriteLine("Age: " & map.get("age").ToString())
+Console.WriteLine("City: " & map.get("city").ToString())
+Console.WriteLine("Contains 'name': " & map.containsKey("name").ToString())
+
+// ============================================================================
+// Using Date
+// ============================================================================
+
+Console.WriteLine("")
+Console.WriteLine("=== Date ===")
+
+var now as Date = new Date()
+Console.WriteLine("Current time: " & now.toString())
+Console.WriteLine("Time in millis: " & now.getTime().ToString())
+
+// ============================================================================
+// Using File
+// ============================================================================
+
+Console.WriteLine("")
+Console.WriteLine("=== File ===")
+
+var file as File = new File(".")
+Console.WriteLine("Current directory: " & file.getAbsolutePath())
+Console.WriteLine("Exists: " & file.exists().ToString())
+Console.WriteLine("Is directory: " & file.isDirectory().ToString())
+
+// ============================================================================
+// Wildcard Import
+// ============================================================================
+
+Console.WriteLine("")
+Console.WriteLine("=== Wildcard Import ===")
+
+// Using classes from java.io.*
+var tempFile as File = new File("/tmp/test.txt")
+Console.WriteLine("Temp file path: " & tempFile.getAbsolutePath())
+
+Console.WriteLine("")
+Console.WriteLine("All import tests complete!")

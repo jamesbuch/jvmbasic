@@ -1,0 +1,150 @@
+// control_flow.jvmb - Test all control flow statements
+
+// ============================================================================
+// If/ElseIf/Else
+// ============================================================================
+
+var score as Integer = 85
+
+if score >= 90 then
+    Console.WriteLine("Grade: A")
+elseif score >= 80 then
+    Console.WriteLine("Grade: B")
+elseif score >= 70 then
+    Console.WriteLine("Grade: C")
+elseif score >= 60 then
+    Console.WriteLine("Grade: D")
+else
+    Console.WriteLine("Grade: F")
+end if
+
+// Nested if
+var x as Integer = 10
+var y as Integer = 20
+
+if x > 0 then
+    if y > 0 then
+        Console.WriteLine("Both positive")
+    else
+        Console.WriteLine("x positive, y not")
+    end if
+end if
+
+// ============================================================================
+// For Loop
+// ============================================================================
+
+Console.WriteLine("For loop 1 to 5:")
+for i = 1 to 5
+    Console.Write(i.ToString() & " ")
+next i
+Console.WriteLine("")
+
+// For loop with step
+Console.WriteLine("For loop with step 2:")
+for i = 0 to 10 step 2
+    Console.Write(i.ToString() & " ")
+next i
+Console.WriteLine("")
+
+// For loop with negative step
+Console.WriteLine("Countdown:")
+for i = 5 to 1 step -1
+    Console.Write(i.ToString() & " ")
+next i
+Console.WriteLine("Blast off!")
+
+// ============================================================================
+// While Loop
+// ============================================================================
+
+Console.WriteLine("While loop:")
+var counter as Integer = 0
+while counter < 5
+    Console.Write(counter.ToString() & " ")
+    counter += 1
+end while
+Console.WriteLine("")
+
+// ============================================================================
+// Do Loop variants
+// ============================================================================
+
+// Do While (condition at start)
+Console.WriteLine("Do While:")
+counter = 0
+do while counter < 3
+    Console.Write(counter.ToString() & " ")
+    counter += 1
+loop
+Console.WriteLine("")
+
+// Do Until (condition at end)
+Console.WriteLine("Do Until:")
+counter = 0
+do
+    Console.Write(counter.ToString() & " ")
+    counter += 1
+loop until counter >= 3
+Console.WriteLine("")
+
+// ============================================================================
+// Select Case
+// ============================================================================
+
+var day as Integer = 3
+
+Console.Write("Day " & day.ToString() & " is: ")
+select case day
+case 1
+    Console.WriteLine("Monday")
+case 2
+    Console.WriteLine("Tuesday")
+case 3
+    Console.WriteLine("Wednesday")
+case 4
+    Console.WriteLine("Thursday")
+case 5
+    Console.WriteLine("Friday")
+case 6, 7
+    Console.WriteLine("Weekend!")
+case else
+    Console.WriteLine("Invalid day")
+end select
+
+// ============================================================================
+// Exit and Continue
+// ============================================================================
+
+Console.WriteLine("Exit For at 5:")
+for i = 1 to 10
+    if i = 5 then
+        exit for
+    end if
+    Console.Write(i.ToString() & " ")
+next i
+Console.WriteLine("")
+
+Console.WriteLine("Continue (skip even):")
+for i = 1 to 10
+    if i mod 2 = 0 then
+        continue for
+    end if
+    Console.Write(i.ToString() & " ")
+next i
+Console.WriteLine("")
+
+// ============================================================================
+// Nested loops with exit
+// ============================================================================
+
+Console.WriteLine("Nested loops (exit inner at j=2):")
+for i = 1 to 3
+    for j = 1 to 5
+        if j = 3 then
+            exit for
+        end if
+        Console.Write("(" & i.ToString() & "," & j.ToString() & ") ")
+    next j
+next i
+Console.WriteLine("")

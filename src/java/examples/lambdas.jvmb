@@ -1,0 +1,167 @@
+// lambdas.jvmb - Test lambda expressions and functional features
+
+// ============================================================================
+// Simple Lambda
+// ============================================================================
+
+Console.WriteLine("=== Simple Lambdas ===")
+
+// Lambda that doubles a number
+var double as Function(Integer) as Integer = lambda (x) => x * 2
+
+Console.WriteLine("double(5) = " & double(5).ToString())
+Console.WriteLine("double(10) = " & double(10).ToString())
+
+// Lambda that adds two numbers
+var add as Function(Integer, Integer) as Integer = lambda (a, b) => a + b
+
+Console.WriteLine("add(3, 4) = " & add(3, 4).ToString())
+
+// ============================================================================
+// Lambda with strings
+// ============================================================================
+
+Console.WriteLine("")
+Console.WriteLine("=== String Lambdas ===")
+
+var greet as Function(String) as String = lambda (name) => "Hello, " & name & "!"
+
+Console.WriteLine(greet("World"))
+Console.WriteLine(greet("JVM BASIC"))
+
+// ============================================================================
+// Lambda as parameter
+// ============================================================================
+
+Console.WriteLine("")
+Console.WriteLine("=== Lambda as Parameter ===")
+
+function applyToRange(start as Integer, finish as Integer, fn as Function(Integer) as Integer) as Integer
+    var total as Integer = 0
+    for i = start to finish
+        total += fn(i)
+    next i
+    return total
+end function
+
+var sumResult as Integer = applyToRange(1, 10, lambda (x) => x)
+Console.WriteLine("Sum 1-10: " & sumResult.ToString())
+
+var squareSumResult as Integer = applyToRange(1, 5, lambda (x) => x * x)
+Console.WriteLine("Sum of squares 1-5: " & squareSumResult.ToString())
+
+// ============================================================================
+// Higher-order functions
+// ============================================================================
+
+Console.WriteLine("")
+Console.WriteLine("=== Higher-Order Functions ===")
+
+function transform(arr as Integer[], length as Integer, fn as Function(Integer) as Integer) as Integer[]
+    var result as Integer[] = new Integer[length]
+    for i = 0 to length - 1
+        result[i] = fn(arr[i])
+    next i
+    return result
+end function
+
+var numbers as Integer[] = new Integer[5]
+numbers[0] = 1
+numbers[1] = 2
+numbers[2] = 3
+numbers[3] = 4
+numbers[4] = 5
+
+var doubled as Integer[] = transform(numbers, 5, lambda (x) => x * 2)
+var squared as Integer[] = transform(numbers, 5, lambda (x) => x * x)
+
+Console.Write("Original: ")
+for i = 0 to 4
+    Console.Write(numbers[i].ToString() & " ")
+next i
+Console.WriteLine("")
+
+Console.Write("Doubled:  ")
+for i = 0 to 4
+    Console.Write(doubled[i].ToString() & " ")
+next i
+Console.WriteLine("")
+
+Console.Write("Squared:  ")
+for i = 0 to 4
+    Console.Write(squared[i].ToString() & " ")
+next i
+Console.WriteLine("")
+
+// ============================================================================
+// Filter-like function
+// ============================================================================
+
+Console.WriteLine("")
+Console.WriteLine("=== Predicate Lambda ===")
+
+function countMatching(arr as Integer[], length as Integer, predicate as Function(Integer) as Boolean) as Integer
+    var count as Integer = 0
+    for i = 0 to length - 1
+        if predicate(arr[i]) then
+            count += 1
+        end if
+    next i
+    return count
+end function
+
+var data as Integer[] = new Integer[10]
+for i = 0 to 9
+    data[i] = i + 1
+next i
+
+var evenCount as Integer = countMatching(data, 10, lambda (x) => x mod 2 = 0)
+var oddCount as Integer = countMatching(data, 10, lambda (x) => x mod 2 <> 0)
+var gtFive as Integer = countMatching(data, 10, lambda (x) => x > 5)
+
+Console.WriteLine("Even numbers: " & evenCount.ToString())
+Console.WriteLine("Odd numbers: " & oddCount.ToString())
+Console.WriteLine("Greater than 5: " & gtFive.ToString())
+
+// ============================================================================
+// Lambda returning lambda
+// ============================================================================
+
+Console.WriteLine("")
+Console.WriteLine("=== Currying ===")
+
+function multiplier(factor as Integer) as Function(Integer) as Integer
+    return lambda (x) => x * factor
+end function
+
+var times2 as Function(Integer) as Integer = multiplier(2)
+var times10 as Function(Integer) as Integer = multiplier(10)
+
+Console.WriteLine("times2(5) = " & times2(5).ToString())
+Console.WriteLine("times10(5) = " & times10(5).ToString())
+
+// ============================================================================
+// Reduce-like function
+// ============================================================================
+
+Console.WriteLine("")
+Console.WriteLine("=== Reduce ===")
+
+function reduce(arr as Integer[], length as Integer, initial as Integer, fn as Function(Integer, Integer) as Integer) as Integer
+    var acc as Integer = initial
+    for i = 0 to length - 1
+        acc = fn(acc, arr[i])
+    next i
+    return acc
+end function
+
+var sum as Integer = reduce(data, 10, 0, lambda (acc, x) => acc + x)
+var product as Integer = reduce(numbers, 5, 1, lambda (acc, x) => acc * x)
+var max as Integer = reduce(data, 10, data[0], lambda (a, b) => a > b ? a : b)
+
+Console.WriteLine("Sum of 1-10: " & sum.ToString())
+Console.WriteLine("Product of 1-5: " & product.ToString())
+Console.WriteLine("Max of 1-10: " & max.ToString())
+
+Console.WriteLine("")
+Console.WriteLine("All lambda tests complete!")

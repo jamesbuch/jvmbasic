@@ -1,0 +1,147 @@
+// exceptions.jvmb - Test exception handling
+
+// ============================================================================
+// Basic try/catch
+// ============================================================================
+
+Console.WriteLine("=== Basic Try/Catch ===")
+
+try
+    var result as Integer = 10 / 0
+    Console.WriteLine("This should not print")
+catch ex as ArithmeticException
+    Console.WriteLine("Caught ArithmeticException: " & ex.getMessage())
+end try
+
+Console.WriteLine("Execution continues after catch")
+
+// ============================================================================
+// Try/Catch/Finally
+// ============================================================================
+
+Console.WriteLine("")
+Console.WriteLine("=== Try/Catch/Finally ===")
+
+try
+    Console.WriteLine("In try block")
+    throw new Exception("Test exception")
+catch ex as Exception
+    Console.WriteLine("Caught: " & ex.getMessage())
+finally
+    Console.WriteLine("Finally block always executes")
+end try
+
+// ============================================================================
+// Finally without exception
+// ============================================================================
+
+Console.WriteLine("")
+Console.WriteLine("=== Finally Without Exception ===")
+
+try
+    Console.WriteLine("No exception thrown")
+finally
+    Console.WriteLine("Finally still executes")
+end try
+
+// ============================================================================
+// Multiple catch blocks
+// ============================================================================
+
+Console.WriteLine("")
+Console.WriteLine("=== Multiple Catch Blocks ===")
+
+function testException(which as Integer) as String
+    try
+        if which = 1 then
+            throw new IllegalArgumentException("Invalid argument")
+        elseif which = 2 then
+            throw new NullPointerException("Null reference")
+        else
+            throw new RuntimeException("Generic error")
+        end if
+    catch ex as IllegalArgumentException
+        return "IllegalArgumentException: " & ex.getMessage()
+    catch ex as NullPointerException
+        return "NullPointerException: " & ex.getMessage()
+    catch ex as Exception
+        return "Exception: " & ex.getMessage()
+    end try
+    return "No exception"
+end function
+
+Console.WriteLine(testException(1))
+Console.WriteLine(testException(2))
+Console.WriteLine(testException(3))
+
+// ============================================================================
+// Rethrowing exceptions
+// ============================================================================
+
+Console.WriteLine("")
+Console.WriteLine("=== Rethrow ===")
+
+function dangerousOperation() as Integer
+    throw new RuntimeException("Something went wrong")
+end function
+
+function wrapper() as Integer
+    try
+        return dangerousOperation()
+    catch ex as RuntimeException
+        Console.WriteLine("Wrapper caught and rethrowing: " & ex.getMessage())
+        throw ex
+    end try
+end function
+
+try
+    var result as Integer = wrapper()
+catch ex as RuntimeException
+    Console.WriteLine("Outer catch: " & ex.getMessage())
+end try
+
+// ============================================================================
+// Nested try blocks
+// ============================================================================
+
+Console.WriteLine("")
+Console.WriteLine("=== Nested Try Blocks ===")
+
+try
+    Console.WriteLine("Outer try")
+    try
+        Console.WriteLine("Inner try")
+        throw new Exception("Inner exception")
+    catch ex as Exception
+        Console.WriteLine("Inner catch: " & ex.getMessage())
+        throw new Exception("Rethrown from inner")
+    finally
+        Console.WriteLine("Inner finally")
+    end try
+catch ex as Exception
+    Console.WriteLine("Outer catch: " & ex.getMessage())
+finally
+    Console.WriteLine("Outer finally")
+end try
+
+// ============================================================================
+// Exception with return value
+// ============================================================================
+
+Console.WriteLine("")
+Console.WriteLine("=== Exception with Return ===")
+
+function safeDivide(a as Integer, b as Integer) as Integer
+    try
+        return a / b
+    catch ex as ArithmeticException
+        Console.WriteLine("Division by zero, returning 0")
+        return 0
+    end try
+end function
+
+Console.WriteLine("10 / 2 = " & safeDivide(10, 2).ToString())
+Console.WriteLine("10 / 0 = " & safeDivide(10, 0).ToString())
+
+Console.WriteLine("")
+Console.WriteLine("All exception tests complete!")
