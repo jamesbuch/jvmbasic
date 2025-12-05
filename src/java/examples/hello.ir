@@ -1,0 +1,10 @@
+Intermediate Representation:
+CompilationUnit(hello.jvmb)
+  Statements:
+    var message: Reference[name=java.lang.String] = "Hello, World!"
+    var count: Primitive[kind=INT] = 5
+    for i = 1 to count { ... }
+    $lambda$(("Done counting to " CONCAT $lambda$()))
+
+
+Parse successful - no code generation (parse-only mode)

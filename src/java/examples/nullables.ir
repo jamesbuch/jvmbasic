@@ -1,0 +1,52 @@
+Intermediate Representation:
+CompilationUnit(nullables.jvmb)
+  Functions:
+    Function greet(name: Nullable[wrapped=Reference[name=java.lang.String]]) -> Reference[name=java.lang.String]
+    Function findName(id: Primitive[kind=INT]) -> Nullable[wrapped=Reference[name=java.lang.String]]
+    Function safeDivide(a: Primitive[kind=INT], b: Nullable[wrapped=Primitive[kind=INT]]) -> Nullable[wrapped=Primitive[kind=INT]]
+  Classes:
+    class OptionalValue extends java.lang.Object
+  Statements:
+    $lambda$("=== Nullable String ===")
+    var maybeString: Nullable[wrapped=Reference[name=java.lang.String]] = nil
+    if ((maybeString EQ nil)) { ... }
+    maybeString = "Hello"
+    if ((maybeString NE nil)) { ... }
+    $lambda$("")
+    $lambda$("=== Nullable Integer ===")
+    var maybeInt: Nullable[wrapped=Primitive[kind=INT]] = nil
+    if ((maybeInt EQ nil)) { ... }
+    maybeInt = 42
+    if ((maybeInt NE nil)) { ... }
+    $lambda$("")
+    $lambda$("=== Nullable Parameters ===")
+    $lambda$(greet(nil))
+    $lambda$(greet("Alice"))
+    $lambda$(greet(nil))
+    $lambda$(greet("Bob"))
+    $lambda$("")
+    $lambda$("=== Nullable Return Type ===")
+    for i = 1 to 5 { ... }
+    $lambda$("")
+    $lambda$("=== Nullable in Class ===")
+    var opt: Reference[name=OptionalValue] = new Reference[name=OptionalValue]("Score")
+    $lambda$($lambda$())
+    $lambda$(("Has value: " CONCAT $lambda$()))
+    $lambda$(100)
+    $lambda$($lambda$())
+    $lambda$(("Has value: " CONCAT $lambda$()))
+    $lambda$()
+    $lambda$($lambda$())
+    $lambda$("")
+    $lambda$("=== Chained Null Checks ===")
+    var result1: Nullable[wrapped=Primitive[kind=INT]] = safeDivide(10, 2)
+    var result2: Nullable[wrapped=Primitive[kind=INT]] = safeDivide(10, 0)
+    var result3: Nullable[wrapped=Primitive[kind=INT]] = safeDivide(10, nil)
+    $lambda$(("10 / 2 = " CONCAT ((result1 EQ nil) ? "Nil" : $lambda$())))
+    $lambda$(("10 / 0 = " CONCAT ((result2 EQ nil) ? "Nil" : $lambda$())))
+    $lambda$(("10 / Nil = " CONCAT ((result3 EQ nil) ? "Nil" : $lambda$())))
+    $lambda$("")
+    $lambda$("All nullable tests complete!")
+
+
+Parse successful - no code generation (parse-only mode)

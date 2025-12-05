@@ -1,0 +1,74 @@
+Intermediate Representation:
+CompilationUnit(arrays.jvmb)
+  Functions:
+    Function sumArray(arr: Array[elementType=Primitive[kind=INT]], length: Primitive[kind=INT]) -> Primitive[kind=INT]
+    Function findMax(arr: Array[elementType=Primitive[kind=INT]], length: Primitive[kind=INT]) -> Primitive[kind=INT]
+    Function findMin(arr: Array[elementType=Primitive[kind=INT]], length: Primitive[kind=INT]) -> Primitive[kind=INT]
+  Statements:
+    $lambda$("=== Integer Array ===")
+    var numbers: Array[elementType=Primitive[kind=INT]] = new Primitive[kind=INT][5]
+    numbers[0] = 10
+    numbers[1] = 20
+    numbers[2] = 30
+    numbers[3] = 40
+    numbers[4] = 50
+    $lambda$("Array contents: ")
+    for i = 0 to 4 { ... }
+    $lambda$("")
+    var sum: Primitive[kind=INT] = 0
+    for i = 0 to 4 { ... }
+    $lambda$(("Sum: " CONCAT $lambda$()))
+    $lambda$("")
+    $lambda$("=== String Array ===")
+    var names: Array[elementType=Reference[name=java.lang.String]] = new Reference[name=java.lang.String][3]
+    names[0] = "Alice"
+    names[1] = "Bob"
+    names[2] = "Charlie"
+    $lambda$("Names in array:")
+    for i = 0 to 2 { ... }
+    $lambda$("")
+    $lambda$("=== For Each ===")
+    $lambda$("Names using for-each:")
+    for each name in names { ... }
+    $lambda$("")
+    $lambda$("=== Array Functions ===")
+    $lambda$(("Sum: " CONCAT $lambda$()))
+    $lambda$(("Max: " CONCAT $lambda$()))
+    $lambda$(("Min: " CONCAT $lambda$()))
+    $lambda$("")
+    $lambda$("=== Array Modification ===")
+    $lambda$("Original array:")
+    for i = 0 to 4 { ... }
+    $lambda$("")
+    for i = 0 to 4 { ... }
+    $lambda$("After doubling:")
+    for i = 0 to 4 { ... }
+    $lambda$("")
+    $lambda$("")
+    $lambda$("=== Complex Array Operations ===")
+    var data: Array[elementType=Primitive[kind=INT]] = new Primitive[kind=INT][10]
+    for i = 0 to 9 { ... }
+    var temp: Primitive[kind=INT] = data[0]
+    data[0] = data[9]
+    data[9] = temp
+    $lambda$("After swap (first and last):")
+    for i = 0 to 9 { ... }
+    $lambda$("")
+    for i = 0 to 4 { ... }
+    $lambda$("After reverse:")
+    for i = 0 to 9 { ... }
+    $lambda$("")
+    $lambda$("")
+    $lambda$("=== Boolean Array ===")
+    var flags: Array[elementType=Primitive[kind=BOOLEAN]] = new Primitive[kind=BOOLEAN][5]
+    flags[0] = true
+    flags[1] = false
+    flags[2] = true
+    flags[3] = true
+    flags[4] = false
+    var trueCount: Primitive[kind=INT] = 0
+    for i = 0 to 4 { ... }
+    $lambda$((("True count: " CONCAT $lambda$()) CONCAT " out of 5"))
+
+
+Parse successful - no code generation (parse-only mode)

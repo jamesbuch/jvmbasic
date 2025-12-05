@@ -1,0 +1,14 @@
+Intermediate Representation:
+CompilationUnit(functions.jvmb)
+  Functions:
+    Function factorial(n: Primitive[kind=INT]) -> Primitive[kind=INT]
+    Function printGreeting(name: Reference[name=java.lang.String]) -> Primitive[kind=VOID]
+  Statements:
+    var result: Primitive[kind=INT] = factorial(5)
+    $lambda$(("5! = " CONCAT $lambda$()))
+    printGreeting("JVM BASIC")
+    var i: Primitive[kind=INT] = 0
+    while ((i LT 3)) { ... }
+
+
+Parse successful - no code generation (parse-only mode)

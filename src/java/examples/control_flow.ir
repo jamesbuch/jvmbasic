@@ -1,0 +1,43 @@
+Intermediate Representation:
+CompilationUnit(control_flow.jvmb)
+  Statements:
+    var score: Primitive[kind=INT] = 85
+    if ((score GE 90)) { ... }
+    var x: Primitive[kind=INT] = 10
+    var y: Primitive[kind=INT] = 20
+    if ((x GT 0)) { ... }
+    $lambda$("For loop 1 to 5:")
+    for i = 1 to 5 { ... }
+    $lambda$("")
+    $lambda$("For loop with step 2:")
+    for i = 0 to 10 { ... }
+    $lambda$("")
+    $lambda$("Countdown:")
+    for i = 5 to 1 { ... }
+    $lambda$("Blast off!")
+    $lambda$("While loop:")
+    var counter: Primitive[kind=INT] = 0
+    while ((counter LT 5)) { ... }
+    $lambda$("")
+    $lambda$("Do While:")
+    counter = 0
+    while ((counter LT 3)) { ... }
+    $lambda$("Do Until:")
+    counter = 0
+    while ((NOT $lambda$(($lambda$() CONCAT " ")))) { ... }
+    $lambda$("")
+    var day: Primitive[kind=INT] = 3
+    $lambda$((("Day " CONCAT $lambda$()) CONCAT " is: "))
+    if ((day EQ 1)) { ... }
+    $lambda$("Exit For at 5:")
+    for i = 1 to 10 { ... }
+    $lambda$("")
+    $lambda$("Continue (skip even):")
+    for i = 1 to 10 { ... }
+    $lambda$("")
+    $lambda$("Nested loops (exit inner at j=2):")
+    for i = 1 to 3 { ... }
+    $lambda$("")
+
+
+Parse successful - no code generation (parse-only mode)

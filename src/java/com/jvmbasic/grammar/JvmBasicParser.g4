@@ -29,7 +29,13 @@ options {
 // ============================================================================
 
 compilationUnit
-    : importDeclaration* declaration* statement* EOF
+    : importDeclaration* topLevelElement* EOF
+    ;
+
+// Allow declarations and statements to be interleaved
+topLevelElement
+    : declaration
+    | statement
     ;
 
 // --- Imports ---
@@ -190,10 +196,9 @@ primitiveType
     | BOOLEAN
     | BYTE
     | CHAR
-    | DECIMAL
-    | BIGINT
     | OBJECT
     ;
+// Note: DECIMAL and BIGINT removed - use Math.BigInteger, Math.Decimal instead
 
 typeNameList
     : typeName (COMMA typeName)*
@@ -428,6 +433,7 @@ postfixExpression
 postfixOp
     : DOT IDENTIFIER                                     # MemberAccess
     | DOT IDENTIFIER LPAREN argumentList? RPAREN         # MethodCall
+    | DOT NEW LPAREN argumentList? RPAREN                # SuperConstructorCall
     | LBRACKET expression RBRACKET                       # IndexAccess
     | LPAREN argumentList? RPAREN                        # FunctionCall
     ;

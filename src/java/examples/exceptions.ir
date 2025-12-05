@@ -1,0 +1,37 @@
+Intermediate Representation:
+CompilationUnit(exceptions.jvmb)
+  Functions:
+    Function testException(which: Primitive[kind=INT]) -> Reference[name=java.lang.String]
+    Function dangerousOperation() -> Primitive[kind=INT]
+    Function wrapper() -> Primitive[kind=INT]
+    Function safeDivide(a: Primitive[kind=INT], b: Primitive[kind=INT]) -> Primitive[kind=INT]
+  Statements:
+    $lambda$("=== Basic Try/Catch ===")
+    try { ... }
+    $lambda$("Execution continues after catch")
+    $lambda$("")
+    $lambda$("=== Try/Catch/Finally ===")
+    try { ... }
+    $lambda$("")
+    $lambda$("=== Finally Without Exception ===")
+    try { ... }
+    $lambda$("")
+    $lambda$("=== Multiple Catch Blocks ===")
+    $lambda$(testException(1))
+    $lambda$(testException(2))
+    $lambda$(testException(3))
+    $lambda$("")
+    $lambda$("=== Rethrow ===")
+    try { ... }
+    $lambda$("")
+    $lambda$("=== Nested Try Blocks ===")
+    try { ... }
+    $lambda$("")
+    $lambda$("=== Exception with Return ===")
+    $lambda$(("10 / 2 = " CONCAT $lambda$()))
+    $lambda$(("10 / 0 = " CONCAT $lambda$()))
+    $lambda$("")
+    $lambda$("All exception tests complete!")
+
+
+Parse successful - no code generation (parse-only mode)

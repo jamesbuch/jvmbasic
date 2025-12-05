@@ -1,0 +1,78 @@
+Intermediate Representation:
+CompilationUnit(expressions.jvmb)
+  Statements:
+    var a: Primitive[kind=INT] = 10
+    var b: Primitive[kind=INT] = 3
+    $lambda$((((("Arithmetic operators (a=" CONCAT $lambda$()) CONCAT ", b=") CONCAT $lambda$()) CONCAT "):"))
+    $lambda$(("  a + b = " CONCAT $lambda$()))
+    $lambda$(("  a - b = " CONCAT $lambda$()))
+    $lambda$(("  a * b = " CONCAT $lambda$()))
+    $lambda$(("  a / b = " CONCAT $lambda$()))
+    $lambda$(("  a \ b = " CONCAT $lambda$()))
+    $lambda$(("  a mod b = " CONCAT $lambda$()))
+    $lambda$(("  a ^ 2 = " CONCAT $lambda$()))
+    var x: Primitive[kind=DOUBLE] = 10.5F
+    var y: Primitive[kind=DOUBLE] = 3.2F
+    $lambda$((((("Floating point (x=" CONCAT $lambda$()) CONCAT ", y=") CONCAT $lambda$()) CONCAT "):"))
+    $lambda$(("  x / y = " CONCAT $lambda$()))
+    $lambda$("Comparison operators:")
+    $lambda$(("  10 = 10: " CONCAT $lambda$()))
+    $lambda$(("  10 <> 5: " CONCAT $lambda$()))
+    $lambda$(("  10 < 20: " CONCAT $lambda$()))
+    $lambda$(("  10 > 5: " CONCAT $lambda$()))
+    $lambda$(("  10 <= 10: " CONCAT $lambda$()))
+    $lambda$(("  10 >= 5: " CONCAT $lambda$()))
+    var t: Primitive[kind=BOOLEAN] = true
+    var f: Primitive[kind=BOOLEAN] = false
+    $lambda$("Logical operators:")
+    $lambda$(("  true and true: " CONCAT $lambda$()))
+    $lambda$(("  true and false: " CONCAT $lambda$()))
+    $lambda$(("  true or false: " CONCAT $lambda$()))
+    $lambda$(("  false or false: " CONCAT $lambda$()))
+    $lambda$(("  true xor true: " CONCAT $lambda$()))
+    $lambda$(("  true xor false: " CONCAT $lambda$()))
+    $lambda$(("  not true: " CONCAT $lambda$()))
+    $lambda$(("  not false: " CONCAT $lambda$()))
+    var m: Primitive[kind=INT] = 10
+    var n: Primitive[kind=INT] = 12
+    $lambda$("Bitwise operators (m=0b1010=10, n=0b1100=12):")
+    $lambda$(("  m & n = " CONCAT $lambda$()))
+    $lambda$(("  m | n = " CONCAT $lambda$()))
+    $lambda$(("  m xor n = " CONCAT $lambda$()))
+    $lambda$(("  ~m = " CONCAT $lambda$()))
+    $lambda$(("  m << 2 = " CONCAT $lambda$()))
+    $lambda$(("  n >> 1 = " CONCAT $lambda$()))
+    var firstName: Reference[name=java.lang.String] = "John"
+    var lastName: Reference[name=java.lang.String] = "Doe"
+    $lambda$("String concatenation:")
+    $lambda$(((("  firstName & lastName = " CONCAT firstName) CONCAT " ") CONCAT lastName))
+    var c: Primitive[kind=INT] = 10
+    $lambda$("Compound assignment (starting c=10):")
+    c += 5
+    $lambda$(("  c += 5: c = " CONCAT $lambda$()))
+    c -= 3
+    $lambda$(("  c -= 3: c = " CONCAT $lambda$()))
+    c *= 2
+    $lambda$(("  c *= 2: c = " CONCAT $lambda$()))
+    c /= 4
+    $lambda$(("  c /= 4: c = " CONCAT $lambda$()))
+    var p: Primitive[kind=INT] = 5
+    var q: Primitive[kind=INT] = (MINUS 5)
+    $lambda$("Unary operators:")
+    $lambda$(("  +p = " CONCAT $lambda$()))
+    $lambda$(("  -p = " CONCAT $lambda$()))
+    $lambda$(("  -q = " CONCAT $lambda$()))
+    $lambda$("Operator precedence:")
+    $lambda$(("  2 + 3 * 4 = " CONCAT $lambda$()))
+    $lambda$(("  (2 + 3) * 4 = " CONCAT $lambda$()))
+    $lambda$(("  2 ^ 3 ^ 2 = " CONCAT $lambda$()))
+    $lambda$(("  10 - 5 - 2 = " CONCAT $lambda$()))
+    var age: Primitive[kind=INT] = 21
+    var status: Reference[name=java.lang.String] = ((age GE 18) ? "Adult" : "Minor")
+    $lambda$(((("Ternary: age " CONCAT $lambda$()) CONCAT " is ") CONCAT status))
+    age = 15
+    status = ((age GE 18) ? "Adult" : "Minor")
+    $lambda$(((("Ternary: age " CONCAT $lambda$()) CONCAT " is ") CONCAT status))
+
+
+Parse successful - no code generation (parse-only mode)

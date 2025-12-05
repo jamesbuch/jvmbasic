@@ -1,0 +1,42 @@
+Intermediate Representation:
+CompilationUnit(enums.jvmb)
+  Functions:
+    Function getColorName(c: Reference[name=Color]) -> Reference[name=java.lang.String]
+    Function getSizePrice(s: Reference[name=Size]) -> Primitive[kind=DOUBLE]
+    Function getStatusMessage(status: Reference[name=HttpStatus]) -> Reference[name=java.lang.String]
+  Classes:
+    class Task extends java.lang.Object
+  Statements:
+    $lambda$("=== Basic Enum Usage ===")
+    var myColor: Reference[name=Color] = Color.Blue
+    var mySize: Reference[name=Size] = Size.Large
+    $lambda$(("Color: " CONCAT $lambda$()))
+    $lambda$(("Size: " CONCAT $lambda$()))
+    $lambda$("")
+    $lambda$("=== Enum in Conditions ===")
+    $lambda$(("Red is called: " CONCAT getColorName(Color.Red)))
+    $lambda$(("Blue is called: " CONCAT getColorName(Color.Blue)))
+    $lambda$("")
+    $lambda$("=== Enum in Select Case ===")
+    $lambda$(("Small: $" CONCAT $lambda$()))
+    $lambda$(("Medium: $" CONCAT $lambda$()))
+    $lambda$(("Large: $" CONCAT $lambda$()))
+    $lambda$(("ExtraLarge: $" CONCAT $lambda$()))
+    $lambda$("")
+    $lambda$("=== Enum with Values ===")
+    $lambda$(("200: " CONCAT getStatusMessage(HttpStatus.OK)))
+    $lambda$(("404: " CONCAT getStatusMessage(HttpStatus.NotFound)))
+    $lambda$(("500: " CONCAT getStatusMessage(HttpStatus.InternalError)))
+    $lambda$("")
+    $lambda$("=== Enum in Class ===")
+    var task1: Reference[name=Task] = new Reference[name=Task]("Write docs", Priority.Low)
+    var task2: Reference[name=Task] = new Reference[name=Task]("Fix bug", Priority.High)
+    var task3: Reference[name=Task] = new Reference[name=Task]("Security patch", Priority.Critical)
+    $lambda$((($lambda$() CONCAT " - Urgent: ") CONCAT $lambda$()))
+    $lambda$((($lambda$() CONCAT " - Urgent: ") CONCAT $lambda$()))
+    $lambda$((($lambda$() CONCAT " - Urgent: ") CONCAT $lambda$()))
+    $lambda$("")
+    $lambda$("All enum tests complete!")
+
+
+Parse successful - no code generation (parse-only mode)

@@ -62,16 +62,20 @@ public class IRBuilder extends JvmBasicParserBaseVisitor<Object> {
         unit = new IRCompilationUnit(unitName);
 
         // First pass: collect function signatures for forward references
-        for (JvmBasicParser.DeclarationContext decl : ctx.declaration()) {
-            if (decl.functionDeclaration() != null) {
-                var funcDecl = decl.functionDeclaration();
-                String name = funcDecl.IDENTIFIER().getText();
-                IRType returnType = visitTypeName(funcDecl.typeName());
-                functionReturnTypes.put(name, returnType);
-            } else if (decl.subDeclaration() != null) {
-                var subDecl = decl.subDeclaration();
-                String name = subDecl.IDENTIFIER().getText();
-                functionReturnTypes.put(name, IRType.Primitive.VOID);
+        // Functions can now appear anywhere in topLevelElement
+        for (JvmBasicParser.TopLevelElementContext elem : ctx.topLevelElement()) {
+            if (elem.declaration() != null) {
+                var decl = elem.declaration();
+                if (decl.functionDeclaration() != null) {
+                    var funcDecl = decl.functionDeclaration();
+                    String name = funcDecl.IDENTIFIER().getText();
+                    IRType returnType = visitTypeName(funcDecl.typeName());
+                    functionReturnTypes.put(name, returnType);
+                } else if (decl.subDeclaration() != null) {
+                    var subDecl = decl.subDeclaration();
+                    String name = subDecl.IDENTIFIER().getText();
+                    functionReturnTypes.put(name, IRType.Primitive.VOID);
+                }
             }
         }
 
@@ -80,16 +84,15 @@ public class IRBuilder extends JvmBasicParserBaseVisitor<Object> {
             unit.addImport(visitImportDeclaration(imp));
         }
 
-        // Process declarations (functions, classes, etc.)
-        for (JvmBasicParser.DeclarationContext decl : ctx.declaration()) {
-            processDeclaration(decl);
-        }
-
-        // Process top-level statements
-        for (JvmBasicParser.StatementContext stmt : ctx.statement()) {
-            IRStatement irStmt = visitStatement(stmt);
-            if (irStmt != null) {
-                unit.addStatement(irStmt);
+        // Process top-level elements (declarations and statements can be interleaved)
+        for (JvmBasicParser.TopLevelElementContext elem : ctx.topLevelElement()) {
+            if (elem.declaration() != null) {
+                processDeclaration(elem.declaration());
+            } else if (elem.statement() != null) {
+                IRStatement irStmt = visitStatement(elem.statement());
+                if (irStmt != null) {
+                    unit.addStatement(irStmt);
+                }
             }
         }
 
@@ -905,6 +908,18 @@ public class IRBuilder extends JvmBasicParserBaseVisitor<Object> {
             // Otherwise, it's a call on a function value
             return new IRCall("$lambda$", args, IRType.Reference.OBJECT,
                              token.getLine(), token.getCharPositionInLine());
+        } else if (ctx instanceof JvmBasicParser.SuperConstructorCallContext superCtx) {
+            // Handle MyBase.new() - super constructor call
+            List<IRExpression> args = new ArrayList<>();
+            if (superCtx.argumentList() != null) {
+                for (JvmBasicParser.ArgumentContext arg : superCtx.argumentList().argument()) {
+                    args.add(visitExpression(arg.expression()));
+                }
+            }
+            Token token = superCtx.DOT().getSymbol();
+            return new IRMethodCall(base, null, "<init>", args,
+                                   IRType.Primitive.VOID,
+                                   false, token.getLine(), token.getCharPositionInLine());
         }
 
         return base;

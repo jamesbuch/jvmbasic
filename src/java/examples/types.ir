@@ -1,0 +1,37 @@
+Intermediate Representation:
+CompilationUnit(types.jvmb)
+  Statements:
+    var intVal: Primitive[kind=INT] = 42
+    var longVal: Primitive[kind=LONG] = 9223372036854775807L
+    var byteVal: Primitive[kind=BYTE] = 127
+    var floatVal: Primitive[kind=FLOAT] = 3.14159F
+    var doubleVal: Primitive[kind=DOUBLE] = 2.7182817F
+    var boolTrue: Primitive[kind=BOOLEAN] = true
+    var boolFalse: Primitive[kind=BOOLEAN] = false
+    var charVal: Primitive[kind=CHAR] = 65
+    var strVal: Reference[name=java.lang.String] = "Hello, World!"
+    var strWithEscape: Reference[name=java.lang.String] = "Line1
+Line2	Tabbed"
+    var strWithQuotes: Reference[name=java.lang.String] = "She said "Hello""
+    var decimal: Primitive[kind=INT] = 255
+    var hex: Primitive[kind=INT] = 255
+    var binary: Primitive[kind=INT] = 255
+    var octal: Primitive[kind=INT] = 255
+    var longHex: Primitive[kind=LONG] = 68719476735L
+    var longBinary: Primitive[kind=LONG] = 43690L
+    $lambda$(("Integer: " CONCAT $lambda$()))
+    $lambda$(("Long: " CONCAT $lambda$()))
+    $lambda$(("Byte: " CONCAT $lambda$()))
+    $lambda$(("Float: " CONCAT $lambda$()))
+    $lambda$(("Double: " CONCAT $lambda$()))
+    $lambda$(("Boolean true: " CONCAT $lambda$()))
+    $lambda$(("Boolean false: " CONCAT $lambda$()))
+    $lambda$(("Char: " CONCAT $lambda$()))
+    $lambda$(("String: " CONCAT strVal))
+    $lambda$(("Escape: " CONCAT strWithEscape))
+    $lambda$(("Hex 0xFF = " CONCAT $lambda$()))
+    $lambda$(("Binary 0b11111111 = " CONCAT $lambda$()))
+    $lambda$(("Octal 0o377 = " CONCAT $lambda$()))
+
+
+Parse successful - no code generation (parse-only mode)

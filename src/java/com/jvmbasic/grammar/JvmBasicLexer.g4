@@ -43,9 +43,8 @@ STRING      : S T R I N G ;
 BOOLEAN     : B O O L E A N ;
 BYTE        : B Y T E ;
 CHAR        : C H A R ;
-DECIMAL     : D E C I M A L ;
-BIGINT      : B I G I N T ;
 OBJECT      : O B J E C T ;
+// DECIMAL and BIGINT removed - will be in Math namespace (Math.BigInteger, Math.Decimal)
 
 // Null aliases
 NIL         : N I L ;

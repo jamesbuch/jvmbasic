@@ -59,13 +59,17 @@ public class CompilerVisitor extends JvmBasicParserBaseVisitor<Object> {
         // Generate default constructor
         generateDefaultConstructor();
 
-        // Visit all declarations
-        for (JvmBasicParser.DeclarationContext decl : ctx.declaration()) {
-            visit(decl);
+        // Visit all declarations from topLevelElement
+        for (JvmBasicParser.TopLevelElementContext elem : ctx.topLevelElement()) {
+            if (elem.declaration() != null) {
+                visit(elem.declaration());
+            }
         }
 
-        // Generate main method with top-level statements
-        if (!ctx.statement().isEmpty()) {
+        // Generate main method with top-level statements from topLevelElement
+        boolean hasStatements = ctx.topLevelElement().stream()
+            .anyMatch(elem -> elem.statement() != null);
+        if (hasStatements) {
             generateMainMethod(ctx);
         }
 
@@ -90,9 +94,11 @@ public class CompilerVisitor extends JvmBasicParserBaseVisitor<Object> {
         currentMethod = "main";
         localVarSlot = 1; // slot 0 is args
 
-        // Visit all top-level statements
-        for (JvmBasicParser.StatementContext stmt : ctx.statement()) {
-            visit(stmt);
+        // Visit all top-level statements from topLevelElement
+        for (JvmBasicParser.TopLevelElementContext elem : ctx.topLevelElement()) {
+            if (elem.statement() != null) {
+                visit(elem.statement());
+            }
         }
 
         mv.visitInsn(RETURN);

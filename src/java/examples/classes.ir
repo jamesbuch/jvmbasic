@@ -1,0 +1,39 @@
+Intermediate Representation:
+CompilationUnit(classes.jvmb)
+  Classes:
+    class Point extends java.lang.Object
+    class Person extends java.lang.Object
+    class Employee extends Person
+    class Rectangle extends java.lang.Object implements IShape
+    class Circle extends java.lang.Object implements IShape
+    abstract class Animal extends java.lang.Object
+    class Dog extends Animal
+    class Cat extends Animal
+    class Counter extends java.lang.Object
+  Statements:
+    var p: Reference[name=Point] = new Reference[name=Point](3, 4)
+    $lambda$(("Point: " CONCAT $lambda$()))
+    $lambda$(("Distance from origin: " CONCAT $lambda$()))
+    var person: Reference[name=Person] = new Reference[name=Person]("Alice", 30)
+    $lambda$($lambda$())
+    person.Name = "Bob"
+    person.Age = 25
+    $lambda$($lambda$())
+    var emp: Reference[name=Employee] = new Reference[name=Employee]("Charlie", 35, "Developer", 5000.0F)
+    $lambda$($lambda$())
+    $lambda$(("Annual salary: $" CONCAT $lambda$()))
+    var rect: Reference[name=Rectangle] = new Reference[name=Rectangle](10.0F, 5.0F)
+    var circle: Reference[name=Circle] = new Reference[name=Circle](7.0F)
+    $lambda$((((($lambda$() CONCAT " - Area: ") CONCAT $lambda$()) CONCAT ", Perimeter: ") CONCAT $lambda$()))
+    $lambda$((((($lambda$() CONCAT " - Area: ") CONCAT $lambda$()) CONCAT ", Perimeter: ") CONCAT $lambda$()))
+    var dog: Reference[name=Dog] = new Reference[name=Dog]("Buddy")
+    var cat: Reference[name=Cat] = new Reference[name=Cat]("Whiskers")
+    $lambda$($lambda$())
+    $lambda$($lambda$())
+    var c1: Reference[name=Counter] = new Reference[name=Counter]()
+    var c2: Reference[name=Counter] = new Reference[name=Counter]()
+    var c3: Reference[name=Counter] = new Reference[name=Counter]()
+    $lambda$(("Counter instances created: " CONCAT $lambda$()))
+
+
+Parse successful - no code generation (parse-only mode)
