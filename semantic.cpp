@@ -344,6 +344,32 @@ Type SemanticAnalyzer::inferExprType(const Expr& expr, const SymbolTable& symbol
                 } else if (methodUpper == "GETSTRING") {
                     return Type::String;
                 }
+            } else if (nce.namespaceName == "WEBSERVER") {
+                // WebServer namespace for embedded Jetty web server
+                if (methodUpper == "CREATE" || methodUpper == "ADDROUTE" ||
+                    methodUpper == "START" || methodUpper == "STOP" ||
+                    methodUpper == "JOIN" || methodUpper == "ISRUNNING" ||
+                    methodUpper == "SERVESTATIC") {
+                    return Type::Int;
+                }
+            } else if (nce.namespaceName == "REQUEST") {
+                // Request namespace for HTTP request access
+                if (methodUpper == "GETMETHOD" || methodUpper == "GETPATH" ||
+                    methodUpper == "GETQUERYSTRING" || methodUpper == "GETPARAMETER" ||
+                    methodUpper == "GETHEADER" || methodUpper == "GETBODY" ||
+                    methodUpper == "GETCONTENTTYPE" || methodUpper == "GETREMOTEADDR" ||
+                    methodUpper == "GETPATHPARAM") {
+                    return Type::String;
+                } else if (methodUpper == "GETJSONBODY") {
+                    return Type::Int;  // Returns JSON handle
+                }
+            } else if (nce.namespaceName == "RESPONSE") {
+                // Response namespace for HTTP response access
+                if (methodUpper == "SETSTATUS" || methodUpper == "SETCONTENTTYPE" ||
+                    methodUpper == "SETHEADER" || methodUpper == "WRITE" ||
+                    methodUpper == "WRITELINE" || methodUpper == "REDIRECT") {
+                    return Type::Int;
+                }
             } else if (nce.namespaceName == "REGEX") {
                 if (methodUpper == "MATCH") {
                     return Type::Bool;

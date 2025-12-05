@@ -1489,12 +1489,16 @@ public:
         } else if (e.kind == ExprKind::NamespaceCall) {
             // Phase 9: Namespace calls (Console.WriteLine, Math.Sin, etc.)
             const NamespaceCallExpr& nce = get<NamespaceCallExpr>(e.data);
-            
-            // Special handling for Console.WriteLine - convert non-string arguments to strings
+
+            // Special handling for output methods - convert non-string arguments to strings
+            // This supports string interpolation like: Console.WriteLine($"Value: {x}")
             bool isConsoleWriteLine = (nce.namespaceName == "CONSOLE" && nce.methodName == "WriteLine");
-            
-            if (isConsoleWriteLine) {
-                // For Console.WriteLine, convert all arguments to strings
+            bool isResponseWrite = (nce.namespaceName == "RESPONSE" && nce.methodName == "Write");
+            bool isResponseWriteLine = (nce.namespaceName == "RESPONSE" && nce.methodName == "WriteLine");
+            bool needsStringConversion = isConsoleWriteLine || isResponseWrite || isResponseWriteLine;
+
+            if (needsStringConversion) {
+                // For output methods, convert all arguments to strings
                 for (const auto& arg : nce.args) {
                     // Load the argument (this will handle string concatenation correctly)
                     load(*arg, varIdx);
@@ -1536,16 +1540,18 @@ public:
                     }
                 }
                 
-                // Build descriptor for Console.WriteLine - all arguments are now strings
+                // Build descriptor for output methods - all arguments are now strings
                 string descriptor = "(";
                 for (size_t i = 0; i < nce.args.size(); i++) {
                     descriptor += "Ljava/lang/String;";
                 }
-                descriptor += ")I";  // Console.WriteLine returns int
-                
-                // Create the method call: console_WriteLine
-                string fullMethodName = "console_WriteLine";
-                
+                descriptor += ")I";  // Output methods return int
+
+                // Create the method call based on which output method
+                string namespaceLower = nce.namespaceName;
+                for (auto& c : namespaceLower) c = tolower(c);
+                string fullMethodName = namespaceLower + "_" + nce.methodName;
+
                 u2 method_name_idx = cp.addUtf8(fullMethodName);
                 u2 method_desc_idx = cp.addUtf8(descriptor);
                 u2 nat_idx = cp.addNameAndType(method_name_idx, method_desc_idx);
