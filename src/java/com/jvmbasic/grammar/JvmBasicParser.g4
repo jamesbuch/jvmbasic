@@ -434,11 +434,89 @@ postfixExpression
     ;
 
 postfixOp
-    : DOT IDENTIFIER                                     # MemberAccess
-    | DOT IDENTIFIER LPAREN argumentList? RPAREN         # MethodCall
+    : DOT memberName                                     # MemberAccess
+    | DOT memberName LPAREN argumentList? RPAREN         # MethodCall
     | DOT NEW LPAREN argumentList? RPAREN                # SuperConstructorCall
     | LBRACKET expression RBRACKET                       # IndexAccess
     | LPAREN argumentList? RPAREN                        # FunctionCall
+    ;
+
+// Allow keywords to be used as method/property names
+// This is important for standard library methods like Json.Get, Json.Set
+memberName
+    : IDENTIFIER
+    | GET
+    | SET
+    | NEW
+    | TO
+    | STEP
+    | IN
+    | AS
+    | END
+    | LOOP
+    | DO
+    | CASE
+    | IF
+    | THEN
+    | ELSE
+    | FOR
+    | EACH
+    | WHILE
+    | UNTIL
+    | SELECT
+    | TRY
+    | CATCH
+    | THROW
+    | FINALLY
+    | RETURN
+    | EXIT
+    | CONTINUE
+    | FUNCTION
+    | SUB
+    | CLASS
+    | INTERFACE
+    | PROPERTY
+    | PUBLIC
+    | PRIVATE
+    | PROTECTED
+    | SHARED
+    | STATIC
+    | ABSTRACT
+    | OVERRIDE
+    | CONST
+    | ENUM
+    | IMPORT
+    | USING
+    | ASYNC
+    | AWAIT
+    | LAMBDA
+    | AND
+    | OR
+    | XOR
+    | NOT
+    | MOD
+    | TYPEOF
+    | ME
+    | THIS
+    | MYBASE
+    | SUPER
+    | BYREF
+    | BYVAL
+    | NIL
+    | NOTHING
+    | TRUE
+    | FALSE
+    | EXTENDS
+    | IMPLEMENTS
+    | INTEGER
+    | LONG
+    | FLOAT
+    | DOUBLE
+    | STRING
+    | BOOLEAN
+    | BYTE
+    | CHAR
+    | OBJECT
     ;
 
 primaryExpression

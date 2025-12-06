@@ -876,12 +876,12 @@ public class IRBuilder extends JvmBasicParserBaseVisitor<Object> {
 
     private IRExpression applyPostfixOp(IRExpression base, JvmBasicParser.PostfixOpContext ctx) {
         if (ctx instanceof JvmBasicParser.MemberAccessContext memberCtx) {
-            String memberName = memberCtx.IDENTIFIER().getText();
+            String memberName = memberCtx.memberName().getText();
             Token token = memberCtx.DOT().getSymbol();
             return new IRMemberAccess(base, memberName, IRType.Reference.OBJECT,
                                      token.getLine(), token.getCharPositionInLine());
         } else if (ctx instanceof JvmBasicParser.MethodCallContext callCtx) {
-            String methodName = callCtx.IDENTIFIER().getText();
+            String methodName = callCtx.memberName().getText();
             List<IRExpression> args = new ArrayList<>();
             if (callCtx.argumentList() != null) {
                 for (JvmBasicParser.ArgumentContext arg : callCtx.argumentList().argument()) {
@@ -1237,7 +1237,7 @@ public class IRBuilder extends JvmBasicParserBaseVisitor<Object> {
     private boolean isKnownStaticClass(String className) {
         return switch (className) {
             // BASIC namespaces
-            case "Console", "Math", "Str", "File", "Regex" -> true;
+            case "Console", "Math", "Str", "File", "Regex", "Db", "Json", "Http" -> true;
             // Java classes commonly used statically
             case "Integer", "String", "System", "Long", "Double", "Float", "Boolean" -> true;
             default -> false;
@@ -1279,6 +1279,31 @@ public class IRBuilder extends JvmBasicParserBaseVisitor<Object> {
                     case "IsMatch" -> IRType.Primitive.BOOLEAN;
                     case "Matches", "Split" -> new IRType.Array(IRType.Reference.STRING);
                     default -> IRType.Reference.STRING;  // Replace, etc.
+                };
+                case "Db" -> switch (methodName) {
+                    case "Connect", "IsConnected", "ExecuteAny", "BeginTransaction", "Commit", "Rollback",
+                         "Prepare", "SetString", "SetInt", "SetLong", "SetFloat", "SetDouble", "SetNull",
+                         "ClearParameters" -> IRType.Primitive.BOOLEAN;
+                    case "Execute", "ExecuteUpdate" -> IRType.Primitive.INT;
+                    case "GetLastInsertId" -> IRType.Primitive.LONG;
+                    case "GetTables", "GetColumns" -> new IRType.Array(IRType.Reference.STRING);
+                    case "Query", "ExecuteQuery" -> new IRType.Array(new IRType.Array(IRType.Reference.STRING));
+                    case "Close", "CloseStmt" -> IRType.Primitive.VOID;
+                    default -> IRType.Reference.STRING;  // Escape, etc.
+                };
+                case "Json" -> switch (methodName) {
+                    case "GetInt", "Length" -> IRType.Primitive.INT;
+                    case "GetDouble" -> IRType.Primitive.DOUBLE;
+                    case "GetBool", "Has", "IsValid", "IsObject", "IsArray" -> IRType.Primitive.BOOLEAN;
+                    case "Keys" -> new IRType.Array(IRType.Reference.STRING);
+                    default -> IRType.Reference.STRING;  // Create, Get, Set, etc.
+                };
+                case "Http" -> switch (methodName) {
+                    case "GetStatus" -> IRType.Primitive.INT;
+                    case "IsSuccess", "IsClientError", "IsServerError", "Download" -> IRType.Primitive.BOOLEAN;
+                    case "SetHeader", "ClearHeaders", "SetTimeout", "SetBasicAuth", "SetBearerToken" -> IRType.Primitive.VOID;
+                    case "ParseQueryString" -> new IRType.Array(IRType.Reference.STRING);
+                    default -> IRType.Reference.STRING;  // Get, Post, Put, etc.
                 };
                 case "Integer" -> switch (methodName) {
                     case "Parse" -> IRType.Primitive.INT;

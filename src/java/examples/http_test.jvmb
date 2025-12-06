@@ -1,0 +1,39 @@
+' HTTP namespace test
+' Tests the Http.* functions for making HTTP requests
+
+Console.WriteLine("=== HTTP Namespace Test ===")
+Console.WriteLine("")
+
+' Simple GET request to a public API
+Console.WriteLine("Making GET request to httpbin.org...")
+var response as String = Http.Get("https://httpbin.org/get")
+Console.WriteLine("Status: " & Http.GetStatus())
+Console.WriteLine("Success: " & Http.IsSuccess())
+Console.WriteLine("")
+
+' Show first 200 chars of response
+var length as Integer = Str.Length(response)
+if length > 200 then
+    Console.WriteLine("Response (first 200 chars):")
+    Console.WriteLine(Str.Substring(response, 0, 200))
+else
+    Console.WriteLine("Response:")
+    Console.WriteLine(response)
+end if
+
+Console.WriteLine("")
+
+' Test URL building
+var url as String = Http.BuildUrl("https://httpbin.org/get", "name", "Alice", "age", "30")
+Console.WriteLine("Built URL: " & url)
+
+' Test URL encoding
+var encoded as String = Http.UrlEncode("Hello World!")
+Console.WriteLine("URL encoded 'Hello World!': " & encoded)
+
+' Test URL decoding
+var decoded as String = Http.UrlDecode("Hello%20World%21")
+Console.WriteLine("URL decoded 'Hello%20World%21': " & decoded)
+
+Console.WriteLine("")
+Console.WriteLine("=== HTTP Test Complete ===")

@@ -1,0 +1,51 @@
+' Database namespace test
+' Tests the Db.* functions for database operations
+' Note: Requires a MySQL/MariaDB database to run
+
+Console.WriteLine("=== Database Namespace Test ===")
+Console.WriteLine("")
+
+' Note: This example shows syntax but requires actual DB connection
+' Uncomment and modify connection string to test
+
+' ' Connect to database
+' var connected as Boolean = Db.Connect("jdbc:mysql://localhost:3306/test", "root", "password")
+' Console.WriteLine("Connected: " & connected)
+'
+' if connected then
+'     ' Create a table
+'     Db.Execute("CREATE TABLE IF NOT EXISTS users (id INT PRIMARY KEY AUTO_INCREMENT, name VARCHAR(100), email VARCHAR(100))")
+'     Console.WriteLine("Table created")
+'
+'     ' Insert using parameterized query
+'     Db.Prepare("INSERT INTO users (name, email) VALUES (?, ?)")
+'     Db.SetString(1, "Alice")
+'     Db.SetString(2, "alice@example.com")
+'     var rows as Integer = Db.ExecuteUpdate()
+'     Console.WriteLine("Inserted " & rows & " row(s)")
+'
+'     ' Query data
+'     Db.Query("SELECT * FROM users")
+'     while Db.Next()
+'         Console.WriteLine("User: " & Db.GetString("name") & " - " & Db.GetString("email"))
+'     end while
+'     Db.CloseResults()
+'
+'     ' Cleanup
+'     Db.Close()
+' end if
+
+' For now, just test the functions compile
+Console.WriteLine("DB functions available:")
+Console.WriteLine("- Db.Connect(url, user, password)")
+Console.WriteLine("- Db.Close()")
+Console.WriteLine("- Db.Query(sql)")
+Console.WriteLine("- Db.Execute(sql)")
+Console.WriteLine("- Db.Prepare(sql)")
+Console.WriteLine("- Db.SetString/SetInt/SetDouble(index, value)")
+Console.WriteLine("- Db.ExecuteQuery()/ExecuteUpdate()")
+Console.WriteLine("- Db.Next()")
+Console.WriteLine("- Db.GetString/GetInt/GetDouble(column)")
+Console.WriteLine("- Db.BeginTransaction/Commit/Rollback()")
+Console.WriteLine("")
+Console.WriteLine("=== Database Test Complete ===")

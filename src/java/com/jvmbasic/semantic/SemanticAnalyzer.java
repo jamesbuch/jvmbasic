@@ -30,7 +30,7 @@ public class SemanticAnalyzer {
 
     // Known namespaces and their methods
     private static final Set<String> KNOWN_NAMESPACES = Set.of(
-        "Console", "Math", "Str", "File", "Regex"
+        "Console", "Math", "Str", "File", "Regex", "Db", "Json", "Http"
     );
 
     // Current function being analyzed (for return type checking)
@@ -854,6 +854,30 @@ public class SemanticAnalyzer {
             case "Regex" -> switch (methodName) {
                 case "IsMatch" -> IRType.Primitive.BOOLEAN;
                 case "Matches", "Split" -> new IRType.Array(IRType.Reference.STRING);
+                default -> IRType.Reference.STRING;
+            };
+            case "Db" -> switch (methodName) {
+                case "Connect", "IsConnected", "ExecuteAny", "BeginTransaction", "Commit", "Rollback",
+                     "Prepare", "SetString", "SetInt", "SetLong", "SetFloat", "SetDouble", "SetNull",
+                     "ClearParameters" -> IRType.Primitive.BOOLEAN;
+                case "Execute", "ExecuteUpdate" -> IRType.Primitive.INT;
+                case "GetLastInsertId" -> IRType.Primitive.LONG;
+                case "GetTables", "GetColumns" -> new IRType.Array(IRType.Reference.STRING);
+                case "Close", "CloseStmt" -> IRType.Primitive.VOID;
+                default -> IRType.Reference.STRING;
+            };
+            case "Json" -> switch (methodName) {
+                case "GetInt", "Length" -> IRType.Primitive.INT;
+                case "GetDouble" -> IRType.Primitive.DOUBLE;
+                case "GetBool", "Has", "IsValid", "IsObject", "IsArray" -> IRType.Primitive.BOOLEAN;
+                case "Keys" -> new IRType.Array(IRType.Reference.STRING);
+                default -> IRType.Reference.STRING;
+            };
+            case "Http" -> switch (methodName) {
+                case "GetStatus" -> IRType.Primitive.INT;
+                case "IsSuccess", "IsClientError", "IsServerError", "Download" -> IRType.Primitive.BOOLEAN;
+                case "SetHeader", "ClearHeaders", "SetTimeout", "SetBasicAuth", "SetBearerToken" -> IRType.Primitive.VOID;
+                case "ParseQueryString" -> new IRType.Array(IRType.Reference.STRING);
                 default -> IRType.Reference.STRING;
             };
             default -> IRType.Reference.OBJECT;

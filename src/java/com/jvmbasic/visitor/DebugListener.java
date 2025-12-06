@@ -196,7 +196,7 @@ public class DebugListener extends JvmBasicParserBaseListener {
 
     @Override
     public void enterMethodCall(JvmBasicParser.MethodCallContext ctx) {
-        String method = ctx.IDENTIFIER().getText();
+        String method = ctx.memberName().getText();
         trace("  -> Method call: " + method + "()");
     }
 

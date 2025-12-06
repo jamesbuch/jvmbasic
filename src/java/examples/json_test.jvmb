@@ -1,0 +1,63 @@
+' JSON namespace test
+' Tests the Json.* functions for JSON manipulation
+
+Console.WriteLine("=== JSON Namespace Test ===")
+Console.WriteLine("")
+
+' Create a JSON object
+var json as String = Json.Create()
+Console.WriteLine("Empty JSON: " & json)
+
+' Set values
+json = Json.Set(json, "name", "Alice")
+json = Json.Set(json, "age", "30")
+json = Json.SetBool(json, "active", true)
+Console.WriteLine("After setting values: " & json)
+
+' Get values
+var name as String = Json.Get(json, "name")
+var age as Integer = Json.GetInt(json, "age")
+var active as Boolean = Json.GetBool(json, "active")
+Console.WriteLine("Name: " & name)
+Console.WriteLine("Age: " & age)
+Console.WriteLine("Active: " & active)
+
+' Check properties
+Console.WriteLine("Has 'name': " & Json.Has(json, "name"))
+Console.WriteLine("Has 'email': " & Json.Has(json, "email"))
+Console.WriteLine("Is valid JSON: " & Json.IsValid(json))
+Console.WriteLine("Is object: " & Json.IsObject(json))
+
+' Create from pairs
+var person as String = Json.FromPairs("firstName", "Bob", "lastName", "Smith", "score", "95")
+Console.WriteLine("Person from pairs: " & person)
+
+' Work with arrays
+var arr as String = Json.CreateArray()
+arr = Json.Push(arr, "apple")
+arr = Json.Push(arr, "banana")
+arr = Json.Push(arr, "cherry")
+Console.WriteLine("Fruits array: " & arr)
+Console.WriteLine("Is array: " & Json.IsArray(arr))
+Console.WriteLine("Array length: " & Json.Length(arr))
+Console.WriteLine("Element 1: " & Json.Get(arr, "1"))
+
+' Pretty print
+Console.WriteLine("")
+Console.WriteLine("Pretty printed:")
+Console.WriteLine(Json.Pretty(json))
+
+' Nested JSON
+var nested as String = Json.Create()
+nested = Json.SetJson(nested, "user", person)
+nested = Json.SetJson(nested, "fruits", arr)
+Console.WriteLine("")
+Console.WriteLine("Nested JSON:")
+Console.WriteLine(Json.Pretty(nested))
+
+' Get keys - simplified without array iteration for now
+Console.WriteLine("")
+Console.WriteLine("Keys count: " & Json.Length(json))
+
+Console.WriteLine("")
+Console.WriteLine("=== JSON Test Complete ===")

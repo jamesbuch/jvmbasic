@@ -994,7 +994,7 @@ public class CompilerVisitor extends JvmBasicParserBaseVisitor<Object> {
     @Override
     public Object visitMethodCall(JvmBasicParser.MethodCallContext ctx) {
         // This handles Namespace.Method() calls like Console.WriteLine()
-        String methodName = ctx.IDENTIFIER().getText();
+        String methodName = ctx.memberName().getText();
 
         // Handle Console namespace
         if ("Console".equalsIgnoreCase(pendingNamespace)) {
@@ -1892,7 +1892,7 @@ public class CompilerVisitor extends JvmBasicParserBaseVisitor<Object> {
 
             // Check for MemberAccess followed by FunctionCall pattern
             if (postfix instanceof JvmBasicParser.MemberAccessContext memberAccess) {
-                String memberName = memberAccess.IDENTIFIER().getText();
+                String memberName = memberAccess.memberName().getText();
 
                 // Check if next op is a FunctionCall
                 if (i + 1 < postfixOps.size() && postfixOps.get(i + 1) instanceof JvmBasicParser.FunctionCallContext funcCall) {
@@ -2032,7 +2032,7 @@ public class CompilerVisitor extends JvmBasicParserBaseVisitor<Object> {
     @Override
     public Object visitMemberAccess(JvmBasicParser.MemberAccessContext ctx) {
         // Handle Console.WriteLine etc.
-        String memberName = ctx.IDENTIFIER().getText();
+        String memberName = ctx.memberName().getText();
         // The object is already on stack from previous expression
         // For now, just record member access info
         lastMemberAccess = memberName;

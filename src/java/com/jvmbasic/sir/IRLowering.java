@@ -607,6 +607,9 @@ public class IRLowering {
                 case "Str" -> "com/jvmbasic/runtime/BasicStr";
                 case "File" -> "com/jvmbasic/runtime/BasicFile";
                 case "Regex" -> "com/jvmbasic/runtime/BasicRegex";
+                case "Db" -> "com/jvmbasic/runtime/BasicDb";
+                case "Json" -> "com/jvmbasic/runtime/BasicJson";
+                case "Http" -> "com/jvmbasic/runtime/BasicHttp";
                 default -> owner;
             };
         }
