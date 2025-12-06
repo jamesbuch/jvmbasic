@@ -1,0 +1,45 @@
+' OOP Class Test
+' Tests basic class declaration and instantiation
+
+Console.WriteLine("=== OOP Class Test ===")
+Console.WriteLine("")
+
+' Define a simple class
+class Person
+    public var name as String
+    public var age as Integer
+
+    ' Constructor
+    public sub New(n as String, a as Integer)
+        this.name = n
+        this.age = a
+    end sub
+
+    ' Method
+    public function Greet() as String
+        return "Hello, I am " & this.name
+    end function
+
+    ' Method with parameter
+    public function IsOlderThan(other as Person) as Boolean
+        return this.age > other.age
+    end function
+end class
+
+' Create instances
+var alice as Person = new Person("Alice", 30)
+var bob as Person = new Person("Bob", 25)
+
+Console.WriteLine("Alice: " & alice.name & ", age " & alice.age)
+Console.WriteLine("Bob: " & bob.name & ", age " & bob.age)
+Console.WriteLine("")
+
+Console.WriteLine(alice.Greet())
+Console.WriteLine(bob.Greet())
+Console.WriteLine("")
+
+Console.WriteLine("Alice older than Bob: " & alice.IsOlderThan(bob))
+Console.WriteLine("Bob older than Alice: " & bob.IsOlderThan(alice))
+
+Console.WriteLine("")
+Console.WriteLine("=== OOP Class Test Complete ===")

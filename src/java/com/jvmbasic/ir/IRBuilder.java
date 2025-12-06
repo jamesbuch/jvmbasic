@@ -215,7 +215,7 @@ public class IRBuilder extends JvmBasicParserBaseVisitor<Object> {
     }
 
     public IRClass visitClassDeclaration(JvmBasicParser.ClassDeclarationContext ctx) {
-        String name = ctx.IDENTIFIER().getText();
+        String className = ctx.IDENTIFIER().getText();
         Token token = ctx.getStart();
 
         String superClass = null;
@@ -231,17 +231,106 @@ public class IRBuilder extends JvmBasicParserBaseVisitor<Object> {
         }
 
         boolean isAbstract = ctx.ABSTRACT() != null;
-        IRClass cls = new IRClass(name, superClass, isAbstract, token.getLine(), token.getCharPositionInLine());
+        IRClass cls = new IRClass(className, superClass, isAbstract, token.getLine(), token.getCharPositionInLine());
         for (String iface : interfaces) {
             cls.addInterface(iface);
         }
 
         // Process class members
         for (JvmBasicParser.ClassMemberContext member : ctx.classMember()) {
-            // TODO: Process fields, properties, methods, constructors
+            if (member.fieldDeclaration() != null) {
+                cls.addField(processFieldDeclaration(member.fieldDeclaration()));
+            } else if (member.constructorDeclaration() != null) {
+                cls.addMethod(processConstructorDeclaration(member.constructorDeclaration(), className));
+            } else if (member.methodDeclaration() != null) {
+                cls.addMethod(processMethodDeclaration(member.methodDeclaration()));
+            }
+            // TODO: propertyDeclaration
         }
 
         return cls;
+    }
+
+    private IRVariable processFieldDeclaration(JvmBasicParser.FieldDeclarationContext ctx) {
+        String name = ctx.IDENTIFIER().getText();
+        IRType type = visitTypeName(ctx.typeName());
+        Token token = ctx.VAR().getSymbol();
+
+        boolean isStatic = ctx.SHARED() != null;
+        IRVariable.Access access = parseAccessModifier(ctx.accessModifier());
+
+        return new IRVariable(name, type, false, isStatic, access, token.getLine(), token.getCharPositionInLine());
+    }
+
+    private IRFunction processConstructorDeclaration(JvmBasicParser.ConstructorDeclarationContext ctx, String className) {
+        Token token = ctx.getStart();
+        IRFunction.Access access = parseMethodAccessModifier(ctx.accessModifier());
+
+        IRFunction func = new IRFunction("<init>", IRType.Primitive.VOID, false, false, true, access,
+                                        token.getLine(), token.getCharPositionInLine());
+
+        // Parameters
+        if (ctx.parameterList() != null) {
+            for (JvmBasicParser.ParameterContext param : ctx.parameterList().parameter()) {
+                func.addParameter(visitParameter(param));
+            }
+        }
+
+        // Body statements
+        for (JvmBasicParser.StatementContext stmt : ctx.statement()) {
+            IRStatement irStmt = visitStatement(stmt);
+            if (irStmt != null) {
+                func.addStatement(irStmt);
+            }
+        }
+
+        return func;
+    }
+
+    private IRFunction processMethodDeclaration(JvmBasicParser.MethodDeclarationContext ctx) {
+        String name = ctx.IDENTIFIER().getText();
+        Token token = ctx.getStart();
+
+        IRType returnType = ctx.typeName() != null ? visitTypeName(ctx.typeName()) : IRType.Primitive.VOID;
+        boolean isStatic = ctx.SHARED() != null;
+        boolean isOverride = ctx.OVERRIDE() != null;
+        IRFunction.Access access = parseMethodAccessModifier(ctx.accessModifier());
+
+        IRFunction func = new IRFunction(name, returnType, isStatic, isOverride, false, access,
+                                        token.getLine(), token.getCharPositionInLine());
+
+        // Parameters
+        if (ctx.parameterList() != null) {
+            for (JvmBasicParser.ParameterContext param : ctx.parameterList().parameter()) {
+                func.addParameter(visitParameter(param));
+            }
+        }
+
+        // Body statements
+        for (JvmBasicParser.StatementContext stmt : ctx.statement()) {
+            IRStatement irStmt = visitStatement(stmt);
+            if (irStmt != null) {
+                func.addStatement(irStmt);
+            }
+        }
+
+        return func;
+    }
+
+    private IRVariable.Access parseAccessModifier(JvmBasicParser.AccessModifierContext ctx) {
+        if (ctx == null) return IRVariable.Access.PACKAGE;
+        if (ctx.PUBLIC() != null) return IRVariable.Access.PUBLIC;
+        if (ctx.PRIVATE() != null) return IRVariable.Access.PRIVATE;
+        if (ctx.PROTECTED() != null) return IRVariable.Access.PROTECTED;
+        return IRVariable.Access.PACKAGE;
+    }
+
+    private IRFunction.Access parseMethodAccessModifier(JvmBasicParser.AccessModifierContext ctx) {
+        if (ctx == null) return IRFunction.Access.PACKAGE;
+        if (ctx.PUBLIC() != null) return IRFunction.Access.PUBLIC;
+        if (ctx.PRIVATE() != null) return IRFunction.Access.PRIVATE;
+        if (ctx.PROTECTED() != null) return IRFunction.Access.PROTECTED;
+        return IRFunction.Access.PACKAGE;
     }
 
     // ========================================================================
