@@ -6,8 +6,12 @@ import com.jvmbasic.ir.stmt.*;
 import com.jvmbasic.grammar.JvmBasicParser;
 import com.jvmbasic.grammar.JvmBasicParserBaseVisitor;
 
+import org.antlr.v4.runtime.CharStreams;
+import org.antlr.v4.runtime.CommonTokenStream;
 import org.antlr.v4.runtime.Token;
 import org.antlr.v4.runtime.tree.TerminalNode;
+
+import com.jvmbasic.grammar.JvmBasicLexer;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -889,9 +893,8 @@ public class IRBuilder extends JvmBasicParserBaseVisitor<Object> {
             // Check if base is an identifier (could be static class name)
             if (base instanceof IRIdentifier id) {
                 String className = id.name();
-                // Known static classes
-                if (className.equals("Console") || className.equals("Math") || className.equals("File") ||
-                    className.equals("Integer") || className.equals("String")) {
+                // Known static classes (BASIC namespaces and Java classes)
+                if (isKnownStaticClass(className)) {
                     return new IRMethodCall(null, className, methodName, args,
                                            guessMethodReturnType(className, methodName),
                                            true, token.getLine(), token.getCharPositionInLine());
@@ -936,9 +939,8 @@ public class IRBuilder extends JvmBasicParserBaseVisitor<Object> {
                 // Check if receiver is an identifier (could be static class name)
                 if (receiver instanceof IRIdentifier id) {
                     String className = id.name();
-                    // Known static classes
-                    if (className.equals("Console") || className.equals("Math") || className.equals("File") ||
-                        className.equals("Integer") || className.equals("String") || className.equals("System")) {
+                    // Known static classes (BASIC namespaces and Java classes)
+                    if (isKnownStaticClass(className)) {
                         return new IRMethodCall(null, className, methodName, args,
                                                guessMethodReturnType(className, methodName),
                                                true, token.getLine(), token.getCharPositionInLine());
@@ -1102,9 +1104,9 @@ public class IRBuilder extends JvmBasicParserBaseVisitor<Object> {
                 String exprText = content.substring(start, i);
                 i++; // Skip closing brace
 
-                // Parse the expression - for now, treat as identifier
-                // TODO: Full expression parsing within interpolated strings
-                parts.add(new IRIdentifier(exprText.trim(), null, line, column));
+                // Parse the expression using ANTLR
+                IRExpression exprNode = parseInterpolationExpression(exprText.trim(), line, column);
+                parts.add(exprNode);
             } else if (c == '\\' && i + 1 < content.length()) {
                 // Handle escape sequences
                 char next = content.charAt(i + 1);
@@ -1136,6 +1138,37 @@ public class IRBuilder extends JvmBasicParserBaseVisitor<Object> {
         }
 
         return new IRInterpolatedString(parts, line, column);
+    }
+
+    /**
+     * Parse an expression from string interpolation using ANTLR.
+     * This allows complex expressions like Str.ToUpper(name) or Math.Sqrt(count).
+     */
+    private IRExpression parseInterpolationExpression(String exprText, int line, int column) {
+        try {
+            // Create ANTLR lexer and parser for the expression
+            var input = CharStreams.fromString(exprText);
+            var lexer = new JvmBasicLexer(input);
+            lexer.removeErrorListeners();  // Suppress error output
+            var tokens = new CommonTokenStream(lexer);
+            var parser = new JvmBasicParser(tokens);
+            parser.removeErrorListeners();  // Suppress error output
+
+            // Parse as expression
+            JvmBasicParser.ExpressionContext exprCtx = parser.expression();
+
+            // Check for syntax errors
+            if (parser.getNumberOfSyntaxErrors() > 0) {
+                // Fall back to identifier if parsing fails
+                return new IRIdentifier(exprText, IRType.Reference.OBJECT, line, column);
+            }
+
+            // Visit the expression to build IR
+            return visitExpression(exprCtx);
+        } catch (Exception e) {
+            // Fall back to identifier if parsing fails
+            return new IRIdentifier(exprText, IRType.Reference.OBJECT, line, column);
+        }
     }
 
     private IRExpression visitLambdaExpression(JvmBasicParser.LambdaExprContext ctx) {
@@ -1198,6 +1231,19 @@ public class IRBuilder extends JvmBasicParserBaseVisitor<Object> {
         return expr.getType();
     }
 
+    /**
+     * Check if the given class name is a known static class (BASIC namespace or Java class).
+     */
+    private boolean isKnownStaticClass(String className) {
+        return switch (className) {
+            // BASIC namespaces
+            case "Console", "Math", "Str", "File", "Regex" -> true;
+            // Java classes commonly used statically
+            case "Integer", "String", "System", "Long", "Double", "Float", "Boolean" -> true;
+            default -> false;
+        };
+    }
+
     private IRType guessMethodReturnType(String className, String methodName) {
         // Common method return types
         if (className != null) {
@@ -1208,9 +1254,31 @@ public class IRBuilder extends JvmBasicParserBaseVisitor<Object> {
                     default -> IRType.Reference.OBJECT;
                 };
                 case "Math" -> switch (methodName) {
-                    case "Sqrt", "Sin", "Cos", "Tan", "Log", "Exp", "Pow", "Floor", "Ceiling", "Round" -> IRType.Primitive.DOUBLE;
-                    case "Abs", "Max", "Min" -> IRType.Primitive.INT;
+                    case "Sqrt", "Sin", "Cos", "Tan", "Log", "Exp", "Pow", "Floor", "Ceiling", "Round",
+                         "Pi", "E", "ToRadians", "ToDegrees", "Hypot", "Lerp" -> IRType.Primitive.DOUBLE;
+                    case "Abs", "Max", "Min", "Sign", "Clamp" -> IRType.Primitive.INT;
+                    case "Random" -> IRType.Primitive.DOUBLE;
+                    case "IsNaN", "IsInfinite", "IsFinite", "ApproxEqual", "ApproxEqualRelative" -> IRType.Primitive.BOOLEAN;
                     default -> IRType.Primitive.DOUBLE;
+                };
+                case "Str" -> switch (methodName) {
+                    case "Length", "IndexOf", "LastIndexOf", "Compare" -> IRType.Primitive.INT;
+                    case "StartsWith", "EndsWith", "Contains", "IsNullOrEmpty", "IsNullOrWhiteSpace",
+                         "Equals", "EqualsIgnoreCase" -> IRType.Primitive.BOOLEAN;
+                    case "CharAt" -> IRType.Primitive.CHAR;
+                    case "Split" -> new IRType.Array(IRType.Reference.STRING);
+                    default -> IRType.Reference.STRING;  // Most Str methods return String
+                };
+                case "File" -> switch (methodName) {
+                    case "Exists", "Delete", "CreateDirectory", "Copy", "Move" -> IRType.Primitive.BOOLEAN;
+                    case "Size" -> IRType.Primitive.LONG;
+                    case "ReadAllLines", "ListFiles", "ListDirectories" -> new IRType.Array(IRType.Reference.STRING);
+                    default -> IRType.Reference.STRING;  // ReadAllText, etc.
+                };
+                case "Regex" -> switch (methodName) {
+                    case "IsMatch" -> IRType.Primitive.BOOLEAN;
+                    case "Matches", "Split" -> new IRType.Array(IRType.Reference.STRING);
+                    default -> IRType.Reference.STRING;  // Replace, etc.
                 };
                 case "Integer" -> switch (methodName) {
                     case "Parse" -> IRType.Primitive.INT;
