@@ -1,8 +1,9 @@
-' String interpolation test
+' String interpolation test - comprehensive
 var name as String = "World"
 var count as Integer = 42
+var price as Float = 19.99f
 
-' Test basic interpolation
+' Test basic interpolation with variables
 Console.WriteLine($"Hello, {name}!")
 Console.WriteLine($"The answer is {count}")
 
@@ -14,3 +15,19 @@ Console.WriteLine($"Just a literal string")
 
 ' Test escaped dollar sign
 Console.WriteLine($"Cost is $$50")
+
+' Test with Float variable
+Console.WriteLine($"Price: {price}")
+
+' Test with namespace method calls
+Console.WriteLine($"Uppercase: {Str.ToUpper(name)}")
+Console.WriteLine($"Length: {Str.Length(name)}")
+Console.WriteLine($"Sqrt of count: {Math.Sqrt(count)}")
+
+' Test with multiple method calls in one string
+Console.WriteLine($"Name '{name}' has {Str.Length(name)} chars, upper: {Str.ToUpper(name)}")
+
+' Test nested method calls
+Console.WriteLine($"Reversed upper: {Str.Reverse(Str.ToUpper(name))}")
+
+Console.WriteLine("Interpolation test complete!")

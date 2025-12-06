@@ -59,6 +59,7 @@ TESTS=(
     "str_test.jvmb:str_test"
     "regex_test.jvmb:regex_test"
     "file_test.jvmb:file_test"
+    "comparison_test.jvmb:comparison_test"
 )
 
 for test in "${TESTS[@]}"; do

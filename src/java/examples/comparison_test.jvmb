@@ -1,0 +1,52 @@
+' Test type coercion and comparisons for numeric types
+
+' Integer comparisons
+Console.WriteLine("Integer comparisons:")
+var a as Integer = 10
+var b as Integer = 20
+if a < b then
+    Console.WriteLine("10 < 20: true")
+else
+    Console.WriteLine("10 < 20: false")
+end if
+
+' Float comparisons
+Console.WriteLine("Float comparisons:")
+var fa as Float = 1.5f
+var fb as Float = 2.5f
+if fa < fb then
+    Console.WriteLine("1.5f < 2.5f: true")
+else
+    Console.WriteLine("1.5f < 2.5f: false")
+end if
+
+' Double comparisons
+Console.WriteLine("Double comparisons:")
+var da as Double = 3.14159D
+var db as Double = 2.71828D
+if da > db then
+    Console.WriteLine("pi > e: true")
+else
+    Console.WriteLine("pi > e: false")
+end if
+
+if da >= da then
+    Console.WriteLine("pi >= pi: true")
+else
+    Console.WriteLine("pi >= pi: false")
+end if
+
+' Epsilon comparison test
+Console.WriteLine("Epsilon comparison:")
+var x as Double = 0.1D + 0.2D
+var y as Double = 0.3D
+Console.WriteLine($"0.1 + 0.2 = {x}")
+Console.WriteLine($"0.3 = {y}")
+
+if Math.ApproxEqual(x, y) then
+    Console.WriteLine("Math.ApproxEqual(x, y): true")
+else
+    Console.WriteLine("Math.ApproxEqual(x, y): false")
+end if
+
+Console.WriteLine("Comparison test complete!")

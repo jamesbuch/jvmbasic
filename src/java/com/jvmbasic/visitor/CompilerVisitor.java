@@ -1188,6 +1188,34 @@ public class CompilerVisitor extends JvmBasicParserBaseVisitor<Object> {
                 lastExprType = "Boolean";
             }
 
+            // Epsilon comparison
+            case "ApproxEqual" -> {
+                if (argCount == 2) {
+                    mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "ApproxEqual", "(DD)Z", false);
+                } else if (argCount == 3) {
+                    mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "ApproxEqual", "(DDD)Z", false);
+                } else {
+                    throw new RuntimeException("Math.ApproxEqual requires 2 or 3 arguments");
+                }
+                lastExprType = "Boolean";
+            }
+
+            case "ApproxEqualRelative" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "ApproxEqualRelative", "(DDD)Z", false);
+                lastExprType = "Boolean";
+            }
+
+            // Machine epsilon constants
+            case "FloatEpsilon" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "FloatEpsilon", "()F", false);
+                lastExprType = "Float";
+            }
+
+            case "DoubleEpsilon" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "DoubleEpsilon", "()D", false);
+                lastExprType = "Double";
+            }
+
             default -> throw new RuntimeException("Unknown Math function: " + methodName);
         }
 
@@ -2034,26 +2062,29 @@ public class CompilerVisitor extends JvmBasicParserBaseVisitor<Object> {
         }
 
         visit(ctx.shiftExpression(0));
+        String leftType = lastExprType;
         for (int i = 1; i < ctx.shiftExpression().size(); i++) {
             visit(ctx.shiftExpression(i));
+            String rightType = lastExprType;
             var opToken = ctx.getChild(2 * i - 1);
             String op = opToken.getText();
+
+            // Determine the comparison type (promote to wider type)
+            String compType = promoteType(leftType, rightType);
 
             Label trueLabel = new Label();
             Label endLabel = new Label();
 
-            switch (op) {
-                case "<" -> mv.visitJumpInsn(IF_ICMPLT, trueLabel);
-                case ">" -> mv.visitJumpInsn(IF_ICMPGT, trueLabel);
-                case "<=" -> mv.visitJumpInsn(IF_ICMPLE, trueLabel);
-                case ">=" -> mv.visitJumpInsn(IF_ICMPGE, trueLabel);
-            }
+            emitRelationalComparison(compType, op, trueLabel);
             mv.visitInsn(ICONST_0);
             mv.visitJumpInsn(GOTO, endLabel);
             mv.visitLabel(trueLabel);
             mv.visitInsn(ICONST_1);
             mv.visitLabel(endLabel);
+
+            leftType = "Boolean"; // Result of comparison is boolean
         }
+        lastExprType = "Boolean";
         return null;
     }
 
@@ -2064,25 +2095,192 @@ public class CompilerVisitor extends JvmBasicParserBaseVisitor<Object> {
         }
 
         visit(ctx.relationalExpression(0));
+        String leftType = lastExprType;
         for (int i = 1; i < ctx.relationalExpression().size(); i++) {
             visit(ctx.relationalExpression(i));
+            String rightType = lastExprType;
             var opToken = ctx.getChild(2 * i - 1);
             String op = opToken.getText();
+
+            // Determine the comparison type
+            String compType = promoteType(leftType, rightType);
 
             Label trueLabel = new Label();
             Label endLabel = new Label();
 
-            switch (op) {
-                case "=" -> mv.visitJumpInsn(IF_ICMPEQ, trueLabel);
-                case "<>" -> mv.visitJumpInsn(IF_ICMPNE, trueLabel);
-            }
+            emitEqualityComparison(compType, op, trueLabel);
             mv.visitInsn(ICONST_0);
             mv.visitJumpInsn(GOTO, endLabel);
             mv.visitLabel(trueLabel);
             mv.visitInsn(ICONST_1);
             mv.visitLabel(endLabel);
+
+            leftType = "Boolean"; // Result of comparison is boolean
         }
+        lastExprType = "Boolean";
         return null;
+    }
+
+    /**
+     * Promotes two types to their common wider type for comparison/arithmetic.
+     * Type promotion order: int < long < float < double
+     */
+    private String promoteType(String left, String right) {
+        String l = left.toLowerCase();
+        String r = right.toLowerCase();
+
+        // Handle string comparisons
+        if ("string".equals(l) || "string".equals(r)) {
+            return "String";
+        }
+
+        // Handle boolean comparisons
+        if ("boolean".equals(l) && "boolean".equals(r)) {
+            return "Boolean";
+        }
+
+        // Numeric type promotion: double > float > long > int
+        if ("double".equals(l) || "double".equals(r)) {
+            return "Double";
+        }
+        if ("float".equals(l) || "float".equals(r)) {
+            return "Float";
+        }
+        if ("long".equals(l) || "long".equals(r)) {
+            return "Long";
+        }
+        return "Integer";
+    }
+
+    /**
+     * Emits bytecode for relational comparison (<, >, <=, >=)
+     */
+    private void emitRelationalComparison(String type, String op, Label trueLabel) {
+        switch (type.toLowerCase()) {
+            case "double" -> {
+                // DCMPL: pushes -1 if left < right, 0 if equal, 1 if left > right
+                // (DCMPL returns -1 for NaN, DCMPG returns 1 for NaN)
+                switch (op) {
+                    case "<" -> {
+                        mv.visitInsn(DCMPG); // Use DCMPG so NaN returns 1 (false for <)
+                        mv.visitJumpInsn(IFLT, trueLabel);
+                    }
+                    case ">" -> {
+                        mv.visitInsn(DCMPL); // Use DCMPL so NaN returns -1 (false for >)
+                        mv.visitJumpInsn(IFGT, trueLabel);
+                    }
+                    case "<=" -> {
+                        mv.visitInsn(DCMPG);
+                        mv.visitJumpInsn(IFLE, trueLabel);
+                    }
+                    case ">=" -> {
+                        mv.visitInsn(DCMPL);
+                        mv.visitJumpInsn(IFGE, trueLabel);
+                    }
+                }
+            }
+            case "float" -> {
+                switch (op) {
+                    case "<" -> {
+                        mv.visitInsn(FCMPG);
+                        mv.visitJumpInsn(IFLT, trueLabel);
+                    }
+                    case ">" -> {
+                        mv.visitInsn(FCMPL);
+                        mv.visitJumpInsn(IFGT, trueLabel);
+                    }
+                    case "<=" -> {
+                        mv.visitInsn(FCMPG);
+                        mv.visitJumpInsn(IFLE, trueLabel);
+                    }
+                    case ">=" -> {
+                        mv.visitInsn(FCMPL);
+                        mv.visitJumpInsn(IFGE, trueLabel);
+                    }
+                }
+            }
+            case "long" -> {
+                mv.visitInsn(LCMP);
+                switch (op) {
+                    case "<" -> mv.visitJumpInsn(IFLT, trueLabel);
+                    case ">" -> mv.visitJumpInsn(IFGT, trueLabel);
+                    case "<=" -> mv.visitJumpInsn(IFLE, trueLabel);
+                    case ">=" -> mv.visitJumpInsn(IFGE, trueLabel);
+                }
+            }
+            case "string" -> {
+                // String comparison using compareTo
+                mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/String", "compareTo",
+                                  "(Ljava/lang/String;)I", false);
+                switch (op) {
+                    case "<" -> mv.visitJumpInsn(IFLT, trueLabel);
+                    case ">" -> mv.visitJumpInsn(IFGT, trueLabel);
+                    case "<=" -> mv.visitJumpInsn(IFLE, trueLabel);
+                    case ">=" -> mv.visitJumpInsn(IFGE, trueLabel);
+                }
+            }
+            default -> {
+                // Integer comparison
+                switch (op) {
+                    case "<" -> mv.visitJumpInsn(IF_ICMPLT, trueLabel);
+                    case ">" -> mv.visitJumpInsn(IF_ICMPGT, trueLabel);
+                    case "<=" -> mv.visitJumpInsn(IF_ICMPLE, trueLabel);
+                    case ">=" -> mv.visitJumpInsn(IF_ICMPGE, trueLabel);
+                }
+            }
+        }
+    }
+
+    /**
+     * Emits bytecode for equality comparison (=, <>)
+     */
+    private void emitEqualityComparison(String type, String op, Label trueLabel) {
+        switch (type.toLowerCase()) {
+            case "double" -> {
+                mv.visitInsn(DCMPL);
+                switch (op) {
+                    case "=" -> mv.visitJumpInsn(IFEQ, trueLabel);
+                    case "<>" -> mv.visitJumpInsn(IFNE, trueLabel);
+                }
+            }
+            case "float" -> {
+                mv.visitInsn(FCMPL);
+                switch (op) {
+                    case "=" -> mv.visitJumpInsn(IFEQ, trueLabel);
+                    case "<>" -> mv.visitJumpInsn(IFNE, trueLabel);
+                }
+            }
+            case "long" -> {
+                mv.visitInsn(LCMP);
+                switch (op) {
+                    case "=" -> mv.visitJumpInsn(IFEQ, trueLabel);
+                    case "<>" -> mv.visitJumpInsn(IFNE, trueLabel);
+                }
+            }
+            case "string" -> {
+                // String equality using equals()
+                mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/String", "equals",
+                                  "(Ljava/lang/Object;)Z", false);
+                switch (op) {
+                    case "=" -> mv.visitJumpInsn(IFNE, trueLabel); // equals returns true (non-zero)
+                    case "<>" -> mv.visitJumpInsn(IFEQ, trueLabel); // equals returns false (zero)
+                }
+            }
+            case "boolean" -> {
+                // Boolean equality
+                switch (op) {
+                    case "=" -> mv.visitJumpInsn(IF_ICMPEQ, trueLabel);
+                    case "<>" -> mv.visitJumpInsn(IF_ICMPNE, trueLabel);
+                }
+            }
+            default -> {
+                // Integer comparison
+                switch (op) {
+                    case "=" -> mv.visitJumpInsn(IF_ICMPEQ, trueLabel);
+                    case "<>" -> mv.visitJumpInsn(IF_ICMPNE, trueLabel);
+                }
+            }
+        }
     }
 
     @Override
@@ -2454,22 +2652,42 @@ public class CompilerVisitor extends JvmBasicParserBaseVisitor<Object> {
     }
 
     /**
-     * Compiles a simple expression inside an interpolation: variable name or simple expression.
-     * For now, supports variable references only. Complex expressions require re-parsing.
+     * Compiles an expression inside an interpolation.
+     *
+     * Supported expression forms:
+     *   - Simple variable: {name}
+     *   - Namespace method call: {Str.ToUpper(name)}, {Math.Sqrt(x)}
+     *   - Property/member access: {obj.property}
+     *   - Method call on object: {obj.method()}, {obj.method(arg)}
+     *
+     * Re-parses the expression text using the ANTLR grammar for full compatibility.
      */
     private void compileInterpolationExpression(String exprText) {
-        // For now, support simple variable references
-        // The expression text is just the variable name or a simple expression
+        try {
+            // Re-parse the expression using ANTLR
+            org.antlr.v4.runtime.CharStream input = org.antlr.v4.runtime.CharStreams.fromString(exprText);
+            JvmBasicLexer lexer = new JvmBasicLexer(input);
+            lexer.removeErrorListeners(); // Suppress console errors
+            org.antlr.v4.runtime.CommonTokenStream tokens = new org.antlr.v4.runtime.CommonTokenStream(lexer);
+            JvmBasicParser parser = new JvmBasicParser(tokens);
+            parser.removeErrorListeners(); // Suppress console errors
 
-        // Try to look up as a variable first
-        if (exprText.matches("[a-zA-Z_][a-zA-Z0-9_]*")) {
-            // It's a simple identifier - look it up as a variable
-            loadVariable(exprText);
-        } else {
-            // For complex expressions, we would need to re-parse
-            // For now, throw an error and suggest using simple variables
-            throw new RuntimeException("String interpolation currently supports only simple variables. " +
-                                       "For expressions, use concatenation: \"Result: \" + (a + b)");
+            // Parse as an expression
+            JvmBasicParser.ExpressionContext exprCtx = parser.expression();
+
+            // Check for parsing errors
+            if (parser.getNumberOfSyntaxErrors() > 0) {
+                throw new RuntimeException("Invalid expression in string interpolation: " + exprText);
+            }
+
+            // Visit the parsed expression to generate bytecode
+            visit(exprCtx);
+
+        } catch (RuntimeException e) {
+            // Re-throw runtime exceptions as-is
+            throw e;
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to parse interpolation expression: " + exprText, e);
         }
     }
 

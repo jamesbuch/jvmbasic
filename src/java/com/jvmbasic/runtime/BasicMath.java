@@ -271,4 +271,71 @@ public final class BasicMath {
     public static boolean IsFinite(double value) {
         return Double.isFinite(value);
     }
+
+    // ========================================================================
+    // Epsilon Comparison (for floating-point equality)
+    // ========================================================================
+
+    /** Default epsilon for float comparison (approximately 1e-7 * 10) */
+    public static final double FLOAT_EPSILON = 1e-6;
+
+    /** Default epsilon for double comparison (approximately 1e-15 * 10) */
+    public static final double DOUBLE_EPSILON = 1e-14;
+
+    /**
+     * Compares two floats for approximate equality using default epsilon
+     */
+    public static boolean ApproxEqual(float a, float b) {
+        return ApproxEqual(a, b, (float) FLOAT_EPSILON);
+    }
+
+    /**
+     * Compares two floats for approximate equality with custom epsilon
+     */
+    public static boolean ApproxEqual(float a, float b, float epsilon) {
+        if (a == b) return true; // Handles infinities and same value
+        if (Float.isNaN(a) || Float.isNaN(b)) return false;
+        return Math.abs(a - b) < epsilon;
+    }
+
+    /**
+     * Compares two doubles for approximate equality using default epsilon
+     */
+    public static boolean ApproxEqual(double a, double b) {
+        return ApproxEqual(a, b, DOUBLE_EPSILON);
+    }
+
+    /**
+     * Compares two doubles for approximate equality with custom epsilon
+     */
+    public static boolean ApproxEqual(double a, double b, double epsilon) {
+        if (a == b) return true; // Handles infinities and same value
+        if (Double.isNaN(a) || Double.isNaN(b)) return false;
+        return Math.abs(a - b) < epsilon;
+    }
+
+    /**
+     * Relative comparison for doubles (handles values of different magnitudes better)
+     */
+    public static boolean ApproxEqualRelative(double a, double b, double relativeTolerance) {
+        if (a == b) return true;
+        if (Double.isNaN(a) || Double.isNaN(b)) return false;
+        double diff = Math.abs(a - b);
+        double maxAbs = Math.max(Math.abs(a), Math.abs(b));
+        return diff <= relativeTolerance * maxAbs;
+    }
+
+    /**
+     * Returns the machine epsilon for float
+     */
+    public static float FloatEpsilon() {
+        return Math.ulp(1.0f);
+    }
+
+    /**
+     * Returns the machine epsilon for double
+     */
+    public static double DoubleEpsilon() {
+        return Math.ulp(1.0);
+    }
 }
