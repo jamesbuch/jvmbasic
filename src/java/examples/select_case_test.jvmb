@@ -1,0 +1,55 @@
+' Select Case test
+
+' Test with integers
+Console.WriteLine("Integer Select Case test:")
+var num as Integer = 3
+select case num
+    case 1
+        Console.WriteLine("One")
+    case 2
+        Console.WriteLine("Two")
+    case 3
+        Console.WriteLine("Three")
+    case else
+        Console.WriteLine("Other")
+end select
+
+' Test multiple values per case
+Console.WriteLine("Multiple values test:")
+var grade as Integer = 85
+select case grade
+    case 90, 91, 92, 93
+        Console.WriteLine("A-")
+    case 100
+        Console.WriteLine("A+")
+    case else
+        Console.WriteLine("Other grade")
+end select
+
+' Test with strings
+Console.WriteLine("String Select Case test:")
+var color as String = "red"
+select case color
+    case "red"
+        Console.WriteLine("Stop!")
+    case "yellow"
+        Console.WriteLine("Caution")
+    case "green"
+        Console.WriteLine("Go!")
+    case else
+        Console.WriteLine("Unknown color")
+end select
+
+' Test Case Else
+Console.WriteLine("Case Else test:")
+var x as Integer = 99
+select case x
+    case 1
+        Console.WriteLine("One")
+    case 2
+        Console.WriteLine("Two")
+    case else
+        Console.WriteLine("Neither one nor two")
+end select
+
+Console.WriteLine("All Select Case tests passed!")

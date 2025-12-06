@@ -102,49 +102,42 @@ The IR (Tree IR and Stack IR) are for **debugging/visualization only** - they ar
 For detailed code generation examples with ASM bytecode, see:
 **`docs/jvmbasic-2.0/CODEGEN.md`**
 
-## What's Working Now (MVP)
+## What's Working Now
 
 | Feature | Example | Status |
 |---------|---------|--------|
 | Integer variables | `var x as Integer = 10` | ✅ |
-| Arithmetic | `x + y`, `x * y` | ✅ |
-| Console.WriteLine | Strings and integers | ✅ |
-| If/Then/Else | With comparisons | ✅ |
-| While loops | With variable update | ✅ |
+| Long variables | `var x as Long = 9999999999L` | ✅ |
+| Float variables | `var x as Float = 3.14F` | ✅ |
+| Double variables | `var x as Double = 3.14159` | ✅ |
+| String variables | `var s as String = "Hello"` | ✅ |
+| Boolean variables | `var b as Boolean = true` | ✅ |
+| Arithmetic | `+`, `-`, `*`, `/`, `mod` | ✅ |
 | Comparisons | `<`, `>`, `<=`, `>=`, `=`, `<>` | ✅ |
-
-### Demo Program That Works
-
-```basic
-' demo.jvmb - this compiles and runs!
-var x as Integer = 10
-var y as Integer = 25
-var sum as Integer = x + y
-
-Console.WriteLine("Sum:")
-Console.WriteLine(sum)
-
-if sum > 30 then
-    Console.WriteLine("Greater than 30")
-end if
-
-var i as Integer = 0
-while i < 3
-    Console.WriteLine(i)
-    i = i + 1
-end while
-```
+| Logical operators | `and`, `or`, `not` | ✅ |
+| Console.WriteLine | All types | ✅ |
+| Console.Write | All types | ✅ |
+| Console.ReadLine | Input as String | ✅ |
+| If/Then/Else/ElseIf | All variants | ✅ |
+| For loops | `for i = 1 to 10 step 2` | ✅ |
+| For Each loops | `for each x in array` | ✅ |
+| While loops | `while x < 10 ... end while` | ✅ |
+| Do loops | All variants (while/until, pre/post) | ✅ |
+| Arrays | `new Integer[5]`, `arr[0] = 10` | ✅ |
+| Functions | `function add(a as Integer, b as Integer) as Integer` | ✅ |
+| Subroutines | `sub greet(name as String)` | ✅ |
 
 ## What's NOT Yet Implemented
 
 | Feature | Priority |
 |---------|----------|
-| For loops | High |
-| User functions with parameters | High |
-| String interpolation | Medium |
-| Long, Float, Double types | Medium |
-| Arrays | Medium |
-| Classes | Low |
+| String interpolation | High |
+| Exit/Continue statements | High |
+| Select Case | High |
+| Standard library (File, Math, etc.) | High |
+| Classes | Medium |
+| Modules/Imports | Medium |
+| Generics | Low |
 
 ## Future: IR-Based Code Generation
 
@@ -163,9 +156,51 @@ Benefits of IR-based codegen (future work):
 - Better register allocation
 - Multiple backends
 
+## Testing Requirements
+
+### MANDATORY: Run Tests Before Every Commit
+
+Before committing any changes to the JVM BASIC 2.0 compiler, you MUST:
+
+1. Run the test suite:
+   ```bash
+   cd /home/james/development/jvmbasic/src/java
+   ./test-examples.sh
+   ```
+
+2. All tests must pass before committing. If any test fails:
+   - Fix the issue before committing
+   - Never commit code that breaks existing tests
+   - The main branch must always have passing tests
+
+### Test Suite
+
+The test script `src/java/test-examples.sh` tests these example programs:
+- `hello.jvmb` - Basic hello world
+- `demo.jvmb` - Comprehensive demo of all features
+- `array_test.jvmb` - Array creation and access
+- `foreach_test.jvmb` - For Each loops
+- `function_test.jvmb` - User-defined functions
+- `do_loop_test.jvmb` - All Do loop variants
+- `simple_for.jvmb` - For loops with STEP
+- `simple_while.jvmb` - While loops
+- `simple_if.jvmb` - If/Then/Else
+- `float_long_test.jvmb` - Float and Long types
+- `double_test.jvmb` - Double type
+
+### Adding New Tests
+
+When adding a new feature:
+1. Create a test example in `examples/` (e.g., `new_feature_test.jvmb`)
+2. Add it to the TESTS array in `test-examples.sh`
+3. Run `./test-examples.sh` to verify it works
+4. Commit both the feature and the test
+
 ## Important Rules
 
 1. **DO NOT** modify the C++ compiler (jvmbasic binary, *.cpp files)
 2. **ALWAYS** use `./gradlew build` from `src/java/` directory
 3. **DO NOT** use IR for code generation yet - use CompilerVisitor
 4. **UPDATE** `CODEGEN.md` when adding new code generation features
+5. **ALWAYS** run `./test-examples.sh` before committing
+6. **NEVER** push code that breaks tests to main branch

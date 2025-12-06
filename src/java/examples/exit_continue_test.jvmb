@@ -1,0 +1,45 @@
+' Exit and Continue statements test
+
+' Test exit for
+Console.WriteLine("Exit For test:")
+for i = 1 to 10
+    if i = 5 then
+        exit for
+    end if
+    Console.WriteLine(i)
+next i
+Console.WriteLine("Done with exit for")
+
+' Test continue for
+Console.WriteLine("Continue For test (odd numbers only):")
+for i = 1 to 10
+    if i mod 2 = 0 then
+        continue for
+    end if
+    Console.WriteLine(i)
+next i
+Console.WriteLine("Done with continue for")
+
+' Test exit while
+Console.WriteLine("Exit While test:")
+var j as Integer = 0
+while j < 100
+    j = j + 1
+    if j = 5 then
+        exit while
+    end if
+    Console.WriteLine(j)
+end while
+Console.WriteLine("Done with exit while")
+
+' Test continue while
+Console.WriteLine("Continue While test (skip 3):")
+var k as Integer = 0
+while k < 5
+    k = k + 1
+    if k = 3 then
+        continue while
+    end if
+    Console.WriteLine(k)
+end while
+Console.WriteLine("Done with continue while")

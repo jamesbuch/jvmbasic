@@ -1,0 +1,16 @@
+' String interpolation test
+var name as String = "World"
+var count as Integer = 42
+
+' Test basic interpolation
+Console.WriteLine($"Hello, {name}!")
+Console.WriteLine($"The answer is {count}")
+
+' Test multiple interpolations
+Console.WriteLine($"Hello {name}, the number is {count}")
+
+' Test with no interpolations (just literal)
+Console.WriteLine($"Just a literal string")
+
+' Test escaped dollar sign
+Console.WriteLine($"Cost is $$50")

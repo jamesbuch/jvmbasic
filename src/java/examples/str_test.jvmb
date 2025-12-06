@@ -1,0 +1,50 @@
+' Str namespace test
+
+Console.WriteLine("Str namespace test:")
+
+var text as String = "Hello World"
+
+' Length
+Console.WriteLine("Length of text:")
+Console.WriteLine(Str.Length(text))
+
+' Case conversion
+Console.WriteLine("ToUpper:")
+Console.WriteLine(Str.ToUpper(text))
+Console.WriteLine("ToLower:")
+Console.WriteLine(Str.ToLower(text))
+
+' Substring
+Console.WriteLine("Left 5:")
+Console.WriteLine(Str.Left(text, 5))
+Console.WriteLine("Right 5:")
+Console.WriteLine(Str.Right(text, 5))
+
+' Search
+Console.WriteLine("IndexOf World:")
+Console.WriteLine(Str.IndexOf(text, "World"))
+Console.WriteLine("Contains Hello:")
+if Str.Contains(text, "Hello") then
+    Console.WriteLine("true")
+else
+    Console.WriteLine("false")
+end if
+
+' Replace
+Console.WriteLine("Replace World with BASIC:")
+Console.WriteLine(Str.Replace(text, "World", "BASIC"))
+
+' Trim
+var padded as String = "  trimmed  "
+Console.WriteLine("Trim:")
+Console.WriteLine(Str.Trim(padded))
+
+' Repeat
+Console.WriteLine("Repeat ab 3 times:")
+Console.WriteLine(Str.Repeat("ab", 3))
+
+' Conversion
+Console.WriteLine("ToInt 42:")
+Console.WriteLine(Str.ToInt("42"))
+
+Console.WriteLine("Str test complete!")

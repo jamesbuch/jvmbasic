@@ -46,6 +46,32 @@ public class CompilerVisitor extends JvmBasicParserBaseVisitor<Object> {
 
     private record LocalVar(String name, String type, int slot) {}
 
+    // Loop context for exit/continue statements
+    private final java.util.Deque<LoopContext> loopStack = new java.util.ArrayDeque<>();
+
+    private record LoopContext(String type, Label continueLabel, Label breakLabel) {}
+
+    private void pushLoop(String type, Label continueLabel, Label breakLabel) {
+        loopStack.push(new LoopContext(type, continueLabel, breakLabel));
+    }
+
+    private void popLoop() {
+        loopStack.pop();
+    }
+
+    private LoopContext findLoop(String type) {
+        if (type == null) {
+            // No specific type, return the innermost loop
+            return loopStack.isEmpty() ? null : loopStack.peek();
+        }
+        for (LoopContext ctx : loopStack) {
+            if (ctx.type.equalsIgnoreCase(type)) {
+                return ctx;
+            }
+        }
+        return null;
+    }
+
     public CompilerVisitor(String className, SymbolTable symbols) {
         this.className = className;
         this.symbols = symbols;
@@ -338,6 +364,9 @@ public class CompilerVisitor extends JvmBasicParserBaseVisitor<Object> {
         Label startLabel = new Label();
         Label endLabel = new Label();
 
+        // For while, continue should re-check condition
+        pushLoop("while", startLabel, endLabel);
+
         mv.visitLabel(startLabel);
 
         // Evaluate condition
@@ -352,6 +381,8 @@ public class CompilerVisitor extends JvmBasicParserBaseVisitor<Object> {
         mv.visitJumpInsn(GOTO, startLabel);
         mv.visitLabel(endLabel);
 
+        popLoop();
+
         return null;
     }
 
@@ -360,6 +391,9 @@ public class CompilerVisitor extends JvmBasicParserBaseVisitor<Object> {
         // DO [WHILE|UNTIL expr] ... LOOP [WHILE|UNTIL expr]
         Label startLabel = new Label();
         Label endLabel = new Label();
+
+        // For do loop, continue should go to start (re-check condition)
+        pushLoop("do", startLabel, endLabel);
 
         // Check for pre-condition (DO WHILE/UNTIL)
         boolean hasPreWhile = false;
@@ -435,6 +469,9 @@ public class CompilerVisitor extends JvmBasicParserBaseVisitor<Object> {
         }
 
         mv.visitLabel(endLabel);
+
+        popLoop();
+
         return null;
     }
 
@@ -471,7 +508,11 @@ public class CompilerVisitor extends JvmBasicParserBaseVisitor<Object> {
         }
 
         Label startLabel = new Label();
-        Label endLabel = new Label();
+        Label continueLabel = new Label();  // continue jumps here (increment)
+        Label endLabel = new Label();       // exit/break jumps here
+
+        // Register loop for exit/continue statements
+        pushLoop("for", continueLabel, endLabel);
 
         mv.visitLabel(startLabel);
 
@@ -486,6 +527,9 @@ public class CompilerVisitor extends JvmBasicParserBaseVisitor<Object> {
             visit(stmt);
         }
 
+        // Continue label - continue jumps here to increment
+        mv.visitLabel(continueLabel);
+
         // Increment: i = i + step (or i + 1 if no step)
         mv.visitVarInsn(ILOAD, slot);
         if (hasStep) {
@@ -498,6 +542,9 @@ public class CompilerVisitor extends JvmBasicParserBaseVisitor<Object> {
 
         mv.visitJumpInsn(GOTO, startLabel);
         mv.visitLabel(endLabel);
+
+        // Pop loop context
+        popLoop();
 
         return null;
     }
@@ -538,7 +585,11 @@ public class CompilerVisitor extends JvmBasicParserBaseVisitor<Object> {
         }
 
         Label startLabel = new Label();
-        Label endLabel = new Label();
+        Label continueLabel = new Label();  // continue jumps here (increment)
+        Label endLabel = new Label();       // exit jumps here
+
+        // For Each is treated as a FOR loop
+        pushLoop("for", continueLabel, endLabel);
 
         mv.visitLabel(startLabel);
 
@@ -559,13 +610,145 @@ public class CompilerVisitor extends JvmBasicParserBaseVisitor<Object> {
             visit(stmt);
         }
 
+        // Continue label - continue jumps here to increment
+        mv.visitLabel(continueLabel);
+
         // Increment index: i++
         mv.visitIincInsn(indexSlot, 1);
 
         mv.visitJumpInsn(GOTO, startLabel);
         mv.visitLabel(endLabel);
 
+        popLoop();
+
         return null;
+    }
+
+    @Override
+    public Object visitSelectStatement(JvmBasicParser.SelectStatementContext ctx) {
+        // SELECT CASE expression
+        //   CASE value1, value2
+        //     statements
+        //   CASE value3
+        //     statements
+        //   CASE ELSE
+        //     statements
+        // END SELECT
+        //
+        // Strategy: Evaluate the select expression, store it in a temp variable,
+        // then generate a chain of if-elseif-else comparisons.
+
+        Label endLabel = new Label();
+
+        // Evaluate the select expression and store in a temp variable
+        visit(ctx.expression());
+        String selectType = lastExprType;
+        int selectSlot = localVarSlot++;
+        storeLocal(selectSlot, selectType);
+
+        // Track the select context for EXIT SELECT
+        pushLoop("select", endLabel, endLabel);  // both continue and break go to end
+
+        // Process each CASE clause
+        for (int i = 0; i < ctx.caseClause().size(); i++) {
+            JvmBasicParser.CaseClauseContext caseCtx = ctx.caseClause(i);
+            Label nextCaseLabel = new Label();
+
+            // Each case can have multiple values: CASE 1, 2, 3
+            JvmBasicParser.ExpressionListContext exprList = caseCtx.expressionList();
+            int numValues = exprList.expression().size();
+
+            if (numValues == 1) {
+                // Single value case - simple comparison
+                loadLocal(selectSlot, selectType);
+                visit(exprList.expression(0));
+                emitEqualityComparison(selectType, nextCaseLabel);
+            } else {
+                // Multiple values - any match should execute the case
+                // OR logic: if val1 || val2 || val3 ...
+                Label matchLabel = new Label();
+                for (int j = 0; j < numValues; j++) {
+                    loadLocal(selectSlot, selectType);
+                    visit(exprList.expression(j));
+                    emitEqualityJumpIfTrue(selectType, matchLabel);
+                }
+                // None matched, jump to next case
+                mv.visitJumpInsn(GOTO, nextCaseLabel);
+                mv.visitLabel(matchLabel);
+            }
+
+            // Execute case body
+            for (JvmBasicParser.StatementContext stmt : caseCtx.statement()) {
+                visit(stmt);
+            }
+
+            // Jump to end after executing case body
+            mv.visitJumpInsn(GOTO, endLabel);
+
+            mv.visitLabel(nextCaseLabel);
+        }
+
+        // Handle CASE ELSE if present
+        if (ctx.caseElseClause() != null) {
+            for (JvmBasicParser.StatementContext stmt : ctx.caseElseClause().statement()) {
+                visit(stmt);
+            }
+        }
+
+        mv.visitLabel(endLabel);
+        popLoop();
+
+        return null;
+    }
+
+    // Emit comparison that jumps to falseLabel if NOT equal
+    private void emitEqualityComparison(String type, Label falseLabel) {
+        if ("String".equalsIgnoreCase(type)) {
+            // Use String.equals() for strings
+            mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/String", "equals",
+                              "(Ljava/lang/Object;)Z", false);
+            mv.visitJumpInsn(IFEQ, falseLabel);  // if result == 0 (false), jump
+        } else if ("Integer".equalsIgnoreCase(type) || "Int".equalsIgnoreCase(type)) {
+            mv.visitJumpInsn(IF_ICMPNE, falseLabel);  // if not equal, jump
+        } else if ("Long".equalsIgnoreCase(type)) {
+            mv.visitInsn(LCMP);
+            mv.visitJumpInsn(IFNE, falseLabel);  // if not equal, jump
+        } else if ("Float".equalsIgnoreCase(type)) {
+            mv.visitInsn(FCMPL);
+            mv.visitJumpInsn(IFNE, falseLabel);
+        } else if ("Double".equalsIgnoreCase(type)) {
+            mv.visitInsn(DCMPL);
+            mv.visitJumpInsn(IFNE, falseLabel);
+        } else {
+            // Reference types - use equals()
+            mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/Object", "equals",
+                              "(Ljava/lang/Object;)Z", false);
+            mv.visitJumpInsn(IFEQ, falseLabel);
+        }
+    }
+
+    // Emit comparison that jumps to trueLabel if EQUAL
+    private void emitEqualityJumpIfTrue(String type, Label trueLabel) {
+        if ("String".equalsIgnoreCase(type)) {
+            mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/String", "equals",
+                              "(Ljava/lang/Object;)Z", false);
+            mv.visitJumpInsn(IFNE, trueLabel);  // if result != 0 (true), jump
+        } else if ("Integer".equalsIgnoreCase(type) || "Int".equalsIgnoreCase(type)) {
+            mv.visitJumpInsn(IF_ICMPEQ, trueLabel);  // if equal, jump
+        } else if ("Long".equalsIgnoreCase(type)) {
+            mv.visitInsn(LCMP);
+            mv.visitJumpInsn(IFEQ, trueLabel);  // if equal, jump
+        } else if ("Float".equalsIgnoreCase(type)) {
+            mv.visitInsn(FCMPL);
+            mv.visitJumpInsn(IFEQ, trueLabel);
+        } else if ("Double".equalsIgnoreCase(type)) {
+            mv.visitInsn(DCMPL);
+            mv.visitJumpInsn(IFEQ, trueLabel);
+        } else {
+            mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/Object", "equals",
+                              "(Ljava/lang/Object;)Z", false);
+            mv.visitJumpInsn(IFNE, trueLabel);
+        }
     }
 
     @Override
@@ -766,11 +949,21 @@ public class CompilerVisitor extends JvmBasicParserBaseVisitor<Object> {
     @Override
     public Object visitIdentifierExpr(JvmBasicParser.IdentifierExprContext ctx) {
         String name = ctx.IDENTIFIER().getText();
-        // Check for special namespaces like Console
+        // Check for built-in namespaces
         if ("Console".equalsIgnoreCase(name)) {
             // Console is a pseudo-namespace, don't load anything
             // The method call handler will deal with it
             pendingNamespace = "Console";
+            return null;
+        }
+        if ("Math".equalsIgnoreCase(name)) {
+            // Math namespace - maps to com.jvmbasic.runtime.BasicMath
+            pendingNamespace = "Math";
+            return null;
+        }
+        if ("Str".equalsIgnoreCase(name)) {
+            // Str namespace - maps to com.jvmbasic.runtime.BasicStr
+            pendingNamespace = "Str";
             return null;
         }
         // Check if this is a function name (will be handled by FunctionCall postfixOp)
@@ -824,7 +1017,28 @@ public class CompilerVisitor extends JvmBasicParserBaseVisitor<Object> {
                     mv.visitMethodInsn(INVOKEVIRTUAL, "java/io/PrintStream", "print", "(Ljava/lang/String;)V", false);
                 }
                 return null;
+            } else if ("ReadLine".equalsIgnoreCase(methodName)) {
+                // Console.ReadLine() -> new Scanner(System.in).nextLine()
+                mv.visitTypeInsn(NEW, "java/util/Scanner");
+                mv.visitInsn(DUP);
+                mv.visitFieldInsn(GETSTATIC, "java/lang/System", "in", "Ljava/io/InputStream;");
+                mv.visitMethodInsn(INVOKESPECIAL, "java/util/Scanner", "<init>", "(Ljava/io/InputStream;)V", false);
+                mv.visitMethodInsn(INVOKEVIRTUAL, "java/util/Scanner", "nextLine", "()Ljava/lang/String;", false);
+                lastExprType = "String";
+                return null;
             }
+        }
+
+        // Handle Math namespace - calls com.jvmbasic.runtime.BasicMath
+        if ("Math".equalsIgnoreCase(pendingNamespace)) {
+            pendingNamespace = null;
+            return handleMathCall(methodName, ctx.argumentList());
+        }
+
+        // Handle Str namespace - calls com.jvmbasic.runtime.BasicStr
+        if ("Str".equalsIgnoreCase(pendingNamespace)) {
+            pendingNamespace = null;
+            return handleStrCall(methodName, ctx.argumentList());
         }
 
         // Visit arguments for non-Console method calls
@@ -835,6 +1049,314 @@ public class CompilerVisitor extends JvmBasicParserBaseVisitor<Object> {
         }
 
         // TODO: Handle other method calls (instance methods, etc.)
+        return null;
+    }
+
+    // Handle Math.* calls - maps to com.jvmbasic.runtime.BasicMath static methods
+    private Object handleMathCall(String methodName, JvmBasicParser.ArgumentListContext argList) {
+        String runtimeClass = "com/jvmbasic/runtime/BasicMath";
+        int argCount = argList != null ? argList.argument().size() : 0;
+
+        // Visit arguments and coerce to double (Math functions expect doubles)
+        if (argList != null) {
+            for (JvmBasicParser.ArgumentContext arg : argList.argument()) {
+                visit(arg.expression());
+                // Coerce to double if needed
+                coerceToDouble();
+            }
+        }
+
+        // Map method names to their descriptors
+        // Most math functions take and return doubles
+        switch (methodName) {
+            // Constants (no args)
+            case "Pi" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "Pi", "()D", false);
+                lastExprType = "Double";
+            }
+            case "E" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "E", "()D", false);
+                lastExprType = "Double";
+            }
+
+            // Single double argument functions
+            case "Sqrt", "Cbrt", "Exp", "Log", "Log10", "Log2",
+                 "Sin", "Cos", "Tan", "Asin", "Acos", "Atan",
+                 "Sinh", "Cosh", "Tanh", "Floor", "Ceil",
+                 "ToRadians", "ToDegrees", "Truncate" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, methodName, "(D)D", false);
+                lastExprType = "Double";
+            }
+
+            // Abs - works with int, long, float, double
+            case "Abs" -> {
+                // For simplicity, assume double
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "Abs", "(D)D", false);
+                lastExprType = "Double";
+            }
+
+            // Sign - returns int
+            case "Sign" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "Sign", "(D)I", false);
+                lastExprType = "Integer";
+            }
+
+            // Pow(base, exp)
+            case "Pow" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "Pow", "(DD)D", false);
+                lastExprType = "Double";
+            }
+
+            // Atan2(y, x)
+            case "Atan2" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "Atan2", "(DD)D", false);
+                lastExprType = "Double";
+            }
+
+            // Hypot(x, y)
+            case "Hypot" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "Hypot", "(DD)D", false);
+                lastExprType = "Double";
+            }
+
+            // Lerp(a, b, t)
+            case "Lerp" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "Lerp", "(DDD)D", false);
+                lastExprType = "Double";
+            }
+
+            // Round - returns long
+            case "Round" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "Round", "(D)J", false);
+                lastExprType = "Long";
+            }
+
+            // Min/Max with 2 double args
+            case "Min", "Max" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, methodName, "(DD)D", false);
+                lastExprType = "Double";
+            }
+
+            // Clamp(value, min, max)
+            case "Clamp" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "Clamp", "(DDD)D", false);
+                lastExprType = "Double";
+            }
+
+            // Random functions
+            case "Random" -> {
+                if (argCount == 0) {
+                    mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "Random", "()D", false);
+                    lastExprType = "Double";
+                } else if (argCount == 1) {
+                    mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "Random", "(I)I", false);
+                    lastExprType = "Integer";
+                } else {
+                    mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "Random", "(II)I", false);
+                    lastExprType = "Integer";
+                }
+            }
+
+            case "Randomize" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "Randomize", "(J)V", false);
+                lastExprType = "void";
+            }
+
+            // Boolean checks
+            case "IsNaN", "IsInfinite", "IsFinite" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, methodName, "(D)Z", false);
+                lastExprType = "Boolean";
+            }
+
+            default -> throw new RuntimeException("Unknown Math function: " + methodName);
+        }
+
+        return null;
+    }
+
+    // Handle Str.* calls - maps to com.jvmbasic.runtime.BasicStr static methods
+    private Object handleStrCall(String methodName, JvmBasicParser.ArgumentListContext argList) {
+        String runtimeClass = "com/jvmbasic/runtime/BasicStr";
+        int argCount = argList != null ? argList.argument().size() : 0;
+
+        // Visit arguments first
+        if (argList != null) {
+            for (JvmBasicParser.ArgumentContext arg : argList.argument()) {
+                visit(arg.expression());
+            }
+        }
+
+        switch (methodName) {
+            // String properties - takes String, returns int/boolean
+            case "Length" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "Length", "(Ljava/lang/String;)I", false);
+                lastExprType = "Integer";
+            }
+            case "IsEmpty", "IsBlank" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, methodName, "(Ljava/lang/String;)Z", false);
+                lastExprType = "Boolean";
+            }
+
+            // Case conversion - String -> String
+            case "ToUpper", "ToLower", "Capitalize", "Title", "Trim", "TrimLeft", "TrimRight", "Reverse" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, methodName, "(Ljava/lang/String;)Ljava/lang/String;", false);
+                lastExprType = "String";
+            }
+
+            // Substring operations - String, int -> String
+            case "Substring" -> {
+                if (argCount == 2) {
+                    mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "Substring", "(Ljava/lang/String;I)Ljava/lang/String;", false);
+                } else {
+                    mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "Substring", "(Ljava/lang/String;II)Ljava/lang/String;", false);
+                }
+                lastExprType = "String";
+            }
+
+            case "Left", "Right" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, methodName, "(Ljava/lang/String;I)Ljava/lang/String;", false);
+                lastExprType = "String";
+            }
+
+            case "Mid" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "Mid", "(Ljava/lang/String;II)Ljava/lang/String;", false);
+                lastExprType = "String";
+            }
+
+            // Search - returns int
+            case "IndexOf" -> {
+                if (argCount == 2) {
+                    mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "IndexOf", "(Ljava/lang/String;Ljava/lang/String;)I", false);
+                } else {
+                    mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "IndexOf", "(Ljava/lang/String;Ljava/lang/String;I)I", false);
+                }
+                lastExprType = "Integer";
+            }
+
+            case "LastIndexOf" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "LastIndexOf", "(Ljava/lang/String;Ljava/lang/String;)I", false);
+                lastExprType = "Integer";
+            }
+
+            // Search - returns boolean
+            case "Contains", "StartsWith", "EndsWith" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, methodName, "(Ljava/lang/String;Ljava/lang/String;)Z", false);
+                lastExprType = "Boolean";
+            }
+
+            // Replace - String, String, String -> String
+            case "Replace", "ReplaceFirst", "ReplaceAll" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, methodName, "(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)Ljava/lang/String;", false);
+                lastExprType = "String";
+            }
+
+            // Repeat - String, int -> String
+            case "Repeat" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "Repeat", "(Ljava/lang/String;I)Ljava/lang/String;", false);
+                lastExprType = "String";
+            }
+
+            // Padding - String, int -> String
+            case "PadLeft", "PadRight", "Center" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, methodName, "(Ljava/lang/String;I)Ljava/lang/String;", false);
+                lastExprType = "String";
+            }
+
+            // Character operations
+            case "CharAt" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "CharAt", "(Ljava/lang/String;I)C", false);
+                lastExprType = "Char";
+            }
+
+            case "Asc" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "Asc", "(Ljava/lang/String;)I", false);
+                lastExprType = "Integer";
+            }
+
+            case "Chr" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "Chr", "(I)Ljava/lang/String;", false);
+                lastExprType = "String";
+            }
+
+            // Comparison
+            case "Compare" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "Compare", "(Ljava/lang/String;Ljava/lang/String;)I", false);
+                lastExprType = "Integer";
+            }
+
+            case "CompareIgnoreCase" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "CompareIgnoreCase", "(Ljava/lang/String;Ljava/lang/String;)I", false);
+                lastExprType = "Integer";
+            }
+
+            case "Equals", "EqualsIgnoreCase" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, methodName, "(Ljava/lang/String;Ljava/lang/String;)Z", false);
+                lastExprType = "Boolean";
+            }
+
+            // Regex
+            case "Matches" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "Matches", "(Ljava/lang/String;Ljava/lang/String;)Z", false);
+                lastExprType = "Boolean";
+            }
+
+            // Split - returns String[]
+            case "Split", "SplitRegex" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, methodName, "(Ljava/lang/String;Ljava/lang/String;)[Ljava/lang/String;", false);
+                lastExprType = "String[]";
+            }
+
+            // Join - String[], String -> String
+            case "Join" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "Join", "([Ljava/lang/String;Ljava/lang/String;)Ljava/lang/String;", false);
+                lastExprType = "String";
+            }
+
+            // Conversion to types
+            case "ToInt" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "ToInt", "(Ljava/lang/String;)I", false);
+                lastExprType = "Integer";
+            }
+
+            case "ToLong" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "ToLong", "(Ljava/lang/String;)J", false);
+                lastExprType = "Long";
+            }
+
+            case "ToDouble" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "ToDouble", "(Ljava/lang/String;)D", false);
+                lastExprType = "Double";
+            }
+
+            case "ToBoolean" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "ToBoolean", "(Ljava/lang/String;)Z", false);
+                lastExprType = "Boolean";
+            }
+
+            // Conversion from types
+            case "FromInt" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "FromInt", "(I)Ljava/lang/String;", false);
+                lastExprType = "String";
+            }
+
+            case "FromLong" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "FromLong", "(J)Ljava/lang/String;", false);
+                lastExprType = "String";
+            }
+
+            case "FromDouble" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "FromDouble", "(D)Ljava/lang/String;", false);
+                lastExprType = "String";
+            }
+
+            case "FromBoolean" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "FromBoolean", "(Z)Ljava/lang/String;", false);
+                lastExprType = "String";
+            }
+
+            default -> throw new RuntimeException("Unknown Str function: " + methodName);
+        }
+
         return null;
     }
 
@@ -1053,6 +1575,20 @@ public class CompilerVisitor extends JvmBasicParserBaseVisitor<Object> {
             }
         }
 
+        // Handle Math namespace
+        if ("Math".equalsIgnoreCase(pendingNamespace)) {
+            pendingNamespace = null;
+            handleMathCall(methodName, argList);
+            return;
+        }
+
+        // Handle Str namespace
+        if ("Str".equalsIgnoreCase(pendingNamespace)) {
+            pendingNamespace = null;
+            handleStrCall(methodName, argList);
+            return;
+        }
+
         // TODO: Handle other method calls
     }
 
@@ -1257,6 +1793,25 @@ public class CompilerVisitor extends JvmBasicParserBaseVisitor<Object> {
         lastExprType = type;
     }
 
+    // Coerce the value on stack to double (for Math functions)
+    private void coerceToDouble() {
+        switch (lastExprType.toLowerCase()) {
+            case "integer", "int" -> {
+                mv.visitInsn(I2D);
+                lastExprType = "Double";
+            }
+            case "long" -> {
+                mv.visitInsn(L2D);
+                lastExprType = "Double";
+            }
+            case "float" -> {
+                mv.visitInsn(F2D);
+                lastExprType = "Double";
+            }
+            // Double already - no conversion needed
+        }
+    }
+
     private void generateDefaultValue(String type) {
         switch (type.toLowerCase()) {
             case "integer", "int", "boolean", "bool", "byte", "char" -> mv.visitInsn(ICONST_0);
@@ -1367,5 +1922,231 @@ public class CompilerVisitor extends JvmBasicParserBaseVisitor<Object> {
             .replace("\\r", "\r")
             .replace("\\\"", "\"")
             .replace("\\\\", "\\");
+    }
+
+    // ========================================================================
+    // Exit and Continue Statements
+    // ========================================================================
+
+    @Override
+    public Object visitExitStatement(JvmBasicParser.ExitStatementContext ctx) {
+        // EXIT FOR | EXIT WHILE | EXIT DO | EXIT SUB | EXIT FUNCTION | EXIT SELECT
+        String loopType = null;
+
+        if (ctx.FOR() != null) {
+            loopType = "for";
+        } else if (ctx.WHILE() != null) {
+            loopType = "while";
+        } else if (ctx.DO() != null) {
+            loopType = "do";
+        } else if (ctx.SELECT() != null) {
+            loopType = "select";
+        } else if (ctx.SUB() != null || ctx.FUNCTION() != null) {
+            // Exit function/sub - emit return
+            FunctionSymbol func = symbols.getFunction(currentMethod);
+            if (func != null) {
+                generateDefaultReturn(func.returnType);
+            } else {
+                // In main, just return
+                mv.visitInsn(RETURN);
+            }
+            return null;
+        }
+
+        LoopContext loop = findLoop(loopType);
+        if (loop == null) {
+            throw new RuntimeException("Exit " + (loopType != null ? loopType : "") +
+                                       " statement not inside a matching loop");
+        }
+
+        // Jump to break label
+        mv.visitJumpInsn(GOTO, loop.breakLabel);
+        return null;
+    }
+
+    @Override
+    public Object visitContinueStatement(JvmBasicParser.ContinueStatementContext ctx) {
+        // CONTINUE [FOR | WHILE | DO]
+        String loopType = null;
+
+        if (ctx.FOR() != null) {
+            loopType = "for";
+        } else if (ctx.WHILE() != null) {
+            loopType = "while";
+        } else if (ctx.DO() != null) {
+            loopType = "do";
+        }
+
+        LoopContext loop = findLoop(loopType);
+        if (loop == null) {
+            throw new RuntimeException("Continue" + (loopType != null ? " " + loopType : "") +
+                                       " statement not inside a matching loop");
+        }
+
+        // Jump to continue label
+        mv.visitJumpInsn(GOTO, loop.continueLabel);
+        return null;
+    }
+
+    // ========================================================================
+    // String Interpolation
+    // ========================================================================
+
+    @Override
+    public Object visitInterpolatedStringLiteral(JvmBasicParser.InterpolatedStringLiteralContext ctx) {
+        // Handle $"Hello {name}!" syntax
+        String text = ctx.INTERPOLATED_STRING().getText();
+
+        // Remove $" prefix and " suffix
+        String content = text.substring(2, text.length() - 1);
+
+        // Parse interpolations and generate StringBuilder code
+        compileInterpolatedString(content);
+
+        lastExprType = "String";
+        return null;
+    }
+
+    /**
+     * Compiles an interpolated string like "Hello {name}, you are {age} years old"
+     * Uses StringBuilder for efficient concatenation.
+     */
+    private void compileInterpolatedString(String content) {
+        // Create StringBuilder
+        mv.visitTypeInsn(NEW, "java/lang/StringBuilder");
+        mv.visitInsn(DUP);
+        mv.visitMethodInsn(INVOKESPECIAL, "java/lang/StringBuilder", "<init>", "()V", false);
+
+        // Parse the string and process literal parts and interpolations
+        int i = 0;
+        StringBuilder literalPart = new StringBuilder();
+
+        while (i < content.length()) {
+            char c = content.charAt(i);
+
+            if (c == '{') {
+                // Flush any accumulated literal text first
+                if (literalPart.length() > 0) {
+                    String lit = processEscapes(literalPart.toString());
+                    mv.visitLdcInsn(lit);
+                    mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/StringBuilder", "append",
+                                      "(Ljava/lang/String;)Ljava/lang/StringBuilder;", false);
+                    literalPart.setLength(0);
+                }
+
+                // Find the closing brace
+                int closeBrace = content.indexOf('}', i);
+                if (closeBrace == -1) {
+                    throw new RuntimeException("Unclosed interpolation in string: missing '}'");
+                }
+
+                String exprText = content.substring(i + 1, closeBrace).trim();
+                if (exprText.isEmpty()) {
+                    throw new RuntimeException("Empty interpolation expression");
+                }
+
+                // Compile the expression (parse and evaluate)
+                compileInterpolationExpression(exprText);
+
+                // Convert result to String and append
+                emitToStringForInterpolation();
+                mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/StringBuilder", "append",
+                                  "(Ljava/lang/String;)Ljava/lang/StringBuilder;", false);
+
+                i = closeBrace + 1;
+            } else if (c == '$' && i + 1 < content.length() && content.charAt(i + 1) == '$') {
+                // Escaped $$ -> $
+                literalPart.append('$');
+                i += 2;
+            } else if (c == '\\' && i + 1 < content.length()) {
+                // Escape sequence - preserve for processing
+                literalPart.append(c);
+                literalPart.append(content.charAt(i + 1));
+                i += 2;
+            } else {
+                literalPart.append(c);
+                i++;
+            }
+        }
+
+        // Flush remaining literal text
+        if (literalPart.length() > 0) {
+            String lit = processEscapes(literalPart.toString());
+            mv.visitLdcInsn(lit);
+            mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/StringBuilder", "append",
+                              "(Ljava/lang/String;)Ljava/lang/StringBuilder;", false);
+        }
+
+        // Call toString on StringBuilder
+        mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/StringBuilder", "toString",
+                          "()Ljava/lang/String;", false);
+    }
+
+    /**
+     * Process escape sequences in a string
+     */
+    private String processEscapes(String s) {
+        return s
+            .replace("\\n", "\n")
+            .replace("\\t", "\t")
+            .replace("\\r", "\r")
+            .replace("\\\"", "\"")
+            .replace("\\\\", "\\");
+    }
+
+    /**
+     * Compiles a simple expression inside an interpolation: variable name or simple expression.
+     * For now, supports variable references only. Complex expressions require re-parsing.
+     */
+    private void compileInterpolationExpression(String exprText) {
+        // For now, support simple variable references
+        // The expression text is just the variable name or a simple expression
+
+        // Try to look up as a variable first
+        if (exprText.matches("[a-zA-Z_][a-zA-Z0-9_]*")) {
+            // It's a simple identifier - look it up as a variable
+            loadVariable(exprText);
+        } else {
+            // For complex expressions, we would need to re-parse
+            // For now, throw an error and suggest using simple variables
+            throw new RuntimeException("String interpolation currently supports only simple variables. " +
+                                       "For expressions, use concatenation: \"Result: \" + (a + b)");
+        }
+    }
+
+    /**
+     * Emits code to convert the top of stack to a String for interpolation
+     */
+    private void emitToStringForInterpolation() {
+        switch (lastExprType) {
+            case "String" -> {
+                // Already a string, nothing to do
+            }
+            case "Integer", "int" -> {
+                mv.visitMethodInsn(INVOKESTATIC, "java/lang/Integer", "toString",
+                                  "(I)Ljava/lang/String;", false);
+            }
+            case "Long", "long" -> {
+                mv.visitMethodInsn(INVOKESTATIC, "java/lang/Long", "toString",
+                                  "(J)Ljava/lang/String;", false);
+            }
+            case "Float", "float" -> {
+                mv.visitMethodInsn(INVOKESTATIC, "java/lang/Float", "toString",
+                                  "(F)Ljava/lang/String;", false);
+            }
+            case "Double", "double" -> {
+                mv.visitMethodInsn(INVOKESTATIC, "java/lang/Double", "toString",
+                                  "(D)Ljava/lang/String;", false);
+            }
+            case "Boolean", "boolean" -> {
+                mv.visitMethodInsn(INVOKESTATIC, "java/lang/Boolean", "toString",
+                                  "(Z)Ljava/lang/String;", false);
+            }
+            default -> {
+                // For objects, call String.valueOf which handles null safely
+                mv.visitMethodInsn(INVOKESTATIC, "java/lang/String", "valueOf",
+                                  "(Ljava/lang/Object;)Ljava/lang/String;", false);
+            }
+        }
     }
 }

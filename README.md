@@ -10,18 +10,38 @@ A clean-room rewrite using ANTLR4 for parsing and ASM for bytecode generation. W
 
 **Location:** `src/java/`
 
-**Features:**
-- Modern VB-style syntax: `var x as Integer = 10`
-- Console I/O via namespaced calls: `Console.WriteLine("Hello")`
-- All primitive types: Integer, Long, Float, Double, String, Boolean
-- Control flow: If/ElseIf/Else, For loops (with STEP), While, Do loops (all variants)
-- User-defined functions with parameters and return values
-- ANTLR4 grammar with ASM bytecode generation
+**Implemented Features:**
+| Feature | Status | Example |
+|---------|--------|---------|
+| Variables | ✅ | `var x as Integer = 10` |
+| All numeric types | ✅ | Integer, Long, Float, Double |
+| Strings | ✅ | `var s as String = "Hello"` |
+| Booleans | ✅ | `var b as Boolean = true` |
+| Arithmetic | ✅ | `+`, `-`, `*`, `/`, `mod` |
+| Comparisons | ✅ | `<`, `>`, `<=`, `>=`, `=`, `<>` |
+| Logical ops | ✅ | `and`, `or`, `not` |
+| If/ElseIf/Else | ✅ | Full conditional branching |
+| For loops | ✅ | `for i = 1 to 10 step 2` |
+| For Each loops | ✅ | `for each x in array` |
+| While loops | ✅ | `while x < 10 ... end while` |
+| Do loops | ✅ | All variants (while/until) |
+| Arrays | ✅ | `new Integer[5]`, `arr[0]` |
+| Functions | ✅ | With parameters and return values |
+| Console I/O | ✅ | `Console.WriteLine`, `ReadLine` |
+| String interpolation | ✅ | `$"Hello {name}!"` |
+| Exit/Continue | ✅ | `exit for`, `continue while`, etc. |
+| Select Case | ✅ | Multi-value cases, Case Else |
+| Math namespace | ✅ | `Math.Sqrt()`, `Math.Sin()`, etc. |
+| Str namespace | ✅ | `Str.ToUpper()`, `Str.Length()`, etc. |
+
+**Coming Soon:**
+- More standard library (File, Http, Json, Db)
+- Classes and OOP
 
 **Documentation:**
 - [User Guide](src/java/docs/USER_GUIDE.md)
 - [Developer Guide](src/java/docs/DEVELOPER_GUIDE.md)
-- [IR to Bytecode Design](src/java/docs/IR_TO_BYTECODE.md)
+- [Advanced Features Strategy](src/java/docs/ADVANCED_FEATURES_STRATEGY.md)
 
 **Quick Start:**
 ```bash
@@ -33,6 +53,9 @@ java -jar build/libs/jvmbasic-compiler-2.0.0-SNAPSHOT.jar examples/hello.jvmb
 
 # Run it
 java hello
+
+# Run test suite
+./test-examples.sh
 ```
 
 ---
