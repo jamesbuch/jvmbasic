@@ -44,6 +44,10 @@ public class CompilerVisitor extends JvmBasicParserBaseVisitor<Object> {
     // Track main method locals when not using a FunctionSymbol
     private final java.util.Map<String, LocalVar> mainLocals = new java.util.LinkedHashMap<>();
 
+    // OOP support: generated class files for user-defined classes
+    private final java.util.Map<String, byte[]> generatedClasses = new java.util.LinkedHashMap<>();
+    private String currentClass = null;  // Name of class being compiled (null = main class)
+
     private record LocalVar(String name, String type, int slot) {}
 
     // Loop context for exit/continue statements
@@ -79,6 +83,14 @@ public class CompilerVisitor extends JvmBasicParserBaseVisitor<Object> {
 
     public byte[] getBytecode() {
         return cw.toByteArray();
+    }
+
+    /**
+     * Returns a map of generated class files for user-defined classes.
+     * Key is class name, value is bytecode.
+     */
+    public java.util.Map<String, byte[]> getGeneratedClasses() {
+        return generatedClasses;
     }
 
     // ========================================================================
@@ -207,6 +219,190 @@ public class CompilerVisitor extends JvmBasicParserBaseVisitor<Object> {
     }
 
     // ========================================================================
+    // Class Declarations (OOP support)
+    // ========================================================================
+
+    @Override
+    public Object visitClassDeclaration(JvmBasicParser.ClassDeclarationContext ctx) {
+        String classNameStr = ctx.IDENTIFIER().getText();
+        ClassSymbol classSym = symbols.getClass(classNameStr);
+        if (classSym == null) {
+            throw new RuntimeException("Unknown class: " + classNameStr);
+        }
+
+        // Save current class writer state
+        ClassWriter savedCw = cw;
+        MethodVisitor savedMv = mv;
+        String savedCurrentClass = currentClass;
+
+        // Create new class writer for this class
+        currentClass = classNameStr;
+        cw = new ClassWriter(ClassWriter.COMPUTE_FRAMES | ClassWriter.COMPUTE_MAXS);
+
+        // Determine base class
+        String baseClass = classSym.getBaseClass();
+        String baseClassInternal = "java/lang/Object";
+        if (baseClass != null && !baseClass.equals("Object")) {
+            baseClassInternal = baseClass.replace(".", "/");
+        }
+
+        cw.visit(V21, ACC_PUBLIC | ACC_SUPER, classNameStr, null, baseClassInternal, null);
+
+        // Generate fields
+        for (FieldSymbol field : classSym.getFields()) {
+            int access = fieldAccessToOpcodes(field.getAccessModifier());
+            if (field.isStatic()) {
+                access |= ACC_STATIC;
+            }
+            cw.visitField(access, field.name, typeToDescriptor(field.type), null, null).visitEnd();
+        }
+
+        // Generate constructor(s)
+        boolean hasConstructor = false;
+        for (JvmBasicParser.ClassMemberContext member : ctx.classMember()) {
+            if (member.constructorDeclaration() != null) {
+                generateConstructor(member.constructorDeclaration(), classNameStr, baseClassInternal, classSym);
+                hasConstructor = true;
+            }
+        }
+
+        // If no constructor, generate default constructor
+        if (!hasConstructor) {
+            generateDefaultClassConstructor(baseClassInternal);
+        }
+
+        // Generate methods
+        for (JvmBasicParser.ClassMemberContext member : ctx.classMember()) {
+            if (member.methodDeclaration() != null) {
+                generateMethod(member.methodDeclaration(), classNameStr, classSym);
+            }
+        }
+
+        cw.visitEnd();
+
+        // Store generated class bytecode
+        generatedClasses.put(classNameStr, cw.toByteArray());
+
+        // Restore class writer state
+        cw = savedCw;
+        mv = savedMv;
+        currentClass = savedCurrentClass;
+
+        return null;
+    }
+
+    private int fieldAccessToOpcodes(String accessModifier) {
+        return switch (accessModifier.toLowerCase()) {
+            case "public" -> ACC_PUBLIC;
+            case "private" -> ACC_PRIVATE;
+            case "protected" -> ACC_PROTECTED;
+            default -> 0;  // Package-private
+        };
+    }
+
+    private void generateDefaultClassConstructor(String baseClassInternal) {
+        mv = cw.visitMethod(ACC_PUBLIC, "<init>", "()V", null, null);
+        mv.visitCode();
+        mv.visitVarInsn(ALOAD, 0);
+        mv.visitMethodInsn(INVOKESPECIAL, baseClassInternal, "<init>", "()V", false);
+        mv.visitInsn(RETURN);
+        mv.visitMaxs(1, 1);
+        mv.visitEnd();
+    }
+
+    private void generateConstructor(JvmBasicParser.ConstructorDeclarationContext ctx,
+                                     String classNameStr, String baseClassInternal, ClassSymbol classSym) {
+        // Get constructor symbol (stored as method named "New")
+        FunctionSymbol constructor = classSym.getMethod("New");
+
+        // Build descriptor
+        StringBuilder descBuilder = new StringBuilder("(");
+        if (constructor != null) {
+            for (ParameterSymbol param : constructor.getParameters()) {
+                descBuilder.append(typeToDescriptor(param.type));
+            }
+        }
+        descBuilder.append(")V");
+        String descriptor = descBuilder.toString();
+
+        mv = cw.visitMethod(ACC_PUBLIC, "<init>", descriptor, null, null);
+        mv.visitCode();
+
+        // Call super constructor
+        mv.visitVarInsn(ALOAD, 0);
+        mv.visitMethodInsn(INVOKESPECIAL, baseClassInternal, "<init>", "()V", false);
+
+        currentMethod = "New";
+        // Slot 0 is 'this', parameters start at 1
+        localVarSlot = 1 + (constructor != null ? constructor.getParameters().size() : 0);
+
+        // Visit constructor body
+        for (JvmBasicParser.StatementContext stmt : ctx.statement()) {
+            visit(stmt);
+        }
+
+        mv.visitInsn(RETURN);
+        mv.visitMaxs(0, 0);
+        mv.visitEnd();
+
+        currentMethod = null;
+    }
+
+    private void generateMethod(JvmBasicParser.MethodDeclarationContext ctx,
+                                String classNameStr, ClassSymbol classSym) {
+        String methodName = ctx.IDENTIFIER().getText();
+        FunctionSymbol methodSym = classSym.getMethod(methodName);
+        if (methodSym == null) {
+            throw new RuntimeException("Unknown method: " + methodName + " in class " + classNameStr);
+        }
+
+        // Determine if static (SHARED keyword)
+        boolean isStatic = ctx.SHARED() != null;
+
+        // Build descriptor
+        String descriptor = buildMethodDescriptor(methodSym);
+
+        // Determine access
+        int access = ACC_PUBLIC;  // Default to public
+        if (ctx.accessModifier() != null) {
+            access = fieldAccessToOpcodes(ctx.accessModifier().getText());
+        }
+        if (isStatic) {
+            access |= ACC_STATIC;
+        }
+
+        mv = cw.visitMethod(access, methodName, descriptor, null, null);
+        mv.visitCode();
+
+        currentMethod = methodName;
+        // Slot 0 is 'this' for instance methods, parameters start at 1 (or 0 for static)
+        localVarSlot = isStatic ? methodSym.getParameters().size() : 1 + methodSym.getParameters().size();
+
+        // Visit method body
+        for (JvmBasicParser.StatementContext stmt : ctx.statement()) {
+            visit(stmt);
+        }
+
+        // Add default return if needed
+        String returnType = methodSym.returnType;
+        if (!methodEndsWithReturn(ctx)) {
+            generateDefaultReturn(returnType);
+        }
+
+        mv.visitMaxs(0, 0);
+        mv.visitEnd();
+
+        currentMethod = null;
+    }
+
+    private boolean methodEndsWithReturn(JvmBasicParser.MethodDeclarationContext ctx) {
+        var statements = ctx.statement();
+        if (statements.isEmpty()) return false;
+        var lastStatement = statements.get(statements.size() - 1);
+        return lastStatement.returnStatement() != null;
+    }
+
+    // ========================================================================
     // Statements
     // ========================================================================
 
@@ -279,6 +475,51 @@ public class CompilerVisitor extends JvmBasicParserBaseVisitor<Object> {
             return null;
         }
 
+        // Check if LHS is member access (e.g., this.name = value)
+        if (ctx.lvalue() instanceof JvmBasicParser.MemberLValueContext memberLValue) {
+            // For field assignment: obj.field = value
+            // We need to: push obj ref, push value, then PUTFIELD
+            String fieldName = memberLValue.IDENTIFIER().getText();
+
+            // Get object reference from inner lvalue
+            JvmBasicParser.LvalueContext innerLValue = memberLValue.lvalue();
+
+            // Check if it's this.field (using ThisLValue grammar rule)
+            if (innerLValue instanceof JvmBasicParser.ThisLValueContext && currentClass != null) {
+                // this.field = value
+                mv.visitVarInsn(ALOAD, 0);  // Push 'this'
+                visit(ctx.expression());    // Push value
+
+                // Get field type
+                ClassSymbol classSym = symbols.getClass(currentClass);
+                if (classSym != null) {
+                    FieldSymbol field = classSym.getField(fieldName);
+                    if (field != null) {
+                        mv.visitFieldInsn(PUTFIELD, currentClass, fieldName, typeToDescriptor(field.type));
+                        return null;
+                    }
+                }
+                throw new RuntimeException("Unknown field: " + fieldName + " in class " + currentClass);
+            } else if (innerLValue instanceof JvmBasicParser.SimpleLValueContext simpleLValue) {
+                // obj.field = value (where obj is a variable)
+                String objName = simpleLValue.IDENTIFIER().getText();
+                loadVariable(objName);      // Push object ref
+                String objType = lastExprType;
+                visit(ctx.expression());    // Push value
+
+                ClassSymbol classSym = symbols.getClass(objType);
+                if (classSym != null) {
+                    FieldSymbol field = classSym.getField(fieldName);
+                    if (field != null) {
+                        mv.visitFieldInsn(PUTFIELD, objType, fieldName, typeToDescriptor(field.type));
+                        return null;
+                    }
+                }
+                throw new RuntimeException("Unknown field: " + fieldName + " in class " + objType);
+            }
+            return null;
+        }
+
         // Regular assignment: evaluate RHS expression, then store
         visit(ctx.expression());
         visitLValueStore(ctx.lvalue());
@@ -310,8 +551,23 @@ public class CompilerVisitor extends JvmBasicParserBaseVisitor<Object> {
         if (ctx.expression() != null) {
             visit(ctx.expression());
             // Determine return type and use appropriate return instruction
-            FunctionSymbol func = symbols.getFunction(currentMethod);
-            String returnType = func != null ? func.returnType : "Void";
+            String returnType = "Void";
+            if (currentClass != null) {
+                // Look up method in current class
+                ClassSymbol classSym = symbols.getClass(currentClass);
+                if (classSym != null) {
+                    FunctionSymbol method = classSym.getMethod(currentMethod);
+                    if (method != null) {
+                        returnType = method.returnType;
+                    }
+                }
+            } else {
+                // Look up in global functions
+                FunctionSymbol func = symbols.getFunction(currentMethod);
+                if (func != null) {
+                    returnType = func.returnType;
+                }
+            }
             generateReturn(returnType);
         } else {
             mv.visitInsn(RETURN);
@@ -848,6 +1104,69 @@ public class CompilerVisitor extends JvmBasicParserBaseVisitor<Object> {
         return null;
     }
 
+    @Override
+    public Object visitThisExpr(JvmBasicParser.ThisExprContext ctx) {
+        // 'this' reference - load slot 0 which holds the object reference
+        if (currentClass == null) {
+            throw new RuntimeException("'this' can only be used inside a class method");
+        }
+        mv.visitVarInsn(ALOAD, 0);
+        lastExprType = currentClass;
+        return null;
+    }
+
+    // ========================================================================
+    // Object Creation
+    // ========================================================================
+
+    @Override
+    public Object visitNewObjectExpr(JvmBasicParser.NewObjectExprContext ctx) {
+        // new ClassName(args...)
+        String typeName = ctx.typeName().getText();
+
+        // Check if this is a user-defined class
+        ClassSymbol classSym = symbols.getClass(typeName);
+        if (classSym != null) {
+            // User-defined class: NEW, DUP, push args, INVOKESPECIAL <init>
+            mv.visitTypeInsn(NEW, typeName);
+            mv.visitInsn(DUP);
+
+            // Build constructor descriptor and push arguments
+            FunctionSymbol constructor = classSym.getMethod("New");
+            StringBuilder descBuilder = new StringBuilder("(");
+            if (ctx.argumentList() != null) {
+                for (JvmBasicParser.ArgumentContext arg : ctx.argumentList().argument()) {
+                    visit(arg.expression());
+                }
+            }
+            if (constructor != null) {
+                for (ParameterSymbol param : constructor.getParameters()) {
+                    descBuilder.append(typeToDescriptor(param.type));
+                }
+            }
+            descBuilder.append(")V");
+
+            mv.visitMethodInsn(INVOKESPECIAL, typeName, "<init>", descBuilder.toString(), false);
+            lastExprType = typeName;
+            return null;
+        }
+
+        // Standard library / external class instantiation
+        String internalName = typeName.replace(".", "/");
+        mv.visitTypeInsn(NEW, internalName);
+        mv.visitInsn(DUP);
+
+        // For now, only support default constructor for external types
+        if (ctx.argumentList() == null || ctx.argumentList().argument().isEmpty()) {
+            mv.visitMethodInsn(INVOKESPECIAL, internalName, "<init>", "()V", false);
+        } else {
+            throw new RuntimeException("Constructor with arguments not yet supported for external type: " + typeName);
+        }
+
+        lastExprType = typeName;
+        return null;
+    }
+
     // ========================================================================
     // Array Operations
     // ========================================================================
@@ -994,7 +1313,34 @@ public class CompilerVisitor extends JvmBasicParserBaseVisitor<Object> {
     @Override
     public Object visitMethodCall(JvmBasicParser.MethodCallContext ctx) {
         // This handles Namespace.Method() calls like Console.WriteLine()
+        // and instance method calls like alice.Greet()
         String methodName = ctx.memberName().getText();
+
+        // Handle instance method calls on user-defined classes
+        // The object is already on stack from visiting primaryExpr, and lastObjectType has its type
+        if (lastObjectType != null) {
+            ClassSymbol classSym = symbols.getClass(lastObjectType);
+            if (classSym != null) {
+                FunctionSymbol methodSym = classSym.getMethod(methodName);
+                if (methodSym != null) {
+                    String objectType = lastObjectType;
+                    lastObjectType = null;
+
+                    // Push arguments onto stack (object is already on stack)
+                    if (ctx.argumentList() != null) {
+                        for (JvmBasicParser.ArgumentContext arg : ctx.argumentList().argument()) {
+                            visit(arg.expression());
+                        }
+                    }
+
+                    // Build method descriptor and call INVOKEVIRTUAL
+                    String descriptor = buildMethodDescriptor(methodSym);
+                    mv.visitMethodInsn(INVOKEVIRTUAL, objectType, methodName, descriptor, false);
+                    lastExprType = methodSym.returnType;
+                    return null;
+                }
+            }
+        }
 
         // Handle Console namespace
         if ("Console".equalsIgnoreCase(pendingNamespace)) {
@@ -1755,9 +2101,8 @@ public class CompilerVisitor extends JvmBasicParserBaseVisitor<Object> {
                 case "+" -> emitAdd(leftType);
                 case "-" -> emitSub(leftType);
                 case "&" -> {
-                    // String concatenation - convert to String and call concat
-                    // For now just emit IADD as placeholder
-                    mv.visitInsn(IADD);
+                    // String concatenation - convert both operands to String and concatenate
+                    emitStringConcat(leftType, lastExprType);
                 }
             }
         }
@@ -1831,6 +2176,77 @@ public class CompilerVisitor extends JvmBasicParserBaseVisitor<Object> {
         }
     }
 
+    /**
+     * Emit string concatenation bytecode.
+     * Stack: [left, right] -> [result]
+     * Both values are converted to String if needed, then concatenated.
+     */
+    private void emitStringConcat(String leftType, String rightType) {
+        // Strategy: Convert both operands to String using String.valueOf if needed,
+        // then use String.concat()
+
+        // Stack currently has: [left, right]
+        // We need to convert right to String first (it's on top), then swap, convert left, swap back, then concat
+
+        // Actually, it's simpler to use StringBuilder:
+        // new StringBuilder().append(left).append(right).toString()
+
+        // But the simplest approach for two operands:
+        // Use invokedynamic makeConcatWithConstants (Java 9+) or just call String.valueOf and concat
+
+        // For Java 21 compatibility, use simple String.concat approach:
+        // Convert right to String (on top of stack)
+        emitToString(rightType);
+        // Stack: [left, rightString]
+
+        // Swap
+        mv.visitInsn(SWAP);
+        // Stack: [rightString, left]
+
+        // Convert left to String
+        emitToString(leftType);
+        // Stack: [rightString, leftString]
+
+        // Swap back
+        mv.visitInsn(SWAP);
+        // Stack: [leftString, rightString]
+
+        // Call String.concat
+        mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/String", "concat",
+                          "(Ljava/lang/String;)Ljava/lang/String;", false);
+        // Stack: [result]
+
+        lastExprType = "String";
+    }
+
+    /**
+     * Convert value on top of stack to String.
+     */
+    private void emitToString(String type) {
+        if (type == null) {
+            type = "Object";
+        }
+        switch (type.toLowerCase()) {
+            case "string", "java.lang.string" -> { /* already a string */ }
+            case "int", "integer" ->
+                mv.visitMethodInsn(INVOKESTATIC, "java/lang/String", "valueOf", "(I)Ljava/lang/String;", false);
+            case "long" ->
+                mv.visitMethodInsn(INVOKESTATIC, "java/lang/String", "valueOf", "(J)Ljava/lang/String;", false);
+            case "float" ->
+                mv.visitMethodInsn(INVOKESTATIC, "java/lang/String", "valueOf", "(F)Ljava/lang/String;", false);
+            case "double" ->
+                mv.visitMethodInsn(INVOKESTATIC, "java/lang/String", "valueOf", "(D)Ljava/lang/String;", false);
+            case "boolean" ->
+                mv.visitMethodInsn(INVOKESTATIC, "java/lang/String", "valueOf", "(Z)Ljava/lang/String;", false);
+            case "char" ->
+                mv.visitMethodInsn(INVOKESTATIC, "java/lang/String", "valueOf", "(C)Ljava/lang/String;", false);
+            default ->
+                // Object - call String.valueOf(Object)
+                mv.visitMethodInsn(INVOKESTATIC, "java/lang/String", "valueOf",
+                                  "(Ljava/lang/Object;)Ljava/lang/String;", false);
+        }
+    }
+
     @Override
     public Object visitPowerExpr(JvmBasicParser.PowerExprContext ctx) {
         // For now, implement simple integer power using Math.pow
@@ -1900,8 +2316,9 @@ public class CompilerVisitor extends JvmBasicParserBaseVisitor<Object> {
                     handleMethodInvocation(memberName, funcCall.argumentList());
                     i++; // Skip the FunctionCall since we handled it
                 } else {
-                    // Just a member access
-                    lastMemberAccess = memberName;
+                    // Just a member access (field access like this.age or other.age)
+                    // Must visit the member access to emit GETFIELD for user-defined class fields
+                    visit(memberAccess);
                 }
             } else if (postfix instanceof JvmBasicParser.FunctionCallContext funcCall) {
                 // Check if this is a user-defined function call
@@ -1976,7 +2393,28 @@ public class CompilerVisitor extends JvmBasicParserBaseVisitor<Object> {
             return;
         }
 
-        // TODO: Handle other method calls
+        // Handle instance method calls on user-defined classes
+        // The object is already on the stack from visiting the primary expression
+        // lastExprType contains the type of the object
+        String objectType = lastExprType;
+        ClassSymbol classSym = symbols.getClass(objectType);
+        if (classSym != null) {
+            FunctionSymbol methodSym = classSym.getMethod(methodName);
+            if (methodSym != null) {
+                // Push arguments onto stack (object is already on stack)
+                if (argList != null) {
+                    for (JvmBasicParser.ArgumentContext arg : argList.argument()) {
+                        visit(arg.expression());
+                    }
+                }
+
+                // Build method descriptor and call INVOKEVIRTUAL
+                String descriptor = buildMethodDescriptor(methodSym);
+                mv.visitMethodInsn(INVOKEVIRTUAL, objectType, methodName, descriptor, false);
+                lastExprType = methodSym.returnType;
+                return;
+            }
+        }
     }
 
     // Handle user-defined function calls
@@ -2031,11 +2469,28 @@ public class CompilerVisitor extends JvmBasicParserBaseVisitor<Object> {
 
     @Override
     public Object visitMemberAccess(JvmBasicParser.MemberAccessContext ctx) {
-        // Handle Console.WriteLine etc.
+        // Handle field access like alice.name or this.age
         String memberName = ctx.memberName().getText();
-        // The object is already on stack from previous expression
-        // For now, just record member access info
+
+        // The object is already on stack from previous expression (visit of primaryExpr)
+        String objectType = lastExprType;
+
+        // Check if this is a field access on a user-defined class
+        ClassSymbol classSym = symbols.getClass(objectType);
+        if (classSym != null) {
+            FieldSymbol field = classSym.getField(memberName);
+            if (field != null) {
+                // Emit GETFIELD to read the field
+                mv.visitFieldInsn(GETFIELD, objectType, memberName, typeToDescriptor(field.type));
+                lastExprType = field.type;
+                lastMemberAccess = null;  // Field access is complete
+                return null;
+            }
+        }
+
+        // Not a field access, record for potential method call
         lastMemberAccess = memberName;
+        lastObjectType = objectType;
         return null;
     }
 
@@ -2397,8 +2852,32 @@ public class CompilerVisitor extends JvmBasicParserBaseVisitor<Object> {
     }
 
     private void loadVariable(String name) {
-        // Check local variables and parameters first
-        if (currentMethod != null) {
+        // Check if we're in a class method
+        if (currentClass != null && currentMethod != null) {
+            ClassSymbol classSym = symbols.getClass(currentClass);
+            if (classSym != null) {
+                FunctionSymbol method = classSym.getMethod(currentMethod);
+                if (method != null) {
+                    // Instance methods: slot 0 is 'this', parameters start at slot 1
+                    List<ParameterSymbol> params = method.getParameters();
+                    for (int i = 0; i < params.size(); i++) {
+                        if (params.get(i).name.equals(name)) {
+                            loadLocal(i + 1, params.get(i).type);  // +1 because slot 0 is 'this'
+                            return;
+                        }
+                    }
+                    // Check local variables in method
+                    VariableSymbol local = method.getLocal(name);
+                    if (local != null && local.getSlot() >= 0) {
+                        loadLocal(local.getSlot(), local.type);
+                        return;
+                    }
+                }
+            }
+        }
+
+        // Check local variables and parameters first (for non-class methods)
+        if (currentMethod != null && currentClass == null) {
             FunctionSymbol func = symbols.getFunction(currentMethod);
             if (func != null) {
                 // Check parameters first (they occupy slots 0, 1, 2...)

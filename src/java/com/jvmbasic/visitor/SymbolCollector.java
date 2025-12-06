@@ -112,6 +112,60 @@ public class SymbolCollector extends JvmBasicParserBaseListener {
         currentFunction = null;
     }
 
+    // ========================================================================
+    // Constructor Declarations (class constructors: SUB NEW)
+    // ========================================================================
+
+    @Override
+    public void enterConstructorDeclaration(JvmBasicParser.ConstructorDeclarationContext ctx) {
+        if (currentClass == null) return;  // Should only be in a class
+
+        int line = ctx.getStart().getLine();
+
+        // Constructor is stored as method named "New" (VB-style) or "<init>" (JVM-style)
+        FunctionSymbol ctor = new FunctionSymbol("New", "Void", line);
+        ctor.setSub(true);
+        collectParameters(ctx.parameterList(), ctor);
+
+        symbols.getClass(currentClass).addMethod(ctor);
+        currentFunction = "New";
+    }
+
+    @Override
+    public void exitConstructorDeclaration(JvmBasicParser.ConstructorDeclarationContext ctx) {
+        currentFunction = null;
+    }
+
+    // ========================================================================
+    // Method Declarations (class methods: FUNCTION/SUB IDENTIFIER)
+    // ========================================================================
+
+    @Override
+    public void enterMethodDeclaration(JvmBasicParser.MethodDeclarationContext ctx) {
+        if (currentClass == null) return;  // Should only be in a class
+
+        String name = ctx.IDENTIFIER().getText();
+        int line = ctx.getStart().getLine();
+
+        // Get return type - default to Void for SUB
+        String returnType = "Void";
+        if (ctx.typeName() != null) {
+            returnType = ctx.typeName().getText();
+        }
+
+        FunctionSymbol method = new FunctionSymbol(name, returnType, line);
+        method.setSub(ctx.SUB() != null && ctx.FUNCTION() == null);
+        collectParameters(ctx.parameterList(), method);
+
+        symbols.getClass(currentClass).addMethod(method);
+        currentFunction = name;
+    }
+
+    @Override
+    public void exitMethodDeclaration(JvmBasicParser.MethodDeclarationContext ctx) {
+        currentFunction = null;
+    }
+
     private void collectParameters(JvmBasicParser.ParameterListContext ctx, FunctionSymbol func) {
         if (ctx == null) return;
 

@@ -320,11 +320,19 @@ public class Main {
         CompilerVisitor visitor = new CompilerVisitor(outputName, symbolCollector.getSymbols());
         visitor.visit(tree);
 
-        // Write class file
+        // Write main class file
         byte[] bytecode = visitor.getBytecode();
         Files.write(Path.of(outputName + ".class"), bytecode);
 
         System.out.println("Successfully compiled: " + outputName + ".class (" + bytecode.length + " bytes)");
+
+        // Write generated class files (user-defined classes)
+        for (var entry : visitor.getGeneratedClasses().entrySet()) {
+            String className = entry.getKey();
+            byte[] classBytecode = entry.getValue();
+            Files.write(Path.of(className + ".class"), classBytecode);
+            System.out.println("Generated class: " + className + ".class (" + classBytecode.length + " bytes)");
+        }
     }
 
     /**

@@ -242,6 +242,7 @@ assignmentStatement
 
 lvalue
     : IDENTIFIER                             # SimpleLValue
+    | THIS                                   # ThisLValue
     | lvalue DOT IDENTIFIER                  # MemberLValue
     | lvalue LBRACKET expression RBRACKET    # IndexLValue
     ;
