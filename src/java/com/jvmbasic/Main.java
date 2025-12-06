@@ -2,6 +2,7 @@ package com.jvmbasic;
 
 import com.jvmbasic.grammar.*;
 import com.jvmbasic.ir.*;
+import com.jvmbasic.semantic.*;
 import com.jvmbasic.sir.*;
 import com.jvmbasic.visitor.CompilerVisitor;
 import com.jvmbasic.visitor.DebugListener;
@@ -37,6 +38,7 @@ public class Main {
     private static boolean showIr = false;
     private static boolean showSir = false;
     private static boolean parseOnly = false;
+    private static boolean semanticCheck = false;
     private static boolean outputAstFile = false;
     private static boolean outputTreeFile = false;
     private static boolean outputIrFile = false;
@@ -111,6 +113,9 @@ public class Main {
                     outputIrFile = true;
                     outputSirFile = true;
                     break;
+                case "-semantic":
+                    semanticCheck = true;
+                    break;
                 case "-help":
                 case "--help":
                     printUsage();
@@ -140,6 +145,7 @@ public class Main {
               -sir            Print stack IR (SSA-style, for codegen)
               -tokens         Print token stream
               -parse-only     Parse without code generation
+              -semantic       Run semantic analysis (type checking, reference checking)
               --output-ast    Write AST to <source>.ast file
               --output-tree   Write parse tree to <source>.tree file
               --output-ir     Write IR to <source>.ir file
@@ -235,7 +241,7 @@ public class Main {
 
         // Build IR if requested or needed
         IRCompilationUnit irUnit = null;
-        if (showIr || showSir || outputIrFile || outputSirFile || !parseOnly) {
+        if (showIr || showSir || outputIrFile || outputSirFile || semanticCheck || !parseOnly) {
             System.out.println("\n=== Building IR ===");
             IRBuilder irBuilder = new IRBuilder(outputName);
             irUnit = irBuilder.build(tree);
@@ -251,6 +257,19 @@ public class Main {
                 String irPath = sourcePath + ".ir";
                 Files.writeString(Path.of(irPath), irContent);
                 System.out.println("Wrote IR to: " + irPath);
+            }
+
+            // Semantic analysis if requested
+            if (semanticCheck) {
+                System.out.println("\n=== Semantic Analysis ===");
+                SemanticAnalyzer analyzer = new SemanticAnalyzer();
+                SemanticResult result = analyzer.analyze(irUnit);
+                result.printReport();
+
+                if (!result.isSuccess()) {
+                    System.err.println("Compilation failed due to semantic errors");
+                    System.exit(1);
+                }
             }
         }
 
