@@ -1,0 +1,29 @@
+' File namespace test
+
+Console.WriteLine("File namespace test:")
+
+' Zero-arg functions
+Console.WriteLine("Current directory:")
+Console.WriteLine(File.GetCurrentDirectory())
+
+Console.WriteLine("Home directory:")
+Console.WriteLine(File.GetHomeDirectory())
+
+' Path manipulation - these take arguments
+Console.WriteLine("Path manipulation:")
+Console.WriteLine(File.GetFileName("/path/to/file.txt"))
+Console.WriteLine(File.GetExtension("/path/to/file.txt"))
+
+' File combine
+Console.WriteLine("Path combine:")
+Console.WriteLine(File.Combine("/home/user", "documents"))
+
+' Check if file exists
+Console.WriteLine("File exists check:")
+if File.Exists("/etc/passwd") then
+    Console.WriteLine("/etc/passwd exists")
+else
+    Console.WriteLine("/etc/passwd does not exist")
+end if
+
+Console.WriteLine("File test complete!")

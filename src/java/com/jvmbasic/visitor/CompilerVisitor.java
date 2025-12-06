@@ -966,6 +966,16 @@ public class CompilerVisitor extends JvmBasicParserBaseVisitor<Object> {
             pendingNamespace = "Str";
             return null;
         }
+        if ("Regex".equalsIgnoreCase(name)) {
+            // Regex namespace - maps to com.jvmbasic.runtime.BasicRegex
+            pendingNamespace = "Regex";
+            return null;
+        }
+        if ("File".equalsIgnoreCase(name)) {
+            // File namespace - maps to com.jvmbasic.runtime.BasicFile
+            pendingNamespace = "File";
+            return null;
+        }
         // Check if this is a function name (will be handled by FunctionCall postfixOp)
         if (symbols.getFunction(name) != null) {
             pendingFunctionName = name;
@@ -1039,6 +1049,16 @@ public class CompilerVisitor extends JvmBasicParserBaseVisitor<Object> {
         if ("Str".equalsIgnoreCase(pendingNamespace)) {
             pendingNamespace = null;
             return handleStrCall(methodName, ctx.argumentList());
+        }
+
+        if ("Regex".equalsIgnoreCase(pendingNamespace)) {
+            pendingNamespace = null;
+            return handleRegexCall(methodName, ctx.argumentList());
+        }
+
+        if ("File".equalsIgnoreCase(pendingNamespace)) {
+            pendingNamespace = null;
+            return handleFileCall(methodName, ctx.argumentList());
         }
 
         // Visit arguments for non-Console method calls
@@ -1354,7 +1374,334 @@ public class CompilerVisitor extends JvmBasicParserBaseVisitor<Object> {
                 lastExprType = "String";
             }
 
+            // Additional string operations
+            case "CountOccurrences" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "CountOccurrences", "(Ljava/lang/String;Ljava/lang/String;)I", false);
+                lastExprType = "Integer";
+            }
+
+            case "PadZero" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "PadZero", "(Ljava/lang/String;I)Ljava/lang/String;", false);
+                lastExprType = "String";
+            }
+
+            case "SwapCase" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "SwapCase", "(Ljava/lang/String;)Ljava/lang/String;", false);
+                lastExprType = "String";
+            }
+
+            // Character type checks - returns boolean
+            case "IsAlpha", "IsDigit", "IsAlphanumeric", "IsWhitespace", "IsUpperCase", "IsLowerCase", "IsNumeric" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, methodName, "(Ljava/lang/String;)Z", false);
+                lastExprType = "Boolean";
+            }
+
+            // Split variants - returns String[]
+            case "SplitFirst", "SplitLast" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, methodName, "(Ljava/lang/String;Ljava/lang/String;)[Ljava/lang/String;", false);
+                lastExprType = "String[]";
+            }
+
+            case "SplitLines", "Words" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, methodName, "(Ljava/lang/String;)[Ljava/lang/String;", false);
+                lastExprType = "String[]";
+            }
+
+            // Prefix/Suffix operations - String, String -> String
+            case "RemovePrefix", "RemoveSuffix", "EnsurePrefix", "EnsureSuffix" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, methodName, "(Ljava/lang/String;Ljava/lang/String;)Ljava/lang/String;", false);
+                lastExprType = "String";
+            }
+
+            // Word operations - String -> String
+            case "CapitalizeFirst", "LowercaseFirst", "Shuffle" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, methodName, "(Ljava/lang/String;)Ljava/lang/String;", false);
+                lastExprType = "String";
+            }
+
+            case "WordCount" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "WordCount", "(Ljava/lang/String;)I", false);
+                lastExprType = "Integer";
+            }
+
+            // Text wrapping
+            case "Wrap" -> {
+                if (argCount == 2) {
+                    mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "Wrap", "(Ljava/lang/String;I)Ljava/lang/String;", false);
+                } else {
+                    mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "Wrap", "(Ljava/lang/String;ILjava/lang/String;)Ljava/lang/String;", false);
+                }
+                lastExprType = "String";
+            }
+
+            case "InsertEvery" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "InsertEvery", "(Ljava/lang/String;ILjava/lang/String;)Ljava/lang/String;", false);
+                lastExprType = "String";
+            }
+
+            // HTML/Web utilities - String -> String
+            case "NewlinesToBreaks", "EscapeHtml", "UnescapeHtml", "EscapeJson", "Slugify" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, methodName, "(Ljava/lang/String;)Ljava/lang/String;", false);
+                lastExprType = "String";
+            }
+
+            // Whitespace operations - String -> String
+            case "RemoveWhitespace", "CollapseSpaces", "NormalizeWhitespace" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, methodName, "(Ljava/lang/String;)Ljava/lang/String;", false);
+                lastExprType = "String";
+            }
+
+            case "ExpandTabs" -> {
+                if (argCount == 1) {
+                    mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "ExpandTabs", "(Ljava/lang/String;)Ljava/lang/String;", false);
+                } else {
+                    mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "ExpandTabs", "(Ljava/lang/String;I)Ljava/lang/String;", false);
+                }
+                lastExprType = "String";
+            }
+
+            // Truncation
+            case "Truncate" -> {
+                if (argCount == 2) {
+                    mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "Truncate", "(Ljava/lang/String;I)Ljava/lang/String;", false);
+                } else {
+                    mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "Truncate", "(Ljava/lang/String;ILjava/lang/String;)Ljava/lang/String;", false);
+                }
+                lastExprType = "String";
+            }
+
+            // Extraction/Filtering - String -> String
+            case "OnlyDigits", "OnlyLetters", "OnlyAlphanumeric" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, methodName, "(Ljava/lang/String;)Ljava/lang/String;", false);
+                lastExprType = "String";
+            }
+
+            // Case conversion utilities - String -> String
+            case "ToSnakeCase", "ToKebabCase", "ToCamelCase", "ToPascalCase" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, methodName, "(Ljava/lang/String;)Ljava/lang/String;", false);
+                lastExprType = "String";
+            }
+
             default -> throw new RuntimeException("Unknown Str function: " + methodName);
+        }
+
+        return null;
+    }
+
+    private Object handleRegexCall(String methodName, JvmBasicParser.ArgumentListContext argList) {
+        String runtimeClass = "com/jvmbasic/runtime/BasicRegex";
+        int argCount = argList != null ? argList.argument().size() : 0;
+
+        // Visit arguments first
+        if (argList != null) {
+            for (JvmBasicParser.ArgumentContext arg : argList.argument()) {
+                visit(arg.expression());
+            }
+        }
+
+        switch (methodName) {
+            // Pattern matching - returns boolean
+            case "IsMatch", "Contains", "StartsWith", "EndsWith" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, methodName, "(Ljava/lang/String;Ljava/lang/String;)Z", false);
+                lastExprType = "Boolean";
+            }
+
+            // Search - returns String
+            case "Find" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "Find", "(Ljava/lang/String;Ljava/lang/String;)Ljava/lang/String;", false);
+                lastExprType = "String";
+            }
+
+            // Search - returns int
+            case "FindIndex", "Count" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, methodName, "(Ljava/lang/String;Ljava/lang/String;)I", false);
+                lastExprType = "Integer";
+            }
+
+            // Search - returns String[]
+            case "FindAll" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "FindAll", "(Ljava/lang/String;Ljava/lang/String;)[Ljava/lang/String;", false);
+                lastExprType = "String[]";
+            }
+
+            // Capture groups
+            case "Group" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "Group", "(Ljava/lang/String;Ljava/lang/String;I)Ljava/lang/String;", false);
+                lastExprType = "String";
+            }
+
+            case "Groups" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "Groups", "(Ljava/lang/String;Ljava/lang/String;)[Ljava/lang/String;", false);
+                lastExprType = "String[]";
+            }
+
+            // Replace - returns String
+            case "ReplaceFirst", "ReplaceAll" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, methodName, "(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)Ljava/lang/String;", false);
+                lastExprType = "String";
+            }
+
+            case "Remove" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "Remove", "(Ljava/lang/String;Ljava/lang/String;)Ljava/lang/String;", false);
+                lastExprType = "String";
+            }
+
+            // Split - returns String[]
+            case "Split" -> {
+                if (argCount == 2) {
+                    mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "Split", "(Ljava/lang/String;Ljava/lang/String;)[Ljava/lang/String;", false);
+                } else {
+                    mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "Split", "(Ljava/lang/String;Ljava/lang/String;I)[Ljava/lang/String;", false);
+                }
+                lastExprType = "String[]";
+            }
+
+            // Utilities
+            case "Escape" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "Escape", "(Ljava/lang/String;)Ljava/lang/String;", false);
+                lastExprType = "String";
+            }
+
+            case "IsValidPattern" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "IsValidPattern", "(Ljava/lang/String;)Z", false);
+                lastExprType = "Boolean";
+            }
+
+            // Common pattern helpers - returns boolean
+            case "IsEmail", "IsUrl", "IsIPv4", "IsDigitsOnly", "IsLettersOnly", "IsAlphanumericOnly" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, methodName, "(Ljava/lang/String;)Z", false);
+                lastExprType = "Boolean";
+            }
+
+            // Extract helpers - returns String[]
+            case "ExtractNumbers", "ExtractWords" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, methodName, "(Ljava/lang/String;)[Ljava/lang/String;", false);
+                lastExprType = "String[]";
+            }
+
+            default -> throw new RuntimeException("Unknown Regex function: " + methodName);
+        }
+
+        return null;
+    }
+
+    private Object handleFileCall(String methodName, JvmBasicParser.ArgumentListContext argList) {
+        String runtimeClass = "com/jvmbasic/runtime/BasicFile";
+        int argCount = argList != null ? argList.argument().size() : 0;
+
+        // Visit arguments first
+        if (argList != null) {
+            for (JvmBasicParser.ArgumentContext arg : argList.argument()) {
+                visit(arg.expression());
+            }
+        }
+
+        switch (methodName) {
+            // File reading - returns String
+            case "ReadAllText" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "ReadAllText", "(Ljava/lang/String;)Ljava/lang/String;", false);
+                lastExprType = "String";
+            }
+
+            // File reading - returns String[]
+            case "ReadAllLines" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "ReadAllLines", "(Ljava/lang/String;)[Ljava/lang/String;", false);
+                lastExprType = "String[]";
+            }
+
+            // File reading - returns byte[]
+            case "ReadAllBytes" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "ReadAllBytes", "(Ljava/lang/String;)[B", false);
+                lastExprType = "byte[]";
+            }
+
+            // File writing - returns boolean
+            case "WriteAllText" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "WriteAllText", "(Ljava/lang/String;Ljava/lang/String;)Z", false);
+                lastExprType = "Boolean";
+            }
+
+            case "WriteAllLines" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "WriteAllLines", "(Ljava/lang/String;[Ljava/lang/String;)Z", false);
+                lastExprType = "Boolean";
+            }
+
+            case "WriteAllBytes" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "WriteAllBytes", "(Ljava/lang/String;[B)Z", false);
+                lastExprType = "Boolean";
+            }
+
+            case "AppendAllText" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "AppendAllText", "(Ljava/lang/String;Ljava/lang/String;)Z", false);
+                lastExprType = "Boolean";
+            }
+
+            case "AppendAllLines" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "AppendAllLines", "(Ljava/lang/String;[Ljava/lang/String;)Z", false);
+                lastExprType = "Boolean";
+            }
+
+            // File operations - returns boolean
+            case "Exists", "IsFile", "IsDirectory" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, methodName, "(Ljava/lang/String;)Z", false);
+                lastExprType = "Boolean";
+            }
+
+            case "Delete" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "Delete", "(Ljava/lang/String;)Z", false);
+                lastExprType = "Boolean";
+            }
+
+            case "Copy", "Move" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, methodName, "(Ljava/lang/String;Ljava/lang/String;)Z", false);
+                lastExprType = "Boolean";
+            }
+
+            case "CreateDirectory" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "CreateDirectory", "(Ljava/lang/String;)Z", false);
+                lastExprType = "Boolean";
+            }
+
+            // File info - returns long
+            case "Size" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "Size", "(Ljava/lang/String;)J", false);
+                lastExprType = "Long";
+            }
+
+            // File info - returns String
+            case "GetFileName", "GetExtension", "GetFileNameWithoutExtension", "GetDirectory", "GetFullPath" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, methodName, "(Ljava/lang/String;)Ljava/lang/String;", false);
+                lastExprType = "String";
+            }
+
+            case "Combine" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "Combine", "(Ljava/lang/String;Ljava/lang/String;)Ljava/lang/String;", false);
+                lastExprType = "String";
+            }
+
+            // Directory listing - returns String[]
+            case "ListFiles", "ListDirectories", "ListAll" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, methodName, "(Ljava/lang/String;)[Ljava/lang/String;", false);
+                lastExprType = "String[]";
+            }
+
+            case "ListFilesWithPattern" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "ListFilesWithPattern", "(Ljava/lang/String;Ljava/lang/String;)[Ljava/lang/String;", false);
+                lastExprType = "String[]";
+            }
+
+            // Temp files - returns String
+            case "CreateTempFile" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "CreateTempFile", "(Ljava/lang/String;Ljava/lang/String;)Ljava/lang/String;", false);
+                lastExprType = "String";
+            }
+
+            case "GetTempDirectory", "GetCurrentDirectory", "GetHomeDirectory" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, methodName, "()Ljava/lang/String;", false);
+                lastExprType = "String";
+            }
+
+            default -> throw new RuntimeException("Unknown File function: " + methodName);
         }
 
         return null;
@@ -1586,6 +1933,18 @@ public class CompilerVisitor extends JvmBasicParserBaseVisitor<Object> {
         if ("Str".equalsIgnoreCase(pendingNamespace)) {
             pendingNamespace = null;
             handleStrCall(methodName, argList);
+            return;
+        }
+
+        if ("Regex".equalsIgnoreCase(pendingNamespace)) {
+            pendingNamespace = null;
+            handleRegexCall(methodName, argList);
+            return;
+        }
+
+        if ("File".equalsIgnoreCase(pendingNamespace)) {
+            pendingNamespace = null;
+            handleFileCall(methodName, argList);
             return;
         }
 

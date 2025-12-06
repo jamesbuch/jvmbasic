@@ -57,6 +57,8 @@ TESTS=(
     "select_case_test.jvmb:select_case_test"
     "math_test.jvmb:math_test"
     "str_test.jvmb:str_test"
+    "regex_test.jvmb:regex_test"
+    "file_test.jvmb:file_test"
 )
 
 for test in "${TESTS[@]}"; do

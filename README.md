@@ -33,9 +33,11 @@ A clean-room rewrite using ANTLR4 for parsing and ASM for bytecode generation. W
 | Select Case | ✅ | Multi-value cases, Case Else |
 | Math namespace | ✅ | `Math.Sqrt()`, `Math.Sin()`, etc. |
 | Str namespace | ✅ | `Str.ToUpper()`, `Str.Length()`, etc. |
+| Regex namespace | ✅ | `Regex.IsMatch()`, `Regex.Replace()`, etc. |
+| File namespace | ✅ | `File.ReadAllText()`, `File.WriteAllText()`, etc. |
 
 **Coming Soon:**
-- More standard library (File, Http, Json, Db)
+- More standard library (Http, Json, Db)
 - Classes and OOP
 
 **Documentation:**
