@@ -55,6 +55,31 @@ java hello
 ./test-runner.sh
 ```
 
+## Running Compiled Programs
+
+Programs that use runtime namespaces (Math, Str, File, Http, Json, Db, Date, Crypto, etc.) require the runtime libraries on the classpath:
+
+```bash
+# From the jvmbasic directory
+java -cp ".:src/java/build/libs/jvmbasic-compiler-2.0.0-SNAPSHOT.jar:lib/*" your_program
+
+# Or from the examples directory
+cd examples
+java -cp ".:../src/java/build/libs/jvmbasic-compiler-2.0.0-SNAPSHOT.jar:../lib/*" hello
+```
+
+On Windows, use semicolons instead of colons:
+
+```bash
+java -cp ".;src/java/build/libs/jvmbasic-compiler-2.0.0-SNAPSHOT.jar;lib/*" your_program
+```
+
+Simple programs that only use Console.WriteLine don't need the full classpath:
+
+```bash
+java hello
+```
+
 ## Example Programs
 
 ### Hello World
@@ -216,7 +241,7 @@ jvmbasic/
 │   ├── gson-2.10.1.jar
 │   ├── postgresql-42.7.1.jar
 │   ├── mariadb-java-client-3.3.2.jar
-│   ├── bcprov-jdk18on-1.79.jar    # BouncyCastle (crypto)
+│   ├── bcprov-jdk18on-1.77.jar    # BouncyCastle (crypto)
 │   └── ...
 │
 ├── test-runner.sh                 # Test runner script
