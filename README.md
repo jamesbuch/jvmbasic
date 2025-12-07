@@ -14,10 +14,11 @@ A modern BASIC compiler targeting the Java Virtual Machine, written in Java usin
 | **Subroutines** | Procedures without return values | ✅ |
 | **String Interpolation** | `$"Hello {name}!"` | ✅ |
 | **Exit/Continue** | `exit for`, `continue while`, etc. | ✅ |
-| **Try/Catch/Finally** | Exception handling | ✅ |
+| **Try/Catch/Finally** | Exception handling with `throw` | ✅ |
+| **Assert** | `assert condition, "message"` | ✅ |
 | **Arrays** | Declaration, access, iteration | ✅ |
 | **OOP Classes** | Classes, constructors, fields, instance methods | ✅ |
-| **Inheritance** | `extends` keyword | ✅ |
+| **Inheritance** | `extends`, `super.Method()`, `Super.New()` | ✅ |
 | **Access Modifiers** | public, private, protected | ✅ |
 | **Console I/O** | WriteLine, Write, ReadLine | ✅ |
 | **Math Namespace** | Sqrt, Sin, Cos, Pow, Random, Abs, etc. | ✅ |
@@ -27,15 +28,16 @@ A modern BASIC compiler targeting the Java Virtual Machine, written in Java usin
 | **Http Namespace** | GET, POST, PUT, DELETE, headers, URL encoding | ✅ |
 | **Json Namespace** | Parse, Create, Get, Set, Pretty, arrays | ✅ |
 | **Db Namespace** | Connect, Query, Prepared statements, transactions | ✅ |
+| **Date Namespace** | Now, Today, Format, Parse, Add, Compare, TimeZones | ✅ |
+| **Crypto Namespace** | SHA, MD5, HMAC, AES, RSA, BCrypt, Argon2, Base64, Hex | ✅ |
 | **BigInt Namespace** | Arbitrary precision integers, arithmetic, conversions | ✅ |
 | **Decimal Namespace** | Arbitrary precision decimals, arithmetic, rounding | ✅ |
 
 **Coming Soon:**
+
 - Interfaces (`implements` keyword)
 - Async/Await and concurrency primitives
-- Crypto namespace (SHA, AES, Base64)
-- Date namespace
-- Jetty web server integration
+- Jetty web server integration with attributes
 
 ## Quick Start
 
@@ -50,7 +52,7 @@ java -jar src/java/build/libs/jvmbasic-compiler-2.0.0-SNAPSHOT.jar examples/hell
 java hello
 
 # Run the test suite
-./test-examples.sh
+./test-runner.sh
 ```
 
 ## Example Programs
@@ -196,26 +198,29 @@ jvmbasic/
 │   │   │   ├── BasicRegex.java    # Regex namespace
 │   │   │   ├── BasicHttp.java     # Http namespace
 │   │   │   ├── BasicJson.java     # Json namespace
-│   │   │   └── BasicDb.java       # Db namespace
+│   │   │   ├── BasicDb.java       # Db namespace
+│   │   │   ├── BasicDate.java     # Date namespace
+│   │   │   └── BasicCrypto.java   # Crypto namespace
 │   │   └── visitor/               # Code generation
 │   └── build.gradle.kts
 │
 ├── examples/                      # Example programs (.jvmb)
+├── tests/                         # Test programs (.jvmb)
 ├── docs/                          # Documentation
 │   ├── CLAUDE.md                  # AI assistant context
-│   └── jvmbasic-2.0/
-│       ├── USER_GUIDE.md          # Language reference
-│       ├── DEVELOPER_GUIDE.md     # Compiler internals
-│       └── TODO.md                # Development roadmap
+│   ├── TODO.md                    # Development roadmap
+│   ├── USER_GUIDE.md              # Language reference
+│   └── LANGUAGE_FEATURES.md       # Detailed feature docs
 │
 ├── lib/                           # Library JARs
 │   ├── gson-2.10.1.jar
 │   ├── postgresql-42.7.1.jar
 │   ├── mariadb-java-client-3.3.2.jar
-│   ├── jetty-server-11.0.19.jar
+│   ├── bcprov-jdk18on-1.79.jar    # BouncyCastle (crypto)
 │   └── ...
 │
-├── test-examples.sh               # Test runner script
+├── test-runner.sh                 # Test runner script
+├── build-examples.sh              # Example builder script
 │
 └── legacy-jvm-basic/              # Legacy C++ implementation (archived)
 ```
@@ -457,6 +462,85 @@ Console.WriteLine("1/3 = " + scaled)
 ' Conversions
 var asLong as Long = BigInt.ToLong(small)
 var asDouble as Double = Decimal.ToDouble(pi)
+```
+
+### Date (Date/Time Operations)
+```basic
+' Current date/time
+var now as String = Date.Now()              ' Full timestamp
+var today as String = Date.Today()          ' Date only
+var time as String = Date.Time()            ' Time only
+
+' Formatting
+var formatted as String = Date.Format(now, "yyyy-MM-dd HH:mm:ss")
+var custom as String = Date.Format(now, "MMMM d, yyyy")
+
+' Parsing
+var parsed as String = Date.Parse("2024-12-25", "yyyy-MM-dd")
+
+' Date arithmetic
+var nextWeek as String = Date.AddDays(today, 7)
+var nextMonth as String = Date.AddMonths(today, 1)
+var nextYear as String = Date.AddYears(today, 1)
+
+' Components
+var year as Integer = Date.Year(now)
+var month as Integer = Date.Month(now)
+var day as Integer = Date.Day(now)
+var dayOfWeek as String = Date.DayOfWeek(now)
+
+' Comparison
+var isBefore as Boolean = Date.IsBefore(date1, date2)
+var isAfter as Boolean = Date.IsAfter(date1, date2)
+var daysBetween as Long = Date.DaysBetween(date1, date2)
+
+' Time zones
+var utc as String = Date.ToUtc(now)
+var local as String = Date.ToLocal(utc)
+var inZone as String = Date.ToTimeZone(now, "America/New_York")
+```
+
+### Crypto (Cryptography)
+
+```basic
+' Hashing
+var sha256 as String = Crypto.SHA256("message")
+var sha512 as String = Crypto.SHA512("message")
+var md5 as String = Crypto.MD5("message")
+
+' HMAC
+var hmac as String = Crypto.HMAC("message", "secret", "SHA256")
+
+' Password hashing (secure)
+var bcrypt as String = Crypto.BCrypt("password")
+var argon2 as String = Crypto.Argon2("password")
+var validBcrypt as Boolean = Crypto.VerifyBCrypt("password", bcrypt)
+var validArgon2 as Boolean = Crypto.VerifyArgon2("password", argon2)
+
+' AES encryption
+var encrypted as String = Crypto.AESEncrypt("plaintext", "key")
+var decrypted as String = Crypto.AESDecrypt(encrypted, "key")
+
+' RSA key generation and encryption
+var keyPair as String = Crypto.RSAGenerateKeyPair(2048)
+var pubKey as String = Crypto.RSAGetPublicKey(keyPair)
+var privKey as String = Crypto.RSAGetPrivateKey(keyPair)
+var rsaEncrypted as String = Crypto.RSAEncrypt("message", pubKey)
+var rsaDecrypted as String = Crypto.RSADecrypt(rsaEncrypted, privKey)
+
+' Digital signatures
+var signature as String = Crypto.RSASign("message", privKey)
+var isValid as Boolean = Crypto.RSAVerify("message", signature, pubKey)
+
+' Encoding
+var base64 as String = Crypto.Base64Encode("Hello")
+var decoded as String = Crypto.Base64Decode(base64)
+var hex as String = Crypto.HexEncode("Hello")
+var fromHex as String = Crypto.HexDecode(hex)
+
+' Random
+var randomBytes as String = Crypto.RandomBytes(32)  ' Base64 encoded
+var uuid as String = Crypto.UUID()
 ```
 
 ## Documentation
