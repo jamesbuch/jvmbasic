@@ -1,0 +1,3 @@
+' Very simple JSON test
+var json as String = Json.Create()
+Console.WriteLine(json)

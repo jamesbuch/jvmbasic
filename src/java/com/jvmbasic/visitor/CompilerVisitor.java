@@ -1394,7 +1394,22 @@ public class CompilerVisitor extends JvmBasicParserBaseVisitor<Object> {
     @Override
     public Object visitIdentifierExpr(JvmBasicParser.IdentifierExprContext ctx) {
         String name = ctx.IDENTIFIER().getText();
-        // Check for built-in namespaces
+
+        // IMPORTANT: Check for variables FIRST before namespace matching
+        // This allows variables named 'json', 'file', etc. to shadow namespace names
+        LocalVar scopedVar = lookupScopedVariable(name);
+        if (scopedVar != null) {
+            loadLocal(scopedVar.slot(), scopedVar.type());
+            return null;
+        }
+        // Also check dynamic locals (for main method variables)
+        LocalVar dynamicVar = dynamicLocals.get(name);
+        if (dynamicVar != null) {
+            loadLocal(dynamicVar.slot(), dynamicVar.type());
+            return null;
+        }
+
+        // Check for built-in namespaces (only if not a variable)
         if ("Console".equalsIgnoreCase(name)) {
             // Console is a pseudo-namespace, don't load anything
             // The method call handler will deal with it
@@ -1421,12 +1436,27 @@ public class CompilerVisitor extends JvmBasicParserBaseVisitor<Object> {
             pendingNamespace = "File";
             return null;
         }
+        if ("Http".equalsIgnoreCase(name)) {
+            // Http namespace - maps to com.jvmbasic.runtime.BasicHttp
+            pendingNamespace = "Http";
+            return null;
+        }
+        if ("Json".equalsIgnoreCase(name)) {
+            // Json namespace - maps to com.jvmbasic.runtime.BasicJson
+            pendingNamespace = "Json";
+            return null;
+        }
+        if ("Db".equalsIgnoreCase(name)) {
+            // Db namespace - maps to com.jvmbasic.runtime.BasicDb
+            pendingNamespace = "Db";
+            return null;
+        }
         // Check if this is a function name (will be handled by FunctionCall postfixOp)
         if (symbols.getFunction(name) != null) {
             pendingFunctionName = name;
             return null;
         }
-        // Load variable value
+        // Load variable value (fallback for variables not found in scope checks above)
         loadVariable(name);
         return null;
     }
@@ -1531,6 +1561,24 @@ public class CompilerVisitor extends JvmBasicParserBaseVisitor<Object> {
         if ("File".equalsIgnoreCase(pendingNamespace)) {
             pendingNamespace = null;
             return handleFileCall(methodName, ctx.argumentList());
+        }
+
+        // Handle Http namespace - calls com.jvmbasic.runtime.BasicHttp
+        if ("Http".equalsIgnoreCase(pendingNamespace)) {
+            pendingNamespace = null;
+            return handleHttpCall(methodName, ctx.argumentList());
+        }
+
+        // Handle Json namespace - calls com.jvmbasic.runtime.BasicJson
+        if ("Json".equalsIgnoreCase(pendingNamespace)) {
+            pendingNamespace = null;
+            return handleJsonCall(methodName, ctx.argumentList());
+        }
+
+        // Handle Db namespace - calls com.jvmbasic.runtime.BasicDb
+        if ("Db".equalsIgnoreCase(pendingNamespace)) {
+            pendingNamespace = null;
+            return handleDbCall(methodName, ctx.argumentList());
         }
 
         // Visit arguments for non-Console method calls
@@ -2207,6 +2255,379 @@ public class CompilerVisitor extends JvmBasicParserBaseVisitor<Object> {
         return null;
     }
 
+    // Handle Http.* calls - maps to com.jvmbasic.runtime.BasicHttp static methods
+    private Object handleHttpCall(String methodName, JvmBasicParser.ArgumentListContext argList) {
+        String runtimeClass = "com/jvmbasic/runtime/BasicHttp";
+        int argCount = argList != null ? argList.argument().size() : 0;
+
+        // Visit arguments first
+        if (argList != null) {
+            for (JvmBasicParser.ArgumentContext arg : argList.argument()) {
+                visit(arg.expression());
+            }
+        }
+
+        switch (methodName) {
+            // HTTP request methods - return String
+            case "Get" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "Get", "(Ljava/lang/String;)Ljava/lang/String;", false);
+                lastExprType = "String";
+            }
+            case "Post" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "Post", "(Ljava/lang/String;Ljava/lang/String;)Ljava/lang/String;", false);
+                lastExprType = "String";
+            }
+            case "Put" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "Put", "(Ljava/lang/String;Ljava/lang/String;)Ljava/lang/String;", false);
+                lastExprType = "String";
+            }
+            case "Patch" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "Patch", "(Ljava/lang/String;Ljava/lang/String;)Ljava/lang/String;", false);
+                lastExprType = "String";
+            }
+            case "Delete" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "Delete", "(Ljava/lang/String;)Ljava/lang/String;", false);
+                lastExprType = "String";
+            }
+            case "Head" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "Head", "(Ljava/lang/String;)Ljava/lang/String;", false);
+                lastExprType = "String";
+            }
+
+            // Convenience methods - return String
+            case "GetJson" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "GetJson", "(Ljava/lang/String;)Ljava/lang/String;", false);
+                lastExprType = "String";
+            }
+            case "PostJson" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "PostJson", "(Ljava/lang/String;Ljava/lang/String;)Ljava/lang/String;", false);
+                lastExprType = "String";
+            }
+
+            // Response info - return int
+            case "GetStatus" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "GetStatus", "()I", false);
+                lastExprType = "Integer";
+            }
+
+            // Response header - return String
+            case "GetResponseHeader" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "GetResponseHeader", "(Ljava/lang/String;)Ljava/lang/String;", false);
+                lastExprType = "String";
+            }
+
+            // Status checks - return boolean
+            case "IsSuccess", "IsClientError", "IsServerError" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, methodName, "()Z", false);
+                lastExprType = "Boolean";
+            }
+
+            // Request configuration - void
+            case "SetHeader" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "SetHeader", "(Ljava/lang/String;Ljava/lang/String;)V", false);
+                lastExprType = "void";
+            }
+            case "ClearHeaders" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "ClearHeaders", "()V", false);
+                lastExprType = "void";
+            }
+            case "SetTimeout" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "SetTimeout", "(I)V", false);
+                lastExprType = "void";
+            }
+            case "SetBasicAuth" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "SetBasicAuth", "(Ljava/lang/String;Ljava/lang/String;)V", false);
+                lastExprType = "void";
+            }
+            case "SetBearerToken" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "SetBearerToken", "(Ljava/lang/String;)V", false);
+                lastExprType = "void";
+            }
+
+            // URL utilities - return String
+            case "UrlEncode", "UrlDecode" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, methodName, "(Ljava/lang/String;)Ljava/lang/String;", false);
+                lastExprType = "String";
+            }
+
+            // Download - return boolean
+            case "Download" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "Download", "(Ljava/lang/String;Ljava/lang/String;)Z", false);
+                lastExprType = "Boolean";
+            }
+
+            default -> throw new RuntimeException("Unknown Http function: " + methodName);
+        }
+
+        return null;
+    }
+
+    // Handle Json.* calls - maps to com.jvmbasic.runtime.BasicJson static methods
+    private Object handleJsonCall(String methodName, JvmBasicParser.ArgumentListContext argList) {
+        String runtimeClass = "com/jvmbasic/runtime/BasicJson";
+        int argCount = argList != null ? argList.argument().size() : 0;
+
+        // Visit arguments first
+        if (argList != null) {
+            for (JvmBasicParser.ArgumentContext arg : argList.argument()) {
+                visit(arg.expression());
+            }
+        }
+
+        switch (methodName) {
+            // JSON creation - return String
+            case "Create" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "Create", "()Ljava/lang/String;", false);
+                lastExprType = "String";
+            }
+            case "CreateArray" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "CreateArray", "()Ljava/lang/String;", false);
+                lastExprType = "String";
+            }
+
+            // JSON access - return String
+            case "Get" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "Get", "(Ljava/lang/String;Ljava/lang/String;)Ljava/lang/String;", false);
+                lastExprType = "String";
+            }
+            case "GetPath" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "GetPath", "(Ljava/lang/String;Ljava/lang/String;)Ljava/lang/String;", false);
+                lastExprType = "String";
+            }
+
+            // JSON access - return int
+            case "GetInt" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "GetInt", "(Ljava/lang/String;Ljava/lang/String;)I", false);
+                lastExprType = "Integer";
+            }
+
+            // JSON access - return double
+            case "GetDouble" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "GetDouble", "(Ljava/lang/String;Ljava/lang/String;)D", false);
+                lastExprType = "Double";
+            }
+
+            // JSON access - return boolean
+            case "GetBool" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "GetBool", "(Ljava/lang/String;Ljava/lang/String;)Z", false);
+                lastExprType = "Boolean";
+            }
+            case "Has" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "Has", "(Ljava/lang/String;Ljava/lang/String;)Z", false);
+                lastExprType = "Boolean";
+            }
+
+            // JSON array length - return int
+            case "Length" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "Length", "(Ljava/lang/String;)I", false);
+                lastExprType = "Integer";
+            }
+
+            // JSON keys - return String[]
+            case "Keys" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "Keys", "(Ljava/lang/String;)[Ljava/lang/String;", false);
+                lastExprType = "String[]";
+            }
+
+            // JSON modification - return String
+            case "Set" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "Set", "(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)Ljava/lang/String;", false);
+                lastExprType = "String";
+            }
+            case "SetInt" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "SetInt", "(Ljava/lang/String;Ljava/lang/String;I)Ljava/lang/String;", false);
+                lastExprType = "String";
+            }
+            case "SetDouble" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "SetDouble", "(Ljava/lang/String;Ljava/lang/String;D)Ljava/lang/String;", false);
+                lastExprType = "String";
+            }
+            case "SetBool" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "SetBool", "(Ljava/lang/String;Ljava/lang/String;Z)Ljava/lang/String;", false);
+                lastExprType = "String";
+            }
+            case "SetJson" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "SetJson", "(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)Ljava/lang/String;", false);
+                lastExprType = "String";
+            }
+            case "Remove" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "Remove", "(Ljava/lang/String;Ljava/lang/String;)Ljava/lang/String;", false);
+                lastExprType = "String";
+            }
+
+            // JSON array operations - return String
+            case "Push" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "Push", "(Ljava/lang/String;Ljava/lang/String;)Ljava/lang/String;", false);
+                lastExprType = "String";
+            }
+            case "PushJson" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "PushJson", "(Ljava/lang/String;Ljava/lang/String;)Ljava/lang/String;", false);
+                lastExprType = "String";
+            }
+
+            // JSON formatting - return String
+            case "Pretty" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "Pretty", "(Ljava/lang/String;)Ljava/lang/String;", false);
+                lastExprType = "String";
+            }
+            case "Minify" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "Minify", "(Ljava/lang/String;)Ljava/lang/String;", false);
+                lastExprType = "String";
+            }
+
+            // JSON validation - return boolean
+            case "IsValid", "IsObject", "IsArray" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, methodName, "(Ljava/lang/String;)Z", false);
+                lastExprType = "Boolean";
+            }
+
+            default -> throw new RuntimeException("Unknown Json function: " + methodName);
+        }
+
+        return null;
+    }
+
+    // Handle Db.* calls - maps to com.jvmbasic.runtime.BasicDb static methods
+    private Object handleDbCall(String methodName, JvmBasicParser.ArgumentListContext argList) {
+        String runtimeClass = "com/jvmbasic/runtime/BasicDb";
+        int argCount = argList != null ? argList.argument().size() : 0;
+
+        // Visit arguments first
+        if (argList != null) {
+            for (JvmBasicParser.ArgumentContext arg : argList.argument()) {
+                visit(arg.expression());
+            }
+        }
+
+        switch (methodName) {
+            // Connection management - return boolean
+            case "Connect" -> {
+                if (argCount == 1) {
+                    mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "Connect", "(Ljava/lang/String;)Z", false);
+                } else if (argCount == 3) {
+                    mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "Connect", "(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)Z", false);
+                }
+                lastExprType = "Boolean";
+            }
+            case "IsConnected" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "IsConnected", "()Z", false);
+                lastExprType = "Boolean";
+            }
+
+            // Connection management - void
+            case "Close" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "Close", "()V", false);
+                lastExprType = "void";
+            }
+
+            // Simple query execution - return String[][]
+            case "Query" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "Query", "(Ljava/lang/String;)[[Ljava/lang/String;", false);
+                lastExprType = "String[][]";
+            }
+
+            // Simple statement execution - return int
+            case "Execute" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "Execute", "(Ljava/lang/String;)I", false);
+                lastExprType = "Integer";
+            }
+
+            // Execute any SQL - return boolean
+            case "ExecuteAny" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "ExecuteAny", "(Ljava/lang/String;)Z", false);
+                lastExprType = "Boolean";
+            }
+
+            // Parameterized queries - return boolean
+            case "Prepare" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "Prepare", "(Ljava/lang/String;)Z", false);
+                lastExprType = "Boolean";
+            }
+            case "SetString" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "SetString", "(ILjava/lang/String;)Z", false);
+                lastExprType = "Boolean";
+            }
+            case "SetInt" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "SetInt", "(II)Z", false);
+                lastExprType = "Boolean";
+            }
+            case "SetLong" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "SetLong", "(IJ)Z", false);
+                lastExprType = "Boolean";
+            }
+            case "SetFloat" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "SetFloat", "(IF)Z", false);
+                lastExprType = "Boolean";
+            }
+            case "SetDouble" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "SetDouble", "(ID)Z", false);
+                lastExprType = "Boolean";
+            }
+            case "SetNull" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "SetNull", "(I)Z", false);
+                lastExprType = "Boolean";
+            }
+            case "ClearParameters" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "ClearParameters", "()Z", false);
+                lastExprType = "Boolean";
+            }
+
+            // Parameterized query execution - return String[][]
+            case "ExecuteQuery" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "ExecuteQuery", "()[[Ljava/lang/String;", false);
+                lastExprType = "String[][]";
+            }
+
+            // Parameterized update execution - return int
+            case "ExecuteUpdate" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "ExecuteUpdate", "()I", false);
+                lastExprType = "Integer";
+            }
+
+            // Close prepared statement - void
+            case "CloseStmt" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "CloseStmt", "()V", false);
+                lastExprType = "void";
+            }
+
+            // Transaction management - return boolean
+            case "BeginTransaction" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "BeginTransaction", "()Z", false);
+                lastExprType = "Boolean";
+            }
+            case "Commit" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "Commit", "()Z", false);
+                lastExprType = "Boolean";
+            }
+            case "Rollback" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "Rollback", "()Z", false);
+                lastExprType = "Boolean";
+            }
+
+            // Utility functions
+            case "GetLastInsertId" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "GetLastInsertId", "()J", false);
+                lastExprType = "Long";
+            }
+            case "Escape" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "Escape", "(Ljava/lang/String;)Ljava/lang/String;", false);
+                lastExprType = "String";
+            }
+            case "GetTables" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "GetTables", "()[Ljava/lang/String;", false);
+                lastExprType = "String[]";
+            }
+            case "GetColumns" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "GetColumns", "(Ljava/lang/String;)[Ljava/lang/String;", false);
+                lastExprType = "String[]";
+            }
+
+            default -> throw new RuntimeException("Unknown Db function: " + methodName);
+        }
+
+        return null;
+    }
+
     // ========================================================================
     // Binary Expressions
     // ========================================================================
@@ -2533,6 +2954,27 @@ public class CompilerVisitor extends JvmBasicParserBaseVisitor<Object> {
         if ("File".equalsIgnoreCase(pendingNamespace)) {
             pendingNamespace = null;
             handleFileCall(methodName, argList);
+            return;
+        }
+
+        // Handle Http namespace
+        if ("Http".equalsIgnoreCase(pendingNamespace)) {
+            pendingNamespace = null;
+            handleHttpCall(methodName, argList);
+            return;
+        }
+
+        // Handle Json namespace
+        if ("Json".equalsIgnoreCase(pendingNamespace)) {
+            pendingNamespace = null;
+            handleJsonCall(methodName, argList);
+            return;
+        }
+
+        // Handle Db namespace
+        if ("Db".equalsIgnoreCase(pendingNamespace)) {
+            pendingNamespace = null;
+            handleDbCall(methodName, argList);
             return;
         }
 

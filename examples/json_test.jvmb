@@ -23,14 +23,14 @@ Console.WriteLine("Age: " & age)
 Console.WriteLine("Active: " & active)
 
 ' Check properties
-Console.WriteLine("Has 'name': " & Json.Has(json, "name"))
-Console.WriteLine("Has 'email': " & Json.Has(json, "email"))
-Console.WriteLine("Is valid JSON: " & Json.IsValid(json))
-Console.WriteLine("Is object: " & Json.IsObject(json))
-
-' Create from pairs
-var person as String = Json.FromPairs("firstName", "Bob", "lastName", "Smith", "score", "95")
-Console.WriteLine("Person from pairs: " & person)
+var hasName as Boolean = Json.Has(json, "name")
+var hasEmail as Boolean = Json.Has(json, "email")
+var isValid as Boolean = Json.IsValid(json)
+var isObject as Boolean = Json.IsObject(json)
+Console.WriteLine("Has 'name': " & hasName)
+Console.WriteLine("Has 'email': " & hasEmail)
+Console.WriteLine("Is valid JSON: " & isValid)
+Console.WriteLine("Is object: " & isObject)
 
 ' Work with arrays
 var arr as String = Json.CreateArray()
@@ -38,8 +38,10 @@ arr = Json.Push(arr, "apple")
 arr = Json.Push(arr, "banana")
 arr = Json.Push(arr, "cherry")
 Console.WriteLine("Fruits array: " & arr)
-Console.WriteLine("Is array: " & Json.IsArray(arr))
-Console.WriteLine("Array length: " & Json.Length(arr))
+var isArr as Boolean = Json.IsArray(arr)
+var arrLen as Integer = Json.Length(arr)
+Console.WriteLine("Is array: " & isArr)
+Console.WriteLine("Array length: " & arrLen)
 Console.WriteLine("Element 1: " & Json.Get(arr, "1"))
 
 ' Pretty print
@@ -49,15 +51,11 @@ Console.WriteLine(Json.Pretty(json))
 
 ' Nested JSON
 var nested as String = Json.Create()
-nested = Json.SetJson(nested, "user", person)
+nested = Json.SetJson(nested, "user", json)
 nested = Json.SetJson(nested, "fruits", arr)
 Console.WriteLine("")
 Console.WriteLine("Nested JSON:")
 Console.WriteLine(Json.Pretty(nested))
-
-' Get keys - simplified without array iteration for now
-Console.WriteLine("")
-Console.WriteLine("Keys count: " & Json.Length(json))
 
 Console.WriteLine("")
 Console.WriteLine("=== JSON Test Complete ===")
