@@ -41,8 +41,69 @@ public class CompilerVisitor extends JvmBasicParserBaseVisitor<Object> {
     private String currentMethod = null;
     private int localVarSlot = 0;
 
+    // ========================================================================
+    // Block Scoping Support
+    // ========================================================================
+
+    // Scope stack for tracking variable visibility and slot allocation
+    private final java.util.Deque<ScopeFrame> scopeStack = new java.util.ArrayDeque<>();
+
+    // Record for tracking variables within a scope
+    private record ScopeFrame(
+        String name,
+        int startSlot,                                    // Slot level when entering scope
+        java.util.Map<String, LocalVar> variables         // Variables declared in this scope
+    ) {
+        ScopeFrame(String name, int startSlot) {
+            this(name, startSlot, new java.util.LinkedHashMap<>());
+        }
+    }
+
+    // Enter a new scope (block, loop, etc.)
+    private void enterScopeFrame(String name) {
+        scopeStack.push(new ScopeFrame(name, localVarSlot));
+    }
+
+    // Exit scope and optionally reclaim slots
+    private void exitScopeFrame(boolean reclaimSlots) {
+        if (!scopeStack.isEmpty()) {
+            ScopeFrame frame = scopeStack.pop();
+            if (reclaimSlots) {
+                // Reclaim slots used by this scope
+                localVarSlot = frame.startSlot();
+            }
+        }
+    }
+
+    // Add a variable to the current scope
+    private void addScopedVariable(String name, String type, int slot) {
+        if (!scopeStack.isEmpty()) {
+            scopeStack.peek().variables().put(name, new LocalVar(name, type, slot));
+        }
+    }
+
+    // Look up a variable in the scope chain (innermost first)
+    private LocalVar lookupScopedVariable(String name) {
+        for (ScopeFrame frame : scopeStack) {
+            LocalVar var = frame.variables().get(name);
+            if (var != null) {
+                return var;
+            }
+        }
+        return null;
+    }
+
+    // Check if variable is in current scope (not parent scopes)
+    private boolean isInCurrentScope(String name) {
+        if (!scopeStack.isEmpty()) {
+            return scopeStack.peek().variables().containsKey(name);
+        }
+        return false;
+    }
+
     // Track dynamically-created locals (FOR loop variables, etc.) during codegen
     // This complements the symbol table which only has declared variables
+    // DEPRECATED: Use scopeStack instead for new code
     private final java.util.Map<String, LocalVar> dynamicLocals = new java.util.LinkedHashMap<>();
 
     // Legacy alias for backwards compatibility
@@ -145,6 +206,8 @@ public class CompilerVisitor extends JvmBasicParserBaseVisitor<Object> {
         currentMethod = "main";
         localVarSlot = 1; // slot 0 is args
         dynamicLocals.clear();  // Clear dynamic locals for main method
+        scopeStack.clear();     // Clear scope stack
+        enterScopeFrame("main"); // Enter main function scope
 
         // Visit all top-level statements from topLevelElement
         for (JvmBasicParser.TopLevelElementContext elem : ctx.topLevelElement()) {
@@ -153,6 +216,7 @@ public class CompilerVisitor extends JvmBasicParserBaseVisitor<Object> {
             }
         }
 
+        exitScopeFrame(false);  // Exit main scope (no slot reclaim needed)
         mv.visitInsn(RETURN);
         mv.visitMaxs(0, 0); // Computed by ClassWriter
         mv.visitEnd();
@@ -178,6 +242,14 @@ public class CompilerVisitor extends JvmBasicParserBaseVisitor<Object> {
         currentMethod = name;
         localVarSlot = func.getParameters().size();
         dynamicLocals.clear();  // Clear dynamic locals for new function scope
+        scopeStack.clear();     // Clear scope stack
+        enterScopeFrame(name);  // Enter function scope
+
+        // Add parameters to scope
+        List<ParameterSymbol> params = func.getParameters();
+        for (int i = 0; i < params.size(); i++) {
+            addScopedVariable(params.get(i).name, params.get(i).type, i);
+        }
 
         // Visit function body
         for (JvmBasicParser.StatementContext stmt : ctx.statement()) {
@@ -190,6 +262,7 @@ public class CompilerVisitor extends JvmBasicParserBaseVisitor<Object> {
             generateDefaultReturn(returnType);
         }
 
+        exitScopeFrame(false);  // Exit function scope
         mv.visitMaxs(0, 0);
         mv.visitEnd();
 
@@ -212,12 +285,21 @@ public class CompilerVisitor extends JvmBasicParserBaseVisitor<Object> {
         currentMethod = name;
         localVarSlot = sub.getParameters().size();
         dynamicLocals.clear();  // Clear dynamic locals for new sub scope
+        scopeStack.clear();     // Clear scope stack
+        enterScopeFrame(name);  // Enter sub scope
+
+        // Add parameters to scope
+        List<ParameterSymbol> params = sub.getParameters();
+        for (int i = 0; i < params.size(); i++) {
+            addScopedVariable(params.get(i).name, params.get(i).type, i);
+        }
 
         // Visit sub body
         for (JvmBasicParser.StatementContext stmt : ctx.statement()) {
             visit(stmt);
         }
 
+        exitScopeFrame(false);  // Exit sub scope
         mv.visitInsn(RETURN);
         mv.visitMaxs(0, 0);
         mv.visitEnd();
@@ -421,7 +503,10 @@ public class CompilerVisitor extends JvmBasicParserBaseVisitor<Object> {
         String type = ctx.typeName().getText();
         int slot = allocateSlot(type);
 
-        // Store slot in symbol table for later reference
+        // Add to current scope for proper block scoping
+        addScopedVariable(name, type, slot);
+
+        // Store slot in symbol table for later reference (legacy support)
         if (currentMethod != null) {
             FunctionSymbol func = symbols.getFunction(currentMethod);
             if (func != null) {
@@ -430,7 +515,7 @@ public class CompilerVisitor extends JvmBasicParserBaseVisitor<Object> {
                     var.setSlot(slot);
                 }
             } else if ("main".equals(currentMethod)) {
-                // Track main method locals separately
+                // Track main method locals separately (legacy)
                 mainLocals.put(name, new LocalVar(name, type, slot));
             }
         }
@@ -593,10 +678,12 @@ public class CompilerVisitor extends JvmBasicParserBaseVisitor<Object> {
         visit(ctx.expression());
         mv.visitJumpInsn(IFEQ, elseLabel);
 
-        // Then block
+        // Then block - enter scope
+        enterScopeFrame("if_then");
         for (JvmBasicParser.StatementContext stmt : ctx.statement()) {
             visit(stmt);
         }
+        exitScopeFrame(true);  // Reclaim slots
         mv.visitJumpInsn(GOTO, endLabel);
 
         // Else-if clauses
@@ -606,18 +693,23 @@ public class CompilerVisitor extends JvmBasicParserBaseVisitor<Object> {
             visit(elseIf.expression());
             mv.visitJumpInsn(IFEQ, nextElse);
 
+            // Enter elseif scope
+            enterScopeFrame("elseif");
             for (JvmBasicParser.StatementContext stmt : elseIf.statement()) {
                 visit(stmt);
             }
+            exitScopeFrame(true);  // Reclaim slots
             mv.visitJumpInsn(GOTO, endLabel);
             mv.visitLabel(nextElse);
         }
 
         // Else clause
         if (ctx.elseClause() != null) {
+            enterScopeFrame("else");
             for (JvmBasicParser.StatementContext stmt : ctx.elseClause().statement()) {
                 visit(stmt);
             }
+            exitScopeFrame(true);  // Reclaim slots
         }
 
         mv.visitLabel(endLabel);
@@ -628,6 +720,9 @@ public class CompilerVisitor extends JvmBasicParserBaseVisitor<Object> {
     public Object visitWhileStatement(JvmBasicParser.WhileStatementContext ctx) {
         Label startLabel = new Label();
         Label endLabel = new Label();
+
+        // Enter WHILE scope
+        enterScopeFrame("while");
 
         // For while, continue should re-check condition
         pushLoop("while", startLabel, endLabel);
@@ -648,6 +743,9 @@ public class CompilerVisitor extends JvmBasicParserBaseVisitor<Object> {
 
         popLoop();
 
+        // Exit scope and reclaim slots
+        exitScopeFrame(true);
+
         return null;
     }
 
@@ -656,6 +754,9 @@ public class CompilerVisitor extends JvmBasicParserBaseVisitor<Object> {
         // DO [WHILE|UNTIL expr] ... LOOP [WHILE|UNTIL expr]
         Label startLabel = new Label();
         Label endLabel = new Label();
+
+        // Enter DO scope
+        enterScopeFrame("do");
 
         // For do loop, continue should go to start (re-check condition)
         pushLoop("do", startLabel, endLabel);
@@ -737,6 +838,9 @@ public class CompilerVisitor extends JvmBasicParserBaseVisitor<Object> {
 
         popLoop();
 
+        // Exit scope and reclaim slots
+        exitScopeFrame(true);
+
         return null;
     }
 
@@ -748,13 +852,17 @@ public class CompilerVisitor extends JvmBasicParserBaseVisitor<Object> {
 
         String varName = ctx.IDENTIFIER(0).getText();
 
+        // Enter FOR loop scope (will reclaim slots on exit)
+        enterScopeFrame("for_" + varName);
+
         // Evaluate start value and store in loop variable
         visit(ctx.expression(0));  // start expression
         int slot = localVarSlot++;
         mv.visitVarInsn(ISTORE, slot);
 
-        // Track the loop variable in dynamicLocals (works for all methods, not just main)
-        dynamicLocals.put(varName, new LocalVar(varName, "Integer", slot));
+        // Track the loop variable in scope
+        addScopedVariable(varName, "Integer", slot);
+        dynamicLocals.put(varName, new LocalVar(varName, "Integer", slot));  // For backward compat
 
         // We need to store the end value in a temp variable since we check it each iteration
         visit(ctx.expression(1));  // end expression
@@ -809,6 +917,10 @@ public class CompilerVisitor extends JvmBasicParserBaseVisitor<Object> {
         // Pop loop context
         popLoop();
 
+        // Exit scope and reclaim slots
+        dynamicLocals.remove(varName);  // Clean up backward compat
+        exitScopeFrame(true);  // Reclaim slots
+
         return null;
     }
 
@@ -828,6 +940,9 @@ public class CompilerVisitor extends JvmBasicParserBaseVisitor<Object> {
 
         String itemName = ctx.IDENTIFIER(0).getText();
 
+        // Enter FOR EACH scope
+        enterScopeFrame("foreach_" + itemName);
+
         // Evaluate and store the collection (array)
         visit(ctx.expression());
         String arrayType = lastExprType;  // e.g., "Integer[]"
@@ -843,8 +958,9 @@ public class CompilerVisitor extends JvmBasicParserBaseVisitor<Object> {
 
         // Allocate slot for loop variable
         int itemSlot = allocateSlot(elementType);
-        // Track the loop variable in dynamicLocals (works for all methods, not just main)
-        dynamicLocals.put(itemName, new LocalVar(itemName, elementType, itemSlot));
+        // Track the loop variable in scope
+        addScopedVariable(itemName, elementType, itemSlot);
+        dynamicLocals.put(itemName, new LocalVar(itemName, elementType, itemSlot));  // For backward compat
 
         Label startLabel = new Label();
         Label continueLabel = new Label();  // continue jumps here (increment)
@@ -882,6 +998,10 @@ public class CompilerVisitor extends JvmBasicParserBaseVisitor<Object> {
         mv.visitLabel(endLabel);
 
         popLoop();
+
+        // Exit scope and reclaim slots
+        dynamicLocals.remove(itemName);  // Clean up backward compat
+        exitScopeFrame(true);  // Reclaim slots
 
         return null;
     }
@@ -2881,6 +3001,13 @@ public class CompilerVisitor extends JvmBasicParserBaseVisitor<Object> {
     }
 
     private void loadVariable(String name) {
+        // FIRST: Check the scope stack (block-scoped variables)
+        LocalVar scopedVar = lookupScopedVariable(name);
+        if (scopedVar != null) {
+            loadLocal(scopedVar.slot(), scopedVar.type());
+            return;
+        }
+
         // Check if we're in a class method
         if (currentClass != null && currentMethod != null) {
             ClassSymbol classSym = symbols.getClass(currentClass);
@@ -2924,7 +3051,7 @@ public class CompilerVisitor extends JvmBasicParserBaseVisitor<Object> {
                     return;
                 }
             } else if ("main".equals(currentMethod)) {
-                // Check main method locals
+                // Check main method locals (legacy support)
                 LocalVar local = mainLocals.get(name);
                 if (local != null) {
                     loadLocal(local.slot(), local.type());
@@ -2933,7 +3060,7 @@ public class CompilerVisitor extends JvmBasicParserBaseVisitor<Object> {
             }
         }
 
-        // Check dynamicLocals (FOR loop variables, etc.)
+        // Check dynamicLocals (FOR loop variables, etc.) - legacy support
         LocalVar dynamicLocal = dynamicLocals.get(name);
         if (dynamicLocal != null) {
             loadLocal(dynamicLocal.slot(), dynamicLocal.type());
@@ -2955,7 +3082,15 @@ public class CompilerVisitor extends JvmBasicParserBaseVisitor<Object> {
         // TODO: Handle member access and array indexing
         if (lvalue instanceof JvmBasicParser.SimpleLValueContext simple) {
             String name = simple.IDENTIFIER().getText();
-            // Find variable slot and store
+
+            // FIRST: Check the scope stack (block-scoped variables)
+            LocalVar scopedVar = lookupScopedVariable(name);
+            if (scopedVar != null) {
+                storeLocal(scopedVar.slot(), scopedVar.type());
+                return;
+            }
+
+            // Find variable slot and store (legacy support)
             if (currentMethod != null) {
                 FunctionSymbol func = symbols.getFunction(currentMethod);
                 if (func != null) {

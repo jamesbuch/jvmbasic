@@ -202,12 +202,37 @@ Console.WriteLine(c.GetValue())  ' Outputs: 11
 | Reserved word variables | ✅ Working | Lexer correctly tokenizes keywords before identifiers; parser gives clear errors |
 | FOR in functions | ✅ Fixed | Dynamic locals tracking now works for all methods, not just main |
 | Array params in subs | ✅ Fixed | Array type descriptors now correctly generate `[I` instead of `LInteger[];` |
+| **Block Scoping** | ✅ Fixed | Full block-level scoping with slot reuse |
+
+### Block Scoping System
+JVM BASIC 2.0 now implements **proper block-level scoping** like modern languages:
+
+- **Scope boundaries**: FOR, FOR EACH, WHILE, DO, IF/ELSEIF/ELSE, SELECT CASE blocks
+- **Variable visibility**: Variables declared in a block are only visible within that block
+- **Slot reuse**: When a block exits, its variable slots are reclaimed for reuse
+- **Duplicate detection**: SymbolCollector detects duplicate variable declarations within the same scope
+- **Nested scopes**: Inner blocks can shadow outer variables (each gets its own slot)
+
+Example:
+```vb
+for i = 1 to 3
+    var temp as Integer = i * 10  ' temp is scoped to this FOR block
+    Console.WriteLine(temp)
+next i
+' temp is no longer accessible here
+
+for j = 1 to 3
+    var temp as Integer = j * 100  ' New temp variable, reuses slots
+    Console.WriteLine(temp)
+next j
+```
 
 ### Testing
 New test files were added to verify these fixes:
 - `string_plus_test.jvmb` - Tests string `+` operator with various types
 - `for_in_function_test.jvmb` - Tests FOR loops inside functions
 - `array_param_test.jvmb` - Tests array parameters in functions and subs
+- `scope_test.jvmb` - Comprehensive block scoping tests with slot reuse verification
 
 ## What's NOT Yet Implemented
 

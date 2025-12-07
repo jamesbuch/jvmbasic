@@ -1,0 +1,87 @@
+' Test: Block scoping with proper slot reuse
+' This tests that variables declared inside blocks are properly scoped
+' and that slots are reused after blocks close
+
+Console.WriteLine("=== Block Scope Test ===")
+
+' Test 1: Variables declared inside FOR loops should be scoped to loop
+Console.WriteLine("")
+Console.WriteLine("Test 1: Variables in FOR loop")
+for i = 1 to 3
+    var loopVar as Integer = i * 10
+    Console.WriteLine("  loopVar = " + loopVar)
+next i
+
+' Test 2: Variable declared before loop, modified inside - should persist
+Console.WriteLine("")
+Console.WriteLine("Test 2: Variable from outer scope modified in loop")
+var counter as Integer = 0
+for j = 1 to 5
+    counter = counter + j
+next j
+Console.WriteLine("  counter = " + counter + " (expected: 15)")
+
+' Test 3: Nested loops with their own scoped variables
+Console.WriteLine("")
+Console.WriteLine("Test 3: Nested loops with scoped variables")
+for outer = 1 to 2
+    var outerVar as String = "outer_" + outer
+    for inner = 1 to 2
+        var innerVar as String = "inner_" + inner
+        Console.WriteLine("  " + outerVar + " / " + innerVar)
+    next inner
+next outer
+
+' Test 4: Variable in WHILE loop should be scoped
+Console.WriteLine("")
+Console.WriteLine("Test 4: Variable in WHILE loop")
+var w as Integer = 1
+while w <= 3
+    var whileVar as Integer = w * 100
+    Console.WriteLine("  whileVar = " + whileVar)
+    w = w + 1
+end while
+
+' Test 5: Variable in IF block should be scoped
+Console.WriteLine("")
+Console.WriteLine("Test 5: Variables in IF/ELSE blocks")
+var check as Integer = 5
+if check > 3 then
+    var ifVar as Integer = check + 10
+    Console.WriteLine("  ifVar = " + ifVar + " (expected: 15)")
+else
+    var elseVar as Integer = check - 10
+    Console.WriteLine("  elseVar = " + elseVar)
+end if
+
+' Test 6: Same-named variables in separate loops (slot reuse)
+' Each loop should get its own 'temp' variable that goes out of scope
+Console.WriteLine("")
+Console.WriteLine("Test 6: Same-named vars in separate loops (slot reuse)")
+for k = 1 to 2
+    var temp as Integer = k * 1
+    Console.WriteLine("  First loop temp = " + temp)
+next k
+
+for k = 1 to 2
+    var temp as Integer = k * 10
+    Console.WriteLine("  Second loop temp = " + temp)
+next k
+
+' Test 7: Variables in functions with loops
+Console.WriteLine("")
+Console.WriteLine("Test 7: Scoped variables in functions")
+var result as Integer = SumSquares(5)
+Console.WriteLine("  Sum of squares 1-5 = " + result + " (expected: 55)")
+
+Console.WriteLine("")
+Console.WriteLine("=== Block Scope Test Complete ===")
+
+function SumSquares(n as Integer) as Integer
+    var total as Integer = 0
+    for i = 1 to n
+        var squared as Integer = i * i
+        total = total + squared
+    next i
+    return total
+end function
