@@ -44,6 +44,7 @@ public class Main {
     private static boolean outputIrFile = false;
     private static boolean outputSirFile = false;
     private static String outputName = null;
+    private static String outputDir = null;
     private static String sourceFile = null;
 
     public static void main(String[] args) {
@@ -116,6 +117,12 @@ public class Main {
                 case "-semantic":
                     semanticCheck = true;
                     break;
+                case "-outdir":
+                case "--outdir":
+                    if (i + 1 < args.length) {
+                        outputDir = args[++i];
+                    }
+                    break;
                 case "-help":
                 case "--help":
                     printUsage();
@@ -138,6 +145,7 @@ public class Main {
 
             Options:
               -o <name>       Output class name (default: derived from source file)
+              -outdir <dir>   Output directory for .class files (default: current directory)
               -d              Enable debug output (uses listener for trace)
               -ast            Print AST structure (compact, single line)
               -tree           Print parse tree (pretty-printed, indented)
@@ -243,9 +251,16 @@ public class Main {
         IRCompilationUnit irUnit = null;
         if (showIr || showSir || outputIrFile || outputSirFile || semanticCheck || !parseOnly) {
             System.out.println("\n=== Building IR ===");
-            IRBuilder irBuilder = new IRBuilder(outputName);
-            irUnit = irBuilder.build(tree);
-            String irContent = irUnit.toString();
+            try {
+                IRBuilder irBuilder = new IRBuilder(outputName);
+                irUnit = irBuilder.build(tree);
+            } catch (Exception e) {
+                // IR building failed, but we can continue with direct code generation
+                if (debugMode) {
+                    System.err.println("Warning: IR building failed: " + e.getMessage());
+                }
+            }
+            String irContent = irUnit != null ? irUnit.toString() : "";
 
             if (showIr) {
                 System.out.println("\nIntermediate Representation (Tree IR):");
@@ -320,18 +335,34 @@ public class Main {
         CompilerVisitor visitor = new CompilerVisitor(outputName, symbolCollector.getSymbols());
         visitor.visit(tree);
 
+        // Determine output path
+        Path outputPath;
+        if (outputDir != null) {
+            Path dirPath = Path.of(outputDir);
+            Files.createDirectories(dirPath);
+            outputPath = dirPath.resolve(outputName + ".class");
+        } else {
+            outputPath = Path.of(outputName + ".class");
+        }
+
         // Write main class file
         byte[] bytecode = visitor.getBytecode();
-        Files.write(Path.of(outputName + ".class"), bytecode);
+        Files.write(outputPath, bytecode);
 
-        System.out.println("Successfully compiled: " + outputName + ".class (" + bytecode.length + " bytes)");
+        System.out.println("Successfully compiled: " + outputPath + " (" + bytecode.length + " bytes)");
 
         // Write generated class files (user-defined classes)
         for (var entry : visitor.getGeneratedClasses().entrySet()) {
             String className = entry.getKey();
             byte[] classBytecode = entry.getValue();
-            Files.write(Path.of(className + ".class"), classBytecode);
-            System.out.println("Generated class: " + className + ".class (" + classBytecode.length + " bytes)");
+            Path classPath;
+            if (outputDir != null) {
+                classPath = Path.of(outputDir).resolve(className + ".class");
+            } else {
+                classPath = Path.of(className + ".class");
+            }
+            Files.write(classPath, classBytecode);
+            System.out.println("Generated class: " + classPath + " (" + classBytecode.length + " bytes)");
         }
     }
 

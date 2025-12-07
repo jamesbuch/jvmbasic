@@ -1,0 +1,107 @@
+' file_backup.jvmb - Timestamped File Backup Utility
+' Demonstrates: File, Date, Str namespaces
+'
+' This utility creates timestamped backup copies of files.
+' Usage: Specify source file and backup directory
+
+Console.WriteLine("=== File Backup Utility ===")
+Console.WriteLine("")
+
+' Configuration
+var sourceFile as String = "examples/hello.jvmb"
+var backupDir as String = "backups"
+
+' Get file info
+var fileName as String = getFileName(sourceFile)
+var fileExt as String = getFileExtension(sourceFile)
+var baseName as String = getBaseName(sourceFile)
+
+Console.WriteLine($"Source file: {sourceFile}")
+Console.WriteLine($"File name: {fileName}")
+Console.WriteLine($"Extension: {fileExt}")
+
+' Check if source exists
+if not File.Exists(sourceFile) then
+    Console.WriteLine($"ERROR: Source file not found: {sourceFile}")
+else
+    ' Create backup directory if needed
+    if not File.Exists(backupDir) then
+        Console.WriteLine($"Creating backup directory: {backupDir}")
+        File.CreateDirectory(backupDir)
+    end if
+
+    ' Generate timestamped backup name
+    var timestamp as String = Date.Format(Date.Now(), "yyyyMMdd_HHmmss")
+    var backupName as String = $"{baseName}_{timestamp}{fileExt}"
+    var backupPath as String = $"{backupDir}/{backupName}"
+
+    Console.WriteLine($"Backup name: {backupName}")
+    Console.WriteLine($"Backup path: {backupPath}")
+
+    ' Read source and write backup
+    var content as String = File.ReadAllText(sourceFile)
+    var sourceSize as Integer = Str.Length(content)
+
+    File.WriteAllText(backupPath, content)
+
+    ' Verify backup
+    if File.Exists(backupPath) then
+        var backupContent as String = File.ReadAllText(backupPath)
+        var backupSize as Integer = Str.Length(backupContent)
+
+        Console.WriteLine("")
+        Console.WriteLine("Backup created successfully!")
+        Console.WriteLine($"  Source size: {sourceSize} bytes")
+        Console.WriteLine($"  Backup size: {backupSize} bytes")
+
+        if sourceSize = backupSize then
+            Console.WriteLine("  Verification: PASSED")
+        else
+            Console.WriteLine("  Verification: FAILED - size mismatch!")
+        end if
+    else
+        Console.WriteLine("ERROR: Backup file was not created!")
+    end if
+
+    ' Show backup statistics
+    Console.WriteLine("")
+    Console.WriteLine("--- Backup Info ---")
+    Console.WriteLine($"Created: {Date.Format(Date.Now(), \"yyyy-MM-dd HH:mm:ss\")}")
+    Console.WriteLine($"Original: {sourceFile}")
+    Console.WriteLine($"Backup: {backupPath}")
+
+    ' Calculate file hash for integrity
+    var hash as String = Crypto.Sha256(content)
+    Console.WriteLine($"SHA-256: {Str.Substring(hash, 0, 16)}...")
+end if
+
+Console.WriteLine("")
+Console.WriteLine("=== Backup Complete ===")
+
+' Helper function: Extract filename from path
+function getFileName(path as String) as String
+    var lastSlash as Integer = Str.LastIndexOf(path, "/")
+    if lastSlash >= 0 then
+        return Str.Substring(path, lastSlash + 1, Str.Length(path) - lastSlash - 1)
+    end if
+    return path
+end function
+
+' Helper function: Extract file extension
+function getFileExtension(path as String) as String
+    var lastDot as Integer = Str.LastIndexOf(path, ".")
+    if lastDot >= 0 then
+        return Str.Substring(path, lastDot, Str.Length(path) - lastDot)
+    end if
+    return ""
+end function
+
+' Helper function: Extract base name (without extension)
+function getBaseName(path as String) as String
+    var name as String = getFileName(path)
+    var lastDot as Integer = Str.LastIndexOf(name, ".")
+    if lastDot >= 0 then
+        return Str.Substring(name, 0, lastDot)
+    end if
+    return name
+end function

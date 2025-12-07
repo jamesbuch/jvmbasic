@@ -1,0 +1,144 @@
+' text_stats.jvmb - Text File Statistics Analyzer
+' Demonstrates: File, Str, Regex, Math namespaces
+'
+' Analyzes text files and provides comprehensive statistics
+
+Console.WriteLine("=== Text Statistics Analyzer ===")
+Console.WriteLine("")
+
+' Analyze this file as an example
+var filePath as String = "examples/text_stats.jvmb"
+
+if not File.Exists(filePath) then
+    Console.WriteLine($"ERROR: File not found: {filePath}")
+else
+    Console.WriteLine($"Analyzing: {filePath}")
+    Console.WriteLine("")
+
+    var content as String = File.ReadAllText(filePath)
+
+    ' Basic statistics
+    var charCount as Integer = Str.Length(content)
+    var lineCount as Integer = countLines(content)
+    var wordCount as Integer = countWords(content)
+
+    Console.WriteLine("=== Basic Statistics ===")
+    Console.WriteLine($"  Characters: {charCount}")
+    Console.WriteLine($"  Lines: {lineCount}")
+    Console.WriteLine($"  Words: {wordCount}")
+    Console.WriteLine("")
+
+    ' Character analysis
+    var letterCount as Integer = countMatches(content, "[a-zA-Z]")
+    var digitCount as Integer = countMatches(content, "[0-9]")
+    var spaceCount as Integer = countMatches(content, "\\s")
+    var punctCount as Integer = countMatches(content, "[.,:;!?\"'()\\[\\]{}]")
+
+    Console.WriteLine("=== Character Breakdown ===")
+    Console.WriteLine($"  Letters: {letterCount}")
+    Console.WriteLine($"  Digits: {digitCount}")
+    Console.WriteLine($"  Whitespace: {spaceCount}")
+    Console.WriteLine($"  Punctuation: {punctCount}")
+    Console.WriteLine("")
+
+    ' Averages
+    var avgWordLen as Double = 0.0
+    if wordCount > 0 then
+        avgWordLen = letterCount / wordCount
+    end if
+
+    var avgLineLen as Double = 0.0
+    if lineCount > 0 then
+        avgLineLen = charCount / lineCount
+    end if
+
+    Console.WriteLine("=== Averages ===")
+    Console.WriteLine($"  Avg word length: {Math.Round(avgWordLen * 10.0) / 10.0} chars")
+    Console.WriteLine($"  Avg line length: {Math.Round(avgLineLen * 10.0) / 10.0} chars")
+    Console.WriteLine($"  Words per line: {Math.Round((wordCount / lineCount) * 10.0) / 10.0}")
+    Console.WriteLine("")
+
+    ' Code-specific analysis (for source files)
+    var commentLines as Integer = countMatches(content, "(?m)^\\s*'")
+    var blankLines as Integer = countMatches(content, "(?m)^\\s*$")
+    var codeLines as Integer = lineCount - commentLines - blankLines
+
+    Console.WriteLine("=== Code Analysis ===")
+    Console.WriteLine($"  Comment lines: {commentLines}")
+    Console.WriteLine($"  Blank lines: {blankLines}")
+    Console.WriteLine($"  Code lines: {codeLines}")
+
+    var codePercent as Double = 0.0
+    if lineCount > 0 then
+        codePercent = (codeLines * 100.0) / lineCount
+    end if
+    Console.WriteLine($"  Code percentage: {Math.Round(codePercent)}%")
+    Console.WriteLine("")
+
+    ' Find common patterns
+    var functionCount as Integer = countMatches(content, "(?i)function\\s+\\w+")
+    var subCount as Integer = countMatches(content, "(?i)sub\\s+\\w+")
+    var varCount as Integer = countMatches(content, "(?i)var\\s+\\w+")
+    var ifCount as Integer = countMatches(content, "(?i)\\bif\\b")
+    var forCount as Integer = countMatches(content, "(?i)\\bfor\\b")
+    var whileCount as Integer = countMatches(content, "(?i)\\bwhile\\b")
+
+    Console.WriteLine("=== Code Constructs ===")
+    Console.WriteLine($"  Functions: {functionCount}")
+    Console.WriteLine($"  Subroutines: {subCount}")
+    Console.WriteLine($"  Variables: {varCount}")
+    Console.WriteLine($"  If statements: {ifCount}")
+    Console.WriteLine($"  For loops: {forCount}")
+    Console.WriteLine($"  While loops: {whileCount}")
+    Console.WriteLine("")
+
+    ' File info
+    Console.WriteLine("=== File Info ===")
+    Console.WriteLine($"  Path: {filePath}")
+    Console.WriteLine($"  Size: {charCount} bytes")
+    Console.WriteLine($"  Hash: {Str.Substring(Crypto.Sha256(content), 0, 16)}...")
+    Console.WriteLine("")
+end if
+
+Console.WriteLine("=== Analysis Complete ===")
+
+' Count lines in text
+function countLines(text as String) as Integer
+    if Str.Length(text) = 0 then
+        return 0
+    end if
+
+    var count as Integer = 1
+    for i = 0 to Str.Length(text) - 1
+        var ch as String = Str.Substring(text, i, 1)
+        if ch = Str.Chr(10) then
+            count = count + 1
+        end if
+    next i
+    return count
+end function
+
+' Count words in text (sequences of non-whitespace)
+function countWords(text as String) as Integer
+    var count as Integer = 0
+    var inWord as Boolean = false
+
+    for i = 0 to Str.Length(text) - 1
+        var ch as String = Str.Substring(text, i, 1)
+        var isSpace as Boolean = (ch = " ") or (ch = Str.Chr(9)) or (ch = Str.Chr(10)) or (ch = Str.Chr(13))
+
+        if isSpace then
+            inWord = false
+        elseif not inWord then
+            inWord = true
+            count = count + 1
+        end if
+    next i
+    return count
+end function
+
+' Count regex matches in text
+function countMatches(text as String, pattern as String) as Integer
+    var matches() as String = Regex.FindAll(text, pattern)
+    return Str.Length(matches[0]) / 2 + 1
+end function

@@ -1,0 +1,50 @@
+' assert_test.jvmb - Test assert statement in JVM BASIC 2.0
+
+Console.WriteLine("=== Assert Tests ===")
+Console.WriteLine("")
+
+' Test 1: Passing assertion
+Console.WriteLine("Test 1: Passing assertion (1 = 1)")
+assert 1 = 1
+Console.WriteLine("  PASSED!")
+Console.WriteLine("")
+
+' Test 2: Passing assertion with variables
+Console.WriteLine("Test 2: Passing assertion with variables")
+var x As Integer = 5
+var y As Integer = 5
+assert x = y
+Console.WriteLine("  x = " + x.ToString() + ", y = " + y.ToString())
+Console.WriteLine("  PASSED!")
+Console.WriteLine("")
+
+' Test 3: Passing assertion with expression
+Console.WriteLine("Test 3: Passing assertion with expression")
+var sum As Integer = 2 + 2
+assert sum = 4
+Console.WriteLine("  2 + 2 = " + sum.ToString())
+Console.WriteLine("  PASSED!")
+Console.WriteLine("")
+
+' Test 4: Failing assertion with message
+Console.WriteLine("Test 4: Failing assertion (expected to fail)")
+Console.WriteLine("  Attempting: assert 1 = 2, \"1 should never equal 2\"")
+Try
+    assert 1 = 2, "1 should never equal 2"
+    Console.WriteLine("  ERROR: Should have thrown AssertionError!")
+Catch ex As AssertionError
+    Console.WriteLine("  Caught AssertionError as expected")
+End Try
+Console.WriteLine("")
+
+' Test 5: Failing assertion without message
+Console.WriteLine("Test 5: Failing assertion without message")
+Try
+    assert false
+    Console.WriteLine("  ERROR: Should have thrown AssertionError!")
+Catch ex As AssertionError
+    Console.WriteLine("  Caught AssertionError as expected")
+End Try
+Console.WriteLine("")
+
+Console.WriteLine("=== All assert tests completed ===")

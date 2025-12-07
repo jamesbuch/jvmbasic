@@ -30,25 +30,26 @@ This document outlines the current state, pending work, and future development p
 | **Http Namespace** | Get, Post, Put, Delete, headers, URL encoding | ✅ Complete |
 | **Json Namespace** | Create, Get, Set, Parse, Pretty, arrays | ✅ Complete |
 | **Db Namespace** | Connect, Query, Execute, Prepared statements, transactions | ✅ Complete |
+| **Date Namespace** | Now, Today, Format, Parse, Add, Compare, TimeZones | ✅ Complete |
+| **Crypto Namespace** | Hashing, HMAC, AES, Argon2, BCrypt, signatures, encoding | ✅ Complete |
 
 ### Not Yet Implemented
 
 | Category | Features | Priority |
 |----------|----------|----------|
-| **BigInteger Type** | Arbitrary precision integers with operator support | High |
-| **Decimal Type** | Arbitrary precision decimals with operator support | High |
-| **Date Namespace** | Now, FormatDate, Parse, Add | High |
-| **Crypto Namespace** | SHA, AES, HMAC, signatures (comprehensive) | High |
+| **Exception Handling** | `try/catch/finally`, `throw`, custom exceptions | High |
+| **Testing Support** | `assert`, `Assert.Equal`, test runner | High |
 | **OOP: Inheritance** | `extends`, `super`, base class calls | High |
 | **OOP: Interfaces** | `interface`, `implements` | High |
-| **OOP: Properties** | `get`/`set` accessors | Medium |
-| **OOP: Static Members** | `static` fields and methods | Medium |
 | **OOP: Method Overriding** | `override`, virtual dispatch | High |
-| **Async/Await** | Async functions, await expressions | High |
-| **Concurrency** | Channels, Mutex, WaitGroup, spawn | High |
+| **Attributes/Annotations** | PHP 8-style `#[Route("/path")]` for decorators | High |
+| **OOP: Static Members** | `static` fields and methods | Medium |
+| **OOP: Properties** | `get`/`set` accessors | Medium |
+| **Async/Await** | Async functions, await expressions | Medium |
+| **Concurrency** | Channels, Mutex, WaitGroup, spawn | Medium |
 | **Xml Namespace** | Parse, query, create XML | Medium |
+| **Jetty Integration** | Web server with attribute-based routing | Medium |
 | **Lambda Expressions** | `x => x * 2` | Low |
-| **Jetty Integration** | Web server support | Medium |
 
 ---
 
@@ -572,45 +573,95 @@ Xml.Unescape(text)         -> String   // Unescape
 
 ---
 
-## Phase 6: OOP Completion
+## Phase 6: Complete OOP Implementation
 
-### 6.1 Inheritance
+This phase completes the object-oriented programming support for JVM BASIC 2.0.
 
-**Grammar changes (JvmBasicParser.g4):**
+### 6.1 Inheritance (High Priority)
+
+**Status:** Grammar exists, needs compiler implementation
+
+**Grammar (already in JvmBasicParser.g4):**
+
 ```antlr
 classDeclaration
     : accessModifier? CLASS IDENTIFIER (EXTENDS typeName)? classBody END CLASS
     ;
 ```
 
-**Compiler changes:**
-- Track base class in symbol table
-- Generate `extends` in class bytecode
-- Handle `super` calls in constructors
-- Implement `MyBase.method()` for calling parent methods
+**Compiler changes needed:**
 
-**Example syntax:**
+1. **SymbolCollector changes:**
+   - Track base class name for each class
+   - Validate base class exists before subclass
+   - Build inheritance hierarchy for type checking
+
+2. **CompilerVisitor changes:**
+   - Generate `extends` clause in class bytecode: `cw.visit(..., superClassName, ...)`
+   - Handle `super.` prefix for parent method calls
+   - Generate `INVOKESPECIAL` for super constructor calls
+   - Handle field inheritance (parent fields accessible in child)
+
+3. **SemanticAnalyzer changes:**
+   - Type compatibility checks (subclass assignable to parent type)
+   - Method resolution with inheritance chain
+   - Field visibility in inheritance hierarchy
+
+**Example syntax (using `super.` not `MyBase.`):**
+
 ```basic
+class Person
+    public var name as String
+    public var age as Integer
+
+    public sub New(name as String, age as Integer)
+        this.name = name
+        this.age = age
+    end sub
+
+    public function ToString() as String
+        return $"{this.name}, age {this.age}"
+    end function
+end class
+
 class Employee extends Person
     private var salary as Double
+    private var department as String
 
-    public sub New(name as String, age as Integer, salary as Double)
-        MyBase.New(name, age)  ' Call parent constructor
+    public sub New(name as String, age as Integer, salary as Double, dept as String)
+        super.New(name, age)  ' Call parent constructor
         this.salary = salary
+        this.department = dept
     end sub
 
     public override function ToString() as String
-        return MyBase.ToString() & $", Salary: {this.salary}"
+        return super.ToString() + $", {this.department}, ${this.salary}"
+    end function
+
+    public function GetSalary() as Double
+        return this.salary
     end function
 end class
+
+' Usage
+var emp as Employee = new Employee("Alice", 30, 75000.0, "Engineering")
+Console.WriteLine(emp.ToString())
+Console.WriteLine(emp.name)  ' Inherited field access
 ```
 
-### 6.2 Interfaces
+### 6.2 Interfaces (High Priority)
+
+**Status:** Grammar exists, needs compiler implementation
 
 **Grammar changes:**
+
 ```antlr
 interfaceDeclaration
     : accessModifier? INTERFACE IDENTIFIER interfaceBody END INTERFACE
+    ;
+
+interfaceBody
+    : (functionSignature | subSignature)*
     ;
 
 classDeclaration
@@ -621,47 +672,117 @@ classDeclaration
     ;
 ```
 
+**Compiler changes needed:**
+
+1. Generate interface as JVM interface (ACC_INTERFACE | ACC_ABSTRACT)
+2. Generate abstract method signatures in interface
+3. Add `implements` clause to class bytecode
+4. Validate all interface methods are implemented
+5. Support multiple interface implementation
+
 **Example syntax:**
+
 ```basic
 interface IShape
     function Area() as Double
     function Perimeter() as Double
+    function GetName() as String
 end interface
 
-class Circle implements IShape
+interface IDrawable
+    sub Draw()
+end interface
+
+class Circle implements IShape, IDrawable
     private var radius as Double
+    private var x as Integer
+    private var y as Integer
+
+    public sub New(radius as Double, x as Integer, y as Integer)
+        this.radius = radius
+        this.x = x
+        this.y = y
+    end sub
 
     public function Area() as Double
         return 3.14159 * this.radius * this.radius
     end function
 
     public function Perimeter() as Double
-        return 2 * 3.14159 * this.radius
+        return 2.0 * 3.14159 * this.radius
+    end function
+
+    public function GetName() as String
+        return "Circle"
+    end function
+
+    public sub Draw()
+        Console.WriteLine($"Drawing circle at ({this.x}, {this.y}) with radius {this.radius}")
+    end sub
+end class
+
+' Polymorphic usage
+var shape as IShape = new Circle(5.0, 10, 20)
+Console.WriteLine($"Area: {shape.Area()}")
+```
+
+### 6.3 Method Overriding (High Priority)
+
+**Status:** Grammar has `override` keyword, needs compiler implementation
+
+**Compiler changes needed:**
+
+1. Validate `override` methods exist in parent class/interface
+2. Check method signature matches parent exactly
+3. Generate proper virtual dispatch (methods are virtual by default in JVM)
+4. Support `final` to prevent further overriding
+
+**Example syntax:**
+
+```basic
+class Animal
+    public function Speak() as String
+        return "..."
     end function
 end class
-```
 
-### 6.3 Properties
-
-**Example syntax:**
-```basic
-class Person
-    private var _name as String
-
-    public property Name as String
-        get
-            return _name
-        end get
-        set(value as String)
-            _name = value
-        end set
-    end property
+class Dog extends Animal
+    public override function Speak() as String
+        return "Woof!"
+    end function
 end class
+
+class Cat extends Animal
+    public override function Speak() as String
+        return "Meow!"
+    end function
+end class
+
+' Polymorphism in action
+var animals() as Animal = new Animal[3]
+animals[0] = new Dog()
+animals[1] = new Cat()
+animals[2] = new Animal()
+
+for each animal in animals
+    Console.WriteLine(animal.Speak())
+next
 ```
 
-### 6.4 Static Members
+### 6.4 Static Members (Medium Priority)
+
+**Status:** Grammar has `static` keyword, needs compiler implementation
+
+**Compiler changes needed:**
+
+1. Generate static fields with ACC_STATIC flag
+2. Generate static methods with ACC_STATIC flag
+3. Use GETSTATIC/PUTSTATIC for static field access
+4. Use INVOKESTATIC for static method calls
+5. Static initializer block support (<clinit>)
 
 **Example syntax:**
+
 ```basic
 class Counter
     private static var count as Integer = 0
@@ -673,8 +794,111 @@ class Counter
     public static sub Increment()
         Counter.count = Counter.count + 1
     end sub
+
+    public static sub Reset()
+        Counter.count = 0
+    end sub
+end class
+
+' Usage - no instance needed
+Counter.Increment()
+Counter.Increment()
+Console.WriteLine($"Count: {Counter.GetCount()}")  ' Output: Count: 2
+```
+
+### 6.5 Properties (Medium Priority)
+
+**Status:** Grammar may need updates, needs compiler implementation
+
+**Compiler changes needed:**
+
+1. Generate getter/setter methods (get_PropertyName, set_PropertyName)
+2. Property access translates to method calls
+3. Support read-only properties (get only)
+4. Support write-only properties (set only)
+5. Support auto-implemented properties
+
+**Example syntax:**
+
+```basic
+class Person
+    private var _name as String
+    private var _age as Integer
+
+    ' Full property with backing field
+    public property Name as String
+        get
+            return this._name
+        end get
+        set(value as String)
+            if Str.Length(value) > 0 then
+                this._name = value
+            end if
+        end set
+    end property
+
+    ' Read-only property
+    public property Age as Integer
+        get
+            return this._age
+        end get
+    end property
+
+    ' Auto-implemented property (future)
+    ' public property Email as String
+
+    public sub New(name as String, age as Integer)
+        this._name = name
+        this._age = age
+    end sub
+end class
+
+var p as Person = new Person("Alice", 25)
+Console.WriteLine(p.Name)  ' Calls getter
+p.Name = "Bob"             ' Calls setter
+```
+
+### 6.6 Abstract Classes (Low Priority)
+
+**Example syntax:**
+
+```basic
+abstract class Shape
+    public abstract function Area() as Double
+    public abstract function Perimeter() as Double
+
+    public function Describe() as String
+        return $"Shape with area {this.Area()}"
+    end function
+end class
+
+class Rectangle extends Shape
+    private var width as Double
+    private var height as Double
+
+    public sub New(w as Double, h as Double)
+        this.width = w
+        this.height = h
+    end sub
+
+    public override function Area() as Double
+        return this.width * this.height
+    end function
+
+    public override function Perimeter() as Double
+        return 2.0 * (this.width + this.height)
+    end function
 end class
 ```
+
+### OOP Implementation Order
+
+1. **Phase 6.1: Inheritance** - Foundation for all other OOP features
+2. **Phase 6.3: Method Overriding** - Depends on inheritance
+3. **Phase 6.2: Interfaces** - Can be done in parallel with overriding
+4. **Phase 6.4: Static Members** - Independent, can be done anytime
+5. **Phase 6.5: Properties** - Nice to have, syntactic sugar
+6. **Phase 6.6: Abstract Classes** - Combines inheritance + interfaces concepts
 
 ---
 
@@ -750,21 +974,39 @@ end sub
 
 The following JARs are available for use:
 
-| Library | Version | Purpose |
-|---------|---------|---------|
-| `gson-2.10.1.jar` | 2.10.1 | JSON (alternative to hand-rolled) |
-| `postgresql-42.7.1.jar` | 42.7.1 | PostgreSQL JDBC driver |
-| `mariadb-java-client-3.3.2.jar` | 3.3.2 | MariaDB/MySQL JDBC driver |
-| `bcprov-jdk18on-1.77.jar` | 1.77 | Bouncy Castle crypto provider |
-| `bcpkix-jdk18on-1.77.jar` | 1.77 | Bouncy Castle PKI/signatures |
-| `jetty-server-11.0.19.jar` | 11.0.19 | Jetty HTTP server |
-| `jetty-servlet-11.0.19.jar` | 11.0.19 | Jetty servlet support |
-| `guava-33.0.0-jre.jar` | 33.0.0 | Google Guava utilities |
-| `commons-io-2.15.1.jar` | 2.15.1 | Apache Commons I/O |
-| `commons-lang3-3.14.0.jar` | 3.14.0 | Apache Commons Lang |
-| `commons-codec-1.16.0.jar` | 1.16.0 | Apache Commons Codec (Base64, Hex) |
-| `commons-text-1.11.0.jar` | 1.11.0 | Apache Commons Text |
-| `commons-math3-3.6.1.jar` | 3.6.1 | Apache Commons Math |
+| Library | Version | Purpose | Status |
+|---------|---------|---------|--------|
+| `antlr-4.13.2-complete.jar` | 4.13.2 | ANTLR parser generator | ✅ In use |
+| `asm-9.9.jar` | 9.9 | Bytecode generation | ✅ In use |
+| `bcel-6.11.0.jar` | 6.11.0 | Alternative bytecode lib | Available |
+| `bcprov-jdk18on-1.77.jar` | 1.77 | Bouncy Castle crypto | ✅ In use |
+| `bcpkix-jdk18on-1.77.jar` | 1.77 | Bouncy Castle PKI | ✅ In use |
+| `gson-2.10.1.jar` | 2.10.1 | JSON parsing | Available |
+| `postgresql-42.7.1.jar` | 42.7.1 | PostgreSQL JDBC | ✅ In use |
+| `mariadb-java-client-3.3.2.jar` | 3.3.2 | MariaDB/MySQL JDBC | ✅ In use |
+| `jetty-server-11.0.19.jar` | 11.0.19 | Jetty HTTP server | Pending |
+| `jetty-servlet-11.0.19.jar` | 11.0.19 | Jetty servlet support | Pending |
+| `jetty-http-11.0.19.jar` | 11.0.19 | Jetty HTTP utilities | Pending |
+| `jetty-io-11.0.19.jar` | 11.0.19 | Jetty I/O | Pending |
+| `jetty-security-11.0.19.jar` | 11.0.19 | Jetty security | Pending |
+| `jetty-util-11.0.19.jar` | 11.0.19 | Jetty utilities | Pending |
+| `jakarta.servlet-api-5.0.0.jar` | 5.0.0 | Servlet API | Pending |
+| `slf4j-api-2.0.9.jar` | 2.0.9 | Logging facade | Pending |
+| `slf4j-simple-2.0.9.jar` | 2.0.9 | Simple logging | Pending |
+| `guava-33.0.0-jre.jar` | 33.0.0 | Google Guava utilities | Available |
+| `commons-io-2.15.1.jar` | 2.15.1 | Apache Commons I/O | Available |
+| `commons-lang3-3.14.0.jar` | 3.14.0 | Apache Commons Lang | Available |
+| `commons-codec-1.16.0.jar` | 1.16.0 | Apache Commons Codec | Available |
+| `commons-text-1.11.0.jar` | 1.11.0 | Apache Commons Text | Available |
+| `commons-math3-3.6.1.jar` | 3.6.1 | Apache Commons Math | Available |
+
+### Libraries to Add
+
+| Library | Version | Purpose | Priority |
+|---------|---------|---------|----------|
+| `picocli-4.7.6.jar` | 4.7.6 | CLI argument parsing | High |
+| `jackson-core` | 2.17.x | JSON (faster than hand-rolled) | Medium |
+| `logback-classic` | 1.5.x | Production logging | Low |
 
 ---
 
@@ -792,8 +1034,8 @@ Current test coverage (23 tests):
 - `db_test.jvmb` - needs working Db namespace codegen
 - `biginteger_test.jvmb` - when BigInteger is implemented
 - `decimal_test.jvmb` - when Decimal is implemented
-- `date_test.jvmb` - when Date namespace is implemented
-- `crypto_test.jvmb` - when Crypto namespace is implemented
+- `date_test.jvmb` - ✅ Date namespace implemented and tested
+- `crypto_test.jvmb` - ✅ Crypto namespace implemented and tested
 - `inheritance_test.jvmb` - when inheritance is implemented
 - `interface_test.jvmb` - when interfaces are implemented
 
@@ -801,16 +1043,364 @@ Current test coverage (23 tests):
 
 ## Revised Priority Order
 
-1. **Complete namespace code generation** (Http, Json, Db) - runtime exists
-2. **Add Date namespace** (needed for timestamps, logging, real-world apps)
-3. **Add comprehensive Crypto namespace** (security-critical)
-4. **Add BigInteger and Decimal types** (with full operator support)
-5. **Add Xml namespace** (data interchange)
-6. **Implement inheritance** (core OOP feature)
-7. **Implement interfaces** (abstraction support)
-8. **Update all documentation**
-9. **Add real-world example programs**
-10. **Jetty web server integration**
+### Completed
+
+1. ✅ **Complete namespace code generation** (Http, Json, Db) - DONE
+2. ✅ **Add Date namespace** - DONE (60+ methods)
+3. ✅ **Add comprehensive Crypto namespace** - DONE (BouncyCastle integration)
+4. ✅ **Add BigInteger and Decimal types** - DONE (with full operator support)
+
+### Next Up
+
+5. **Exception Handling** - `try/catch/finally`, `throw`
+6. **Testing Support** - `assert`, Assert namespace
+7. **Complete OOP: Inheritance** - `extends`, `super.` calls (grammar exists)
+8. **Complete OOP: Method Overriding** - `override` keyword, virtual dispatch
+9. **Complete OOP: Interfaces** - `interface`, `implements` (grammar exists)
+10. **Complete OOP: Static Members** - `static` fields and methods
+11. **Attributes/Annotations** - PHP 8-style decorators for Jetty integration
+12. **Add real-world example programs** - Showcase language capabilities
+13. **Add Xml namespace** (data interchange)
+14. **Jetty web server integration** - With attribute-based routing
+15. **Add CLI namespace** (picocli-based argument parsing)
+16. **Complete OOP: Properties** - `get`/`set` accessors
+17. **Complete OOP: Abstract Classes** - `abstract` keyword
+
+---
+
+## Phase 9: Exception Handling
+
+### 9.1 Try/Catch/Finally
+
+**Grammar additions:**
+
+```antlr
+tryStatement
+    : TRY statementBlock
+      (CATCH (IDENTIFIER (AS typeName)?)? statementBlock)*
+      (FINALLY statementBlock)?
+      END TRY
+    ;
+
+throwStatement
+    : THROW expression
+    ;
+```
+
+**Example syntax:**
+
+```basic
+try
+    var result as String = File.ReadAllText("config.json")
+    var config as String = Json.Parse(result)
+catch ex as IOException
+    Console.WriteLine($"File error: {ex.Message}")
+catch ex as JsonException
+    Console.WriteLine($"Parse error: {ex.Message}")
+catch ex
+    Console.WriteLine($"Unexpected error: {ex.Message}")
+finally
+    Console.WriteLine("Cleanup complete")
+end try
+```
+
+**Compiler implementation:**
+
+1. Generate JVM exception table entries
+2. Use `ATHROW` for throw statements
+3. Handle exception type hierarchy
+4. Generate proper finally block (JSR/RET or duplication)
+
+### 9.2 Custom Exceptions
+
+```basic
+class ValidationException extends Exception
+    private var fieldName as String
+
+    public sub New(field as String, message as String)
+        super.New(message)
+        this.fieldName = field
+    end sub
+
+    public function GetField() as String
+        return this.fieldName
+    end function
+end class
+
+' Usage
+throw new ValidationException("email", "Invalid email format")
+```
+
+---
+
+## Phase 10: Testing Support
+
+### 10.1 Assert Statement
+
+**Grammar:**
+
+```antlr
+assertStatement
+    : ASSERT expression (COMMA STRING_LITERAL)?
+    ;
+```
+
+**Examples:**
+
+```basic
+assert x > 0                          ' Throws if false
+assert x > 0, "x must be positive"    ' With custom message
+assert Str.Length(name) > 0, "Name required"
+```
+
+**Compiler implementation:**
+- Generate conditional throw of AssertionError
+- Include source location in error message
+- Can be disabled with compiler flag (`-noassert`)
+
+### 10.2 Assert Namespace
+
+For more expressive test assertions:
+
+```basic
+' Equality
+Assert.Equal(expected, actual)
+Assert.NotEqual(a, b)
+Assert.Same(obj1, obj2)              ' Reference equality
+Assert.NotSame(obj1, obj2)
+
+' Null checks
+Assert.Null(value)
+Assert.NotNull(value)
+
+' Boolean
+Assert.True(condition)
+Assert.False(condition)
+
+' String
+Assert.Contains("ello", "Hello")
+Assert.StartsWith("He", "Hello")
+Assert.EndsWith("lo", "Hello")
+Assert.Matches("h.*o", "hello")
+
+' Collections/Arrays
+Assert.Empty(arr)
+Assert.NotEmpty(arr)
+Assert.Count(3, arr)
+Assert.Contains(item, arr)
+
+' Numeric
+Assert.Greater(10, 5)
+Assert.GreaterOrEqual(10, 10)
+Assert.Less(5, 10)
+Assert.LessOrEqual(5, 5)
+Assert.InRange(5, 1, 10)
+
+' Exceptions
+Assert.Throws("ValidationException", sub()
+    throw new ValidationException("test")
+end sub)
+
+' Custom message on any assertion
+Assert.Equal(expected, actual, "Values should match")
+```
+
+### 10.3 Test Runner Integration
+
+Test file structure:
+
+```basic
+' tests/user_test.jvmb
+
+#[TestClass]
+class UserTest
+
+    #[SetUp]
+    sub Before()
+        ' Run before each test
+    end sub
+
+    #[TearDown]
+    sub After()
+        ' Run after each test
+    end sub
+
+    #[Test]
+    sub TestUserCreation()
+        var user as User = new User("Alice", "alice@example.com")
+        Assert.Equal("Alice", user.GetName())
+        Assert.NotNull(user.GetEmail())
+    end sub
+
+    #[Test]
+    #[ExpectedException("ValidationException")]
+    sub TestInvalidEmail()
+        var user as User = new User("Bob", "invalid-email")
+    end sub
+
+    #[Test]
+    #[Skip("Not implemented yet")]
+    sub TestPasswordReset()
+        ' This test will be skipped
+    end sub
+end class
+```
+
+---
+
+## Phase 11: Attributes (PHP 8-style Decorators)
+
+### 11.1 Syntax Design
+
+Using `#[...]` syntax similar to PHP 8 attributes:
+
+```antlr
+attribute
+    : HASH LBRACKET attributeName (LPAREN attributeArgs? RPAREN)? RBRACKET
+    ;
+
+attributeName
+    : IDENTIFIER (DOT IDENTIFIER)*
+    ;
+
+attributeArgs
+    : attributeArg (COMMA attributeArg)*
+    ;
+
+attributeArg
+    : (IDENTIFIER ASSIGN)? expression
+    ;
+```
+
+### 11.2 Built-in Attributes
+
+**Routing (for Jetty integration):**
+
+```basic
+#[Route("/users")]
+#[Route("/users/{id}", method = "GET")]
+#[Get("/users")]
+#[Post("/users")]
+#[Put("/users/{id}")]
+#[Delete("/users/{id}")]
+```
+
+**Validation:**
+
+```basic
+#[Required]
+#[MinLength(3)]
+#[MaxLength(100)]
+#[Range(1, 100)]
+#[Email]
+#[Regex("^[A-Z].*")]
+```
+
+**Serialization:**
+
+```basic
+#[JsonProperty("user_name")]
+#[JsonIgnore]
+#[XmlElement("UserName")]
+```
+
+**Testing:**
+
+```basic
+#[Test]
+#[TestClass]
+#[SetUp]
+#[TearDown]
+#[Skip("reason")]
+#[ExpectedException("ExceptionType")]
+#[Timeout(5000)]
+```
+
+**Documentation:**
+
+```basic
+#[Deprecated("Use NewMethod instead")]
+#[Description("Brief description")]
+```
+
+### 11.3 Web Controller Example
+
+```basic
+#[Controller]
+#[Route("/api")]
+class UserController extends AbstractController
+
+    private var userService as UserService
+
+    public sub New(userService as UserService)
+        this.userService = userService
+    end sub
+
+    #[Get("/users")]
+    #[Produces("application/json")]
+    public function GetAllUsers() as String
+        var users as String[] = this.userService.FindAll()
+        return Json.FromArray(users)
+    end function
+
+    #[Get("/users/{id}")]
+    public function GetUser(#[PathParam] id as Integer) as String
+        var user as User = this.userService.FindById(id)
+        if user = nil then
+            Response.Status(404)
+            return Json.Set("{}", "error", "User not found")
+        end if
+        return user.ToJson()
+    end function
+
+    #[Post("/users")]
+    #[Consumes("application/json")]
+    public function CreateUser(#[Body] userData as String) as String
+        var name as String = Json.Get(userData, "name")
+        var email as String = Json.Get(userData, "email")
+
+        var user as User = this.userService.Create(name, email)
+        Response.Status(201)
+        return user.ToJson()
+    end function
+
+    #[Put("/users/{id}")]
+    public function UpdateUser(#[PathParam] id as Integer, #[Body] userData as String) as String
+        var user as User = this.userService.Update(id, userData)
+        return user.ToJson()
+    end function
+
+    #[Delete("/users/{id}")]
+    public function DeleteUser(#[PathParam] id as Integer) as String
+        this.userService.Delete(id)
+        Response.Status(204)
+        return ""
+    end function
+end class
+```
+
+### 11.4 Compiler Implementation
+
+1. **Lexer changes:**
+   - Add `HASH` token for `#`
+   - Recognize `#[...]` as attribute start
+
+2. **Parser changes:**
+   - Parse attributes before class/method/field declarations
+   - Store attributes in AST nodes
+
+3. **Symbol collection:**
+   - Attach attributes to class/method/field symbols
+   - Validate attribute usage (e.g., `#[Test]` only on methods)
+
+4. **Code generation:**
+   - Generate Java annotations in bytecode
+   - Create runtime-visible annotations for reflection
+   - Custom annotation classes for JVM BASIC-specific attributes
+
+5. **Runtime support:**
+   - Reflection API to read attributes
+   - Attribute processor for web framework integration
 
 ---
 

@@ -1,0 +1,93 @@
+' Date namespace test for JVM BASIC 2.0
+' Tests date/time operations
+
+Console.WriteLine("=== Date Namespace Test ===")
+Console.WriteLine("")
+
+' Current date/time
+Console.WriteLine("--- Current Date/Time ---")
+var now as String = Date.Now()
+Console.WriteLine($"Now: {now}")
+Console.WriteLine($"Today: {Date.Today()}")
+Console.WriteLine($"Time: {Date.Time()}")
+Console.WriteLine($"UTC: {Date.NowUtc()}")
+Console.WriteLine($"Timestamp: {Date.Timestamp()}")
+Console.WriteLine($"Timezone: {Date.GetTimeZone()}")
+Console.WriteLine("")
+
+' Date components
+Console.WriteLine("--- Date Components ---")
+Console.WriteLine($"Year: {Date.Year(now)}")
+Console.WriteLine($"Month: {Date.Month(now)}")
+Console.WriteLine($"Day: {Date.Day(now)}")
+Console.WriteLine($"Hour: {Date.Hour(now)}")
+Console.WriteLine($"Minute: {Date.Minute(now)}")
+Console.WriteLine($"Second: {Date.Second(now)}")
+Console.WriteLine($"Day of week: {Date.DayOfWeek(now)}")
+Console.WriteLine($"Day of year: {Date.DayOfYear(now)}")
+Console.WriteLine($"Week of year: {Date.WeekOfYear(now)}")
+Console.WriteLine($"Quarter: {Date.Quarter(now)}")
+Console.WriteLine($"Day name: {Date.DayName(now)}")
+Console.WriteLine($"Month name: {Date.MonthName(now)}")
+Console.WriteLine("")
+
+' Date formatting
+Console.WriteLine("--- Date Formatting ---")
+Console.WriteLine($"US format: {Date.Format(now, \"MM/dd/yyyy\")}")
+Console.WriteLine($"EU format: {Date.Format(now, \"dd/MM/yyyy\")}")
+Console.WriteLine($"Long format: {Date.Format(now, \"EEEE, MMMM d, yyyy\")}")
+Console.WriteLine($"Time only: {Date.Format(now, \"HH:mm:ss\")}")
+Console.WriteLine("")
+
+' Date creation
+Console.WriteLine("--- Date Creation ---")
+var christmas as String = Date.Create(2025, 12, 25)
+Console.WriteLine($"Christmas 2025: {christmas}")
+var newYear as String = Date.Create(2026, 1, 1, 0, 0, 0)
+Console.WriteLine($"New Year 2026: {newYear}")
+Console.WriteLine("")
+
+' Date arithmetic
+Console.WriteLine("--- Date Arithmetic ---")
+var tomorrow as String = Date.AddDays(now, 1)
+Console.WriteLine($"Tomorrow: {tomorrow}")
+var nextWeek as String = Date.AddWeeks(now, 1)
+Console.WriteLine($"Next week: {nextWeek}")
+var nextMonth as String = Date.AddMonths(now, 1)
+Console.WriteLine($"Next month: {nextMonth}")
+var nextYear as String = Date.AddYears(now, 1)
+Console.WriteLine($"Next year: {nextYear}")
+Console.WriteLine("")
+
+' Days between dates
+Console.WriteLine("--- Date Differences ---")
+var daysToChristmas as Long = Date.DaysBetween(now, christmas)
+Console.WriteLine($"Days to Christmas: {daysToChristmas}")
+var daysToNewYear as Long = Date.DaysBetween(now, newYear)
+Console.WriteLine($"Days to New Year: {daysToNewYear}")
+Console.WriteLine("")
+
+' Date comparison
+Console.WriteLine("--- Date Comparison ---")
+Console.WriteLine($"Christmas is in the future: {Date.IsFuture(christmas)}")
+Console.WriteLine($"Today is a weekday: {Date.IsWeekday(now)}")
+Console.WriteLine($"Today is a weekend: {Date.IsWeekend(now)}")
+Console.WriteLine($"Is valid date (2025, 2, 29): {Date.IsValidDate(2025, 2, 29)}")
+Console.WriteLine($"Is valid date (2024, 2, 29): {Date.IsValidDate(2024, 2, 29)}")
+Console.WriteLine($"2024 is leap year: {Date.IsLeapYear(2024)}")
+Console.WriteLine($"2025 is leap year: {Date.IsLeapYear(2025)}")
+Console.WriteLine($"Days in Feb 2024: {Date.DaysInMonth(2024, 2)}")
+Console.WriteLine($"Days in Feb 2025: {Date.DaysInMonth(2025, 2)}")
+Console.WriteLine("")
+
+' Start/End of periods
+Console.WriteLine("--- Start/End of Periods ---")
+Console.WriteLine($"Start of day: {Date.StartOfDay(now)}")
+Console.WriteLine($"End of day: {Date.EndOfDay(now)}")
+Console.WriteLine($"Start of month: {Date.StartOfMonth(now)}")
+Console.WriteLine($"End of month: {Date.EndOfMonth(now)}")
+Console.WriteLine($"Start of year: {Date.StartOfYear(now)}")
+Console.WriteLine($"End of year: {Date.EndOfYear(now)}")
+Console.WriteLine("")
+
+Console.WriteLine("=== Date Test Complete ===")

@@ -6,6 +6,7 @@ import com.jvmbasic.visitor.SymbolCollector.*;
 import org.objectweb.asm.*;
 import org.objectweb.asm.commons.*;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -40,6 +41,7 @@ public class CompilerVisitor extends JvmBasicParserBaseVisitor<Object> {
     // Current compilation state
     private String currentMethod = null;
     private int localVarSlot = 0;
+    private boolean isSuperCall = false;   // Set when 'super.' is used for method call
 
     // ========================================================================
     // Block Scoping Support
@@ -419,16 +421,25 @@ public class CompilerVisitor extends JvmBasicParserBaseVisitor<Object> {
         mv = cw.visitMethod(ACC_PUBLIC, "<init>", descriptor, null, null);
         mv.visitCode();
 
-        // Call super constructor
-        mv.visitVarInsn(ALOAD, 0);
-        mv.visitMethodInsn(INVOKESPECIAL, baseClassInternal, "<init>", "()V", false);
-
         currentMethod = "New";
         // Slot 0 is 'this', parameters start at 1
         localVarSlot = 1 + (constructor != null ? constructor.getParameters().size() : 0);
 
+        // Check if first statement is Super.New() - if so, don't auto-generate super call
+        boolean hasSuperCall = false;
+        List<JvmBasicParser.StatementContext> statements = ctx.statement();
+        if (!statements.isEmpty()) {
+            hasSuperCall = isSuperConstructorCall(statements.get(0));
+        }
+
+        // Call super constructor automatically if user didn't explicitly call it
+        if (!hasSuperCall) {
+            mv.visitVarInsn(ALOAD, 0);
+            mv.visitMethodInsn(INVOKESPECIAL, baseClassInternal, "<init>", "()V", false);
+        }
+
         // Visit constructor body
-        for (JvmBasicParser.StatementContext stmt : ctx.statement()) {
+        for (JvmBasicParser.StatementContext stmt : statements) {
             visit(stmt);
         }
 
@@ -437,6 +448,22 @@ public class CompilerVisitor extends JvmBasicParserBaseVisitor<Object> {
         mv.visitEnd();
 
         currentMethod = null;
+    }
+
+    // Check if a statement is a Super.New() call
+    private boolean isSuperConstructorCall(JvmBasicParser.StatementContext stmt) {
+        // Statement -> ExpressionStatement -> postfixExpression
+        if (stmt.expressionStatement() == null) return false;
+
+        // Get the expression
+        JvmBasicParser.ExpressionContext expr = stmt.expressionStatement().expression();
+        if (expr == null) return false;
+
+        // We need to check if this is Super.New() pattern
+        // The expression will be something like: Super.New()
+        String exprText = expr.getText();
+        return exprText.toLowerCase().startsWith("super.new(") ||
+               exprText.toLowerCase().startsWith("mybase.new(");
     }
 
     private void generateMethod(JvmBasicParser.MethodDeclarationContext ctx,
@@ -1083,6 +1110,180 @@ public class CompilerVisitor extends JvmBasicParserBaseVisitor<Object> {
         return null;
     }
 
+    // ========================================================================
+    // Exception Handling: try/catch/finally, throw
+    // ========================================================================
+
+    @Override
+    public Object visitTryStatement(JvmBasicParser.TryStatementContext ctx) {
+        // try
+        //   <statements>
+        // catch ex as ExceptionType
+        //   <statements>
+        // finally
+        //   <statements>
+        // end try
+
+        Label tryStart = new Label();
+        Label tryEnd = new Label();
+        Label finallyStart = new Label();
+        Label afterTry = new Label();
+
+        // Track catch handlers for exception table
+        List<Label> catchStarts = new ArrayList<>();
+        List<Label> catchEnds = new ArrayList<>();
+        List<String> catchTypes = new ArrayList<>();
+
+        // Create labels for each catch clause
+        for (int i = 0; i < ctx.catchClause().size(); i++) {
+            catchStarts.add(new Label());
+            catchEnds.add(new Label());
+            JvmBasicParser.CatchClauseContext catchCtx = ctx.catchClause(i);
+            String exType = catchCtx.typeName().getText();
+            // Map common exception names to JVM internal names
+            String internalType = mapExceptionType(exType);
+            catchTypes.add(internalType);
+        }
+
+        // TRY block
+        mv.visitLabel(tryStart);
+        enterScopeFrame("try");
+        for (JvmBasicParser.StatementContext stmt : ctx.statement()) {
+            visit(stmt);
+        }
+        exitScopeFrame(true);
+        mv.visitLabel(tryEnd);
+
+        // If no exception, skip to finally or end
+        if (ctx.finallyClause() != null) {
+            mv.visitJumpInsn(GOTO, finallyStart);
+        } else {
+            mv.visitJumpInsn(GOTO, afterTry);
+        }
+
+        // CATCH blocks
+        for (int i = 0; i < ctx.catchClause().size(); i++) {
+            JvmBasicParser.CatchClauseContext catchCtx = ctx.catchClause(i);
+            Label catchStart = catchStarts.get(i);
+            String internalType = catchTypes.get(i);
+            String exVarName = catchCtx.IDENTIFIER().getText();
+
+            // Register exception handler in exception table
+            mv.visitTryCatchBlock(tryStart, tryEnd, catchStart, internalType);
+
+            mv.visitLabel(catchStart);
+            enterScopeFrame("catch");
+
+            // The exception is on the stack - store it in the catch variable
+            int exSlot = localVarSlot++;
+            mv.visitVarInsn(ASTORE, exSlot);
+            addScopedVariable(exVarName, catchCtx.typeName().getText(), exSlot);
+            dynamicLocals.put(exVarName, new LocalVar(exVarName, "Exception", exSlot));
+
+            // Execute catch body
+            for (JvmBasicParser.StatementContext stmt : catchCtx.statement()) {
+                visit(stmt);
+            }
+
+            dynamicLocals.remove(exVarName);
+            exitScopeFrame(true);
+
+            // Jump to finally or end
+            if (ctx.finallyClause() != null) {
+                mv.visitJumpInsn(GOTO, finallyStart);
+            } else {
+                mv.visitJumpInsn(GOTO, afterTry);
+            }
+        }
+
+        // FINALLY block (if present)
+        if (ctx.finallyClause() != null) {
+            mv.visitLabel(finallyStart);
+            enterScopeFrame("finally");
+            for (JvmBasicParser.StatementContext stmt : ctx.finallyClause().statement()) {
+                visit(stmt);
+            }
+            exitScopeFrame(true);
+        }
+
+        mv.visitLabel(afterTry);
+        return null;
+    }
+
+    // Map BASIC exception type names to JVM internal names
+    private String mapExceptionType(String basicType) {
+        return switch (basicType) {
+            case "Exception" -> "java/lang/Exception";
+            case "RuntimeException" -> "java/lang/RuntimeException";
+            case "IOException" -> "java/io/IOException";
+            case "FileNotFoundException" -> "java/io/FileNotFoundException";
+            case "NullPointerException" -> "java/lang/NullPointerException";
+            case "IllegalArgumentException" -> "java/lang/IllegalArgumentException";
+            case "IllegalStateException" -> "java/lang/IllegalStateException";
+            case "IndexOutOfBoundsException" -> "java/lang/IndexOutOfBoundsException";
+            case "ArrayIndexOutOfBoundsException" -> "java/lang/ArrayIndexOutOfBoundsException";
+            case "NumberFormatException" -> "java/lang/NumberFormatException";
+            case "ArithmeticException" -> "java/lang/ArithmeticException";
+            case "ClassCastException" -> "java/lang/ClassCastException";
+            case "UnsupportedOperationException" -> "java/lang/UnsupportedOperationException";
+            case "SecurityException" -> "java/lang/SecurityException";
+            case "AssertionError" -> "java/lang/AssertionError";
+            // SQL exceptions
+            case "SQLException" -> "java/sql/SQLException";
+            // User-defined exceptions are in the default package
+            default -> basicType.replace(".", "/");
+        };
+    }
+
+    @Override
+    public Object visitThrowStatement(JvmBasicParser.ThrowStatementContext ctx) {
+        // throw expression
+        // The expression should evaluate to an exception object
+
+        visit(ctx.expression());
+        // The exception is now on the stack
+        mv.visitInsn(ATHROW);
+
+        return null;
+    }
+
+    @Override
+    public Object visitAssertStatement(JvmBasicParser.AssertStatementContext ctx) {
+        // assert condition [, message]
+        // If condition is false, throw AssertionError with optional message
+
+        Label passLabel = new Label();
+
+        // Evaluate the condition expression
+        visit(ctx.expression(0));
+
+        // If condition is true (non-zero), jump past the assertion error
+        mv.visitJumpInsn(IFNE, passLabel);
+
+        // Condition is false - throw AssertionError
+        mv.visitTypeInsn(NEW, "java/lang/AssertionError");
+        mv.visitInsn(DUP);
+
+        // Check if there's a message expression
+        if (ctx.expression().size() > 1) {
+            // Evaluate message expression
+            visit(ctx.expression(1));
+            // AssertionError constructor takes Object
+            mv.visitMethodInsn(INVOKESPECIAL, "java/lang/AssertionError", "<init>",
+                              "(Ljava/lang/Object;)V", false);
+        } else {
+            // No message - use default constructor
+            mv.visitMethodInsn(INVOKESPECIAL, "java/lang/AssertionError", "<init>", "()V", false);
+        }
+
+        mv.visitInsn(ATHROW);
+
+        // Label for when assertion passes
+        mv.visitLabel(passLabel);
+
+        return null;
+    }
+
     // Emit comparison that jumps to falseLabel if NOT equal
     private void emitEqualityComparison(String type, Label falseLabel) {
         if ("String".equalsIgnoreCase(type)) {
@@ -1241,6 +1442,29 @@ public class CompilerVisitor extends JvmBasicParserBaseVisitor<Object> {
         return null;
     }
 
+    @Override
+    public Object visitSuperExpr(JvmBasicParser.SuperExprContext ctx) {
+        // 'super' reference - used to call parent class methods
+        if (currentClass == null) {
+            throw new RuntimeException("'super' can only be used inside a class method");
+        }
+        ClassSymbol classSym = symbols.getClass(currentClass);
+        if (classSym == null || classSym.getBaseClass() == null) {
+            throw new RuntimeException("'super' requires a class that extends another class");
+        }
+        mv.visitVarInsn(ALOAD, 0);
+        isSuperCall = true;  // Flag for the upcoming method call
+        lastExprType = classSym.getBaseClass();
+        lastObjectType = classSym.getBaseClass();
+        return null;
+    }
+
+    @Override
+    public Object visitMyBaseExpr(JvmBasicParser.MyBaseExprContext ctx) {
+        // 'MyBase' is a deprecated alias for 'super'
+        return visitSuperExpr(null);  // Reuse super logic
+    }
+
     // ========================================================================
     // Object Creation
     // ========================================================================
@@ -1278,19 +1502,64 @@ public class CompilerVisitor extends JvmBasicParserBaseVisitor<Object> {
         }
 
         // Standard library / external class instantiation
-        String internalName = typeName.replace(".", "/");
+        String internalName = mapExternalType(typeName);
         mv.visitTypeInsn(NEW, internalName);
         mv.visitInsn(DUP);
 
-        // For now, only support default constructor for external types
+        // Handle constructor arguments
         if (ctx.argumentList() == null || ctx.argumentList().argument().isEmpty()) {
+            // Default constructor
             mv.visitMethodInsn(INVOKESPECIAL, internalName, "<init>", "()V", false);
         } else {
-            throw new RuntimeException("Constructor with arguments not yet supported for external type: " + typeName);
+            // Evaluate and push constructor arguments
+            List<String> argTypes = new ArrayList<>();
+            for (JvmBasicParser.ArgumentContext arg : ctx.argumentList().argument()) {
+                visit(arg.expression());
+                argTypes.add(lastExprType);
+            }
+
+            // Build constructor descriptor based on argument types
+            StringBuilder descBuilder = new StringBuilder("(");
+            for (String argType : argTypes) {
+                descBuilder.append(typeToDescriptor(argType));
+            }
+            descBuilder.append(")V");
+
+            mv.visitMethodInsn(INVOKESPECIAL, internalName, "<init>", descBuilder.toString(), false);
         }
 
         lastExprType = typeName;
         return null;
+    }
+
+    // Map common type names to their internal JVM names
+    private String mapExternalType(String typeName) {
+        return switch (typeName) {
+            // Exception types
+            case "Exception" -> "java/lang/Exception";
+            case "RuntimeException" -> "java/lang/RuntimeException";
+            case "IllegalArgumentException" -> "java/lang/IllegalArgumentException";
+            case "IllegalStateException" -> "java/lang/IllegalStateException";
+            case "NullPointerException" -> "java/lang/NullPointerException";
+            case "IndexOutOfBoundsException" -> "java/lang/IndexOutOfBoundsException";
+            case "ArrayIndexOutOfBoundsException" -> "java/lang/ArrayIndexOutOfBoundsException";
+            case "IOException" -> "java/io/IOException";
+            case "FileNotFoundException" -> "java/io/FileNotFoundException";
+            case "ArithmeticException" -> "java/lang/ArithmeticException";
+            case "NumberFormatException" -> "java/lang/NumberFormatException";
+            case "ClassCastException" -> "java/lang/ClassCastException";
+            case "UnsupportedOperationException" -> "java/lang/UnsupportedOperationException";
+            // Common types
+            case "StringBuilder" -> "java/lang/StringBuilder";
+            case "ArrayList" -> "java/util/ArrayList";
+            case "HashMap" -> "java/util/HashMap";
+            case "HashSet" -> "java/util/HashSet";
+            case "Date" -> "java/util/Date";
+            case "Random" -> "java/util/Random";
+            case "Thread" -> "java/lang/Thread";
+            // Default: use dots to slashes
+            default -> typeName.replace(".", "/");
+        };
     }
 
     // ========================================================================
@@ -1461,6 +1730,16 @@ public class CompilerVisitor extends JvmBasicParserBaseVisitor<Object> {
             pendingNamespace = "Decimal";
             return null;
         }
+        if ("Date".equalsIgnoreCase(name)) {
+            // Date namespace - maps to com.jvmbasic.runtime.BasicDate
+            pendingNamespace = "Date";
+            return null;
+        }
+        if ("Crypto".equalsIgnoreCase(name)) {
+            // Crypto namespace - maps to com.jvmbasic.runtime.BasicCrypto
+            pendingNamespace = "Crypto";
+            return null;
+        }
         // Check if this is a function name (will be handled by FunctionCall postfixOp)
         if (symbols.getFunction(name) != null) {
             pendingFunctionName = name;
@@ -1495,6 +1774,64 @@ public class CompilerVisitor extends JvmBasicParserBaseVisitor<Object> {
         // This handles Namespace.Method() calls like Console.WriteLine()
         // and instance method calls like alice.Greet()
         String methodName = ctx.memberName().getText();
+
+        // Handle super.Method() calls - use INVOKESPECIAL to call parent class method
+        if (isSuperCall && lastObjectType != null) {
+            String parentClass = lastObjectType;
+            isSuperCall = false;
+            lastObjectType = null;
+
+            // Check if this is a super constructor call (Super.New())
+            if ("New".equalsIgnoreCase(methodName)) {
+                // Look up constructor in parent class
+                ClassSymbol parentSym = symbols.getClass(parentClass);
+                FunctionSymbol ctorSym = parentSym != null ? parentSym.getMethod("New") : null;
+
+                // Push arguments onto stack (object ref is already on stack)
+                if (ctx.argumentList() != null) {
+                    for (JvmBasicParser.ArgumentContext arg : ctx.argumentList().argument()) {
+                        visit(arg.expression());
+                    }
+                }
+
+                // Build descriptor and call parent <init>
+                String descriptor = ctorSym != null ? buildMethodDescriptor(ctorSym) : "()V";
+                // Constructor descriptor ends with V, need to convert method descriptor to ctor descriptor
+                descriptor = descriptor.replace(")Ljava/lang/String;", ")V").replace(")I", ")V")
+                                       .replace(")Ljava/lang/Object;", ")V").replace(")V", ")V");
+                // Actually, let's build it properly
+                StringBuilder descBuilder = new StringBuilder("(");
+                if (ctorSym != null) {
+                    for (var param : ctorSym.getParameters()) {
+                        descBuilder.append(typeToDescriptor(param.type));
+                    }
+                }
+                descBuilder.append(")V");
+                mv.visitMethodInsn(INVOKESPECIAL, parentClass, "<init>", descBuilder.toString(), false);
+                lastExprType = "Void";
+                return null;
+            }
+
+            // Look up the method in the parent class
+            ClassSymbol parentSym = symbols.getClass(parentClass);
+            FunctionSymbol methodSym = null;
+            if (parentSym != null) {
+                methodSym = parentSym.getMethod(methodName);
+            }
+
+            // Push arguments onto stack (object ref is already on stack)
+            if (ctx.argumentList() != null) {
+                for (JvmBasicParser.ArgumentContext arg : ctx.argumentList().argument()) {
+                    visit(arg.expression());
+                }
+            }
+
+            // Build descriptor and use INVOKESPECIAL for super call
+            String descriptor = methodSym != null ? buildMethodDescriptor(methodSym) : "()V";
+            mv.visitMethodInsn(INVOKESPECIAL, parentClass, methodName, descriptor, false);
+            lastExprType = methodSym != null ? methodSym.returnType : "Void";
+            return null;
+        }
 
         // Handle instance method calls on user-defined classes
         // The object is already on stack from visiting primaryExpr, and lastObjectType has its type
@@ -1615,6 +1952,18 @@ public class CompilerVisitor extends JvmBasicParserBaseVisitor<Object> {
         if ("Decimal".equalsIgnoreCase(pendingNamespace)) {
             pendingNamespace = null;
             return handleDecimalCall(methodName, ctx.argumentList());
+        }
+
+        // Handle Date namespace - calls com.jvmbasic.runtime.BasicDate
+        if ("Date".equalsIgnoreCase(pendingNamespace)) {
+            pendingNamespace = null;
+            return handleDateCall(methodName, ctx.argumentList());
+        }
+
+        // Handle Crypto namespace - calls com.jvmbasic.runtime.BasicCrypto
+        if ("Crypto".equalsIgnoreCase(pendingNamespace)) {
+            pendingNamespace = null;
+            return handleCryptoCall(methodName, ctx.argumentList());
         }
 
         // Visit arguments for non-Console method calls
@@ -3298,7 +3647,538 @@ public class CompilerVisitor extends JvmBasicParserBaseVisitor<Object> {
                 lastExprType = "BigInteger";
             }
 
+            // Format - sets scale and returns plain string (convenience method)
+            case "Format" -> {
+                // Decimal.Format(value, decimalPlaces) - returns String with specified decimal places
+                if (argCount != 2) throw new RuntimeException("Decimal.Format requires 2 arguments");
+                visit(argList.argument(0).expression());
+                visit(argList.argument(1).expression()); // decimal places
+                mv.visitFieldInsn(GETSTATIC, "java/math/RoundingMode", "HALF_UP", "Ljava/math/RoundingMode;");
+                mv.visitMethodInsn(INVOKEVIRTUAL, "java/math/BigDecimal", "setScale", "(ILjava/math/RoundingMode;)Ljava/math/BigDecimal;", false);
+                mv.visitMethodInsn(INVOKEVIRTUAL, "java/math/BigDecimal", "toPlainString", "()Ljava/lang/String;", false);
+                lastExprType = "String";
+            }
+
             default -> throw new RuntimeException("Unknown Decimal function: " + methodName);
+        }
+
+        return null;
+    }
+
+    // Handle Date.* calls - maps to com.jvmbasic.runtime.BasicDate static methods
+    private Object handleDateCall(String methodName, JvmBasicParser.ArgumentListContext argList) {
+        String runtimeClass = "com/jvmbasic/runtime/BasicDate";
+        int argCount = argList != null ? argList.argument().size() : 0;
+
+        // Visit arguments first (for most methods)
+        if (argList != null) {
+            for (JvmBasicParser.ArgumentContext arg : argList.argument()) {
+                visit(arg.expression());
+            }
+        }
+
+        switch (methodName) {
+            // ================================================================
+            // Current Time - no arguments
+            // ================================================================
+            case "Now" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "Now", "()Ljava/lang/String;", false);
+                lastExprType = "String";
+            }
+            case "NowUtc" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "NowUtc", "()Ljava/lang/String;", false);
+                lastExprType = "String";
+            }
+            case "Today" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "Today", "()Ljava/lang/String;", false);
+                lastExprType = "String";
+            }
+            case "Time" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "Time", "()Ljava/lang/String;", false);
+                lastExprType = "String";
+            }
+            case "Timestamp" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "Timestamp", "()J", false);
+                lastExprType = "Long";
+            }
+            case "TimestampSeconds" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "TimestampSeconds", "()J", false);
+                lastExprType = "Long";
+            }
+
+            // ================================================================
+            // Formatting and Parsing
+            // ================================================================
+            case "Format" -> {
+                // Date.Format(dateStr, pattern) -> String
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "Format", "(Ljava/lang/String;Ljava/lang/String;)Ljava/lang/String;", false);
+                lastExprType = "String";
+            }
+            case "Parse" -> {
+                // Date.Parse(dateStr, pattern) -> String
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "Parse", "(Ljava/lang/String;Ljava/lang/String;)Ljava/lang/String;", false);
+                lastExprType = "String";
+            }
+            case "ToIso" -> {
+                // Date.ToIso(dateStr) -> String
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "ToIso", "(Ljava/lang/String;)Ljava/lang/String;", false);
+                lastExprType = "String";
+            }
+            case "FromTimestamp" -> {
+                // Date.FromTimestamp(millis) -> String
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "FromTimestamp", "(J)Ljava/lang/String;", false);
+                lastExprType = "String";
+            }
+            case "FromTimestampSeconds" -> {
+                // Date.FromTimestampSeconds(seconds) -> String
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "FromTimestampSeconds", "(J)Ljava/lang/String;", false);
+                lastExprType = "String";
+            }
+            case "ToTimestamp" -> {
+                // Date.ToTimestamp(dateStr) -> Long
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "ToTimestamp", "(Ljava/lang/String;)J", false);
+                lastExprType = "Long";
+            }
+
+            // ================================================================
+            // Date/Time Components
+            // ================================================================
+            case "Year" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "Year", "(Ljava/lang/String;)I", false);
+                lastExprType = "Integer";
+            }
+            case "Month" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "Month", "(Ljava/lang/String;)I", false);
+                lastExprType = "Integer";
+            }
+            case "Day" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "Day", "(Ljava/lang/String;)I", false);
+                lastExprType = "Integer";
+            }
+            case "Hour" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "Hour", "(Ljava/lang/String;)I", false);
+                lastExprType = "Integer";
+            }
+            case "Minute" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "Minute", "(Ljava/lang/String;)I", false);
+                lastExprType = "Integer";
+            }
+            case "Second" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "Second", "(Ljava/lang/String;)I", false);
+                lastExprType = "Integer";
+            }
+            case "Millisecond" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "Millisecond", "(Ljava/lang/String;)I", false);
+                lastExprType = "Integer";
+            }
+            case "DayOfWeek" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "DayOfWeek", "(Ljava/lang/String;)I", false);
+                lastExprType = "Integer";
+            }
+            case "DayOfYear" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "DayOfYear", "(Ljava/lang/String;)I", false);
+                lastExprType = "Integer";
+            }
+            case "WeekOfYear" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "WeekOfYear", "(Ljava/lang/String;)I", false);
+                lastExprType = "Integer";
+            }
+            case "Quarter" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "Quarter", "(Ljava/lang/String;)I", false);
+                lastExprType = "Integer";
+            }
+            case "IsLeapYear" -> {
+                // Date.IsLeapYear(year) -> Boolean
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "IsLeapYear", "(I)Z", false);
+                lastExprType = "Boolean";
+            }
+            case "DaysInMonth" -> {
+                // Date.DaysInMonth(year, month) -> Integer
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "DaysInMonth", "(II)I", false);
+                lastExprType = "Integer";
+            }
+            case "DayName" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "DayName", "(Ljava/lang/String;)Ljava/lang/String;", false);
+                lastExprType = "String";
+            }
+            case "MonthName" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "MonthName", "(Ljava/lang/String;)Ljava/lang/String;", false);
+                lastExprType = "String";
+            }
+
+            // ================================================================
+            // Date Arithmetic
+            // ================================================================
+            case "AddDays" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "AddDays", "(Ljava/lang/String;I)Ljava/lang/String;", false);
+                lastExprType = "String";
+            }
+            case "AddWeeks" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "AddWeeks", "(Ljava/lang/String;I)Ljava/lang/String;", false);
+                lastExprType = "String";
+            }
+            case "AddMonths" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "AddMonths", "(Ljava/lang/String;I)Ljava/lang/String;", false);
+                lastExprType = "String";
+            }
+            case "AddYears" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "AddYears", "(Ljava/lang/String;I)Ljava/lang/String;", false);
+                lastExprType = "String";
+            }
+            case "AddHours" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "AddHours", "(Ljava/lang/String;I)Ljava/lang/String;", false);
+                lastExprType = "String";
+            }
+            case "AddMinutes" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "AddMinutes", "(Ljava/lang/String;I)Ljava/lang/String;", false);
+                lastExprType = "String";
+            }
+            case "AddSeconds" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "AddSeconds", "(Ljava/lang/String;I)Ljava/lang/String;", false);
+                lastExprType = "String";
+            }
+            case "DaysBetween" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "DaysBetween", "(Ljava/lang/String;Ljava/lang/String;)J", false);
+                lastExprType = "Long";
+            }
+            case "MonthsBetween" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "MonthsBetween", "(Ljava/lang/String;Ljava/lang/String;)J", false);
+                lastExprType = "Long";
+            }
+            case "YearsBetween" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "YearsBetween", "(Ljava/lang/String;Ljava/lang/String;)J", false);
+                lastExprType = "Long";
+            }
+            case "HoursBetween" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "HoursBetween", "(Ljava/lang/String;Ljava/lang/String;)J", false);
+                lastExprType = "Long";
+            }
+            case "MinutesBetween" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "MinutesBetween", "(Ljava/lang/String;Ljava/lang/String;)J", false);
+                lastExprType = "Long";
+            }
+            case "SecondsBetween" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "SecondsBetween", "(Ljava/lang/String;Ljava/lang/String;)J", false);
+                lastExprType = "Long";
+            }
+
+            // ================================================================
+            // Date Comparison
+            // ================================================================
+            case "IsBefore" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "IsBefore", "(Ljava/lang/String;Ljava/lang/String;)Z", false);
+                lastExprType = "Boolean";
+            }
+            case "IsAfter" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "IsAfter", "(Ljava/lang/String;Ljava/lang/String;)Z", false);
+                lastExprType = "Boolean";
+            }
+            case "IsEqual" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "IsEqual", "(Ljava/lang/String;Ljava/lang/String;)Z", false);
+                lastExprType = "Boolean";
+            }
+            case "IsToday" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "IsToday", "(Ljava/lang/String;)Z", false);
+                lastExprType = "Boolean";
+            }
+            case "IsPast" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "IsPast", "(Ljava/lang/String;)Z", false);
+                lastExprType = "Boolean";
+            }
+            case "IsFuture" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "IsFuture", "(Ljava/lang/String;)Z", false);
+                lastExprType = "Boolean";
+            }
+            case "IsWeekend" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "IsWeekend", "(Ljava/lang/String;)Z", false);
+                lastExprType = "Boolean";
+            }
+            case "IsWeekday" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "IsWeekday", "(Ljava/lang/String;)Z", false);
+                lastExprType = "Boolean";
+            }
+
+            // ================================================================
+            // Time Zones
+            // ================================================================
+            case "ToUtc" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "ToUtc", "(Ljava/lang/String;)Ljava/lang/String;", false);
+                lastExprType = "String";
+            }
+            case "ToLocal" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "ToLocal", "(Ljava/lang/String;)Ljava/lang/String;", false);
+                lastExprType = "String";
+            }
+            case "ToZone" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "ToZone", "(Ljava/lang/String;Ljava/lang/String;)Ljava/lang/String;", false);
+                lastExprType = "String";
+            }
+            case "GetTimeZone" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "GetTimeZone", "()Ljava/lang/String;", false);
+                lastExprType = "String";
+            }
+            case "SetTimeZone" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "SetTimeZone", "(Ljava/lang/String;)V", false);
+                lastExprType = "Void";
+            }
+            case "GetTimeZoneOffset" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "GetTimeZoneOffset", "()I", false);
+                lastExprType = "Integer";
+            }
+
+            // ================================================================
+            // Creation Helpers
+            // ================================================================
+            case "Create" -> {
+                if (argCount == 3) {
+                    // Date.Create(year, month, day) -> String
+                    mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "Create", "(III)Ljava/lang/String;", false);
+                } else if (argCount == 6) {
+                    // Date.Create(year, month, day, hour, minute, second) -> String
+                    mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "Create", "(IIIIII)Ljava/lang/String;", false);
+                } else {
+                    throw new RuntimeException("Date.Create requires 3 or 6 arguments");
+                }
+                lastExprType = "String";
+            }
+            case "StartOfDay" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "StartOfDay", "(Ljava/lang/String;)Ljava/lang/String;", false);
+                lastExprType = "String";
+            }
+            case "EndOfDay" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "EndOfDay", "(Ljava/lang/String;)Ljava/lang/String;", false);
+                lastExprType = "String";
+            }
+            case "StartOfMonth" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "StartOfMonth", "(Ljava/lang/String;)Ljava/lang/String;", false);
+                lastExprType = "String";
+            }
+            case "EndOfMonth" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "EndOfMonth", "(Ljava/lang/String;)Ljava/lang/String;", false);
+                lastExprType = "String";
+            }
+            case "StartOfYear" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "StartOfYear", "(Ljava/lang/String;)Ljava/lang/String;", false);
+                lastExprType = "String";
+            }
+            case "EndOfYear" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "EndOfYear", "(Ljava/lang/String;)Ljava/lang/String;", false);
+                lastExprType = "String";
+            }
+
+            // ================================================================
+            // Validation
+            // ================================================================
+            case "IsValid" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "IsValid", "(Ljava/lang/String;)Z", false);
+                lastExprType = "Boolean";
+            }
+            case "IsValidDate" -> {
+                // Date.IsValidDate(year, month, day) -> Boolean
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "IsValidDate", "(III)Z", false);
+                lastExprType = "Boolean";
+            }
+
+            default -> throw new RuntimeException("Unknown Date function: " + methodName);
+        }
+
+        return null;
+    }
+
+    // Handle Crypto.* calls - maps to com.jvmbasic.runtime.BasicCrypto static methods
+    private Object handleCryptoCall(String methodName, JvmBasicParser.ArgumentListContext argList) {
+        String runtimeClass = "com/jvmbasic/runtime/BasicCrypto";
+        int argCount = argList != null ? argList.argument().size() : 0;
+
+        // Visit arguments first (for most methods)
+        if (argList != null) {
+            for (JvmBasicParser.ArgumentContext arg : argList.argument()) {
+                visit(arg.expression());
+            }
+        }
+
+        switch (methodName) {
+            // ================================================================
+            // Hash Functions
+            // ================================================================
+            case "Md5", "Sha1", "Sha224", "Sha256", "Sha384", "Sha512",
+                 "Sha3_256", "Sha3_512", "Blake2b256", "Ripemd160" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, methodName, "(Ljava/lang/String;)Ljava/lang/String;", false);
+                lastExprType = "String";
+            }
+            case "Hash" -> {
+                // Crypto.Hash(data, algorithm) -> String
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "Hash", "(Ljava/lang/String;Ljava/lang/String;)Ljava/lang/String;", false);
+                lastExprType = "String";
+            }
+            case "HashFile" -> {
+                // Crypto.HashFile(path, algorithm) -> String
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "HashFile", "(Ljava/lang/String;Ljava/lang/String;)Ljava/lang/String;", false);
+                lastExprType = "String";
+            }
+
+            // ================================================================
+            // HMAC Functions
+            // ================================================================
+            case "HmacMd5", "HmacSha1", "HmacSha256", "HmacSha384", "HmacSha512" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, methodName, "(Ljava/lang/String;Ljava/lang/String;)Ljava/lang/String;", false);
+                lastExprType = "String";
+            }
+
+            // ================================================================
+            // AES Encryption
+            // ================================================================
+            case "GenerateAesKey" -> {
+                if (argCount == 0) {
+                    mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "GenerateAesKey", "()Ljava/lang/String;", false);
+                } else {
+                    mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "GenerateAesKey", "(I)Ljava/lang/String;", false);
+                }
+                lastExprType = "String";
+            }
+            case "AesGcmEncrypt" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "AesGcmEncrypt", "(Ljava/lang/String;Ljava/lang/String;)Ljava/lang/String;", false);
+                lastExprType = "String";
+            }
+            case "AesGcmDecrypt" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "AesGcmDecrypt", "(Ljava/lang/String;Ljava/lang/String;)Ljava/lang/String;", false);
+                lastExprType = "String";
+            }
+            case "AesCbcEncrypt" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "AesCbcEncrypt", "(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)Ljava/lang/String;", false);
+                lastExprType = "String";
+            }
+            case "AesCbcDecrypt" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "AesCbcDecrypt", "(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)Ljava/lang/String;", false);
+                lastExprType = "String";
+            }
+            case "GenerateIv" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "GenerateIv", "()Ljava/lang/String;", false);
+                lastExprType = "String";
+            }
+
+            // ================================================================
+            // Password Hashing
+            // ================================================================
+            case "Argon2Hash" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "Argon2Hash", "(Ljava/lang/String;)Ljava/lang/String;", false);
+                lastExprType = "String";
+            }
+            case "Argon2Verify" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "Argon2Verify", "(Ljava/lang/String;Ljava/lang/String;)Z", false);
+                lastExprType = "Boolean";
+            }
+            case "BcryptHash" -> {
+                if (argCount == 1) {
+                    mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "BcryptHash", "(Ljava/lang/String;)Ljava/lang/String;", false);
+                } else {
+                    mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "BcryptHash", "(Ljava/lang/String;I)Ljava/lang/String;", false);
+                }
+                lastExprType = "String";
+            }
+            case "BcryptVerify" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "BcryptVerify", "(Ljava/lang/String;Ljava/lang/String;)Z", false);
+                lastExprType = "Boolean";
+            }
+            case "Pbkdf2" -> {
+                // Crypto.Pbkdf2(password, saltHex, iterations, keyLength) -> String
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "Pbkdf2", "(Ljava/lang/String;Ljava/lang/String;II)Ljava/lang/String;", false);
+                lastExprType = "String";
+            }
+
+            // ================================================================
+            // Digital Signatures - RSA
+            // ================================================================
+            case "GenerateRsaKeyPair" -> {
+                if (argCount == 0) {
+                    mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "GenerateRsaKeyPair", "()[Ljava/lang/String;", false);
+                } else {
+                    mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "GenerateRsaKeyPair", "(I)[Ljava/lang/String;", false);
+                }
+                lastExprType = "String[]";
+            }
+            case "RsaSign" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "RsaSign", "(Ljava/lang/String;Ljava/lang/String;)Ljava/lang/String;", false);
+                lastExprType = "String";
+            }
+            case "RsaVerify" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "RsaVerify", "(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)Z", false);
+                lastExprType = "Boolean";
+            }
+
+            // ================================================================
+            // Digital Signatures - ECDSA
+            // ================================================================
+            case "GenerateEcKeyPair" -> {
+                if (argCount == 0) {
+                    mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "GenerateEcKeyPair", "()[Ljava/lang/String;", false);
+                } else {
+                    mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "GenerateEcKeyPair", "(Ljava/lang/String;)[Ljava/lang/String;", false);
+                }
+                lastExprType = "String[]";
+            }
+            case "EcdsaSign" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "EcdsaSign", "(Ljava/lang/String;Ljava/lang/String;)Ljava/lang/String;", false);
+                lastExprType = "String";
+            }
+            case "EcdsaVerify" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "EcdsaVerify", "(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)Z", false);
+                lastExprType = "Boolean";
+            }
+
+            // ================================================================
+            // Encoding/Decoding
+            // ================================================================
+            case "Base64Encode", "Base64UrlEncode", "HexEncode" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, methodName, "(Ljava/lang/String;)Ljava/lang/String;", false);
+                lastExprType = "String";
+            }
+            case "Base64Decode", "Base64UrlDecode", "HexDecode" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, methodName, "(Ljava/lang/String;)Ljava/lang/String;", false);
+                lastExprType = "String";
+            }
+
+            // ================================================================
+            // Random Generation
+            // ================================================================
+            case "RandomBytes" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "RandomBytes", "(I)Ljava/lang/String;", false);
+                lastExprType = "String";
+            }
+            case "RandomBase64" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "RandomBase64", "(I)Ljava/lang/String;", false);
+                lastExprType = "String";
+            }
+            case "RandomInt" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "RandomInt", "(II)I", false);
+                lastExprType = "Integer";
+            }
+            case "Uuid" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "Uuid", "()Ljava/lang/String;", false);
+                lastExprType = "String";
+            }
+            case "UuidCompact" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "UuidCompact", "()Ljava/lang/String;", false);
+                lastExprType = "String";
+            }
+
+            // ================================================================
+            // Utility Functions
+            // ================================================================
+            case "ConstantTimeEquals" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "ConstantTimeEquals", "(Ljava/lang/String;Ljava/lang/String;)Z", false);
+                lastExprType = "Boolean";
+            }
+            case "GenerateSalt" -> {
+                if (argCount == 0) {
+                    mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "GenerateSalt", "()Ljava/lang/String;", false);
+                } else {
+                    mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "GenerateSalt", "(I)Ljava/lang/String;", false);
+                }
+                lastExprType = "String";
+            }
+
+            default -> throw new RuntimeException("Unknown Crypto function: " + methodName);
         }
 
         return null;
@@ -3668,6 +4548,125 @@ public class CompilerVisitor extends JvmBasicParserBaseVisitor<Object> {
             return;
         }
 
+        // Handle Date namespace - calls com.jvmbasic.runtime.BasicDate
+        if ("Date".equalsIgnoreCase(pendingNamespace)) {
+            pendingNamespace = null;
+            handleDateCall(methodName, argList);
+            return;
+        }
+
+        // Handle Crypto namespace - calls com.jvmbasic.runtime.BasicCrypto
+        if ("Crypto".equalsIgnoreCase(pendingNamespace)) {
+            pendingNamespace = null;
+            handleCryptoCall(methodName, argList);
+            return;
+        }
+
+        // Handle .ToString() on primitives and built-in types
+        if ("ToString".equals(methodName)) {
+            String objectType = lastExprType;
+            if (objectType != null) {
+                switch (objectType.toLowerCase()) {
+                    case "integer", "int" -> {
+                        // Integer.toString(int)
+                        mv.visitMethodInsn(INVOKESTATIC, "java/lang/Integer", "toString", "(I)Ljava/lang/String;", false);
+                        lastExprType = "String";
+                        return;
+                    }
+                    case "long" -> {
+                        // Long.toString(long)
+                        mv.visitMethodInsn(INVOKESTATIC, "java/lang/Long", "toString", "(J)Ljava/lang/String;", false);
+                        lastExprType = "String";
+                        return;
+                    }
+                    case "float" -> {
+                        // Float.toString(float)
+                        mv.visitMethodInsn(INVOKESTATIC, "java/lang/Float", "toString", "(F)Ljava/lang/String;", false);
+                        lastExprType = "String";
+                        return;
+                    }
+                    case "double" -> {
+                        // Double.toString(double)
+                        mv.visitMethodInsn(INVOKESTATIC, "java/lang/Double", "toString", "(D)Ljava/lang/String;", false);
+                        lastExprType = "String";
+                        return;
+                    }
+                    case "boolean" -> {
+                        // Boolean.toString(boolean)
+                        mv.visitMethodInsn(INVOKESTATIC, "java/lang/Boolean", "toString", "(Z)Ljava/lang/String;", false);
+                        lastExprType = "String";
+                        return;
+                    }
+                    case "bigdecimal", "decimal" -> {
+                        // BigDecimal.toString()
+                        mv.visitMethodInsn(INVOKEVIRTUAL, "java/math/BigDecimal", "toString", "()Ljava/lang/String;", false);
+                        lastExprType = "String";
+                        return;
+                    }
+                    case "biginteger" -> {
+                        // BigInteger.toString()
+                        mv.visitMethodInsn(INVOKEVIRTUAL, "java/math/BigInteger", "toString", "()Ljava/lang/String;", false);
+                        lastExprType = "String";
+                        return;
+                    }
+                    case "string" -> {
+                        // Already a string, no-op
+                        lastExprType = "String";
+                        return;
+                    }
+                }
+            }
+        }
+
+        // Handle super.Method() calls - use INVOKESPECIAL to call parent class method
+        if (isSuperCall) {
+            String parentClass = lastExprType;  // Set by visitSuperExpr
+            isSuperCall = false;
+
+            // Check if this is a super constructor call (Super.New())
+            if ("New".equalsIgnoreCase(methodName)) {
+                // Look up constructor in parent class
+                ClassSymbol parentSym = symbols.getClass(parentClass);
+                FunctionSymbol ctorSym = parentSym != null ? parentSym.getMethod("New") : null;
+
+                // Push arguments onto stack (object ref is already on stack)
+                if (argList != null) {
+                    for (JvmBasicParser.ArgumentContext arg : argList.argument()) {
+                        visit(arg.expression());
+                    }
+                }
+
+                // Build descriptor and call parent <init>
+                StringBuilder descBuilder = new StringBuilder("(");
+                if (ctorSym != null) {
+                    for (var param : ctorSym.getParameters()) {
+                        descBuilder.append(typeToDescriptor(param.type));
+                    }
+                }
+                descBuilder.append(")V");
+                mv.visitMethodInsn(INVOKESPECIAL, parentClass, "<init>", descBuilder.toString(), false);
+                lastExprType = "Void";
+                return;
+            }
+
+            // Regular super method call
+            ClassSymbol parentSym = symbols.getClass(parentClass);
+            FunctionSymbol methodSym = parentSym != null ? parentSym.getMethod(methodName) : null;
+
+            // Push arguments onto stack (object ref is already on stack)
+            if (argList != null) {
+                for (JvmBasicParser.ArgumentContext arg : argList.argument()) {
+                    visit(arg.expression());
+                }
+            }
+
+            // Build descriptor and use INVOKESPECIAL for super call
+            String descriptor = methodSym != null ? buildMethodDescriptor(methodSym) : "()V";
+            mv.visitMethodInsn(INVOKESPECIAL, parentClass, methodName, descriptor, false);
+            lastExprType = methodSym != null ? methodSym.returnType : "Void";
+            return;
+        }
+
         // Handle instance method calls on user-defined classes
         // The object is already on the stack from visiting the primary expression
         // lastExprType contains the type of the object
@@ -3690,6 +4689,22 @@ public class CompilerVisitor extends JvmBasicParserBaseVisitor<Object> {
                 return;
             }
         }
+
+        // Fallback: try calling toString() on any object reference
+        if ("ToString".equals(methodName) && objectType != null && !isPrimitiveType(objectType)) {
+            mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/Object", "toString", "()Ljava/lang/String;", false);
+            lastExprType = "String";
+            return;
+        }
+    }
+
+    // Check if type is a JVM primitive
+    private boolean isPrimitiveType(String type) {
+        if (type == null) return false;
+        return switch (type.toLowerCase()) {
+            case "integer", "int", "long", "float", "double", "boolean", "byte", "short", "char" -> true;
+            default -> false;
+        };
     }
 
     // Handle user-defined function calls

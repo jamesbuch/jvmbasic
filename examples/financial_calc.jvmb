@@ -1,0 +1,162 @@
+' financial_calc.jvmb - Financial Calculator with Decimal Precision
+' Demonstrates: Decimal, BigInt namespaces for precise calculations
+'
+' Performs compound interest, loan payments, and investment calculations
+
+Console.WriteLine("=== Financial Calculator ===")
+Console.WriteLine("Using Decimal type for precise monetary calculations")
+Console.WriteLine("")
+
+' Compound Interest Calculator
+Console.WriteLine("=== Compound Interest ===")
+var principal as Decimal = Decimal.FromString("10000.00")
+var rate as Decimal = Decimal.FromString("0.05")
+var years as Integer = 10
+var compoundsPerYear as Integer = 12
+
+Console.WriteLine("Principal: $" + Decimal.Format(principal, 2))
+Console.WriteLine("Annual Rate: " + Decimal.Format(Decimal.Multiply(rate, Decimal.FromString("100")), 0) + "%")
+Console.WriteLine($"Years: {years}")
+Console.WriteLine($"Compounds per year: {compoundsPerYear}")
+Console.WriteLine("")
+
+var finalAmount as Decimal = calculateCompoundInterest(principal, rate, years, compoundsPerYear)
+var interest as Decimal = Decimal.Subtract(finalAmount, principal)
+
+Console.WriteLine("Results:")
+Console.WriteLine("  Final Amount: $" + Decimal.Format(finalAmount, 2))
+Console.WriteLine("  Total Interest: $" + Decimal.Format(interest, 2))
+Console.WriteLine("  Growth: " + Decimal.Format(Decimal.Multiply(Decimal.Divide(interest, principal), Decimal.FromString("100")), 1) + "%")
+Console.WriteLine("")
+
+' Loan Payment Calculator
+Console.WriteLine("=== Loan Payment Calculator ===")
+var loanAmount as Decimal = Decimal.FromString("250000.00")
+var annualRate as Decimal = Decimal.FromString("0.065")
+var loanYears as Integer = 30
+
+Console.WriteLine("Loan Amount: $" + Decimal.Format(loanAmount, 2))
+Console.WriteLine("Annual Rate: " + Decimal.Format(Decimal.Multiply(annualRate, Decimal.FromString("100")), 1) + "%")
+Console.WriteLine($"Term: {loanYears} years")
+Console.WriteLine("")
+
+var monthlyPayment as Decimal = calculateMonthlyPayment(loanAmount, annualRate, loanYears)
+var totalMonths as Integer = loanYears * 12
+var totalPayments as Decimal = Decimal.Multiply(monthlyPayment, Decimal.FromLong(totalMonths))
+var totalInterest as Decimal = Decimal.Subtract(totalPayments, loanAmount)
+
+Console.WriteLine("Results:")
+Console.WriteLine("  Monthly Payment: $" + Decimal.Format(monthlyPayment, 2))
+Console.WriteLine("  Total Payments: $" + Decimal.Format(totalPayments, 2))
+Console.WriteLine("  Total Interest: $" + Decimal.Format(totalInterest, 2))
+Console.WriteLine("")
+
+' Investment Growth Comparison
+Console.WriteLine("=== Investment Growth Comparison ===")
+var investmentAmount as Decimal = Decimal.FromString("5000.00")
+Console.WriteLine("Initial Investment: $" + Decimal.Format(investmentAmount, 2))
+Console.WriteLine("")
+
+Console.WriteLine("Growth over 20 years at different rates:")
+Console.WriteLine("----------------------------------------")
+
+' Display growth at 3%
+var growth3 as Decimal = calculateCompoundInterest(investmentAmount, Decimal.FromString("0.03"), 20, 1)
+Console.WriteLine("  3%: $" + Decimal.Format(growth3, 2))
+
+' Display growth at 5%
+var growth5 as Decimal = calculateCompoundInterest(investmentAmount, Decimal.FromString("0.05"), 20, 1)
+Console.WriteLine("  5%: $" + Decimal.Format(growth5, 2))
+
+' Display growth at 7%
+var growth7 as Decimal = calculateCompoundInterest(investmentAmount, Decimal.FromString("0.07"), 20, 1)
+Console.WriteLine("  7%: $" + Decimal.Format(growth7, 2))
+
+' Display growth at 10%
+var growth10 as Decimal = calculateCompoundInterest(investmentAmount, Decimal.FromString("0.10"), 20, 1)
+Console.WriteLine("  10%: $" + Decimal.Format(growth10, 2))
+
+' Display growth at 12%
+var growth12 as Decimal = calculateCompoundInterest(investmentAmount, Decimal.FromString("0.12"), 20, 1)
+Console.WriteLine("  12%: $" + Decimal.Format(growth12, 2))
+Console.WriteLine("")
+
+' BigInteger for large factorial (finance uses this for permutations)
+Console.WriteLine("=== Large Number Demo (BigInteger) ===")
+Console.WriteLine("Calculating 50! (50 factorial)...")
+var factorial as BigInteger = BigInt.FromString("1")
+for n = 2 to 50
+    factorial = BigInt.Multiply(factorial, BigInt.FromLong(n))
+next n
+
+var factorialStr as String = BigInt.ToString(factorial)
+Console.WriteLine($"50! = {Str.Substring(factorialStr, 0, 30)}...")
+Console.WriteLine($"     ({Str.Length(factorialStr)} digits)")
+Console.WriteLine("")
+
+' Currency conversion table
+Console.WriteLine("=== Currency Converter ===")
+var usdAmount as Decimal = Decimal.FromString("1000.00")
+Console.WriteLine("Converting $" + Decimal.Format(usdAmount, 2) + " USD")
+Console.WriteLine("")
+
+' Exchange rates (example)
+Console.WriteLine("  EUR: " + Decimal.Format(Decimal.Multiply(usdAmount, Decimal.FromString("0.92")), 2))
+Console.WriteLine("  GBP: " + Decimal.Format(Decimal.Multiply(usdAmount, Decimal.FromString("0.79")), 2))
+Console.WriteLine("  JPY: " + Decimal.Format(Decimal.Multiply(usdAmount, Decimal.FromString("149.50")), 2))
+Console.WriteLine("  CAD: " + Decimal.Format(Decimal.Multiply(usdAmount, Decimal.FromString("1.36")), 2))
+Console.WriteLine("  AUD: " + Decimal.Format(Decimal.Multiply(usdAmount, Decimal.FromString("1.53")), 2))
+Console.WriteLine("")
+
+Console.WriteLine("=== Calculator Complete ===")
+
+' Calculate compound interest
+' A = P(1 + r/n)^(nt)
+function calculateCompoundInterest(principal as Decimal, rate as Decimal, years as Integer, n as Integer) as Decimal
+    var one as Decimal = Decimal.FromString("1")
+    var nDec as Decimal = Decimal.FromInt(n)
+
+    ' Calculate (1 + r/n)
+    var ratePerPeriod as Decimal = Decimal.Divide(rate, nDec)
+    var baseRate as Decimal = Decimal.Add(one, ratePerPeriod)
+
+    ' Calculate (1 + r/n)^(nt) using repeated multiplication
+    var result as Decimal = one
+    var periods as Integer = n * years
+    for i = 1 to periods
+        result = Decimal.Multiply(result, baseRate)
+    next i
+
+    ' Multiply by principal
+    return Decimal.Multiply(principal, result)
+end function
+
+' Calculate monthly loan payment
+' M = P * [r(1+r)^n] / [(1+r)^n - 1]
+function calculateMonthlyPayment(principal as Decimal, annualRate as Decimal, years as Integer) as Decimal
+    var one as Decimal = Decimal.FromString("1")
+    var twelve as Decimal = Decimal.FromString("12")
+
+    ' Monthly interest rate
+    var monthlyRate as Decimal = Decimal.Divide(annualRate, twelve)
+
+    ' Number of payments
+    var numPayments as Integer = years * 12
+
+    ' Calculate (1 + r)^n
+    var factor as Decimal = one
+    for i = 1 to numPayments
+        factor = Decimal.Multiply(factor, Decimal.Add(one, monthlyRate))
+    next i
+
+    ' Calculate r * (1+r)^n
+    var numerator as Decimal = Decimal.Multiply(monthlyRate, factor)
+
+    ' Calculate (1+r)^n - 1
+    var denominator as Decimal = Decimal.Subtract(factor, one)
+
+    ' Calculate payment
+    var payment as Decimal = Decimal.Multiply(principal, Decimal.Divide(numerator, denominator))
+
+    return payment
+end function

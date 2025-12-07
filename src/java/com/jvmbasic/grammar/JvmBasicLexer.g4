@@ -110,6 +110,9 @@ CATCH       : C A T C H ;
 FINALLY     : F I N A L L Y ;
 THROW       : T H R O W ;
 
+// Testing / Assertions
+ASSERT      : A S S E R T ;
+
 // Other keywords
 IMPORT      : I M P O R T ;
 ENUM        : E N U M ;

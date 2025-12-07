@@ -22,7 +22,9 @@ This document provides context for Claude when working on the JVM BASIC 2.0 comp
 │   │   │   ├── BasicRegex.java  # Regex.* namespace
 │   │   │   ├── BasicJson.java   # Json.* namespace
 │   │   │   ├── BasicHttp.java   # Http.* namespace
-│   │   │   └── BasicDb.java     # Db.* namespace
+│   │   │   ├── BasicDb.java     # Db.* namespace
+│   │   │   ├── BasicDate.java   # Date.* namespace
+│   │   │   └── BasicCrypto.java # Crypto.* namespace
 │   │   ├── visitor/             # ANTLR visitors for code generation
 │   │   │   ├── CompilerVisitor.java  # BYTECODE GENERATION (ASM)
 │   │   │   ├── SymbolCollector.java  # Pass 1: symbol table + scoping
@@ -32,7 +34,9 @@ This document provides context for Claude when working on the JVM BASIC 2.0 comp
 │   └── gradlew                  # Gradle wrapper
 │
 ├── examples/                    # JVM BASIC 2.0 example programs (*.jvmb)
-├── tests/                       # JVM BASIC 2.0 tests (future)
+│                                # Class files compile here with -outdir
+├── tests/                       # JVM BASIC 2.0 test programs (*_test.jvmb)
+│                                # Class files compile here with -outdir
 ├── test-examples.sh             # TEST SCRIPT - RUN BEFORE COMMITS
 │
 ├── docs/                        # JVM BASIC 2.0 documentation
@@ -167,6 +171,8 @@ Source Code (.jvmb)
 | Decimal namespace | `Decimal.FromString()`, `Decimal.Divide()`, `Decimal.Sqrt()`, etc. | ✅ |
 | **OOP Classes** | Class, constructor, instance methods | ✅ |
 | **OOP Fields** | `this.fieldName` access and assignment | ✅ |
+| Date namespace | `Date.Now()`, `Date.AddDays()`, `Date.Format()`, etc. | ✅ |
+| Crypto namespace | `Crypto.Sha256()`, `Crypto.AesGcmEncrypt()`, `Crypto.Argon2Hash()`, etc. | ✅ |
 
 ## OOP Support (Recently Added)
 
@@ -245,8 +251,6 @@ Test files in `examples/` verify these fixes:
 | Feature | Priority | Notes |
 |---------|----------|-------|
 | Interfaces | Medium | `implements` |
-| Crypto namespace | Medium | SHA, AES, Base64 |
-| Date namespace | Medium | Date/time operations |
 | Xml namespace | Medium | XML parsing |
 | Jetty integration | Medium | Web server |
 | Guava utilities | Low | Collections, I/O |
@@ -286,20 +290,21 @@ Benefits of sIR-based codegen (future work):
 
 ### Test Suite Examples
 
-The test script `./test-examples.sh` tests these example programs:
-- `hello.jvmb` - Basic hello world
-- `demo.jvmb` - Comprehensive demo
-- `class_test.jvmb` - OOP classes
-- `calculator.jvmb` - Math functions demo
-- `algo_fibonacci.jvmb` - Fibonacci algorithm
-- `oop_shapes.jvmb` - Point and Rectangle classes
-- `oop_linked_list.jvmb` - Node class demonstration
-- And many more...
+The test script `./test-examples.sh` runs programs from two directories:
+
+**Tests (tests/)** - Unit tests for language features:
+
+- `array_test.jvmb`, `scope_test.jvmb`, `crypto_test.jvmb`, etc.
+
+**Examples (examples/)** - Demo programs:
+
+- `hello.jvmb`, `demo.jvmb`, `calculator.jvmb`, `oop_shapes.jvmb`, etc.
 
 ### Adding New Tests
 
 When adding a new feature:
-1. Create a test example in `examples/` (e.g., `new_feature_test.jvmb`)
+
+1. Create a test file in `tests/` (e.g., `new_feature_test.jvmb`)
 2. Add it to the TESTS array in `test-examples.sh`
 3. Run `./test-examples.sh` to verify it works
 4. Commit both the feature and the test
@@ -309,7 +314,6 @@ When adding a new feature:
 ### Next Steps (In Order)
 1. **More OOP Testing**: Inheritance, complex method interactions
 2. **Standard Library Expansion**:
-   - Crypto namespace (SHA, AES, Base64)
    - Xml namespace
 3. **Jetty Integration**: Web server support
 4. **Third-party Libraries**:
@@ -351,17 +355,18 @@ When adding a new feature:
 - Build: `src/java/build/libs/jvmbasic-compiler-2.0.0-SNAPSHOT.jar`
 
 ### Build and Test Commands
+
 ```bash
 # From project root:
 cd src/java && ./gradlew build && cd ../..
 ./test-examples.sh
 java -jar src/java/build/libs/jvmbasic-compiler-2.0.0-SNAPSHOT.jar examples/FILE.jvmb
-java -cp ".:lib/*" CLASSNAME
+java -jar src/java/build/libs/jvmbasic-compiler-2.0.0-SNAPSHOT.jar -outdir tests tests/FILE_test.jvmb
+java -cp "tests:src/java/build/libs/jvmbasic-compiler-2.0.0-SNAPSHOT.jar" CLASSNAME
 ```
 
 ### Next Tasks
 1. Test more OOP functionality (inheritance, interfaces)
-2. Add Crypto namespace (SHA, AES, Base64)
-3. Add Date namespace
-4. Add Xml namespace
-5. Add Jetty web server integration
+2. Add Xml namespace
+3. Add Jetty web server integration
+4. Explore concurrency support (virtual threads, channels)

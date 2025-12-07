@@ -1,0 +1,169 @@
+' log_analyzer.jvmb - Log File Parser and Analyzer
+' Demonstrates: File, Regex, Str, Date namespaces
+'
+' Parses log files and extracts useful statistics
+
+Console.WriteLine("=== Log File Analyzer ===")
+Console.WriteLine("")
+
+' Create a sample log file for demonstration
+var logFile as String = "sample.log"
+createSampleLog(logFile)
+
+Console.WriteLine($"Analyzing: {logFile}")
+Console.WriteLine("")
+
+' Read and parse log file
+var content as String = File.ReadAllText(logFile)
+var lines() as String = Str.Split(content, Str.Chr(10))
+var lineCount as Integer = countArrayLength(lines)
+
+Console.WriteLine($"Total log entries: {lineCount}")
+Console.WriteLine("")
+
+' Count log levels
+var infoCount as Integer = 0
+var warnCount as Integer = 0
+var errorCount as Integer = 0
+var debugCount as Integer = 0
+
+for i = 0 to lineCount - 1
+    var line as String = lines[i]
+    if Str.Contains(line, "[INFO]") then
+        infoCount = infoCount + 1
+    elseif Str.Contains(line, "[WARN]") then
+        warnCount = warnCount + 1
+    elseif Str.Contains(line, "[ERROR]") then
+        errorCount = errorCount + 1
+    elseif Str.Contains(line, "[DEBUG]") then
+        debugCount = debugCount + 1
+    end if
+next i
+
+Console.WriteLine("=== Log Level Summary ===")
+Console.WriteLine($"  INFO:  {infoCount} entries")
+Console.WriteLine($"  WARN:  {warnCount} entries")
+Console.WriteLine($"  ERROR: {errorCount} entries")
+Console.WriteLine($"  DEBUG: {debugCount} entries")
+Console.WriteLine("")
+
+' Calculate percentages
+var total as Integer = infoCount + warnCount + errorCount + debugCount
+if total > 0 then
+    Console.WriteLine("=== Distribution ===")
+    Console.WriteLine($"  INFO:  {Math.Round((infoCount * 100.0) / total)}%")
+    Console.WriteLine($"  WARN:  {Math.Round((warnCount * 100.0) / total)}%")
+    Console.WriteLine($"  ERROR: {Math.Round((errorCount * 100.0) / total)}%")
+    Console.WriteLine($"  DEBUG: {Math.Round((debugCount * 100.0) / total)}%")
+    Console.WriteLine("")
+end if
+
+' Extract error messages
+Console.WriteLine("=== Error Details ===")
+var errorIndex as Integer = 0
+for i = 0 to lineCount - 1
+    var line as String = lines[i]
+    if Str.Contains(line, "[ERROR]") then
+        errorIndex = errorIndex + 1
+        ' Extract message after log level
+        var msgStart as Integer = Str.IndexOf(line, "]") + 2
+        if msgStart > 1 and msgStart < Str.Length(line) then
+            var msg as String = Str.Substring(line, msgStart, Str.Length(line) - msgStart)
+            Console.WriteLine($"  {errorIndex}. {msg}")
+        end if
+    end if
+next i
+Console.WriteLine("")
+
+' Find unique IP addresses (if any)
+Console.WriteLine("=== IP Address Analysis ===")
+var ipPattern as String = "\\b\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}\\b"
+if Regex.IsMatch(content, ipPattern) then
+    var ips() as String = Regex.FindAll(content, ipPattern)
+    Console.WriteLine($"  Found {countArrayLength(ips)} IP references")
+else
+    Console.WriteLine("  No IP addresses found in log")
+end if
+Console.WriteLine("")
+
+' Time range analysis
+Console.WriteLine("=== Time Analysis ===")
+var timePattern as String = "\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2}"
+if Regex.IsMatch(content, timePattern) then
+    Console.WriteLine("  Log contains timestamps")
+    ' Find first and last timestamps
+    var timestamps() as String = Regex.FindAll(content, timePattern)
+    var tsCount as Integer = countArrayLength(timestamps)
+    if tsCount > 0 then
+        Console.WriteLine($"  First entry: {timestamps[0]}")
+        Console.WriteLine($"  Last entry: {timestamps[tsCount - 1]}")
+    end if
+else
+    Console.WriteLine("  No standard timestamps found")
+end if
+Console.WriteLine("")
+
+' Health assessment
+Console.WriteLine("=== Health Assessment ===")
+var errorRate as Double = 0.0
+if total > 0 then
+    errorRate = (errorCount * 100.0) / total
+end if
+
+Console.Write("  Status: ")
+if errorRate > 10 then
+    Console.WriteLine("CRITICAL - High error rate!")
+elseif errorRate > 5 then
+    Console.WriteLine("WARNING - Elevated errors")
+elseif errorCount > 0 then
+    Console.WriteLine("FAIR - Some errors present")
+else
+    Console.WriteLine("HEALTHY - No errors")
+end if
+Console.WriteLine($"  Error rate: {Math.Round(errorRate * 10.0) / 10.0}%")
+Console.WriteLine("")
+
+' Cleanup
+File.Delete(logFile)
+Console.WriteLine("(Sample log file cleaned up)")
+Console.WriteLine("")
+Console.WriteLine("=== Analysis Complete ===")
+
+' Create a sample log file for demonstration
+sub createSampleLog(path as String)
+    var log as String = ""
+    var baseTime as String = "2025-01-15"
+
+    ' Generate sample log entries
+    log = log + $"{baseTime} 08:00:01 [INFO] Application starting..." + Str.Chr(10)
+    log = log + $"{baseTime} 08:00:02 [DEBUG] Loading configuration from config.json" + Str.Chr(10)
+    log = log + $"{baseTime} 08:00:03 [INFO] Database connection established" + Str.Chr(10)
+    log = log + $"{baseTime} 08:00:05 [INFO] Server listening on port 8080" + Str.Chr(10)
+    log = log + $"{baseTime} 08:15:22 [INFO] Request from 192.168.1.100" + Str.Chr(10)
+    log = log + $"{baseTime} 08:15:23 [DEBUG] Processing user authentication" + Str.Chr(10)
+    log = log + $"{baseTime} 08:15:24 [INFO] User 'admin' logged in successfully" + Str.Chr(10)
+    log = log + $"{baseTime} 09:30:15 [WARN] High memory usage detected: 85%" + Str.Chr(10)
+    log = log + $"{baseTime} 09:45:00 [INFO] Request from 192.168.1.105" + Str.Chr(10)
+    log = log + $"{baseTime} 10:00:00 [ERROR] Failed to connect to external API: timeout" + Str.Chr(10)
+    log = log + $"{baseTime} 10:00:01 [WARN] Retrying API connection..." + Str.Chr(10)
+    log = log + $"{baseTime} 10:00:05 [INFO] API connection restored" + Str.Chr(10)
+    log = log + $"{baseTime} 11:30:00 [DEBUG] Cache cleanup initiated" + Str.Chr(10)
+    log = log + $"{baseTime} 11:30:01 [INFO] Cleared 150 cached entries" + Str.Chr(10)
+    log = log + $"{baseTime} 12:00:00 [ERROR] Database query failed: syntax error" + Str.Chr(10)
+    log = log + $"{baseTime} 14:00:00 [INFO] Scheduled backup started" + Str.Chr(10)
+    log = log + $"{baseTime} 14:05:00 [INFO] Backup completed successfully" + Str.Chr(10)
+    log = log + $"{baseTime} 16:00:00 [WARN] SSL certificate expires in 30 days" + Str.Chr(10)
+    log = log + $"{baseTime} 17:00:00 [INFO] Daily statistics: 1,250 requests processed" + Str.Chr(10)
+    log = log + $"{baseTime} 18:00:00 [INFO] Application shutdown initiated" + Str.Chr(10)
+
+    File.WriteAllText(path, log)
+end sub
+
+' Count array length (workaround)
+function countArrayLength(arr() as String) as Integer
+    var count as Integer = 0
+    for each item in arr
+        count = count + 1
+    next
+    return count
+end function

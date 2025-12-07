@@ -527,21 +527,44 @@ Math.Log10(x)                ' Log base 10
 ### Str
 
 ```basic
+' Length, case conversion
 Str.Length("Hello")          ' 5
 Str.ToUpper("hello")         ' "HELLO"
 Str.ToLower("HELLO")         ' "hello"
-Str.Substring("Hello", 0, 2) ' "He"
-Str.IndexOf("Hello", "l")    ' 2
+
+' Substring extraction (start index, length)
+Str.Substring("Hello", 0, 2) ' "He" - 2 chars from position 0
+Str.Substring("Hello", 1, 3) ' "ell" - 3 chars from position 1
+Str.Substring("Hello", 2)    ' "llo" - from position 2 to end
+Str.Left("Hello", 3)         ' "Hel" - first 3 characters
+Str.Right("Hello", 3)        ' "llo" - last 3 characters
+
+' Search and replace
+Str.IndexOf("Hello", "l")    ' 2 - first occurrence
+Str.LastIndexOf("Hello", "l") ' 3 - last occurrence
 Str.Replace("Hello", "l", "L") ' "HeLLo"
 Str.Split("a,b,c", ",")      ' ["a", "b", "c"]
+
+' Trimming and padding
 Str.Trim("  hello  ")        ' "hello"
+Str.TrimStart("  hello")     ' "hello"
+Str.TrimEnd("hello  ")       ' "hello"
+Str.PadLeft("42", 5, "0")    ' "00042"
+Str.PadRight("Hi", 5, "!")   ' "Hi!!!"
+
+' Testing
 Str.StartsWith("Hello", "He") ' true
 Str.EndsWith("Hello", "lo")  ' true
 Str.Contains("Hello", "ell") ' true
+Str.IsEmpty("")              ' true
+Str.IsNullOrEmpty(nil)       ' true
+
+' Transform
 Str.Repeat("ab", 3)          ' "ababab"
 Str.Reverse("Hello")         ' "olleH"
-Str.PadLeft("42", 5, "0")    ' "00042"
-Str.PadRight("Hi", 5, "!")   ' "Hi!!!"
+Str.Join(", ", arr)          ' Join array with separator
+Str.Chr(65)                  ' "A" - character from code
+Str.Asc("A")                 ' 65 - code from character
 ```
 
 ### File

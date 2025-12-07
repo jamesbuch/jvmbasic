@@ -1,0 +1,120 @@
+' Crypto namespace test for JVM BASIC 2.0
+' Tests cryptographic operations
+
+Console.WriteLine("=== Crypto Namespace Test ===")
+Console.WriteLine("")
+
+' ================================================================
+' Hash Functions
+' ================================================================
+Console.WriteLine("--- Hash Functions ---")
+var testData as String = "Hello, World!"
+
+Console.WriteLine($"MD5: {Crypto.Md5(testData)}")
+Console.WriteLine($"SHA-1: {Crypto.Sha1(testData)}")
+Console.WriteLine($"SHA-256: {Crypto.Sha256(testData)}")
+Console.WriteLine($"SHA-512: {Crypto.Sha512(testData)}")
+Console.WriteLine($"SHA3-256: {Crypto.Sha3_256(testData)}")
+Console.WriteLine("")
+
+' ================================================================
+' HMAC Functions
+' ================================================================
+Console.WriteLine("--- HMAC Functions ---")
+var secretKey as String = "my-secret-key"
+
+Console.WriteLine($"HMAC-SHA256: {Crypto.HmacSha256(testData, secretKey)}")
+Console.WriteLine($"HMAC-SHA512: {Crypto.HmacSha512(testData, secretKey)}")
+Console.WriteLine("")
+
+' ================================================================
+' Encoding/Decoding
+' ================================================================
+Console.WriteLine("--- Encoding/Decoding ---")
+var plainText as String = "Hello, JVM BASIC!"
+
+var base64 as String = Crypto.Base64Encode(plainText)
+Console.WriteLine($"Base64 encoded: {base64}")
+Console.WriteLine($"Base64 decoded: {Crypto.Base64Decode(base64)}")
+
+var hexEncoded as String = Crypto.HexEncode(plainText)
+Console.WriteLine($"Hex encoded: {hexEncoded}")
+Console.WriteLine($"Hex decoded: {Crypto.HexDecode(hexEncoded)}")
+Console.WriteLine("")
+
+' ================================================================
+' Random Generation
+' ================================================================
+Console.WriteLine("--- Random Generation ---")
+Console.WriteLine($"UUID: {Crypto.Uuid()}")
+Console.WriteLine($"UUID (compact): {Crypto.UuidCompact()}")
+Console.WriteLine($"Random bytes (16): {Crypto.RandomBytes(16)}")
+Console.WriteLine($"Random Base64 (16): {Crypto.RandomBase64(16)}")
+Console.WriteLine($"Random int (1-100): {Crypto.RandomInt(1, 100)}")
+Console.WriteLine($"Salt (16 bytes): {Crypto.GenerateSalt()}")
+Console.WriteLine("")
+
+' ================================================================
+' AES Encryption
+' ================================================================
+Console.WriteLine("--- AES Encryption ---")
+var aesKey as String = Crypto.GenerateAesKey()
+Console.WriteLine($"Generated AES key: {aesKey}")
+
+var secretMessage as String = "This is a secret message!"
+var encrypted as String = Crypto.AesGcmEncrypt(secretMessage, aesKey)
+Console.WriteLine($"Encrypted: {encrypted}")
+
+var decrypted as String = Crypto.AesGcmDecrypt(encrypted, aesKey)
+Console.WriteLine($"Decrypted: {decrypted}")
+
+' Verify decryption worked
+if decrypted = secretMessage then
+    Console.WriteLine("AES-GCM encryption/decryption: SUCCESS")
+else
+    Console.WriteLine("AES-GCM encryption/decryption: FAILED")
+end if
+Console.WriteLine("")
+
+' ================================================================
+' Password Hashing (Argon2)
+' ================================================================
+Console.WriteLine("--- Password Hashing (Argon2) ---")
+var password as String = "MySecurePassword123!"
+var argonHash as String = Crypto.Argon2Hash(password)
+Console.WriteLine($"Argon2 hash: {argonHash}")
+
+var argonValid as Boolean = Crypto.Argon2Verify(password, argonHash)
+Console.WriteLine($"Argon2 verify (correct): {argonValid}")
+
+var argonInvalid as Boolean = Crypto.Argon2Verify("WrongPassword", argonHash)
+Console.WriteLine($"Argon2 verify (wrong): {argonInvalid}")
+Console.WriteLine("")
+
+' ================================================================
+' Password Hashing (BCrypt)
+' ================================================================
+Console.WriteLine("--- Password Hashing (BCrypt) ---")
+var bcryptHash as String = Crypto.BcryptHash(password)
+Console.WriteLine($"BCrypt hash: {bcryptHash}")
+
+var bcryptValid as Boolean = Crypto.BcryptVerify(password, bcryptHash)
+Console.WriteLine($"BCrypt verify (correct): {bcryptValid}")
+
+var bcryptInvalid as Boolean = Crypto.BcryptVerify("WrongPassword", bcryptHash)
+Console.WriteLine($"BCrypt verify (wrong): {bcryptInvalid}")
+Console.WriteLine("")
+
+' ================================================================
+' Utility Functions
+' ================================================================
+Console.WriteLine("--- Utility Functions ---")
+var str1 as String = "hello"
+var str2 as String = "hello"
+var str3 as String = "world"
+
+Console.WriteLine($"ConstantTimeEquals('hello', 'hello'): {Crypto.ConstantTimeEquals(str1, str2)}")
+Console.WriteLine($"ConstantTimeEquals('hello', 'world'): {Crypto.ConstantTimeEquals(str1, str3)}")
+Console.WriteLine("")
+
+Console.WriteLine("=== Crypto Test Complete ===")

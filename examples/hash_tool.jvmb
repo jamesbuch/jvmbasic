@@ -1,0 +1,116 @@
+' hash_tool.jvmb - File Hashing and Integrity Tool
+' Demonstrates: Crypto, File, Str namespaces
+'
+' Calculates various hash values for files and strings
+
+Console.WriteLine("=== Hash & Integrity Tool ===")
+Console.WriteLine("")
+
+' Demo data
+var testData as String = "Hello, JVM BASIC 2.0! This is a test message for hashing."
+
+Console.WriteLine("Input data:")
+Console.WriteLine($"  \"{testData}\"")
+Console.WriteLine($"  Length: {Str.Length(testData)} characters")
+Console.WriteLine("")
+
+' Calculate all hash types
+Console.WriteLine("=== Message Digests ===")
+Console.WriteLine("")
+
+Console.WriteLine("Legacy (not for security):")
+Console.WriteLine($"  MD5:      {Crypto.Md5(testData)}")
+Console.WriteLine($"  SHA-1:    {Crypto.Sha1(testData)}")
+Console.WriteLine("")
+
+Console.WriteLine("SHA-2 Family (secure):")
+Console.WriteLine($"  SHA-256:  {Crypto.Sha256(testData)}")
+Console.WriteLine($"  SHA-512:  {Crypto.Sha512(testData)}")
+Console.WriteLine("")
+
+Console.WriteLine("SHA-3 Family (latest):")
+Console.WriteLine($"  SHA3-256: {Crypto.Sha3_256(testData)}")
+Console.WriteLine("")
+
+' HMAC demonstration
+Console.WriteLine("=== HMAC (Keyed Hashes) ===")
+var secretKey as String = "my-secret-key-2025"
+Console.WriteLine($"Secret key: {secretKey}")
+Console.WriteLine("")
+Console.WriteLine($"  HMAC-SHA256: {Crypto.HmacSha256(testData, secretKey)}")
+Console.WriteLine($"  HMAC-SHA512: {Crypto.HmacSha512(testData, secretKey)}")
+Console.WriteLine("")
+
+' Encoding demonstration
+Console.WriteLine("=== Encoding ===")
+var base64 as String = Crypto.Base64Encode(testData)
+var hex as String = Crypto.HexEncode(testData)
+Console.WriteLine($"  Base64: {base64}")
+Console.WriteLine($"  Hex: {Str.Substring(hex, 0, 40)}...")
+Console.WriteLine("")
+
+' Verify encoding roundtrip
+var decodedBase64 as String = Crypto.Base64Decode(base64)
+var decodedHex as String = Crypto.HexDecode(hex)
+Console.WriteLine("  Roundtrip verification:")
+Console.WriteLine($"    Base64: {decodedBase64 = testData}")
+Console.WriteLine($"    Hex: {decodedHex = testData}")
+Console.WriteLine("")
+
+' File integrity demonstration
+Console.WriteLine("=== File Integrity Demo ===")
+var testFile as String = "hash_test_file.txt"
+
+' Create test file
+File.WriteAllText(testFile, testData)
+Console.WriteLine($"Created: {testFile}")
+
+' Hash the file content
+var fileContent as String = File.ReadAllText(testFile)
+var fileHash as String = Crypto.Sha256(fileContent)
+Console.WriteLine($"Original SHA-256: {fileHash}")
+Console.WriteLine("")
+
+' Verify integrity
+Console.WriteLine("Verifying file integrity...")
+var verifyContent as String = File.ReadAllText(testFile)
+var verifyHash as String = Crypto.Sha256(verifyContent)
+
+if Crypto.ConstantTimeEquals(fileHash, verifyHash) then
+    Console.WriteLine("  Status: VERIFIED - File unchanged")
+else
+    Console.WriteLine("  Status: FAILED - File was modified!")
+end if
+Console.WriteLine("")
+
+' Demonstrate tamper detection
+Console.WriteLine("=== Tamper Detection Demo ===")
+File.WriteAllText(testFile, testData + " TAMPERED!")
+var tamperedContent as String = File.ReadAllText(testFile)
+var tamperedHash as String = Crypto.Sha256(tamperedContent)
+
+Console.WriteLine($"Original hash: {Str.Substring(fileHash, 0, 32)}...")
+Console.WriteLine($"Tampered hash: {Str.Substring(tamperedHash, 0, 32)}...")
+
+if Crypto.ConstantTimeEquals(fileHash, tamperedHash) then
+    Console.WriteLine("  Result: Hashes match (unexpected!)")
+else
+    Console.WriteLine("  Result: TAMPER DETECTED - Hashes differ!")
+end if
+Console.WriteLine("")
+
+' Cleanup
+File.Delete(testFile)
+Console.WriteLine($"Cleaned up: {testFile}")
+Console.WriteLine("")
+
+' Hash comparison tips
+Console.WriteLine("=== Security Tips ===")
+Console.WriteLine("  1. Use SHA-256 or SHA-512 for file integrity")
+Console.WriteLine("  2. Use HMAC for message authentication")
+Console.WriteLine("  3. Use Argon2 or BCrypt for password storage")
+Console.WriteLine("  4. Always use constant-time comparison for hashes")
+Console.WriteLine("  5. Never use MD5 or SHA-1 for security purposes")
+Console.WriteLine("")
+
+Console.WriteLine("=== Hash Tool Complete ===")

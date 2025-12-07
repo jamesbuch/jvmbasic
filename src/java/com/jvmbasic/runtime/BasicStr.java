@@ -117,11 +117,16 @@ public final class BasicStr {
         return s.substring(start);
     }
 
-    public static String Substring(String s, int start, int end) {
+    /**
+     * Extract a substring starting at 'start' with the given 'length'.
+     * Uses BASIC semantics: (start, length) not Java's (start, end).
+     */
+    public static String Substring(String s, int start, int length) {
         if (s == null) return null;
         if (start < 0) start = 0;
-        if (end > s.length()) end = s.length();
-        if (start >= end) return "";
+        if (start >= s.length()) return "";
+        if (length <= 0) return "";
+        int end = Math.min(start + length, s.length());
         return s.substring(start, end);
     }
 

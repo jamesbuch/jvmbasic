@@ -227,6 +227,7 @@ statement
     | exitStatement
     | continueStatement
     | throwStatement
+    | assertStatement
     | usingStatement
     | expressionStatement
     ;
@@ -353,6 +354,11 @@ continueStatement
 
 throwStatement
     : THROW expression
+    ;
+
+// --- Assert Statement (testing support) ---
+assertStatement
+    : ASSERT expression (COMMA expression)?    // assert condition, optional message
     ;
 
 // --- Using Statement (auto-dispose) ---

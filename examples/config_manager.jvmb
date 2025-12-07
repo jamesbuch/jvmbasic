@@ -1,0 +1,114 @@
+' config_manager.jvmb - JSON Configuration File Manager
+' Demonstrates: File, Json namespaces
+'
+' Manages application configuration stored in JSON files
+
+Console.WriteLine("=== Configuration Manager ===")
+Console.WriteLine("")
+
+var configFile as String = "app_config.json"
+
+' Check if config exists, create default if not
+if not File.Exists(configFile) then
+    Console.WriteLine("No configuration found. Creating default...")
+    createDefaultConfig(configFile)
+end if
+
+' Load and display current config
+Console.WriteLine("Current Configuration:")
+Console.WriteLine("----------------------")
+var config as String = File.ReadAllText(configFile)
+displayConfig(config)
+Console.WriteLine("")
+
+' Demonstrate config operations
+Console.WriteLine("=== Config Operations Demo ===")
+Console.WriteLine("")
+
+' Read specific values
+var appName as String = Json.Get(config, "app.name")
+var version as String = Json.Get(config, "app.version")
+var debugMode as Boolean = Json.GetBool(config, "settings.debug")
+var maxConnections as Integer = Json.GetInt(config, "settings.maxConnections")
+var timeout as Double = Json.GetDouble(config, "settings.timeout")
+
+Console.WriteLine("Reading values:")
+Console.WriteLine($"  App Name: {appName}")
+Console.WriteLine($"  Version: {version}")
+Console.WriteLine($"  Debug Mode: {debugMode}")
+Console.WriteLine($"  Max Connections: {maxConnections}")
+Console.WriteLine($"  Timeout: {timeout}s")
+Console.WriteLine("")
+
+' Modify configuration
+Console.WriteLine("Modifying configuration...")
+config = Json.Set(config, "app.version", "2.1.0")
+config = Json.SetBool(config, "settings.debug", false)
+config = Json.SetInt(config, "settings.maxConnections", 200)
+config = Json.Set(config, "settings.lastUpdated", Date.Now())
+
+' Add new settings
+config = Json.Set(config, "settings.newFeature", "enabled")
+config = Json.SetDouble(config, "settings.cacheSize", 512.5)
+
+Console.WriteLine("Modified values:")
+Console.WriteLine($"  Version: {Json.Get(config, \"app.version\")}")
+Console.WriteLine($"  Debug: {Json.GetBool(config, \"settings.debug\")}")
+Console.WriteLine($"  Max Connections: {Json.GetInt(config, \"settings.maxConnections\")}")
+Console.WriteLine($"  New Feature: {Json.Get(config, \"settings.newFeature\")}")
+Console.WriteLine($"  Cache Size: {Json.GetDouble(config, \"settings.cacheSize\")} MB")
+Console.WriteLine("")
+
+' Save updated config
+Console.WriteLine("Saving configuration...")
+File.WriteAllText(configFile, Json.Pretty(config))
+Console.WriteLine($"Configuration saved to: {configFile}")
+Console.WriteLine("")
+
+' Validate JSON
+Console.WriteLine("Validation:")
+Console.WriteLine($"  Is valid JSON: {Json.IsValid(config)}")
+Console.WriteLine($"  Is object: {Json.IsObject(config)}")
+Console.WriteLine("")
+
+' Show pretty-printed config
+Console.WriteLine("Final Configuration (pretty-printed):")
+Console.WriteLine("--------------------------------------")
+Console.WriteLine(Json.Pretty(config))
+
+' Cleanup demo file
+File.Delete(configFile)
+Console.WriteLine("")
+Console.WriteLine("(Demo config file cleaned up)")
+Console.WriteLine("")
+Console.WriteLine("=== Config Manager Complete ===")
+
+' Create default configuration file
+sub createDefaultConfig(path as String)
+    var config as String = Json.Create()
+
+    ' App section
+    config = Json.Set(config, "app.name", "JVM BASIC Application")
+    config = Json.Set(config, "app.version", "2.0.0")
+    config = Json.Set(config, "app.author", "Developer")
+
+    ' Settings section
+    config = Json.SetBool(config, "settings.debug", true)
+    config = Json.SetInt(config, "settings.maxConnections", 100)
+    config = Json.SetDouble(config, "settings.timeout", 30.0)
+    config = Json.Set(config, "settings.logLevel", "INFO")
+
+    ' Database section
+    config = Json.Set(config, "database.host", "localhost")
+    config = Json.SetInt(config, "database.port", 3306)
+    config = Json.Set(config, "database.name", "myapp")
+
+    ' Write pretty-printed JSON
+    File.WriteAllText(path, Json.Pretty(config))
+    Console.WriteLine($"Created: {path}")
+end sub
+
+' Display configuration in readable format
+sub displayConfig(config as String)
+    Console.WriteLine(Json.Pretty(config))
+end sub

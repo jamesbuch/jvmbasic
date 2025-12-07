@@ -42,6 +42,10 @@ dependencies {
     // Apache BCEL as alternative bytecode library
     implementation("org.apache.bcel:bcel:6.11.0")
 
+    // BouncyCastle for advanced cryptography
+    implementation("org.bouncycastle:bcprov-jdk18on:1.77")
+    implementation("org.bouncycastle:bcpkix-jdk18on:1.77")
+
     // Testing - JUnit 6.0.1
     testImplementation("org.junit.jupiter:junit-jupiter:6.0.1")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher:2.0.1")
@@ -96,7 +100,12 @@ tasks.jar {
 
     // Create fat JAR with all dependencies
     duplicatesStrategy = DuplicatesStrategy.EXCLUDE
-    from(configurations.runtimeClasspath.get().map { if (it.isDirectory) it else zipTree(it) })
+    from(configurations.runtimeClasspath.get().map { if (it.isDirectory) it else zipTree(it) }) {
+        // Exclude signature files from signed JARs (like BouncyCastle)
+        exclude("META-INF/*.SF")
+        exclude("META-INF/*.DSA")
+        exclude("META-INF/*.RSA")
+    }
 }
 
 // Test configuration

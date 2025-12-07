@@ -1,0 +1,63 @@
+' inheritance_test.jvmb - Test inheritance and super.Method() calls
+
+Console.WriteLine("=== Inheritance Tests ===")
+Console.WriteLine("")
+
+' Define a base Animal class
+Class Animal
+    public var species As String
+
+    public Sub New()
+        this.species = "Unknown"
+    End Sub
+
+    public Sub Speak()
+        Console.WriteLine("Animal speaks")
+    End Sub
+
+    public Function GetSpecies() As String
+        Return this.species
+    End Function
+End Class
+
+' Define a Dog class that extends Animal
+Class Dog Extends Animal
+    public var dogName As String
+
+    public Sub New(n As String)
+        Super.New()
+        this.dogName = n
+    End Sub
+
+    ' Override Speak method
+    public Sub Speak()
+        Console.WriteLine(this.dogName + " barks: Woof!")
+    End Sub
+
+    ' Method that calls parent's Speak
+    public Sub SpeakBoth()
+        Console.WriteLine("Dog's speak:")
+        this.Speak()
+        Console.WriteLine("Parent's speak:")
+        Super.Speak()
+    End Sub
+End Class
+
+' Test 1: Create an Animal
+Console.WriteLine("Test 1: Base class")
+var animal As Animal = New Animal()
+animal.Speak()
+Console.WriteLine("")
+
+' Test 2: Create a Dog
+Console.WriteLine("Test 2: Dog subclass")
+var dog As Dog = New Dog("Buddy")
+dog.Speak()
+Console.WriteLine("")
+
+' Test 3: Dog calling super.Speak()
+Console.WriteLine("Test 3: super.Speak() call")
+dog.SpeakBoth()
+Console.WriteLine("")
+
+Console.WriteLine("=== Inheritance tests completed ===")

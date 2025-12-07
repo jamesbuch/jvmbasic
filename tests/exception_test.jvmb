@@ -1,0 +1,74 @@
+' exception_test.jvmb - Test exception handling in JVM BASIC 2.0
+' Tests try/catch/finally and throw statements
+
+Console.WriteLine("=== Exception Handling Tests ===")
+Console.WriteLine("")
+
+' Test 1: Simple try/catch with divide by zero
+Console.WriteLine("Test 1: Simple try/catch")
+Try
+    Console.WriteLine("  In try block")
+    var x As Integer = 10 / 0
+    Console.WriteLine("  This should not print")
+Catch ex As Exception
+    Console.WriteLine("  Caught exception!")
+End Try
+Console.WriteLine("  After try/catch")
+Console.WriteLine("")
+
+' Test 2: Try/catch with no exception
+Console.WriteLine("Test 2: Try/catch with no exception")
+Try
+    Console.WriteLine("  In try block")
+    var y As Integer = 10 / 2
+    Console.WriteLine("  Result: " + y.ToString())
+Catch ex As Exception
+    Console.WriteLine("  This should not print")
+End Try
+Console.WriteLine("  After try/catch")
+Console.WriteLine("")
+
+' Test 3: Try/finally (no catch)
+Console.WriteLine("Test 3: Try/finally")
+Try
+    Console.WriteLine("  In try block")
+    var z As Integer = 5
+    Console.WriteLine("  z = " + z.ToString())
+Finally
+    Console.WriteLine("  In finally block (always runs)")
+End Try
+Console.WriteLine("  After try/finally")
+Console.WriteLine("")
+
+' Test 4: Try/catch/finally with throw
+Console.WriteLine("Test 4: Try/catch/finally with throw")
+Try
+    Console.WriteLine("  In try block")
+    Throw New Exception("Custom error message")
+    Console.WriteLine("  This should not print")
+Catch ex As Exception
+    Console.WriteLine("  Caught: " + ex.getMessage())
+Finally
+    Console.WriteLine("  In finally block")
+End Try
+Console.WriteLine("  After try/catch/finally")
+Console.WriteLine("")
+
+' Test 5: Nested try/catch
+Console.WriteLine("Test 5: Nested try/catch")
+Try
+    Console.WriteLine("  Outer try")
+    Try
+        Console.WriteLine("    Inner try")
+        Throw New RuntimeException("Inner error")
+    Catch ex As RuntimeException
+        Console.WriteLine("    Inner catch: " + ex.getMessage())
+    End Try
+    Console.WriteLine("  After inner try/catch")
+Catch ex As Exception
+    Console.WriteLine("  Outer catch (should not reach here)")
+End Try
+Console.WriteLine("  After outer try/catch")
+Console.WriteLine("")
+
+Console.WriteLine("=== All exception tests completed ===")
