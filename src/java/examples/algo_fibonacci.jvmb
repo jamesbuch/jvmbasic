@@ -1,0 +1,55 @@
+' Fibonacci Sequence Example
+' Demonstrates iterative and recursive algorithms
+
+Console.WriteLine("=== Fibonacci Sequence Demo ===")
+Console.WriteLine("")
+
+' Iterative Fibonacci
+function FibIterative(n as Integer) as Integer
+    if n <= 1 then
+        return n
+    end if
+
+    var prev as Integer = 0
+    var curr as Integer = 1
+    var i as Integer = 2
+
+    do while i <= n
+        var tmp as Integer = prev + curr
+        prev = curr
+        curr = tmp
+        i = i + 1
+    loop
+
+    return curr
+end function
+
+' Recursive Fibonacci (for small n)
+function FibRecursive(n as Integer) as Integer
+    if n <= 1 then
+        return n
+    end if
+    return FibRecursive(n - 1) + FibRecursive(n - 2)
+end function
+
+' Print first 15 Fibonacci numbers (iterative)
+Console.WriteLine("First 15 Fibonacci numbers (iterative):")
+for i = 0 to 14
+    if i > 0 then
+        Console.Write(", ")
+    end if
+    Console.Write(FibIterative(i))
+next i
+Console.WriteLine("")
+Console.WriteLine("")
+
+' Compare iterative vs recursive (small values)
+Console.WriteLine("Comparing iterative vs recursive (first 10):")
+for i = 0 to 9
+    var iterVal as Integer = FibIterative(i)
+    var recVal as Integer = FibRecursive(i)
+    Console.WriteLine($"  Fib({i}) = {iterVal} (iter), {recVal} (rec)")
+next i
+
+Console.WriteLine("")
+Console.WriteLine("=== Fibonacci Demo Complete ===")

@@ -1,0 +1,112 @@
+' Calculator Example
+' Demonstrates math operations and functions
+
+Console.WriteLine("=== Calculator Demo ===")
+Console.WriteLine("")
+
+' Factorial
+function Factorial(n as Integer) as Integer
+    if n <= 1 then
+        return 1
+    end if
+
+    var result as Integer = 1
+    var i as Integer = 2
+    do while i <= n
+        result = result * i
+        i = i + 1
+    loop
+    return result
+end function
+
+' Power function (integer version)
+function IntPower(base as Integer, exp as Integer) as Integer
+    if exp = 0 then
+        return 1
+    end if
+
+    var result as Integer = 1
+    var i as Integer = 1
+    do while i <= exp
+        result = result * base
+        i = i + 1
+    loop
+    return result
+end function
+
+' Check if number is even
+function IsEven(n as Integer) as Boolean
+    return n mod 2 = 0
+end function
+
+' Sum of digits
+function SumOfDigits(n as Integer) as Integer
+    var sum as Integer = 0
+    var num as Integer = n
+    if num < 0 then
+        num = 0 - num
+    end if
+    do while num > 0
+        sum = sum + (num mod 10)
+        num = num / 10
+    loop
+    return sum
+end function
+
+' Reverse a number
+function ReverseNumber(n as Integer) as Integer
+    var reversed as Integer = 0
+    var num as Integer = n
+    do while num > 0
+        reversed = reversed * 10 + (num mod 10)
+        num = num / 10
+    loop
+    return reversed
+end function
+
+' Basic Operations
+Console.WriteLine("--- Basic Operations ---")
+var a as Integer = 15
+var b as Integer = 4
+Console.WriteLine($"a = {a}, b = {b}")
+Console.WriteLine($"a + b = {a + b}")
+Console.WriteLine($"a - b = {a - b}")
+Console.WriteLine($"a * b = {a * b}")
+Console.WriteLine($"a / b = {a / b}")
+Console.WriteLine($"a mod b = {a mod b}")
+Console.WriteLine("")
+
+' Powers
+Console.WriteLine("--- Powers ---")
+Console.WriteLine($"2^10 = {IntPower(2, 10)}")
+Console.WriteLine($"3^4 = {IntPower(3, 4)}")
+Console.WriteLine($"5^3 = {IntPower(5, 3)}")
+Console.WriteLine("")
+
+' Factorials
+Console.WriteLine("--- Factorials ---")
+Console.WriteLine($"5! = {Factorial(5)}")
+Console.WriteLine($"7! = {Factorial(7)}")
+Console.WriteLine($"10! = {Factorial(10)}")
+Console.WriteLine("")
+
+' Even/Odd
+Console.WriteLine("--- Even/Odd Check ---")
+Console.WriteLine($"Is 10 even? {IsEven(10)}")
+Console.WriteLine($"Is 7 even? {IsEven(7)}")
+Console.WriteLine($"Is 0 even? {IsEven(0)}")
+Console.WriteLine("")
+
+' Sum of digits
+Console.WriteLine("--- Sum of Digits ---")
+Console.WriteLine($"Sum of digits of 12345: {SumOfDigits(12345)}")
+Console.WriteLine($"Sum of digits of 9876: {SumOfDigits(9876)}")
+Console.WriteLine("")
+
+' Reverse number
+Console.WriteLine("--- Reverse Number ---")
+Console.WriteLine($"Reverse of 12345: {ReverseNumber(12345)}")
+Console.WriteLine($"Reverse of 9876: {ReverseNumber(9876)}")
+
+Console.WriteLine("")
+Console.WriteLine("=== Calculator Demo Complete ===")

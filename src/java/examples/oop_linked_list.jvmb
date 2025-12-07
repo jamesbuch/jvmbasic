@@ -1,0 +1,46 @@
+' OOP Linked List Example (simplified)
+' Demonstrates a simple node-based data structure
+
+Console.WriteLine("=== Linked List Demo ===")
+Console.WriteLine("")
+
+' Node class for the linked list
+class Node
+    public var value as Integer
+    public var hasNext as Boolean
+
+    public sub New(val as Integer)
+        this.value = val
+        this.hasNext = false
+    end sub
+
+    public function GetValue() as Integer
+        return this.value
+    end function
+end class
+
+' Create some nodes
+var n1 as Node = new Node(10)
+var n2 as Node = new Node(20)
+var n3 as Node = new Node(30)
+
+' Manually link them
+n1.hasNext = true
+n2.hasNext = true
+n3.hasNext = false
+
+' Display nodes
+Console.WriteLine($"Node 1: value={n1.GetValue()}, hasNext={n1.hasNext}")
+Console.WriteLine($"Node 2: value={n2.GetValue()}, hasNext={n2.hasNext}")
+Console.WriteLine($"Node 3: value={n3.GetValue()}, hasNext={n3.hasNext}")
+Console.WriteLine("")
+
+' Create more nodes
+Console.WriteLine("Creating additional nodes...")
+var n4 as Node = new Node(40)
+var n5 as Node = new Node(50)
+Console.WriteLine($"Node 4: value={n4.GetValue()}")
+Console.WriteLine($"Node 5: value={n5.GetValue()}")
+
+Console.WriteLine("")
+Console.WriteLine("=== Linked List Demo Complete ===")

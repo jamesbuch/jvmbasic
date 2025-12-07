@@ -1,0 +1,74 @@
+' OOP Shapes Example (simplified for Integer coords)
+' Demonstrates multiple classes
+
+Console.WriteLine("=== Geometry Shapes Demo ===")
+Console.WriteLine("")
+
+' Point class for 2D coordinates
+class Point
+    public var x as Integer
+    public var y as Integer
+
+    public sub New(px as Integer, py as Integer)
+        this.x = px
+        this.y = py
+    end sub
+
+    public function ToString() as String
+        return "(" & this.x & ", " & this.y & ")"
+    end function
+end class
+
+' Rectangle class
+class Rectangle
+    public var x as Integer
+    public var y as Integer
+    public var width as Integer
+    public var height as Integer
+
+    public sub New(px as Integer, py as Integer, w as Integer, h as Integer)
+        this.x = px
+        this.y = py
+        this.width = w
+        this.height = h
+    end sub
+
+    public function Area() as Integer
+        return this.width * this.height
+    end function
+
+    public function Perimeter() as Integer
+        return 2 * (this.width + this.height)
+    end function
+
+    public function IsSquare() as Boolean
+        return this.width = this.height
+    end function
+end class
+
+' Test Point class
+Console.WriteLine("--- Points ---")
+var p1 as Point = new Point(0, 0)
+var p2 as Point = new Point(3, 4)
+Console.WriteLine($"Point 1: {p1.ToString()}")
+Console.WriteLine($"Point 2: {p2.ToString()}")
+Console.WriteLine("")
+
+' Test Rectangle class
+Console.WriteLine("--- Rectangle ---")
+var rect as Rectangle = new Rectangle(0, 0, 10, 5)
+Console.WriteLine($"Rectangle: {rect.width} x {rect.height}")
+Console.WriteLine($"Area: {rect.Area()}")
+Console.WriteLine($"Perimeter: {rect.Perimeter()}")
+Console.WriteLine($"Is Square: {rect.IsSquare()}")
+Console.WriteLine("")
+
+' Test Square
+Console.WriteLine("--- Square ---")
+var square as Rectangle = new Rectangle(0, 0, 4, 4)
+Console.WriteLine($"Square: {square.width} x {square.height}")
+Console.WriteLine($"Area: {square.Area()}")
+Console.WriteLine($"Is Square: {square.IsSquare()}")
+
+Console.WriteLine("")
+Console.WriteLine("=== Geometry Demo Complete ===")
