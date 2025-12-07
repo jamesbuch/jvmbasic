@@ -1,0 +1,43 @@
+' Test: Array parameters in functions and subs
+' This tests passing arrays to functions
+
+Console.WriteLine("=== Array Parameter Test ===")
+
+function SumArray(arr as Integer[]) as Integer
+    var total as Integer = 0
+    for each x in arr
+        total = total + x
+    next
+    return total
+end function
+
+sub PrintArray(arr as Integer[])
+    Console.Write("[")
+    var first as Boolean = true
+    for each x in arr
+        if not first then
+            Console.Write(", ")
+        end if
+        Console.Write(x)
+        first = false
+    next
+    Console.WriteLine("]")
+end sub
+
+' Test 1: Create array and pass to function
+var numbers as Integer[] = new Integer[5]
+numbers[0] = 10
+numbers[1] = 20
+numbers[2] = 30
+numbers[3] = 40
+numbers[4] = 50
+
+var sum as Integer = SumArray(numbers)
+Console.WriteLine("Sum of array: " + sum)
+
+' Test 2: Pass to sub
+Console.Write("Array contents: ")
+PrintArray(numbers)
+
+Console.WriteLine("")
+Console.WriteLine("=== Array Parameter Test Complete ===")

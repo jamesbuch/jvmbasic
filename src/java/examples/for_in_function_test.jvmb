@@ -1,0 +1,50 @@
+' Test: FOR loop inside function
+' This tests proper variable scoping for FOR loops in functions
+
+Console.WriteLine("=== FOR in Function Test ===")
+
+function SumRange(n as Integer) as Integer
+    var total as Integer = 0
+    for i = 1 to n
+        total = total + i
+    next i
+    return total
+end function
+
+function CountUp(start as Integer, finish as Integer) as String
+    var result as String = ""
+    for i = start to finish
+        if i > start then
+            result = result + ", "
+        end if
+        result = result + i
+    next i
+    return result
+end function
+
+function MultiplyRange(start as Integer, finish as Integer) as Integer
+    var product as Integer = 1
+    for i = start to finish
+        product = product * i
+    next i
+    return product
+end function
+
+' Test 1: Simple loop in function
+var sum5 as Integer = SumRange(5)
+Console.WriteLine("Sum 1-5: " + sum5)
+
+' Test 2: Loop with string building
+var countup as String = CountUp(1, 5)
+Console.WriteLine("Count up: " + countup)
+
+' Test 3: Multiple calls
+var sum10 as Integer = SumRange(10)
+Console.WriteLine("Sum 1-10: " + sum10)
+
+' Test 4: Factorial-like multiplication
+var factorial as Integer = MultiplyRange(1, 5)
+Console.WriteLine("5! = " + factorial)
+
+Console.WriteLine("")
+Console.WriteLine("=== FOR in Function Test Complete ===")

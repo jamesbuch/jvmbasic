@@ -60,6 +60,9 @@ TESTS=(
     "regex_test.jvmb:regex_test"
     "file_test.jvmb:file_test"
     "comparison_test.jvmb:comparison_test"
+    "string_plus_test.jvmb:string_plus_test"
+    "for_in_function_test.jvmb:for_in_function_test"
+    "array_param_test.jvmb:array_param_test"
 )
 
 for test in "${TESTS[@]}"; do

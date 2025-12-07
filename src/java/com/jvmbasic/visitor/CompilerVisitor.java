@@ -41,8 +41,12 @@ public class CompilerVisitor extends JvmBasicParserBaseVisitor<Object> {
     private String currentMethod = null;
     private int localVarSlot = 0;
 
-    // Track main method locals when not using a FunctionSymbol
-    private final java.util.Map<String, LocalVar> mainLocals = new java.util.LinkedHashMap<>();
+    // Track dynamically-created locals (FOR loop variables, etc.) during codegen
+    // This complements the symbol table which only has declared variables
+    private final java.util.Map<String, LocalVar> dynamicLocals = new java.util.LinkedHashMap<>();
+
+    // Legacy alias for backwards compatibility
+    private java.util.Map<String, LocalVar> mainLocals = dynamicLocals;
 
     // OOP support: generated class files for user-defined classes
     private final java.util.Map<String, byte[]> generatedClasses = new java.util.LinkedHashMap<>();
@@ -140,6 +144,7 @@ public class CompilerVisitor extends JvmBasicParserBaseVisitor<Object> {
 
         currentMethod = "main";
         localVarSlot = 1; // slot 0 is args
+        dynamicLocals.clear();  // Clear dynamic locals for main method
 
         // Visit all top-level statements from topLevelElement
         for (JvmBasicParser.TopLevelElementContext elem : ctx.topLevelElement()) {
@@ -172,6 +177,7 @@ public class CompilerVisitor extends JvmBasicParserBaseVisitor<Object> {
 
         currentMethod = name;
         localVarSlot = func.getParameters().size();
+        dynamicLocals.clear();  // Clear dynamic locals for new function scope
 
         // Visit function body
         for (JvmBasicParser.StatementContext stmt : ctx.statement()) {
@@ -188,6 +194,7 @@ public class CompilerVisitor extends JvmBasicParserBaseVisitor<Object> {
         mv.visitEnd();
 
         currentMethod = null;
+        dynamicLocals.clear();  // Clean up after function
         return null;
     }
 
@@ -204,6 +211,7 @@ public class CompilerVisitor extends JvmBasicParserBaseVisitor<Object> {
 
         currentMethod = name;
         localVarSlot = sub.getParameters().size();
+        dynamicLocals.clear();  // Clear dynamic locals for new sub scope
 
         // Visit sub body
         for (JvmBasicParser.StatementContext stmt : ctx.statement()) {
@@ -215,6 +223,7 @@ public class CompilerVisitor extends JvmBasicParserBaseVisitor<Object> {
         mv.visitEnd();
 
         currentMethod = null;
+        dynamicLocals.clear();  // Clean up after sub
         return null;
     }
 
@@ -744,10 +753,8 @@ public class CompilerVisitor extends JvmBasicParserBaseVisitor<Object> {
         int slot = localVarSlot++;
         mv.visitVarInsn(ISTORE, slot);
 
-        // Track the loop variable in mainLocals
-        if ("main".equals(currentMethod)) {
-            mainLocals.put(varName, new LocalVar(varName, "Integer", slot));
-        }
+        // Track the loop variable in dynamicLocals (works for all methods, not just main)
+        dynamicLocals.put(varName, new LocalVar(varName, "Integer", slot));
 
         // We need to store the end value in a temp variable since we check it each iteration
         visit(ctx.expression(1));  // end expression
@@ -836,9 +843,8 @@ public class CompilerVisitor extends JvmBasicParserBaseVisitor<Object> {
 
         // Allocate slot for loop variable
         int itemSlot = allocateSlot(elementType);
-        if ("main".equals(currentMethod)) {
-            mainLocals.put(itemName, new LocalVar(itemName, elementType, itemSlot));
-        }
+        // Track the loop variable in dynamicLocals (works for all methods, not just main)
+        dynamicLocals.put(itemName, new LocalVar(itemName, elementType, itemSlot));
 
         Label startLabel = new Label();
         Label continueLabel = new Label();  // continue jumps here (increment)
@@ -2094,19 +2100,36 @@ public class CompilerVisitor extends JvmBasicParserBaseVisitor<Object> {
         for (int i = 1; i < ctx.multiplicativeExpression().size(); i++) {
             String leftType = lastExprType;
             visit(ctx.multiplicativeExpression(i));
+            String rightType = lastExprType;
             // Determine operator (PLUS, MINUS, or AMP for string concat)
             var opToken = ctx.getChild(2 * i - 1); // Operators are at odd positions
             String op = opToken.getText();
             switch (op) {
-                case "+" -> emitAdd(leftType);
+                case "+" -> {
+                    // If either operand is a String, treat + as string concatenation
+                    if (isStringType(leftType) || isStringType(rightType)) {
+                        emitStringConcat(leftType, rightType);
+                    } else {
+                        emitAdd(leftType);
+                    }
+                }
                 case "-" -> emitSub(leftType);
                 case "&" -> {
                     // String concatenation - convert both operands to String and concatenate
-                    emitStringConcat(leftType, lastExprType);
+                    emitStringConcat(leftType, rightType);
                 }
             }
         }
         return null;
+    }
+
+    /**
+     * Check if a type is a String type.
+     */
+    private boolean isStringType(String type) {
+        if (type == null) return false;
+        String lower = type.toLowerCase();
+        return lower.equals("string") || lower.equals("java.lang.string");
     }
 
     @Override
@@ -2768,6 +2791,12 @@ public class CompilerVisitor extends JvmBasicParserBaseVisitor<Object> {
     }
 
     private String typeToDescriptor(String type) {
+        // Handle array types first
+        if (type.endsWith("[]")) {
+            String elementType = type.substring(0, type.length() - 2);
+            return "[" + typeToDescriptor(elementType);
+        }
+
         return switch (type.toLowerCase()) {
             case "integer", "int" -> "I";
             case "long" -> "J";
@@ -2902,6 +2931,13 @@ public class CompilerVisitor extends JvmBasicParserBaseVisitor<Object> {
                     return;
                 }
             }
+        }
+
+        // Check dynamicLocals (FOR loop variables, etc.)
+        LocalVar dynamicLocal = dynamicLocals.get(name);
+        if (dynamicLocal != null) {
+            loadLocal(dynamicLocal.slot(), dynamicLocal.type());
+            return;
         }
 
         // Check globals

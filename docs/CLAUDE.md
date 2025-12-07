@@ -194,16 +194,20 @@ Console.WriteLine(c.GetValue())  ' Outputs: 11
 
 ## Known Compiler Limitations (To Fix)
 
-These are bugs/limitations that need to be addressed:
+**All critical limitations have been fixed!** The following issues were resolved:
 
-| Issue | Description | Workaround | Fix Priority |
-|-------|-------------|------------|--------------|
-| String `+` operator | `+` for string concatenation with integers generates `iadd` instead of concat | Use `&` operator or string interpolation `$"..."` | High |
-| Reserved word variables | Variables like `next` conflict with FOR loop keyword; semantic analysis should catch this | Avoid reserved words (`next`, `step`, `to`, `then`, etc.) | High |
-| FOR in functions | FOR loops inside functions may have variable scoping issues | Declare loop variables explicitly before the FOR loop | Medium |
-| Array params in subs | Some complex patterns with subs that have array parameters cause compilation issues | Simplify parameter patterns | Medium |
+| Issue | Status | Details |
+|-------|--------|---------|
+| String `+` operator | ✅ Fixed | Now correctly detects string context and uses string concatenation |
+| Reserved word variables | ✅ Working | Lexer correctly tokenizes keywords before identifiers; parser gives clear errors |
+| FOR in functions | ✅ Fixed | Dynamic locals tracking now works for all methods, not just main |
+| Array params in subs | ✅ Fixed | Array type descriptors now correctly generate `[I` instead of `LInteger[];` |
 
-**Note**: The semantic analysis phase should detect reserved word usage and report an error - this is a bug to fix.
+### Testing
+New test files were added to verify these fixes:
+- `string_plus_test.jvmb` - Tests string `+` operator with various types
+- `for_in_function_test.jvmb` - Tests FOR loops inside functions
+- `array_param_test.jvmb` - Tests array parameters in functions and subs
 
 ## What's NOT Yet Implemented
 
