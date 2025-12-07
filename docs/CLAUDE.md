@@ -13,6 +13,16 @@ This document provides context for Claude when working on the JVM BASIC 2.0 comp
 │   │   │   └── JvmBasicParser.g4
 │   │   ├── ir/                  # Tree-based IR (debugging/future optimization)
 │   │   ├── sir/                 # Stack-based IR / SSA-style IR (future codegen)
+│   │   ├── semantic/            # Semantic analysis
+│   │   │   └── SemanticAnalyzer.java  # Type checking and inference
+│   │   ├── runtime/             # Runtime library classes
+│   │   │   ├── BasicMath.java   # Math.* namespace
+│   │   │   ├── BasicStr.java    # Str.* namespace
+│   │   │   ├── BasicFile.java   # File.* namespace
+│   │   │   ├── BasicRegex.java  # Regex.* namespace
+│   │   │   ├── BasicJson.java   # Json.* namespace
+│   │   │   ├── BasicHttp.java   # Http.* namespace
+│   │   │   └── BasicDb.java     # Db.* namespace
 │   │   ├── visitor/             # ANTLR visitors for code generation
 │   │   │   ├── CompilerVisitor.java  # BYTECODE GENERATION (ASM)
 │   │   │   ├── SymbolCollector.java  # Pass 1: symbol table + scoping
@@ -26,14 +36,9 @@ This document provides context for Claude when working on the JVM BASIC 2.0 comp
 ├── test-examples.sh             # TEST SCRIPT - RUN BEFORE COMMITS
 │
 ├── docs/                        # JVM BASIC 2.0 documentation
-│   ├── CLAUDE.md                # THIS FILE - Claude context
-│   └── jvmbasic-2.0/            # Current compiler docs
-│       ├── CODEGEN.md           # Code generation guide (ASM examples)
-│       ├── DEVELOPER_GUIDE.md   # Architecture, adding features
-│       ├── USER_GUIDE.md        # Language reference
-│       └── IR_TO_BYTECODE.md    # IR to bytecode mapping (future)
+│   └── CLAUDE.md                # THIS FILE - Claude context
 │
-├── lib/                         # Dependencies (ANTLR, ASM JARs)
+├── lib/                         # Dependencies (ANTLR, ASM, JSON, JDBC JARs)
 │
 └── legacy-jvm-basic/            # LEGACY C++ implementation (ARCHIVED)
     ├── *.cpp, *.h               # C++ source files
@@ -119,7 +124,9 @@ Source Code (.jvmb)
 |------|---------|
 | `CompilerVisitor.java` | Generates bytecode from parse tree |
 | `SymbolCollector.java` | Pass 1: collects variable/function declarations |
+| `SemanticAnalyzer.java` | Type checking and type inference |
 | `Main.java` | Orchestrates parsing and compilation |
+| `runtime/Basic*.java` | Runtime library classes for namespaces |
 
 ## What's Working Now
 
@@ -150,6 +157,10 @@ Source Code (.jvmb)
 | Select Case | Multi-value cases, Case Else | ✅ |
 | Math namespace | `Math.Sqrt()`, `Math.Sin()`, etc. | ✅ |
 | Str namespace | `Str.ToUpper()`, `Str.Length()`, etc. | ✅ |
+| Regex namespace | `Regex.IsMatch()`, `Regex.Replace()`, etc. | ✅ |
+| Json namespace | `Json.Create()`, `Json.Get()`, `Json.Set()`, etc. | ✅ |
+| Http namespace | `Http.Get()`, `Http.Post()`, `Http.SetHeader()`, etc. | ✅ |
+| Db namespace | `Db.Connect()`, `Db.QueryCursor()`, `Db.Prepare()`, etc. | ✅ |
 | **OOP Classes** | Class, constructor, instance methods | ✅ |
 | **OOP Fields** | `this.fieldName` access and assignment | ✅ |
 
@@ -182,6 +193,9 @@ Console.WriteLine(c.GetValue())  ' Outputs: 11
 ### Known OOP Limitations
 - Local variables in class methods must be declared before use in loops
 - Some complex control flow in methods may cause bytecode verification issues
+
+### Known Compiler Bugs (To Investigate)
+- **Deeply nested if blocks**: Multiple levels of nested if/elseif/else blocks may cause bytecode generation issues. Workaround: simplify nesting structure by using early returns or restructuring control flow.
 
 ## Known Compiler Limitations (To Fix)
 
@@ -231,9 +245,6 @@ Test files in `examples/` verify these fixes:
 |---------|----------|-------|
 | Inheritance | High | `extends`, `super` |
 | Interfaces | Medium | `implements` |
-| Http namespace | High | REST client |
-| Json namespace | High | JSON parsing |
-| Db namespace | High | Database access |
 | Crypto namespace | Medium | SHA, AES, Base64 |
 | Xml namespace | Medium | XML parsing |
 | Jetty integration | Medium | Web server |
@@ -297,9 +308,6 @@ When adding a new feature:
 ### Next Steps (In Order)
 1. **More OOP Testing**: Inheritance, complex method interactions
 2. **Standard Library Expansion**:
-   - Http namespace (REST client)
-   - Json namespace (parsing/serialization)
-   - Db namespace (database connectivity)
    - Crypto namespace (SHA, AES, Base64)
    - Xml namespace
 3. **Jetty Integration**: Web server support
@@ -326,10 +334,16 @@ When adding a new feature:
 - Implemented proper block-level scoping with slot reuse
 - Reorganized repository structure (legacy files moved to legacy-jvm-basic/)
 - Moved examples to top-level examples/ directory
+- Implemented Http, Json, Db, Regex namespaces with code generation
+- Added cursor-based database API (Db.NextRow instead of Next to avoid keyword conflict)
+- Created real-world API examples (httpbin.org, Wikipedia, MariaDB, PostgreSQL)
+- Updated examples to use string interpolation and + operator instead of &
 
 ### Key Directories for JVM BASIC 2.0
 - Source: `src/java/com/jvmbasic/`
 - Grammar: `src/java/com/jvmbasic/grammar/`
+- Semantic Analysis: `src/java/com/jvmbasic/semantic/`
+- Runtime Library: `src/java/com/jvmbasic/runtime/`
 - Visitors: `src/java/com/jvmbasic/visitor/`
 - Examples: `examples/*.jvmb`
 - Tests: `./test-examples.sh`
@@ -341,11 +355,12 @@ When adding a new feature:
 cd src/java && ./gradlew build && cd ../..
 ./test-examples.sh
 java -jar src/java/build/libs/jvmbasic-compiler-2.0.0-SNAPSHOT.jar examples/FILE.jvmb
-java CLASSNAME
+java -cp ".:lib/*" CLASSNAME
 ```
 
 ### Next Tasks
 1. Test more OOP functionality (inheritance, interfaces)
-2. Expand standard library (Http, Json, Db, Crypto, Xml)
-3. Add Jetty web server integration
-4. Explore Java SE library integration
+2. Investigate deeply nested if block compiler bug
+3. Add Crypto namespace (SHA, AES, Base64)
+4. Add Xml namespace
+5. Add Jetty web server integration

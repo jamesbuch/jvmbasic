@@ -15,7 +15,7 @@ class Point
     end sub
 
     public function ToString() as String
-        return "(" & this.x & ", " & this.y & ")"
+        return $"({this.x}, {this.y})"
     end function
 end class
 

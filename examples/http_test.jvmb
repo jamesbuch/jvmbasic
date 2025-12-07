@@ -7,8 +7,8 @@ Console.WriteLine("")
 ' Simple GET request to a public API
 Console.WriteLine("Making GET request to httpbin.org...")
 var response as String = Http.Get("https://httpbin.org/get")
-Console.WriteLine("Status: " & Http.GetStatus())
-Console.WriteLine("Success: " & Http.IsSuccess())
+Console.WriteLine($"Status: {Http.GetStatus()}")
+Console.WriteLine($"Success: {Http.IsSuccess()}")
 Console.WriteLine("")
 
 ' Show first 200 chars of response
@@ -25,11 +25,11 @@ Console.WriteLine("")
 
 ' Test URL encoding
 var encoded as String = Http.UrlEncode("Hello World!")
-Console.WriteLine("URL encoded 'Hello World!': " & encoded)
+Console.WriteLine($"URL encoded 'Hello World!': {encoded}")
 
 ' Test URL decoding
 var decoded as String = Http.UrlDecode("Hello%20World%21")
-Console.WriteLine("URL decoded 'Hello%20World%21': " & decoded)
+Console.WriteLine($"URL decoded 'Hello%20World%21': {decoded}")
 
 Console.WriteLine("")
 Console.WriteLine("=== HTTP Test Complete ===")

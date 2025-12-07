@@ -2084,7 +2084,7 @@ public class CompilerVisitor extends JvmBasicParserBaseVisitor<Object> {
             }
 
             // Replace - returns String
-            case "ReplaceFirst", "ReplaceAll" -> {
+            case "ReplaceFirst", "ReplaceAll", "Replace" -> {
                 mv.visitMethodInsn(INVOKESTATIC, runtimeClass, methodName, "(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)Ljava/lang/String;", false);
                 lastExprType = "String";
             }

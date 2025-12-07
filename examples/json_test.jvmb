@@ -6,43 +6,44 @@ Console.WriteLine("")
 
 ' Create a JSON object
 var json as String = Json.Create()
-Console.WriteLine("Empty JSON: " & json)
+Console.WriteLine($"Empty JSON: {json}")
 
 ' Set values
 json = Json.Set(json, "name", "Alice")
 json = Json.Set(json, "age", "30")
 json = Json.SetBool(json, "active", true)
-Console.WriteLine("After setting values: " & json)
+Console.WriteLine($"After setting values: {json}")
 
 ' Get values
 var name as String = Json.Get(json, "name")
 var age as Integer = Json.GetInt(json, "age")
 var active as Boolean = Json.GetBool(json, "active")
-Console.WriteLine("Name: " & name)
-Console.WriteLine("Age: " & age)
-Console.WriteLine("Active: " & active)
+Console.WriteLine($"Name: {name}")
+Console.WriteLine($"Age: {age}")
+Console.WriteLine($"Active: {active}")
 
 ' Check properties
 var hasName as Boolean = Json.Has(json, "name")
 var hasEmail as Boolean = Json.Has(json, "email")
 var isValid as Boolean = Json.IsValid(json)
 var isObject as Boolean = Json.IsObject(json)
-Console.WriteLine("Has 'name': " & hasName)
-Console.WriteLine("Has 'email': " & hasEmail)
-Console.WriteLine("Is valid JSON: " & isValid)
-Console.WriteLine("Is object: " & isObject)
+Console.WriteLine($"Has 'name': {hasName}")
+Console.WriteLine($"Has 'email': {hasEmail}")
+Console.WriteLine($"Is valid JSON: {isValid}")
+Console.WriteLine($"Is object: {isObject}")
 
 ' Work with arrays
 var arr as String = Json.CreateArray()
 arr = Json.Push(arr, "apple")
 arr = Json.Push(arr, "banana")
 arr = Json.Push(arr, "cherry")
-Console.WriteLine("Fruits array: " & arr)
+Console.WriteLine($"Fruits array: {arr}")
 var isArr as Boolean = Json.IsArray(arr)
 var arrLen as Integer = Json.Length(arr)
-Console.WriteLine("Is array: " & isArr)
-Console.WriteLine("Array length: " & arrLen)
-Console.WriteLine("Element 1: " & Json.Get(arr, "1"))
+Console.WriteLine($"Is array: {isArr}")
+Console.WriteLine($"Array length: {arrLen}")
+var elem1 as String = Json.Get(arr, "1")
+Console.WriteLine($"Element 1: {elem1}")
 
 ' Pretty print
 Console.WriteLine("")

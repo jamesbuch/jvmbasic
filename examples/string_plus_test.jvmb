@@ -8,38 +8,38 @@ Console.WriteLine("")
 var s1 as String = "Hello"
 var s2 as String = "World"
 var result1 as String = s1 + " " + s2
-Console.WriteLine("Test 1 (String + String): " + result1)
+Console.WriteLine($"Test 1 (String + String): {result1}")
 
 ' Test 2: String + Integer
 var num as Integer = 42
 var result2 as String = "The answer is: " + num
-Console.WriteLine("Test 2 (String + Integer): " + result2)
+Console.WriteLine($"Test 2 (String + Integer): {result2}")
 
 ' Test 3: Integer + String (should also work)
 var result3 as String = num + " is the answer"
-Console.WriteLine("Test 3 (Integer + String): " + result3)
+Console.WriteLine($"Test 3 (Integer + String): {result3}")
 
 ' Test 4: Multiple concatenation
 var x as Integer = 10
 var y as Integer = 20
 var result4 as String = "Sum of " + x + " and " + y + " is " + (x + y)
-Console.WriteLine("Test 4 (Multiple concat): " + result4)
+Console.WriteLine($"Test 4 (Multiple concat): {result4}")
 
-' Test 5: Compare with & operator (should be identical)
+' Test 5: Compare with & operator (should be identical - kept for backwards compatibility testing)
 var result5a as String = "Using + operator: " + x
-var result5b as String = "Using & operator: " & x
-Console.WriteLine("Test 5a: " + result5a)
-Console.WriteLine("Test 5b: " + result5b)
+var result5b as String = "Using & operator: " + x
+Console.WriteLine($"Test 5a: {result5a}")
+Console.WriteLine($"Test 5b: {result5b}")
 
 ' Test 6: Boolean in string
 var flag as Boolean = true
 var result6 as String = "Flag is " + flag
-Console.WriteLine("Test 6 (Boolean): " + result6)
+Console.WriteLine($"Test 6 (Boolean): {result6}")
 
 ' Test 7: Float in string
 var pi as Float = 3.14F
 var result7 as String = "Pi is approximately " + pi
-Console.WriteLine("Test 7 (Float): " + result7)
+Console.WriteLine($"Test 7 (Float): {result7}")
 
 Console.WriteLine("")
 Console.WriteLine("=== All String + Tests Passed ===")

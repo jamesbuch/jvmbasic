@@ -17,7 +17,7 @@ class Person
 
     ' Method
     public function Greet() as String
-        return "Hello, I am " & this.name
+        return $"Hello, I am {this.name}"
     end function
 
     ' Method with parameter
@@ -30,16 +30,16 @@ end class
 var alice as Person = new Person("Alice", 30)
 var bob as Person = new Person("Bob", 25)
 
-Console.WriteLine("Alice: " & alice.name & ", age " & alice.age)
-Console.WriteLine("Bob: " & bob.name & ", age " & bob.age)
+Console.WriteLine($"Alice: {alice.name}, age {alice.age}")
+Console.WriteLine($"Bob: {bob.name}, age {bob.age}")
 Console.WriteLine("")
 
 Console.WriteLine(alice.Greet())
 Console.WriteLine(bob.Greet())
 Console.WriteLine("")
 
-Console.WriteLine("Alice older than Bob: " & alice.IsOlderThan(bob))
-Console.WriteLine("Bob older than Alice: " & bob.IsOlderThan(alice))
+Console.WriteLine($"Alice older than Bob: {alice.IsOlderThan(bob)}")
+Console.WriteLine($"Bob older than Alice: {bob.IsOlderThan(alice)}")
 
 Console.WriteLine("")
 Console.WriteLine("=== OOP Class Test Complete ===")

@@ -227,6 +227,13 @@ public final class BasicRegex {
     }
 
     /**
+     * Replace all occurrences of the pattern (alias for ReplaceAll)
+     */
+    public static String Replace(String input, String pattern, String replacement) {
+        return ReplaceAll(input, pattern, replacement);
+    }
+
+    /**
      * Remove all occurrences of the pattern (replace with empty string)
      */
     public static String Remove(String input, String pattern) {
