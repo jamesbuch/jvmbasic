@@ -1451,6 +1451,16 @@ public class CompilerVisitor extends JvmBasicParserBaseVisitor<Object> {
             pendingNamespace = "Db";
             return null;
         }
+        if ("BigInt".equalsIgnoreCase(name)) {
+            // BigInt namespace - maps to java.math.BigInteger
+            pendingNamespace = "BigInt";
+            return null;
+        }
+        if ("Decimal".equalsIgnoreCase(name)) {
+            // Decimal namespace - maps to java.math.BigDecimal
+            pendingNamespace = "Decimal";
+            return null;
+        }
         // Check if this is a function name (will be handled by FunctionCall postfixOp)
         if (symbols.getFunction(name) != null) {
             pendingFunctionName = name;
@@ -1458,6 +1468,20 @@ public class CompilerVisitor extends JvmBasicParserBaseVisitor<Object> {
         }
         // Load variable value (fallback for variables not found in scope checks above)
         loadVariable(name);
+        return null;
+    }
+
+    @Override
+    public Object visitBigIntNamespaceExpr(JvmBasicParser.BigIntNamespaceExprContext ctx) {
+        // BigInteger/BigInt used as namespace for method calls like BigInteger.FromString()
+        pendingNamespace = "BigInt";
+        return null;
+    }
+
+    @Override
+    public Object visitDecimalNamespaceExpr(JvmBasicParser.DecimalNamespaceExprContext ctx) {
+        // Decimal used as namespace for method calls like Decimal.FromString()
+        pendingNamespace = "Decimal";
         return null;
     }
 
@@ -1579,6 +1603,18 @@ public class CompilerVisitor extends JvmBasicParserBaseVisitor<Object> {
         if ("Db".equalsIgnoreCase(pendingNamespace)) {
             pendingNamespace = null;
             return handleDbCall(methodName, ctx.argumentList());
+        }
+
+        // Handle BigInt namespace - java.math.BigInteger factory and utility methods
+        if ("BigInt".equalsIgnoreCase(pendingNamespace)) {
+            pendingNamespace = null;
+            return handleBigIntCall(methodName, ctx.argumentList());
+        }
+
+        // Handle Decimal namespace - java.math.BigDecimal factory and utility methods
+        if ("Decimal".equalsIgnoreCase(pendingNamespace)) {
+            pendingNamespace = null;
+            return handleDecimalCall(methodName, ctx.argumentList());
         }
 
         // Visit arguments for non-Console method calls
@@ -2672,6 +2708,602 @@ public class CompilerVisitor extends JvmBasicParserBaseVisitor<Object> {
         return null;
     }
 
+    // Handle BigInt.* calls - maps to java.math.BigInteger factory and instance methods
+    private Object handleBigIntCall(String methodName, JvmBasicParser.ArgumentListContext argList) {
+        int argCount = argList != null ? argList.argument().size() : 0;
+
+        switch (methodName) {
+            // Factory methods - create BigInteger from various sources
+            case "FromString" -> {
+                // BigInt.FromString("123456789012345678901234567890")
+                if (argCount != 1) throw new RuntimeException("BigInt.FromString requires 1 argument");
+                mv.visitTypeInsn(NEW, "java/math/BigInteger");
+                mv.visitInsn(DUP);
+                visit(argList.argument(0).expression());
+                mv.visitMethodInsn(INVOKESPECIAL, "java/math/BigInteger", "<init>", "(Ljava/lang/String;)V", false);
+                lastExprType = "BigInteger";
+            }
+            case "FromLong" -> {
+                // BigInt.FromLong(9999999999L)
+                if (argCount != 1) throw new RuntimeException("BigInt.FromLong requires 1 argument");
+                visit(argList.argument(0).expression());
+                // Coerce to long if needed
+                if ("Integer".equals(lastExprType)) {
+                    mv.visitInsn(I2L);
+                }
+                mv.visitMethodInsn(INVOKESTATIC, "java/math/BigInteger", "valueOf", "(J)Ljava/math/BigInteger;", false);
+                lastExprType = "BigInteger";
+            }
+            case "FromInt" -> {
+                // BigInt.FromInt(42)
+                if (argCount != 1) throw new RuntimeException("BigInt.FromInt requires 1 argument");
+                visit(argList.argument(0).expression());
+                mv.visitInsn(I2L);
+                mv.visitMethodInsn(INVOKESTATIC, "java/math/BigInteger", "valueOf", "(J)Ljava/math/BigInteger;", false);
+                lastExprType = "BigInteger";
+            }
+
+            // Constants
+            case "Zero" -> {
+                mv.visitFieldInsn(GETSTATIC, "java/math/BigInteger", "ZERO", "Ljava/math/BigInteger;");
+                lastExprType = "BigInteger";
+            }
+            case "One" -> {
+                mv.visitFieldInsn(GETSTATIC, "java/math/BigInteger", "ONE", "Ljava/math/BigInteger;");
+                lastExprType = "BigInteger";
+            }
+            case "Ten" -> {
+                mv.visitFieldInsn(GETSTATIC, "java/math/BigInteger", "TEN", "Ljava/math/BigInteger;");
+                lastExprType = "BigInteger";
+            }
+
+            // Arithmetic operations (take two BigIntegers, return BigInteger)
+            case "Add" -> {
+                // BigInt.Add(a, b) -> a.add(b)
+                if (argCount != 2) throw new RuntimeException("BigInt.Add requires 2 arguments");
+                visit(argList.argument(0).expression());
+                visit(argList.argument(1).expression());
+                mv.visitMethodInsn(INVOKEVIRTUAL, "java/math/BigInteger", "add", "(Ljava/math/BigInteger;)Ljava/math/BigInteger;", false);
+                lastExprType = "BigInteger";
+            }
+            case "Subtract" -> {
+                if (argCount != 2) throw new RuntimeException("BigInt.Subtract requires 2 arguments");
+                visit(argList.argument(0).expression());
+                visit(argList.argument(1).expression());
+                mv.visitMethodInsn(INVOKEVIRTUAL, "java/math/BigInteger", "subtract", "(Ljava/math/BigInteger;)Ljava/math/BigInteger;", false);
+                lastExprType = "BigInteger";
+            }
+            case "Multiply" -> {
+                if (argCount != 2) throw new RuntimeException("BigInt.Multiply requires 2 arguments");
+                visit(argList.argument(0).expression());
+                visit(argList.argument(1).expression());
+                mv.visitMethodInsn(INVOKEVIRTUAL, "java/math/BigInteger", "multiply", "(Ljava/math/BigInteger;)Ljava/math/BigInteger;", false);
+                lastExprType = "BigInteger";
+            }
+            case "Divide" -> {
+                if (argCount != 2) throw new RuntimeException("BigInt.Divide requires 2 arguments");
+                visit(argList.argument(0).expression());
+                visit(argList.argument(1).expression());
+                mv.visitMethodInsn(INVOKEVIRTUAL, "java/math/BigInteger", "divide", "(Ljava/math/BigInteger;)Ljava/math/BigInteger;", false);
+                lastExprType = "BigInteger";
+            }
+            case "Mod", "Remainder" -> {
+                if (argCount != 2) throw new RuntimeException("BigInt.Mod requires 2 arguments");
+                visit(argList.argument(0).expression());
+                visit(argList.argument(1).expression());
+                mv.visitMethodInsn(INVOKEVIRTUAL, "java/math/BigInteger", "mod", "(Ljava/math/BigInteger;)Ljava/math/BigInteger;", false);
+                lastExprType = "BigInteger";
+            }
+            case "Pow" -> {
+                // BigInt.Pow(base, exponent) - exponent is int
+                if (argCount != 2) throw new RuntimeException("BigInt.Pow requires 2 arguments");
+                visit(argList.argument(0).expression());
+                visit(argList.argument(1).expression());
+                // Second arg should be int for pow
+                mv.visitMethodInsn(INVOKEVIRTUAL, "java/math/BigInteger", "pow", "(I)Ljava/math/BigInteger;", false);
+                lastExprType = "BigInteger";
+            }
+            case "Gcd" -> {
+                if (argCount != 2) throw new RuntimeException("BigInt.Gcd requires 2 arguments");
+                visit(argList.argument(0).expression());
+                visit(argList.argument(1).expression());
+                mv.visitMethodInsn(INVOKEVIRTUAL, "java/math/BigInteger", "gcd", "(Ljava/math/BigInteger;)Ljava/math/BigInteger;", false);
+                lastExprType = "BigInteger";
+            }
+            case "Max" -> {
+                if (argCount != 2) throw new RuntimeException("BigInt.Max requires 2 arguments");
+                visit(argList.argument(0).expression());
+                visit(argList.argument(1).expression());
+                mv.visitMethodInsn(INVOKEVIRTUAL, "java/math/BigInteger", "max", "(Ljava/math/BigInteger;)Ljava/math/BigInteger;", false);
+                lastExprType = "BigInteger";
+            }
+            case "Min" -> {
+                if (argCount != 2) throw new RuntimeException("BigInt.Min requires 2 arguments");
+                visit(argList.argument(0).expression());
+                visit(argList.argument(1).expression());
+                mv.visitMethodInsn(INVOKEVIRTUAL, "java/math/BigInteger", "min", "(Ljava/math/BigInteger;)Ljava/math/BigInteger;", false);
+                lastExprType = "BigInteger";
+            }
+
+            // Unary operations (take one BigInteger, return BigInteger)
+            case "Abs" -> {
+                if (argCount != 1) throw new RuntimeException("BigInt.Abs requires 1 argument");
+                visit(argList.argument(0).expression());
+                mv.visitMethodInsn(INVOKEVIRTUAL, "java/math/BigInteger", "abs", "()Ljava/math/BigInteger;", false);
+                lastExprType = "BigInteger";
+            }
+            case "Negate" -> {
+                if (argCount != 1) throw new RuntimeException("BigInt.Negate requires 1 argument");
+                visit(argList.argument(0).expression());
+                mv.visitMethodInsn(INVOKEVIRTUAL, "java/math/BigInteger", "negate", "()Ljava/math/BigInteger;", false);
+                lastExprType = "BigInteger";
+            }
+            case "Sqrt" -> {
+                if (argCount != 1) throw new RuntimeException("BigInt.Sqrt requires 1 argument");
+                visit(argList.argument(0).expression());
+                mv.visitMethodInsn(INVOKEVIRTUAL, "java/math/BigInteger", "sqrt", "()Ljava/math/BigInteger;", false);
+                lastExprType = "BigInteger";
+            }
+
+            // Comparison (returns int: -1, 0, or 1)
+            case "Compare" -> {
+                if (argCount != 2) throw new RuntimeException("BigInt.Compare requires 2 arguments");
+                visit(argList.argument(0).expression());
+                visit(argList.argument(1).expression());
+                mv.visitMethodInsn(INVOKEVIRTUAL, "java/math/BigInteger", "compareTo", "(Ljava/math/BigInteger;)I", false);
+                lastExprType = "Integer";
+            }
+            case "Equals" -> {
+                if (argCount != 2) throw new RuntimeException("BigInt.Equals requires 2 arguments");
+                visit(argList.argument(0).expression());
+                visit(argList.argument(1).expression());
+                mv.visitMethodInsn(INVOKEVIRTUAL, "java/math/BigInteger", "equals", "(Ljava/lang/Object;)Z", false);
+                lastExprType = "Boolean";
+            }
+
+            // Sign (returns int: -1, 0, or 1)
+            case "Signum" -> {
+                if (argCount != 1) throw new RuntimeException("BigInt.Signum requires 1 argument");
+                visit(argList.argument(0).expression());
+                mv.visitMethodInsn(INVOKEVIRTUAL, "java/math/BigInteger", "signum", "()I", false);
+                lastExprType = "Integer";
+            }
+
+            // Bit operations
+            case "BitLength" -> {
+                if (argCount != 1) throw new RuntimeException("BigInt.BitLength requires 1 argument");
+                visit(argList.argument(0).expression());
+                mv.visitMethodInsn(INVOKEVIRTUAL, "java/math/BigInteger", "bitLength", "()I", false);
+                lastExprType = "Integer";
+            }
+            case "BitCount" -> {
+                if (argCount != 1) throw new RuntimeException("BigInt.BitCount requires 1 argument");
+                visit(argList.argument(0).expression());
+                mv.visitMethodInsn(INVOKEVIRTUAL, "java/math/BigInteger", "bitCount", "()I", false);
+                lastExprType = "Integer";
+            }
+            case "And" -> {
+                if (argCount != 2) throw new RuntimeException("BigInt.And requires 2 arguments");
+                visit(argList.argument(0).expression());
+                visit(argList.argument(1).expression());
+                mv.visitMethodInsn(INVOKEVIRTUAL, "java/math/BigInteger", "and", "(Ljava/math/BigInteger;)Ljava/math/BigInteger;", false);
+                lastExprType = "BigInteger";
+            }
+            case "Or" -> {
+                if (argCount != 2) throw new RuntimeException("BigInt.Or requires 2 arguments");
+                visit(argList.argument(0).expression());
+                visit(argList.argument(1).expression());
+                mv.visitMethodInsn(INVOKEVIRTUAL, "java/math/BigInteger", "or", "(Ljava/math/BigInteger;)Ljava/math/BigInteger;", false);
+                lastExprType = "BigInteger";
+            }
+            case "Xor" -> {
+                if (argCount != 2) throw new RuntimeException("BigInt.Xor requires 2 arguments");
+                visit(argList.argument(0).expression());
+                visit(argList.argument(1).expression());
+                mv.visitMethodInsn(INVOKEVIRTUAL, "java/math/BigInteger", "xor", "(Ljava/math/BigInteger;)Ljava/math/BigInteger;", false);
+                lastExprType = "BigInteger";
+            }
+            case "Not" -> {
+                if (argCount != 1) throw new RuntimeException("BigInt.Not requires 1 argument");
+                visit(argList.argument(0).expression());
+                mv.visitMethodInsn(INVOKEVIRTUAL, "java/math/BigInteger", "not", "()Ljava/math/BigInteger;", false);
+                lastExprType = "BigInteger";
+            }
+            case "ShiftLeft" -> {
+                if (argCount != 2) throw new RuntimeException("BigInt.ShiftLeft requires 2 arguments");
+                visit(argList.argument(0).expression());
+                visit(argList.argument(1).expression());
+                mv.visitMethodInsn(INVOKEVIRTUAL, "java/math/BigInteger", "shiftLeft", "(I)Ljava/math/BigInteger;", false);
+                lastExprType = "BigInteger";
+            }
+            case "ShiftRight" -> {
+                if (argCount != 2) throw new RuntimeException("BigInt.ShiftRight requires 2 arguments");
+                visit(argList.argument(0).expression());
+                visit(argList.argument(1).expression());
+                mv.visitMethodInsn(INVOKEVIRTUAL, "java/math/BigInteger", "shiftRight", "(I)Ljava/math/BigInteger;", false);
+                lastExprType = "BigInteger";
+            }
+
+            // Conversion methods
+            case "ToLong" -> {
+                if (argCount != 1) throw new RuntimeException("BigInt.ToLong requires 1 argument");
+                visit(argList.argument(0).expression());
+                mv.visitMethodInsn(INVOKEVIRTUAL, "java/math/BigInteger", "longValue", "()J", false);
+                lastExprType = "Long";
+            }
+            case "ToInt" -> {
+                if (argCount != 1) throw new RuntimeException("BigInt.ToInt requires 1 argument");
+                visit(argList.argument(0).expression());
+                mv.visitMethodInsn(INVOKEVIRTUAL, "java/math/BigInteger", "intValue", "()I", false);
+                lastExprType = "Integer";
+            }
+            case "ToDouble" -> {
+                if (argCount != 1) throw new RuntimeException("BigInt.ToDouble requires 1 argument");
+                visit(argList.argument(0).expression());
+                mv.visitMethodInsn(INVOKEVIRTUAL, "java/math/BigInteger", "doubleValue", "()D", false);
+                lastExprType = "Double";
+            }
+            case "ToString" -> {
+                if (argCount == 1) {
+                    visit(argList.argument(0).expression());
+                    mv.visitMethodInsn(INVOKEVIRTUAL, "java/math/BigInteger", "toString", "()Ljava/lang/String;", false);
+                } else if (argCount == 2) {
+                    // ToString with radix
+                    visit(argList.argument(0).expression());
+                    visit(argList.argument(1).expression());
+                    mv.visitMethodInsn(INVOKEVIRTUAL, "java/math/BigInteger", "toString", "(I)Ljava/lang/String;", false);
+                } else {
+                    throw new RuntimeException("BigInt.ToString requires 1 or 2 arguments");
+                }
+                lastExprType = "String";
+            }
+            case "ToDecimal" -> {
+                // Convert BigInteger to BigDecimal
+                if (argCount != 1) throw new RuntimeException("BigInt.ToDecimal requires 1 argument");
+                mv.visitTypeInsn(NEW, "java/math/BigDecimal");
+                mv.visitInsn(DUP);
+                visit(argList.argument(0).expression());
+                mv.visitMethodInsn(INVOKESPECIAL, "java/math/BigDecimal", "<init>", "(Ljava/math/BigInteger;)V", false);
+                lastExprType = "BigDecimal";
+            }
+
+            // Primality testing
+            case "IsProbablePrime" -> {
+                // IsProbablePrime(n, certainty)
+                if (argCount != 2) throw new RuntimeException("BigInt.IsProbablePrime requires 2 arguments");
+                visit(argList.argument(0).expression());
+                visit(argList.argument(1).expression());
+                mv.visitMethodInsn(INVOKEVIRTUAL, "java/math/BigInteger", "isProbablePrime", "(I)Z", false);
+                lastExprType = "Boolean";
+            }
+
+            // ModPow and ModInverse
+            case "ModPow" -> {
+                // ModPow(base, exponent, modulus)
+                if (argCount != 3) throw new RuntimeException("BigInt.ModPow requires 3 arguments");
+                visit(argList.argument(0).expression());
+                visit(argList.argument(1).expression());
+                visit(argList.argument(2).expression());
+                mv.visitMethodInsn(INVOKEVIRTUAL, "java/math/BigInteger", "modPow", "(Ljava/math/BigInteger;Ljava/math/BigInteger;)Ljava/math/BigInteger;", false);
+                lastExprType = "BigInteger";
+            }
+            case "ModInverse" -> {
+                // ModInverse(value, modulus)
+                if (argCount != 2) throw new RuntimeException("BigInt.ModInverse requires 2 arguments");
+                visit(argList.argument(0).expression());
+                visit(argList.argument(1).expression());
+                mv.visitMethodInsn(INVOKEVIRTUAL, "java/math/BigInteger", "modInverse", "(Ljava/math/BigInteger;)Ljava/math/BigInteger;", false);
+                lastExprType = "BigInteger";
+            }
+
+            default -> throw new RuntimeException("Unknown BigInt function: " + methodName);
+        }
+
+        return null;
+    }
+
+    // Handle Decimal.* calls - maps to java.math.BigDecimal factory and instance methods
+    private Object handleDecimalCall(String methodName, JvmBasicParser.ArgumentListContext argList) {
+        int argCount = argList != null ? argList.argument().size() : 0;
+
+        switch (methodName) {
+            // Factory methods - create BigDecimal from various sources
+            case "FromString" -> {
+                // Decimal.FromString("123.456789012345678901234567890")
+                if (argCount != 1) throw new RuntimeException("Decimal.FromString requires 1 argument");
+                mv.visitTypeInsn(NEW, "java/math/BigDecimal");
+                mv.visitInsn(DUP);
+                visit(argList.argument(0).expression());
+                mv.visitMethodInsn(INVOKESPECIAL, "java/math/BigDecimal", "<init>", "(Ljava/lang/String;)V", false);
+                lastExprType = "BigDecimal";
+            }
+            case "FromDouble" -> {
+                // Decimal.FromDouble(3.14159) - Note: use FromString for exact values
+                if (argCount != 1) throw new RuntimeException("Decimal.FromDouble requires 1 argument");
+                visit(argList.argument(0).expression());
+                if ("Float".equals(lastExprType)) {
+                    mv.visitInsn(F2D);
+                }
+                mv.visitMethodInsn(INVOKESTATIC, "java/math/BigDecimal", "valueOf", "(D)Ljava/math/BigDecimal;", false);
+                lastExprType = "BigDecimal";
+            }
+            case "FromLong" -> {
+                if (argCount != 1) throw new RuntimeException("Decimal.FromLong requires 1 argument");
+                visit(argList.argument(0).expression());
+                if ("Integer".equals(lastExprType)) {
+                    mv.visitInsn(I2L);
+                }
+                mv.visitMethodInsn(INVOKESTATIC, "java/math/BigDecimal", "valueOf", "(J)Ljava/math/BigDecimal;", false);
+                lastExprType = "BigDecimal";
+            }
+            case "FromInt" -> {
+                if (argCount != 1) throw new RuntimeException("Decimal.FromInt requires 1 argument");
+                visit(argList.argument(0).expression());
+                mv.visitInsn(I2L);
+                mv.visitMethodInsn(INVOKESTATIC, "java/math/BigDecimal", "valueOf", "(J)Ljava/math/BigDecimal;", false);
+                lastExprType = "BigDecimal";
+            }
+            case "FromBigInt" -> {
+                // Convert BigInteger to BigDecimal
+                if (argCount != 1) throw new RuntimeException("Decimal.FromBigInt requires 1 argument");
+                mv.visitTypeInsn(NEW, "java/math/BigDecimal");
+                mv.visitInsn(DUP);
+                visit(argList.argument(0).expression());
+                mv.visitMethodInsn(INVOKESPECIAL, "java/math/BigDecimal", "<init>", "(Ljava/math/BigInteger;)V", false);
+                lastExprType = "BigDecimal";
+            }
+
+            // Constants
+            case "Zero" -> {
+                mv.visitFieldInsn(GETSTATIC, "java/math/BigDecimal", "ZERO", "Ljava/math/BigDecimal;");
+                lastExprType = "BigDecimal";
+            }
+            case "One" -> {
+                mv.visitFieldInsn(GETSTATIC, "java/math/BigDecimal", "ONE", "Ljava/math/BigDecimal;");
+                lastExprType = "BigDecimal";
+            }
+            case "Ten" -> {
+                mv.visitFieldInsn(GETSTATIC, "java/math/BigDecimal", "TEN", "Ljava/math/BigDecimal;");
+                lastExprType = "BigDecimal";
+            }
+
+            // Arithmetic operations (take two BigDecimals, return BigDecimal)
+            case "Add" -> {
+                if (argCount != 2) throw new RuntimeException("Decimal.Add requires 2 arguments");
+                visit(argList.argument(0).expression());
+                visit(argList.argument(1).expression());
+                mv.visitMethodInsn(INVOKEVIRTUAL, "java/math/BigDecimal", "add", "(Ljava/math/BigDecimal;)Ljava/math/BigDecimal;", false);
+                lastExprType = "BigDecimal";
+            }
+            case "Subtract" -> {
+                if (argCount != 2) throw new RuntimeException("Decimal.Subtract requires 2 arguments");
+                visit(argList.argument(0).expression());
+                visit(argList.argument(1).expression());
+                mv.visitMethodInsn(INVOKEVIRTUAL, "java/math/BigDecimal", "subtract", "(Ljava/math/BigDecimal;)Ljava/math/BigDecimal;", false);
+                lastExprType = "BigDecimal";
+            }
+            case "Multiply" -> {
+                if (argCount != 2) throw new RuntimeException("Decimal.Multiply requires 2 arguments");
+                visit(argList.argument(0).expression());
+                visit(argList.argument(1).expression());
+                mv.visitMethodInsn(INVOKEVIRTUAL, "java/math/BigDecimal", "multiply", "(Ljava/math/BigDecimal;)Ljava/math/BigDecimal;", false);
+                lastExprType = "BigDecimal";
+            }
+            case "Divide" -> {
+                // Divide with default rounding (HALF_UP, scale 10)
+                if (argCount == 2) {
+                    visit(argList.argument(0).expression());
+                    visit(argList.argument(1).expression());
+                    mv.visitIntInsn(BIPUSH, 10); // scale = 10
+                    mv.visitFieldInsn(GETSTATIC, "java/math/RoundingMode", "HALF_UP", "Ljava/math/RoundingMode;");
+                    mv.visitMethodInsn(INVOKEVIRTUAL, "java/math/BigDecimal", "divide", "(Ljava/math/BigDecimal;ILjava/math/RoundingMode;)Ljava/math/BigDecimal;", false);
+                } else if (argCount == 4) {
+                    // Divide(a, b, scale, roundingMode)
+                    visit(argList.argument(0).expression());
+                    visit(argList.argument(1).expression());
+                    visit(argList.argument(2).expression()); // scale as int
+                    visit(argList.argument(3).expression()); // rounding mode as int
+                    // Convert int to RoundingMode enum
+                    mv.visitMethodInsn(INVOKESTATIC, "java/math/RoundingMode", "valueOf", "(I)Ljava/math/RoundingMode;", false);
+                    mv.visitMethodInsn(INVOKEVIRTUAL, "java/math/BigDecimal", "divide", "(Ljava/math/BigDecimal;ILjava/math/RoundingMode;)Ljava/math/BigDecimal;", false);
+                } else {
+                    throw new RuntimeException("Decimal.Divide requires 2 or 4 arguments");
+                }
+                lastExprType = "BigDecimal";
+            }
+            case "Remainder" -> {
+                if (argCount != 2) throw new RuntimeException("Decimal.Remainder requires 2 arguments");
+                visit(argList.argument(0).expression());
+                visit(argList.argument(1).expression());
+                mv.visitMethodInsn(INVOKEVIRTUAL, "java/math/BigDecimal", "remainder", "(Ljava/math/BigDecimal;)Ljava/math/BigDecimal;", false);
+                lastExprType = "BigDecimal";
+            }
+            case "Pow" -> {
+                // Decimal.Pow(base, exponent) - exponent is int
+                if (argCount != 2) throw new RuntimeException("Decimal.Pow requires 2 arguments");
+                visit(argList.argument(0).expression());
+                visit(argList.argument(1).expression());
+                mv.visitMethodInsn(INVOKEVIRTUAL, "java/math/BigDecimal", "pow", "(I)Ljava/math/BigDecimal;", false);
+                lastExprType = "BigDecimal";
+            }
+            case "Max" -> {
+                if (argCount != 2) throw new RuntimeException("Decimal.Max requires 2 arguments");
+                visit(argList.argument(0).expression());
+                visit(argList.argument(1).expression());
+                mv.visitMethodInsn(INVOKEVIRTUAL, "java/math/BigDecimal", "max", "(Ljava/math/BigDecimal;)Ljava/math/BigDecimal;", false);
+                lastExprType = "BigDecimal";
+            }
+            case "Min" -> {
+                if (argCount != 2) throw new RuntimeException("Decimal.Min requires 2 arguments");
+                visit(argList.argument(0).expression());
+                visit(argList.argument(1).expression());
+                mv.visitMethodInsn(INVOKEVIRTUAL, "java/math/BigDecimal", "min", "(Ljava/math/BigDecimal;)Ljava/math/BigDecimal;", false);
+                lastExprType = "BigDecimal";
+            }
+
+            // Unary operations
+            case "Abs" -> {
+                if (argCount != 1) throw new RuntimeException("Decimal.Abs requires 1 argument");
+                visit(argList.argument(0).expression());
+                mv.visitMethodInsn(INVOKEVIRTUAL, "java/math/BigDecimal", "abs", "()Ljava/math/BigDecimal;", false);
+                lastExprType = "BigDecimal";
+            }
+            case "Negate" -> {
+                if (argCount != 1) throw new RuntimeException("Decimal.Negate requires 1 argument");
+                visit(argList.argument(0).expression());
+                mv.visitMethodInsn(INVOKEVIRTUAL, "java/math/BigDecimal", "negate", "()Ljava/math/BigDecimal;", false);
+                lastExprType = "BigDecimal";
+            }
+            case "Sqrt" -> {
+                // sqrt with default MathContext (DECIMAL128)
+                if (argCount != 1) throw new RuntimeException("Decimal.Sqrt requires 1 argument");
+                visit(argList.argument(0).expression());
+                mv.visitFieldInsn(GETSTATIC, "java/math/MathContext", "DECIMAL128", "Ljava/math/MathContext;");
+                mv.visitMethodInsn(INVOKEVIRTUAL, "java/math/BigDecimal", "sqrt", "(Ljava/math/MathContext;)Ljava/math/BigDecimal;", false);
+                lastExprType = "BigDecimal";
+            }
+
+            // Comparison (returns int: -1, 0, or 1)
+            case "Compare" -> {
+                if (argCount != 2) throw new RuntimeException("Decimal.Compare requires 2 arguments");
+                visit(argList.argument(0).expression());
+                visit(argList.argument(1).expression());
+                mv.visitMethodInsn(INVOKEVIRTUAL, "java/math/BigDecimal", "compareTo", "(Ljava/math/BigDecimal;)I", false);
+                lastExprType = "Integer";
+            }
+            case "Equals" -> {
+                if (argCount != 2) throw new RuntimeException("Decimal.Equals requires 2 arguments");
+                visit(argList.argument(0).expression());
+                visit(argList.argument(1).expression());
+                mv.visitMethodInsn(INVOKEVIRTUAL, "java/math/BigDecimal", "equals", "(Ljava/lang/Object;)Z", false);
+                lastExprType = "Boolean";
+            }
+
+            // Sign (returns int: -1, 0, or 1)
+            case "Signum" -> {
+                if (argCount != 1) throw new RuntimeException("Decimal.Signum requires 1 argument");
+                visit(argList.argument(0).expression());
+                mv.visitMethodInsn(INVOKEVIRTUAL, "java/math/BigDecimal", "signum", "()I", false);
+                lastExprType = "Integer";
+            }
+
+            // Scale and precision
+            case "Scale" -> {
+                if (argCount != 1) throw new RuntimeException("Decimal.Scale requires 1 argument");
+                visit(argList.argument(0).expression());
+                mv.visitMethodInsn(INVOKEVIRTUAL, "java/math/BigDecimal", "scale", "()I", false);
+                lastExprType = "Integer";
+            }
+            case "Precision" -> {
+                if (argCount != 1) throw new RuntimeException("Decimal.Precision requires 1 argument");
+                visit(argList.argument(0).expression());
+                mv.visitMethodInsn(INVOKEVIRTUAL, "java/math/BigDecimal", "precision", "()I", false);
+                lastExprType = "Integer";
+            }
+            case "SetScale" -> {
+                // SetScale(value, newScale) or SetScale(value, newScale, roundingMode)
+                if (argCount == 2) {
+                    visit(argList.argument(0).expression());
+                    visit(argList.argument(1).expression());
+                    mv.visitFieldInsn(GETSTATIC, "java/math/RoundingMode", "HALF_UP", "Ljava/math/RoundingMode;");
+                    mv.visitMethodInsn(INVOKEVIRTUAL, "java/math/BigDecimal", "setScale", "(ILjava/math/RoundingMode;)Ljava/math/BigDecimal;", false);
+                } else if (argCount == 3) {
+                    visit(argList.argument(0).expression());
+                    visit(argList.argument(1).expression());
+                    visit(argList.argument(2).expression());
+                    mv.visitMethodInsn(INVOKESTATIC, "java/math/RoundingMode", "valueOf", "(I)Ljava/math/RoundingMode;", false);
+                    mv.visitMethodInsn(INVOKEVIRTUAL, "java/math/BigDecimal", "setScale", "(ILjava/math/RoundingMode;)Ljava/math/BigDecimal;", false);
+                } else {
+                    throw new RuntimeException("Decimal.SetScale requires 2 or 3 arguments");
+                }
+                lastExprType = "BigDecimal";
+            }
+            case "StripTrailingZeros" -> {
+                if (argCount != 1) throw new RuntimeException("Decimal.StripTrailingZeros requires 1 argument");
+                visit(argList.argument(0).expression());
+                mv.visitMethodInsn(INVOKEVIRTUAL, "java/math/BigDecimal", "stripTrailingZeros", "()Ljava/math/BigDecimal;", false);
+                lastExprType = "BigDecimal";
+            }
+
+            // Rounding modes as constants (return int for use with SetScale/Divide)
+            case "ROUND_UP" -> {
+                mv.visitInsn(ICONST_0);
+                lastExprType = "Integer";
+            }
+            case "ROUND_DOWN" -> {
+                mv.visitInsn(ICONST_1);
+                lastExprType = "Integer";
+            }
+            case "ROUND_CEILING" -> {
+                mv.visitInsn(ICONST_2);
+                lastExprType = "Integer";
+            }
+            case "ROUND_FLOOR" -> {
+                mv.visitInsn(ICONST_3);
+                lastExprType = "Integer";
+            }
+            case "ROUND_HALF_UP" -> {
+                mv.visitInsn(ICONST_4);
+                lastExprType = "Integer";
+            }
+            case "ROUND_HALF_DOWN" -> {
+                mv.visitInsn(ICONST_5);
+                lastExprType = "Integer";
+            }
+            case "ROUND_HALF_EVEN" -> {
+                mv.visitIntInsn(BIPUSH, 6);
+                lastExprType = "Integer";
+            }
+            case "ROUND_UNNECESSARY" -> {
+                mv.visitIntInsn(BIPUSH, 7);
+                lastExprType = "Integer";
+            }
+
+            // Conversion methods
+            case "ToDouble" -> {
+                if (argCount != 1) throw new RuntimeException("Decimal.ToDouble requires 1 argument");
+                visit(argList.argument(0).expression());
+                mv.visitMethodInsn(INVOKEVIRTUAL, "java/math/BigDecimal", "doubleValue", "()D", false);
+                lastExprType = "Double";
+            }
+            case "ToLong" -> {
+                if (argCount != 1) throw new RuntimeException("Decimal.ToLong requires 1 argument");
+                visit(argList.argument(0).expression());
+                mv.visitMethodInsn(INVOKEVIRTUAL, "java/math/BigDecimal", "longValue", "()J", false);
+                lastExprType = "Long";
+            }
+            case "ToInt" -> {
+                if (argCount != 1) throw new RuntimeException("Decimal.ToInt requires 1 argument");
+                visit(argList.argument(0).expression());
+                mv.visitMethodInsn(INVOKEVIRTUAL, "java/math/BigDecimal", "intValue", "()I", false);
+                lastExprType = "Integer";
+            }
+            case "ToString" -> {
+                if (argCount != 1) throw new RuntimeException("Decimal.ToString requires 1 argument");
+                visit(argList.argument(0).expression());
+                mv.visitMethodInsn(INVOKEVIRTUAL, "java/math/BigDecimal", "toString", "()Ljava/lang/String;", false);
+                lastExprType = "String";
+            }
+            case "ToPlainString" -> {
+                // ToPlainString - no scientific notation
+                if (argCount != 1) throw new RuntimeException("Decimal.ToPlainString requires 1 argument");
+                visit(argList.argument(0).expression());
+                mv.visitMethodInsn(INVOKEVIRTUAL, "java/math/BigDecimal", "toPlainString", "()Ljava/lang/String;", false);
+                lastExprType = "String";
+            }
+            case "ToBigInt" -> {
+                if (argCount != 1) throw new RuntimeException("Decimal.ToBigInt requires 1 argument");
+                visit(argList.argument(0).expression());
+                mv.visitMethodInsn(INVOKEVIRTUAL, "java/math/BigDecimal", "toBigInteger", "()Ljava/math/BigInteger;", false);
+                lastExprType = "BigInteger";
+            }
+
+            default -> throw new RuntimeException("Unknown Decimal function: " + methodName);
+        }
+
+        return null;
+    }
+
     // ========================================================================
     // Binary Expressions
     // ========================================================================
@@ -3019,6 +3651,20 @@ public class CompilerVisitor extends JvmBasicParserBaseVisitor<Object> {
         if ("Db".equalsIgnoreCase(pendingNamespace)) {
             pendingNamespace = null;
             handleDbCall(methodName, argList);
+            return;
+        }
+
+        // Handle BigInt namespace - java.math.BigInteger factory and utility methods
+        if ("BigInt".equalsIgnoreCase(pendingNamespace)) {
+            pendingNamespace = null;
+            handleBigIntCall(methodName, argList);
+            return;
+        }
+
+        // Handle Decimal namespace - java.math.BigDecimal factory and utility methods
+        if ("Decimal".equalsIgnoreCase(pendingNamespace)) {
+            pendingNamespace = null;
+            handleDecimalCall(methodName, argList);
             return;
         }
 
@@ -3414,6 +4060,8 @@ public class CompilerVisitor extends JvmBasicParserBaseVisitor<Object> {
             case "string" -> "Ljava/lang/String;";
             case "void" -> "V";
             case "object" -> "Ljava/lang/Object;";
+            case "biginteger" -> "Ljava/math/BigInteger;";
+            case "decimal", "bigdecimal" -> "Ljava/math/BigDecimal;";
             default -> "L" + type.replace(".", "/") + ";";
         };
     }

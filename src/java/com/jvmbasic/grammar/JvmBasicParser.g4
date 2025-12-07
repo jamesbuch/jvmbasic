@@ -197,8 +197,9 @@ primitiveType
     | BYTE
     | CHAR
     | OBJECT
+    | BIGINTEGER
+    | DECIMAL
     ;
-// Note: DECIMAL and BIGINT removed - use Math.BigInteger, Math.Decimal instead
 
 typeNameList
     : typeName (COMMA typeName)*
@@ -524,6 +525,8 @@ primaryExpression
     : LPAREN expression RPAREN                           # ParenExpr
     | literal                                            # LiteralExpr
     | IDENTIFIER                                         # IdentifierExpr
+    | BIGINTEGER                                         # BigIntNamespaceExpr
+    | DECIMAL                                            # DecimalNamespaceExpr
     | ME                                                 # MeExpr
     | THIS                                               # ThisExpr
     | MYBASE                                             # MyBaseExpr

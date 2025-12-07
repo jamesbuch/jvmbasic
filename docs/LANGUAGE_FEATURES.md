@@ -15,6 +15,8 @@ Comprehensive reference of all implemented language features.
 | `Boolean` | 1-bit | `boolean` | `true` or `false` |
 | `Byte` | 8-bit | `byte` | -128 to 127 |
 | `Char` | 16-bit | `char` | Unicode character |
+| `BigInteger` | Arbitrary | `java.math.BigInteger` | Unlimited precision integers |
+| `Decimal` | Arbitrary | `java.math.BigDecimal` | Unlimited precision decimals |
 
 ### Reference Types
 
@@ -635,6 +637,116 @@ Db.Execute("UPDATE accounts SET balance = balance + 100 WHERE id = 2")
 Db.Commit()  ' or Db.Rollback()
 
 Db.Close()
+```
+
+### BigInt (Arbitrary Precision Integers)
+
+```basic
+' Factory methods
+var a as BigInteger = BigInt.FromString("123456789012345678901234567890")
+var b as BigInteger = BigInt.FromLong(9999999999L)
+var c as BigInteger = BigInt.FromInt(42)
+var zero as BigInteger = BigInt.Zero()
+var one as BigInteger = BigInt.One()
+var ten as BigInteger = BigInt.Ten()
+
+' Arithmetic
+var sum as BigInteger = BigInt.Add(a, b)
+var diff as BigInteger = BigInt.Subtract(a, b)
+var prod as BigInteger = BigInt.Multiply(a, b)
+var quot as BigInteger = BigInt.Divide(a, b)
+var rem as BigInteger = BigInt.Mod(a, b)
+var power as BigInteger = BigInt.Pow(a, 10)
+var gcd as BigInteger = BigInt.Gcd(a, b)
+
+' Unary operations
+var abs as BigInteger = BigInt.Abs(a)
+var neg as BigInteger = BigInt.Negate(a)
+var sqrt as BigInteger = BigInt.Sqrt(a)
+
+' Comparison
+var cmp as Integer = BigInt.Compare(a, b)  ' -1, 0, or 1
+var eq as Boolean = BigInt.Equals(a, b)
+var max as BigInteger = BigInt.Max(a, b)
+var min as BigInteger = BigInt.Min(a, b)
+var sign as Integer = BigInt.Signum(a)     ' -1, 0, or 1
+
+' Bitwise operations
+var andResult as BigInteger = BigInt.And(a, b)
+var orResult as BigInteger = BigInt.Or(a, b)
+var xorResult as BigInteger = BigInt.Xor(a, b)
+var notResult as BigInteger = BigInt.Not(a)
+var shl as BigInteger = BigInt.ShiftLeft(a, 10)
+var shr as BigInteger = BigInt.ShiftRight(a, 10)
+
+' Properties
+var bits as Integer = BigInt.BitLength(a)
+var bitCount as Integer = BigInt.BitCount(a)
+var isPrime as Boolean = BigInt.IsProbablePrime(a, 10)
+
+' Conversions
+var asLong as Long = BigInt.ToLong(a)
+var asInt as Integer = BigInt.ToInt(a)
+var asDouble as Double = BigInt.ToDouble(a)
+var asStr as String = BigInt.ToString(a)
+var asHex as String = BigInt.ToString(a, 16)
+var asDec as Decimal = BigInt.ToDecimal(a)
+
+' Advanced
+var modPow as BigInteger = BigInt.ModPow(a, b, c)
+var modInv as BigInteger = BigInt.ModInverse(a, b)
+```
+
+### Decimal (Arbitrary Precision Decimals)
+
+```basic
+' Factory methods
+var d1 as Decimal = Decimal.FromString("3.14159265358979323846")
+var d2 as Decimal = Decimal.FromDouble(3.14159)
+var d3 as Decimal = Decimal.FromLong(9999999999L)
+var d4 as Decimal = Decimal.FromInt(100)
+var d5 as Decimal = Decimal.FromBigInt(bigIntValue)
+var zero as Decimal = Decimal.Zero()
+var one as Decimal = Decimal.One()
+var ten as Decimal = Decimal.Ten()
+
+' Arithmetic
+var sum as Decimal = Decimal.Add(d1, d2)
+var diff as Decimal = Decimal.Subtract(d1, d2)
+var prod as Decimal = Decimal.Multiply(d1, d2)
+var quot as Decimal = Decimal.Divide(d1, d2)
+var rem as Decimal = Decimal.Remainder(d1, d2)
+var power as Decimal = Decimal.Pow(d1, 2)
+
+' Unary operations
+var abs as Decimal = Decimal.Abs(d1)
+var neg as Decimal = Decimal.Negate(d1)
+var sqrt as Decimal = Decimal.Sqrt(d1)
+
+' Comparison
+var cmp as Integer = Decimal.Compare(d1, d2)  ' -1, 0, or 1
+var eq as Boolean = Decimal.Equals(d1, d2)
+var max as Decimal = Decimal.Max(d1, d2)
+var min as Decimal = Decimal.Min(d1, d2)
+var sign as Integer = Decimal.Signum(d1)      ' -1, 0, or 1
+
+' Scale and precision
+var scale as Integer = Decimal.Scale(d1)
+var prec as Integer = Decimal.Precision(d1)
+var scaled as Decimal = Decimal.SetScale(d1, 2)
+var stripped as Decimal = Decimal.StripTrailingZeros(d1)
+
+' Rounding modes (pass as second arg to SetScale)
+' ROUND_UP, ROUND_DOWN, ROUND_CEILING, ROUND_FLOOR
+' ROUND_HALF_UP, ROUND_HALF_DOWN, ROUND_HALF_EVEN, ROUND_UNNECESSARY
+
+' Conversions
+var asDouble as Double = Decimal.ToDouble(d1)
+var asLong as Long = Decimal.ToLong(d1)
+var asInt as Integer = Decimal.ToInt(d1)
+var asStr as String = Decimal.ToString(d1)
+var asPlain as String = Decimal.ToPlainString(d1)  ' No scientific notation
+var asBigInt as BigInteger = Decimal.ToBigInt(d1)
 ```
 
 ---

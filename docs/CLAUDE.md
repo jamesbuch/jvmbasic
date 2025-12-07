@@ -136,6 +136,8 @@ Source Code (.jvmb)
 | Long variables | `var x as Long = 9999999999L` | ✅ |
 | Float variables | `var x as Float = 3.14F` | ✅ |
 | Double variables | `var x as Double = 3.14159` | ✅ |
+| BigInteger variables | `var x as BigInteger = BigInt.FromString("123")` | ✅ |
+| Decimal variables | `var x as Decimal = Decimal.FromString("3.14")` | ✅ |
 | String variables | `var s as String = "Hello"` | ✅ |
 | Boolean variables | `var b as Boolean = true` | ✅ |
 | Arithmetic | `+`, `-`, `*`, `/`, `mod` | ✅ |
@@ -161,6 +163,8 @@ Source Code (.jvmb)
 | Json namespace | `Json.Create()`, `Json.Get()`, `Json.Set()`, etc. | ✅ |
 | Http namespace | `Http.Get()`, `Http.Post()`, `Http.SetHeader()`, etc. | ✅ |
 | Db namespace | `Db.Connect()`, `Db.QueryCursor()`, `Db.Prepare()`, etc. | ✅ |
+| BigInt namespace | `BigInt.FromString()`, `BigInt.Add()`, `BigInt.Pow()`, etc. | ✅ |
+| Decimal namespace | `Decimal.FromString()`, `Decimal.Divide()`, `Decimal.Sqrt()`, etc. | ✅ |
 | **OOP Classes** | Class, constructor, instance methods | ✅ |
 | **OOP Fields** | `this.fieldName` access and assignment | ✅ |
 
@@ -240,9 +244,9 @@ Test files in `examples/` verify these fixes:
 
 | Feature | Priority | Notes |
 |---------|----------|-------|
-| Inheritance | High | `extends`, `super` |
 | Interfaces | Medium | `implements` |
 | Crypto namespace | Medium | SHA, AES, Base64 |
+| Date namespace | Medium | Date/time operations |
 | Xml namespace | Medium | XML parsing |
 | Jetty integration | Medium | Web server |
 | Guava utilities | Low | Collections, I/O |
@@ -357,7 +361,7 @@ java -cp ".:lib/*" CLASSNAME
 
 ### Next Tasks
 1. Test more OOP functionality (inheritance, interfaces)
-2. Add Math.BigInteger and Math.Decimal support
-3. Add Crypto namespace (SHA, AES, Base64)
+2. Add Crypto namespace (SHA, AES, Base64)
+3. Add Date namespace
 4. Add Xml namespace
 5. Add Jetty web server integration

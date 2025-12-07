@@ -6,7 +6,7 @@ A modern BASIC compiler targeting the Java Virtual Machine, written in Java usin
 
 | Category | Features | Status |
 |----------|----------|--------|
-| **Core Types** | Integer, Long, Float, Double, Boolean, Byte, Char, String | ✅ |
+| **Core Types** | Integer, Long, Float, Double, Boolean, Byte, Char, String, BigInteger, Decimal | ✅ |
 | **Variables** | Declarations, assignments, block-level scoping | ✅ |
 | **Operators** | Arithmetic, comparison, logical, bitwise, string `+` and `&` | ✅ |
 | **Control Flow** | If/ElseIf/Else, For, For Each, While, Do, Select Case | ✅ |
@@ -27,6 +27,8 @@ A modern BASIC compiler targeting the Java Virtual Machine, written in Java usin
 | **Http Namespace** | GET, POST, PUT, DELETE, headers, URL encoding | ✅ |
 | **Json Namespace** | Parse, Create, Get, Set, Pretty, arrays | ✅ |
 | **Db Namespace** | Connect, Query, Prepared statements, transactions | ✅ |
+| **BigInt Namespace** | Arbitrary precision integers, arithmetic, conversions | ✅ |
+| **Decimal Namespace** | Arbitrary precision decimals, arithmetic, rounding | ✅ |
 
 **Coming Soon:**
 - Interfaces (`implements` keyword)
@@ -435,6 +437,26 @@ Db.Commit()  ' or Db.Rollback() on error
 
 ' Close connection
 Db.Close()
+```
+
+### Arbitrary Precision Numbers
+```basic
+' BigInteger - arbitrary precision integers
+var huge as BigInteger = BigInt.FromString("123456789012345678901234567890")
+var small as BigInteger = BigInt.FromInt(42)
+var sum as BigInteger = BigInt.Add(huge, small)
+var power as BigInteger = BigInt.Pow(BigInt.FromInt(2), 100)
+Console.WriteLine("2^100 = " + power)
+
+' Decimal - arbitrary precision decimals
+var pi as Decimal = Decimal.FromString("3.14159265358979323846")
+var precise as Decimal = Decimal.Divide(Decimal.FromInt(1), Decimal.FromInt(3))
+var scaled as Decimal = Decimal.SetScale(precise, 10)  ' 10 decimal places
+Console.WriteLine("1/3 = " + scaled)
+
+' Conversions
+var asLong as Long = BigInt.ToLong(small)
+var asDouble as Double = Decimal.ToDouble(pi)
 ```
 
 ## Documentation

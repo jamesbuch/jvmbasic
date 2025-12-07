@@ -44,7 +44,8 @@ BOOLEAN     : B O O L E A N ;
 BYTE        : B Y T E ;
 CHAR        : C H A R ;
 OBJECT      : O B J E C T ;
-// DECIMAL and BIGINT removed - will be in Math namespace (Math.BigInteger, Math.Decimal)
+BIGINTEGER  : B I G I N T E G E R ;
+DECIMAL     : D E C I M A L ;
 
 // Null aliases
 NIL         : N I L ;

@@ -68,6 +68,7 @@ TESTS=(
     "array_param_test.jvmb:array_param_test"
     "scope_test.jvmb:scope_test"
     "json_test.jvmb:json_test"
+    "bigint_test.jvmb:bigint_test"
 )
 
 for test in "${TESTS[@]}"; do

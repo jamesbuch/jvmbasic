@@ -1,0 +1,127 @@
+' BigInt and Decimal namespace test
+' Tests arbitrary precision arithmetic
+
+Console.WriteLine("=== BigInt Tests ===")
+
+' Factory methods
+var a as BigInteger = BigInt.FromString("123456789012345678901234567890")
+var b as BigInteger = BigInt.FromLong(9999999999L)
+var c as BigInteger = BigInt.FromInt(42)
+
+Console.WriteLine("a = " + a)
+Console.WriteLine("b = " + b)
+Console.WriteLine("c = " + c)
+
+' Constants
+var zero as BigInteger = BigInt.Zero()
+var one as BigInteger = BigInt.One()
+var ten as BigInteger = BigInt.Ten()
+Console.WriteLine("zero = " + zero)
+Console.WriteLine("one = " + one)
+Console.WriteLine("ten = " + ten)
+
+' Arithmetic
+var x as BigInteger = BigInt.FromString("1000000000000000000")
+var y as BigInteger = BigInt.FromString("999999999999999999")
+
+var sum as BigInteger = BigInt.Add(x, y)
+var diff as BigInteger = BigInt.Subtract(x, y)
+var prod as BigInteger = BigInt.Multiply(x, y)
+var quot as BigInteger = BigInt.Divide(x, y)
+var remainder as BigInteger = BigInt.Mod(x, y)
+
+Console.WriteLine("x = " + x)
+Console.WriteLine("y = " + y)
+Console.WriteLine("x + y = " + sum)
+Console.WriteLine("x - y = " + diff)
+Console.WriteLine("x * y = " + prod)
+Console.WriteLine("x / y = " + quot)
+Console.WriteLine("x mod y = " + remainder)
+
+' Power
+var base as BigInteger = BigInt.FromInt(2)
+var squared as BigInteger = BigInt.Pow(base, 100)
+Console.WriteLine("2^100 = " + squared)
+
+' GCD
+var n1 as BigInteger = BigInt.FromInt(48)
+var n2 as BigInteger = BigInt.FromInt(18)
+var gcdResult as BigInteger = BigInt.Gcd(n1, n2)
+Console.WriteLine("GCD(48, 18) = " + gcdResult)
+
+' Unary operations
+var negVal as BigInteger = BigInt.FromInt(-42)
+var absVal as BigInteger = BigInt.Abs(negVal)
+var negated as BigInteger = BigInt.Negate(absVal)
+Console.WriteLine("abs(-42) = " + absVal)
+Console.WriteLine("negate(42) = " + negated)
+
+' Comparison
+var cmp as Integer = BigInt.Compare(x, y)
+Console.WriteLine("Compare(x, y) = " + cmp)
+
+var eq as Boolean = BigInt.Equals(x, y)
+Console.WriteLine("Equals(x, y) = " + eq)
+
+' Conversion
+var longVal as Long = BigInt.ToLong(BigInt.FromInt(12345))
+Console.WriteLine("ToLong: " + longVal)
+
+var strHex as String = BigInt.ToString(BigInt.FromInt(255), 16)
+Console.WriteLine("255 in hex: " + strHex)
+
+Console.WriteLine("")
+Console.WriteLine("=== Decimal Tests ===")
+
+' Factory methods
+var d1 as Decimal = Decimal.FromString("123.456789012345678901234567890")
+var d2 as Decimal = Decimal.FromDouble(3.14159)
+var d3 as Decimal = Decimal.FromInt(100)
+
+Console.WriteLine("d1 = " + d1)
+Console.WriteLine("d2 = " + d2)
+Console.WriteLine("d3 = " + d3)
+
+' Constants
+var dzero as Decimal = Decimal.Zero()
+var done as Decimal = Decimal.One()
+var dten as Decimal = Decimal.Ten()
+Console.WriteLine("zero = " + dzero)
+Console.WriteLine("one = " + done)
+Console.WriteLine("ten = " + dten)
+
+' Arithmetic
+var dx as Decimal = Decimal.FromString("100.50")
+var dy as Decimal = Decimal.FromString("3.25")
+
+var dsum as Decimal = Decimal.Add(dx, dy)
+var ddiff as Decimal = Decimal.Subtract(dx, dy)
+var dprod as Decimal = Decimal.Multiply(dx, dy)
+var dquot as Decimal = Decimal.Divide(dx, dy)
+
+Console.WriteLine("dx = " + dx)
+Console.WriteLine("dy = " + dy)
+Console.WriteLine("dx + dy = " + dsum)
+Console.WriteLine("dx - dy = " + ddiff)
+Console.WriteLine("dx * dy = " + dprod)
+Console.WriteLine("dx / dy = " + dquot)
+
+' Square root
+var sqrtVal as Decimal = Decimal.Sqrt(Decimal.FromInt(2))
+Console.WriteLine("sqrt(2) = " + sqrtVal)
+
+' Scale and precision
+var scaled as Decimal = Decimal.SetScale(Decimal.FromString("123.456789"), 2)
+Console.WriteLine("123.456789 with scale 2 = " + scaled)
+
+' PlainString (no scientific notation)
+var sci as Decimal = Decimal.FromString("1.23E10")
+var plain as String = Decimal.ToPlainString(sci)
+Console.WriteLine("1.23E10 as plain: " + plain)
+
+' Comparison
+var dcmp as Integer = Decimal.Compare(dx, dy)
+Console.WriteLine("Compare(dx, dy) = " + dcmp)
+
+Console.WriteLine("")
+Console.WriteLine("SUCCESS: BigInt and Decimal tests completed!")
