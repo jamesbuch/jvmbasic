@@ -1,0 +1,16 @@
+CompilationUnit(exit_continue_test)
+  Statements:
+    Console.WriteLine("Exit For test:")
+    for i = 1 to 10 { ... }
+    Console.WriteLine("Done with exit for")
+    Console.WriteLine("Continue For test (odd numbers only):")
+    for i = 1 to 10 { ... }
+    Console.WriteLine("Done with continue for")
+    Console.WriteLine("Exit While test:")
+    var j: Primitive[kind=INT] = 0
+    while ((j LT 100)) { ... }
+    Console.WriteLine("Done with exit while")
+    Console.WriteLine("Continue While test (skip 3):")
+    var k: Primitive[kind=INT] = 0
+    while ((k LT 5)) { ... }
+    Console.WriteLine("Done with continue while")

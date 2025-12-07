@@ -1,0 +1,64 @@
+; SIR Module: file_test
+; ============================================================
+
+; Entry point
+static function main(args: Array[elementType=Reference[name=java.lang.String]])
+  ; locals: args@0
+  entry:
+    %0   = SCONST "File namespace test:"
+    %3   = GETSTATIC java/lang/System.out
+            INVOKEVIRTUAL %3, java/io/PrintStream.println(%0)
+    %4   = SCONST "Current directory:"
+    %7   = GETSTATIC java/lang/System.out
+            INVOKEVIRTUAL %7, java/io/PrintStream.println(%4)
+    %8   = INVOKESTATIC com/jvmbasic/runtime/BasicFile.GetCurrentDirectory()
+    %11  = GETSTATIC java/lang/System.out
+            INVOKEVIRTUAL %11, java/io/PrintStream.println(%8)
+    %12  = SCONST "Home directory:"
+    %15  = GETSTATIC java/lang/System.out
+            INVOKEVIRTUAL %15, java/io/PrintStream.println(%12)
+    %16  = INVOKESTATIC com/jvmbasic/runtime/BasicFile.GetHomeDirectory()
+    %19  = GETSTATIC java/lang/System.out
+            INVOKEVIRTUAL %19, java/io/PrintStream.println(%16)
+    %20  = SCONST "Path manipulation:"
+    %23  = GETSTATIC java/lang/System.out
+            INVOKEVIRTUAL %23, java/io/PrintStream.println(%20)
+    %24  = SCONST "/path/to/file.txt"
+    %25  = INVOKESTATIC com/jvmbasic/runtime/BasicFile.GetFileName(%24)
+    %28  = GETSTATIC java/lang/System.out
+            INVOKEVIRTUAL %28, java/io/PrintStream.println(%25)
+    %29  = SCONST "/path/to/file.txt"
+    %30  = INVOKESTATIC com/jvmbasic/runtime/BasicFile.GetExtension(%29)
+    %33  = GETSTATIC java/lang/System.out
+            INVOKEVIRTUAL %33, java/io/PrintStream.println(%30)
+    %34  = SCONST "Path combine:"
+    %37  = GETSTATIC java/lang/System.out
+            INVOKEVIRTUAL %37, java/io/PrintStream.println(%34)
+    %38  = SCONST "/home/user"
+    %39  = SCONST "documents"
+    %40  = INVOKESTATIC com/jvmbasic/runtime/BasicFile.Combine(%38, %39)
+    %43  = GETSTATIC java/lang/System.out
+            INVOKEVIRTUAL %43, java/io/PrintStream.println(%40)
+    %44  = SCONST "File exists check:"
+    %47  = GETSTATIC java/lang/System.out
+            INVOKEVIRTUAL %47, java/io/PrintStream.println(%44)
+    %48  = SCONST "/etc/passwd"
+    %49  = INVOKESTATIC com/jvmbasic/runtime/BasicFile.Exists(%48)
+            IFFALSE %49, else_1
+  then_0:
+    %50  = SCONST "/etc/passwd exists"
+    %53  = GETSTATIC java/lang/System.out
+            INVOKEVIRTUAL %53, java/io/PrintStream.println(%50)
+            GOTO endif_2
+  else_1:
+    %54  = SCONST "/etc/passwd does not exist"
+    %57  = GETSTATIC java/lang/System.out
+            INVOKEVIRTUAL %57, java/io/PrintStream.println(%54)
+            GOTO endif_2
+  endif_2:
+    %58  = SCONST "File test complete!"
+    %61  = GETSTATIC java/lang/System.out
+            INVOKEVIRTUAL %61, java/io/PrintStream.println(%58)
+            RETURN
+end function
+

@@ -1,0 +1,399 @@
+; SIR Module: nullables
+; ============================================================
+
+class OptionalValue
+  field _value: Nullable[wrapped=Primitive[kind=INT]]
+  field _label: Reference[name=java.lang.String]
+
+  function <init>(label: Reference[name=java.lang.String])
+    ; locals: label@1
+    entry:
+      %0   = LOAD 1 ; label
+      %1   = NULL
+              RETURN
+  end function
+
+  function hasValue() -> Primitive[kind=BOOLEAN]
+    entry:
+              ; unresolved: _value
+      %0   = NULL
+      %1   = NULL
+      %2   = ICMP_NE %0, %1
+              RETURN %2
+  end function
+
+  function getValue() -> Nullable[wrapped=Primitive[kind=INT]]
+    entry:
+              ; unresolved: _value
+      %0   = NULL
+              RETURN %0
+  end function
+
+  function setValue(val: Primitive[kind=INT])
+    ; locals: val@1
+    entry:
+      %0   = LOAD 1 ; val
+              RETURN
+  end function
+
+  function clearValue()
+    entry:
+      %0   = NULL
+              RETURN
+  end function
+
+  function toString() -> Reference[name=java.lang.String]
+    entry:
+              ; unresolved: _value
+      %0   = NULL
+      %1   = NULL
+      %2   = ICMP_EQ %0, %1
+              IFFALSE %2, else_1
+    then_0:
+              ; unresolved: _label
+      %3   = NULL
+      %4   = TOSTRING %3
+      %5   = SCONST ": <empty>"
+      %6   = CONCAT %4, %5
+              RETURN %6
+    else_1:
+              ; unresolved: _label
+      %7   = NULL
+      %8   = TOSTRING %7
+      %9   = SCONST ": "
+      %10  = CONCAT %8, %9
+              ; unresolved: _value
+      %11  = NULL
+      %12  = TOSTRING %11
+      %13  = CONCAT %10, %12
+              RETURN %13
+    endif_2:
+      %14  = NULL
+              RETURN %14
+  end function
+end class
+
+static function greet(name: Nullable[wrapped=Reference[name=java.lang.String]]) -> Reference[name=java.lang.String]
+  ; locals: name@0
+  entry:
+    %0   = LOAD 0 ; name
+    %1   = NULL
+    %2   = ICMP_EQ %0, %1
+            IFFALSE %2, else_1
+  then_0:
+    %3   = SCONST "Hello, stranger!"
+            RETURN %3
+  else_1:
+    %4   = SCONST "Hello, "
+    %5   = LOAD 0 ; name
+    %6   = TOSTRING %5
+    %7   = CONCAT %4, %6
+    %8   = SCONST "!"
+    %9   = CONCAT %7, %8
+            RETURN %9
+  endif_2:
+    %10  = NULL
+            RETURN %10
+end function
+
+static function findName(id: Primitive[kind=INT]) -> Nullable[wrapped=Reference[name=java.lang.String]]
+  ; locals: id@0
+  entry:
+    %0   = LOAD 0 ; id
+    %1   = ICONST 1
+    %2   = ICMP_EQ %0, %1
+            IFFALSE %2, else_1
+  then_0:
+    %3   = SCONST "Alice"
+            RETURN %3
+  else_1:
+    %4   = NULL
+            RETURN %4
+  endif_2:
+    %5   = NULL
+            RETURN %5
+end function
+
+static function safeDivide(a: Primitive[kind=INT], b: Nullable[wrapped=Primitive[kind=INT]]) -> Nullable[wrapped=Primitive[kind=INT]]
+  ; locals: a@0, b@1
+  entry:
+    %0   = LOAD 1 ; b
+    %1   = NULL
+    %2   = ICMP_EQ %0, %1
+            IFFALSE %2, else_1
+  then_0:
+    %3   = NULL
+            RETURN %3
+  else_1:
+            GOTO endif_2
+  endif_2:
+    %4   = LOAD 1 ; b
+    %5   = ICONST 0
+    %6   = ICMP_EQ %4, %5
+            IFFALSE %6, else_4
+  then_3:
+    %7   = NULL
+            RETURN %7
+  else_4:
+            GOTO endif_5
+  endif_5:
+    %8   = LOAD 0 ; a
+    %9   = LOAD 1 ; b
+    %10  = IDIV %8, %9
+            RETURN %10
+end function
+
+; Entry point
+static function main(args: Array[elementType=Reference[name=java.lang.String]])
+  ; locals: args@0, maybeString@1, maybeInt@2, i@3, name@4, opt@5, result1@6, result2@7, result3@8
+  entry:
+    %0   = SCONST "=== Nullable String ==="
+    %3   = GETSTATIC java/lang/System.out
+            INVOKEVIRTUAL %3, java/io/PrintStream.println(%0)
+            ; var maybeString
+    %4   = NULL
+            STORE 1, %4 ; maybeString
+    %5   = LOAD 1 ; maybeString
+    %6   = NULL
+    %7   = ICMP_EQ %5, %6
+            IFFALSE %7, else_1
+  then_0:
+    %8   = SCONST "maybeString is Nil"
+    %11  = GETSTATIC java/lang/System.out
+            INVOKEVIRTUAL %11, java/io/PrintStream.println(%8)
+            GOTO endif_2
+  else_1:
+            GOTO endif_2
+  endif_2:
+    %12  = SCONST "Hello"
+            STORE 1, %12 ; maybeString
+    %13  = LOAD 1 ; maybeString
+    %14  = NULL
+    %15  = ICMP_NE %13, %14
+            IFFALSE %15, else_4
+  then_3:
+    %16  = SCONST "maybeString is: "
+    %17  = LOAD 1 ; maybeString
+    %18  = TOSTRING %17
+    %19  = CONCAT %16, %18
+    %22  = GETSTATIC java/lang/System.out
+            INVOKEVIRTUAL %22, java/io/PrintStream.println(%19)
+            GOTO endif_5
+  else_4:
+            GOTO endif_5
+  endif_5:
+    %23  = SCONST ""
+    %26  = GETSTATIC java/lang/System.out
+            INVOKEVIRTUAL %26, java/io/PrintStream.println(%23)
+    %27  = SCONST "=== Nullable Integer ==="
+    %30  = GETSTATIC java/lang/System.out
+            INVOKEVIRTUAL %30, java/io/PrintStream.println(%27)
+            ; var maybeInt
+    %31  = NULL
+            STORE 2, %31 ; maybeInt
+    %32  = LOAD 2 ; maybeInt
+    %33  = NULL
+    %34  = ICMP_EQ %32, %33
+            IFFALSE %34, else_7
+  then_6:
+    %35  = SCONST "maybeInt is Nothing"
+    %38  = GETSTATIC java/lang/System.out
+            INVOKEVIRTUAL %38, java/io/PrintStream.println(%35)
+            GOTO endif_8
+  else_7:
+            GOTO endif_8
+  endif_8:
+    %39  = ICONST 42
+            STORE 2, %39 ; maybeInt
+    %40  = LOAD 2 ; maybeInt
+    %41  = NULL
+    %42  = ICMP_NE %40, %41
+            IFFALSE %42, else_10
+  then_9:
+    %43  = SCONST "maybeInt is: "
+    %44  = LOAD 2 ; maybeInt
+    %45  = TOSTRING %44
+    %46  = CONCAT %43, %45
+    %49  = GETSTATIC java/lang/System.out
+            INVOKEVIRTUAL %49, java/io/PrintStream.println(%46)
+            GOTO endif_11
+  else_10:
+            GOTO endif_11
+  endif_11:
+    %50  = SCONST ""
+    %53  = GETSTATIC java/lang/System.out
+            INVOKEVIRTUAL %53, java/io/PrintStream.println(%50)
+    %54  = SCONST "=== Nullable Parameters ==="
+    %57  = GETSTATIC java/lang/System.out
+            INVOKEVIRTUAL %57, java/io/PrintStream.println(%54)
+    %58  = NULL
+    %59  = INVOKESTATIC nullables.greet(%58)
+    %62  = GETSTATIC java/lang/System.out
+            INVOKEVIRTUAL %62, java/io/PrintStream.println(%59)
+    %63  = SCONST "Alice"
+    %64  = INVOKESTATIC nullables.greet(%63)
+    %67  = GETSTATIC java/lang/System.out
+            INVOKEVIRTUAL %67, java/io/PrintStream.println(%64)
+    %68  = NULL
+    %69  = INVOKESTATIC nullables.greet(%68)
+    %72  = GETSTATIC java/lang/System.out
+            INVOKEVIRTUAL %72, java/io/PrintStream.println(%69)
+    %73  = SCONST "Bob"
+    %74  = INVOKESTATIC nullables.greet(%73)
+    %77  = GETSTATIC java/lang/System.out
+            INVOKEVIRTUAL %77, java/io/PrintStream.println(%74)
+    %78  = SCONST ""
+    %81  = GETSTATIC java/lang/System.out
+            INVOKEVIRTUAL %81, java/io/PrintStream.println(%78)
+    %82  = SCONST "=== Nullable Return Type ==="
+    %85  = GETSTATIC java/lang/System.out
+            INVOKEVIRTUAL %85, java/io/PrintStream.println(%82)
+            ; for i
+    %86  = ICONST 1
+            STORE 3, %86 ; i
+            GOTO for_cond_12
+  for_cond_12:
+    %87  = LOAD 3 ; i
+    %88  = ICONST 5
+    %89  = ICMP_LE %87, %88
+            IFFALSE %89, for_end_15
+  for_body_13:
+            ; var name
+    %90  = LOAD 3 ; i
+    %91  = INVOKESTATIC nullables.findName(%90)
+            STORE 4, %91 ; name
+    %92  = LOAD 4 ; name
+    %93  = NULL
+    %94  = ICMP_EQ %92, %93
+            IFFALSE %94, else_17
+  then_16:
+    %95  = SCONST "ID "
+    %96  = LOAD 3 ; i
+    %97  = TOSTRING %96
+    %98  = CONCAT %95, %97
+    %99  = SCONST ": Not found"
+    %100 = CONCAT %98, %99
+    %103 = GETSTATIC java/lang/System.out
+            INVOKEVIRTUAL %103, java/io/PrintStream.println(%100)
+            GOTO endif_18
+  else_17:
+    %104 = SCONST "ID "
+    %105 = LOAD 3 ; i
+    %106 = TOSTRING %105
+    %107 = CONCAT %104, %106
+    %108 = SCONST ": "
+    %109 = CONCAT %107, %108
+    %110 = LOAD 4 ; name
+    %111 = TOSTRING %110
+    %112 = CONCAT %109, %111
+    %115 = GETSTATIC java/lang/System.out
+            INVOKEVIRTUAL %115, java/io/PrintStream.println(%112)
+            GOTO endif_18
+  endif_18:
+            GOTO for_step_14
+  for_step_14:
+    %116 = LOAD 3 ; i
+    %117 = ICONST 1
+    %118 = IADD %116, %117
+            STORE 3, %118 ; i
+            GOTO for_cond_12
+  for_end_15:
+    %119 = SCONST ""
+    %122 = GETSTATIC java/lang/System.out
+            INVOKEVIRTUAL %122, java/io/PrintStream.println(%119)
+    %123 = SCONST "=== Nullable in Class ==="
+    %126 = GETSTATIC java/lang/System.out
+            INVOKEVIRTUAL %126, java/io/PrintStream.println(%123)
+            ; var opt
+    %127 = NEW OptionalValue
+    %128 = DUP %127
+    %129 = SCONST "Score"
+            INVOKESPECIAL %128, OptionalValue.<init>(%129)
+            STORE 5, %127 ; opt
+    %130 = LOAD 5 ; opt
+    %131 = INVOKEVIRTUAL %130, java/lang/Object.toString()
+    %134 = GETSTATIC java/lang/System.out
+            INVOKEVIRTUAL %134, java/io/PrintStream.println(%131)
+    %135 = SCONST "Has value: "
+    %136 = LOAD 5 ; opt
+    %137 = INVOKEVIRTUAL %136, java/lang/Object.hasValue()
+    %138 = TOSTRING %137
+    %139 = CONCAT %135, %138
+    %142 = GETSTATIC java/lang/System.out
+            INVOKEVIRTUAL %142, java/io/PrintStream.println(%139)
+    %143 = LOAD 5 ; opt
+    %144 = ICONST 100
+    %145 = INVOKEVIRTUAL %143, java/lang/Object.setValue(%144)
+            POP %145
+    %146 = LOAD 5 ; opt
+    %147 = INVOKEVIRTUAL %146, java/lang/Object.toString()
+    %150 = GETSTATIC java/lang/System.out
+            INVOKEVIRTUAL %150, java/io/PrintStream.println(%147)
+    %151 = SCONST "Has value: "
+    %152 = LOAD 5 ; opt
+    %153 = INVOKEVIRTUAL %152, java/lang/Object.hasValue()
+    %154 = TOSTRING %153
+    %155 = CONCAT %151, %154
+    %158 = GETSTATIC java/lang/System.out
+            INVOKEVIRTUAL %158, java/io/PrintStream.println(%155)
+    %159 = LOAD 5 ; opt
+    %160 = INVOKEVIRTUAL %159, java/lang/Object.clearValue()
+            POP %160
+    %161 = LOAD 5 ; opt
+    %162 = INVOKEVIRTUAL %161, java/lang/Object.toString()
+    %165 = GETSTATIC java/lang/System.out
+            INVOKEVIRTUAL %165, java/io/PrintStream.println(%162)
+    %166 = SCONST ""
+    %169 = GETSTATIC java/lang/System.out
+            INVOKEVIRTUAL %169, java/io/PrintStream.println(%166)
+    %170 = SCONST "=== Chained Null Checks ==="
+    %173 = GETSTATIC java/lang/System.out
+            INVOKEVIRTUAL %173, java/io/PrintStream.println(%170)
+            ; var result1
+    %174 = ICONST 10
+    %175 = ICONST 2
+    %176 = INVOKESTATIC nullables.safeDivide(%174, %175)
+            STORE 6, %176 ; result1
+            ; var result2
+    %177 = ICONST 10
+    %178 = ICONST 0
+    %179 = INVOKESTATIC nullables.safeDivide(%177, %178)
+            STORE 7, %179 ; result2
+            ; var result3
+    %180 = ICONST 10
+    %181 = NULL
+    %182 = INVOKESTATIC nullables.safeDivide(%180, %181)
+            STORE 8, %182 ; result3
+    %183 = SCONST "10 / 2 = "
+    %184 = LOAD 6 ; result1
+    %185 = NULL
+    %186 = ICMP_EQ %184, %185
+    %187 = TOSTRING %186
+    %188 = CONCAT %183, %187
+    %191 = GETSTATIC java/lang/System.out
+            INVOKEVIRTUAL %191, java/io/PrintStream.println(%188)
+    %192 = SCONST "10 / 0 = "
+    %193 = LOAD 7 ; result2
+    %194 = NULL
+    %195 = ICMP_EQ %193, %194
+    %196 = TOSTRING %195
+    %197 = CONCAT %192, %196
+    %200 = GETSTATIC java/lang/System.out
+            INVOKEVIRTUAL %200, java/io/PrintStream.println(%197)
+    %201 = SCONST "10 / Nil = "
+    %202 = LOAD 8 ; result3
+    %203 = NULL
+    %204 = ICMP_EQ %202, %203
+    %205 = TOSTRING %204
+    %206 = CONCAT %201, %205
+    %209 = GETSTATIC java/lang/System.out
+            INVOKEVIRTUAL %209, java/io/PrintStream.println(%206)
+    %210 = SCONST ""
+    %213 = GETSTATIC java/lang/System.out
+            INVOKEVIRTUAL %213, java/io/PrintStream.println(%210)
+    %214 = SCONST "All nullable tests complete!"
+    %217 = GETSTATIC java/lang/System.out
+            INVOKEVIRTUAL %217, java/io/PrintStream.println(%214)
+            RETURN
+end function
+

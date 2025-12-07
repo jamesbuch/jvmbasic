@@ -1,0 +1,103 @@
+; SIR Module: interpolation_test
+; ============================================================
+
+; Entry point
+static function main(args: Array[elementType=Reference[name=java.lang.String]])
+  ; locals: args@0, name@1, count@2, price@3
+  entry:
+            ; var name
+    %0   = SCONST "World"
+            STORE 1, %0 ; name
+            ; var count
+    %1   = ICONST 42
+            STORE 2, %1 ; count
+            ; var price
+    %2   = FCONST 19.99f
+            STORE 3, %2 ; price
+    %3   = SCONST "Hello, "
+    %4   = LOAD 1 ; name
+    %5   = TOSTRING %4
+    %6   = CONCAT %3, %5
+    %7   = SCONST "!"
+    %8   = CONCAT %6, %7
+    %11  = GETSTATIC java/lang/System.out
+            INVOKEVIRTUAL %11, java/io/PrintStream.println(%8)
+    %12  = SCONST "The answer is "
+    %13  = LOAD 2 ; count
+    %14  = TOSTRING %13
+    %15  = CONCAT %12, %14
+    %18  = GETSTATIC java/lang/System.out
+            INVOKEVIRTUAL %18, java/io/PrintStream.println(%15)
+    %19  = SCONST "Hello "
+    %20  = LOAD 1 ; name
+    %21  = TOSTRING %20
+    %22  = CONCAT %19, %21
+    %23  = SCONST ", the number is "
+    %24  = CONCAT %22, %23
+    %25  = LOAD 2 ; count
+    %26  = TOSTRING %25
+    %27  = CONCAT %24, %26
+    %30  = GETSTATIC java/lang/System.out
+            INVOKEVIRTUAL %30, java/io/PrintStream.println(%27)
+    %31  = SCONST "Just a literal string"
+    %34  = GETSTATIC java/lang/System.out
+            INVOKEVIRTUAL %34, java/io/PrintStream.println(%31)
+    %35  = SCONST "Cost is $$50"
+    %38  = GETSTATIC java/lang/System.out
+            INVOKEVIRTUAL %38, java/io/PrintStream.println(%35)
+    %39  = SCONST "Price: "
+    %40  = LOAD 3 ; price
+    %41  = TOSTRING %40
+    %42  = CONCAT %39, %41
+    %45  = GETSTATIC java/lang/System.out
+            INVOKEVIRTUAL %45, java/io/PrintStream.println(%42)
+    %46  = SCONST "Uppercase: "
+    %47  = LOAD 1 ; name
+    %48  = INVOKESTATIC com/jvmbasic/runtime/BasicStr.ToUpper(%47)
+    %49  = CONCAT %46, %48
+    %52  = GETSTATIC java/lang/System.out
+            INVOKEVIRTUAL %52, java/io/PrintStream.println(%49)
+    %53  = SCONST "Length: "
+    %54  = LOAD 1 ; name
+    %55  = INVOKESTATIC com/jvmbasic/runtime/BasicStr.Length(%54)
+    %56  = TOSTRING %55
+    %57  = CONCAT %53, %56
+    %60  = GETSTATIC java/lang/System.out
+            INVOKEVIRTUAL %60, java/io/PrintStream.println(%57)
+    %61  = SCONST "Sqrt of count: "
+    %62  = LOAD 2 ; count
+    %63  = INVOKESTATIC com/jvmbasic/runtime/BasicMath.Sqrt(%62)
+    %64  = TOSTRING %63
+    %65  = CONCAT %61, %64
+    %68  = GETSTATIC java/lang/System.out
+            INVOKEVIRTUAL %68, java/io/PrintStream.println(%65)
+    %69  = SCONST "Name '"
+    %70  = LOAD 1 ; name
+    %71  = TOSTRING %70
+    %72  = CONCAT %69, %71
+    %73  = SCONST "' has "
+    %74  = CONCAT %72, %73
+    %75  = LOAD 1 ; name
+    %76  = INVOKESTATIC com/jvmbasic/runtime/BasicStr.Length(%75)
+    %77  = TOSTRING %76
+    %78  = CONCAT %74, %77
+    %79  = SCONST " chars, upper: "
+    %80  = CONCAT %78, %79
+    %81  = LOAD 1 ; name
+    %82  = INVOKESTATIC com/jvmbasic/runtime/BasicStr.ToUpper(%81)
+    %83  = CONCAT %80, %82
+    %86  = GETSTATIC java/lang/System.out
+            INVOKEVIRTUAL %86, java/io/PrintStream.println(%83)
+    %87  = SCONST "Reversed upper: "
+    %88  = LOAD 1 ; name
+    %89  = INVOKESTATIC com/jvmbasic/runtime/BasicStr.ToUpper(%88)
+    %90  = INVOKESTATIC com/jvmbasic/runtime/BasicStr.Reverse(%89)
+    %91  = CONCAT %87, %90
+    %94  = GETSTATIC java/lang/System.out
+            INVOKEVIRTUAL %94, java/io/PrintStream.println(%91)
+    %95  = SCONST "Interpolation test complete!"
+    %98  = GETSTATIC java/lang/System.out
+            INVOKEVIRTUAL %98, java/io/PrintStream.println(%95)
+            RETURN
+end function
+

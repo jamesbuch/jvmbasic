@@ -1,0 +1,27 @@
+CompilationUnit(oop_shapes)
+  Classes:
+    class Point extends java.lang.Object
+    class Rectangle extends java.lang.Object
+  Statements:
+    Console.WriteLine("=== Geometry Shapes Demo ===")
+    Console.WriteLine("")
+    Console.WriteLine("--- Points ---")
+    var p1: Reference[name=Point] = new Reference[name=Point](0, 0)
+    var p2: Reference[name=Point] = new Reference[name=Point](3, 4)
+    Console.WriteLine($"Point 1: {p1.ToString()}")
+    Console.WriteLine($"Point 2: {p2.ToString()}")
+    Console.WriteLine("")
+    Console.WriteLine("--- Rectangle ---")
+    var rect: Reference[name=Rectangle] = new Reference[name=Rectangle](0, 0, 10, 5)
+    Console.WriteLine($"Rectangle: {rect.width} x {rect.height}")
+    Console.WriteLine($"Area: {rect.Area()}")
+    Console.WriteLine($"Perimeter: {rect.Perimeter()}")
+    Console.WriteLine($"Is Square: {rect.IsSquare()}")
+    Console.WriteLine("")
+    Console.WriteLine("--- Square ---")
+    var square: Reference[name=Rectangle] = new Reference[name=Rectangle](0, 0, 4, 4)
+    Console.WriteLine($"Square: {square.width} x {square.height}")
+    Console.WriteLine($"Area: {square.Area()}")
+    Console.WriteLine($"Is Square: {square.IsSquare()}")
+    Console.WriteLine("")
+    Console.WriteLine("=== Geometry Demo Complete ===")

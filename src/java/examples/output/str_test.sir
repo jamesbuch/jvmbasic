@@ -1,0 +1,116 @@
+; SIR Module: str_test
+; ============================================================
+
+; Entry point
+static function main(args: Array[elementType=Reference[name=java.lang.String]])
+  ; locals: args@0, text@1, padded@2
+  entry:
+    %0   = SCONST "Str namespace test:"
+    %3   = GETSTATIC java/lang/System.out
+            INVOKEVIRTUAL %3, java/io/PrintStream.println(%0)
+            ; var text
+    %4   = SCONST "Hello World"
+            STORE 1, %4 ; text
+    %5   = SCONST "Length of text:"
+    %8   = GETSTATIC java/lang/System.out
+            INVOKEVIRTUAL %8, java/io/PrintStream.println(%5)
+    %9   = LOAD 1 ; text
+    %10  = INVOKESTATIC com/jvmbasic/runtime/BasicStr.Length(%9)
+    %13  = GETSTATIC java/lang/System.out
+            INVOKEVIRTUAL %13, java/io/PrintStream.println(%10)
+    %14  = SCONST "ToUpper:"
+    %17  = GETSTATIC java/lang/System.out
+            INVOKEVIRTUAL %17, java/io/PrintStream.println(%14)
+    %18  = LOAD 1 ; text
+    %19  = INVOKESTATIC com/jvmbasic/runtime/BasicStr.ToUpper(%18)
+    %22  = GETSTATIC java/lang/System.out
+            INVOKEVIRTUAL %22, java/io/PrintStream.println(%19)
+    %23  = SCONST "ToLower:"
+    %26  = GETSTATIC java/lang/System.out
+            INVOKEVIRTUAL %26, java/io/PrintStream.println(%23)
+    %27  = LOAD 1 ; text
+    %28  = INVOKESTATIC com/jvmbasic/runtime/BasicStr.ToLower(%27)
+    %31  = GETSTATIC java/lang/System.out
+            INVOKEVIRTUAL %31, java/io/PrintStream.println(%28)
+    %32  = SCONST "Left 5:"
+    %35  = GETSTATIC java/lang/System.out
+            INVOKEVIRTUAL %35, java/io/PrintStream.println(%32)
+    %36  = LOAD 1 ; text
+    %37  = ICONST 5
+    %38  = INVOKESTATIC com/jvmbasic/runtime/BasicStr.Left(%36, %37)
+    %41  = GETSTATIC java/lang/System.out
+            INVOKEVIRTUAL %41, java/io/PrintStream.println(%38)
+    %42  = SCONST "Right 5:"
+    %45  = GETSTATIC java/lang/System.out
+            INVOKEVIRTUAL %45, java/io/PrintStream.println(%42)
+    %46  = LOAD 1 ; text
+    %47  = ICONST 5
+    %48  = INVOKESTATIC com/jvmbasic/runtime/BasicStr.Right(%46, %47)
+    %51  = GETSTATIC java/lang/System.out
+            INVOKEVIRTUAL %51, java/io/PrintStream.println(%48)
+    %52  = SCONST "IndexOf World:"
+    %55  = GETSTATIC java/lang/System.out
+            INVOKEVIRTUAL %55, java/io/PrintStream.println(%52)
+    %56  = LOAD 1 ; text
+    %57  = SCONST "World"
+    %58  = INVOKESTATIC com/jvmbasic/runtime/BasicStr.IndexOf(%56, %57)
+    %61  = GETSTATIC java/lang/System.out
+            INVOKEVIRTUAL %61, java/io/PrintStream.println(%58)
+    %62  = SCONST "Contains Hello:"
+    %65  = GETSTATIC java/lang/System.out
+            INVOKEVIRTUAL %65, java/io/PrintStream.println(%62)
+    %66  = LOAD 1 ; text
+    %67  = SCONST "Hello"
+    %68  = INVOKESTATIC com/jvmbasic/runtime/BasicStr.Contains(%66, %67)
+            IFFALSE %68, else_1
+  then_0:
+    %69  = SCONST "true"
+    %72  = GETSTATIC java/lang/System.out
+            INVOKEVIRTUAL %72, java/io/PrintStream.println(%69)
+            GOTO endif_2
+  else_1:
+    %73  = SCONST "false"
+    %76  = GETSTATIC java/lang/System.out
+            INVOKEVIRTUAL %76, java/io/PrintStream.println(%73)
+            GOTO endif_2
+  endif_2:
+    %77  = SCONST "Replace World with BASIC:"
+    %80  = GETSTATIC java/lang/System.out
+            INVOKEVIRTUAL %80, java/io/PrintStream.println(%77)
+    %81  = LOAD 1 ; text
+    %82  = SCONST "World"
+    %83  = SCONST "BASIC"
+    %84  = INVOKESTATIC com/jvmbasic/runtime/BasicStr.Replace(%81, %82, %83)
+    %87  = GETSTATIC java/lang/System.out
+            INVOKEVIRTUAL %87, java/io/PrintStream.println(%84)
+            ; var padded
+    %88  = SCONST "  trimmed  "
+            STORE 2, %88 ; padded
+    %89  = SCONST "Trim:"
+    %92  = GETSTATIC java/lang/System.out
+            INVOKEVIRTUAL %92, java/io/PrintStream.println(%89)
+    %93  = LOAD 2 ; padded
+    %94  = INVOKESTATIC com/jvmbasic/runtime/BasicStr.Trim(%93)
+    %97  = GETSTATIC java/lang/System.out
+            INVOKEVIRTUAL %97, java/io/PrintStream.println(%94)
+    %98  = SCONST "Repeat ab 3 times:"
+    %101 = GETSTATIC java/lang/System.out
+            INVOKEVIRTUAL %101, java/io/PrintStream.println(%98)
+    %102 = SCONST "ab"
+    %103 = ICONST 3
+    %104 = INVOKESTATIC com/jvmbasic/runtime/BasicStr.Repeat(%102, %103)
+    %107 = GETSTATIC java/lang/System.out
+            INVOKEVIRTUAL %107, java/io/PrintStream.println(%104)
+    %108 = SCONST "ToInt 42:"
+    %111 = GETSTATIC java/lang/System.out
+            INVOKEVIRTUAL %111, java/io/PrintStream.println(%108)
+    %112 = SCONST "42"
+    %113 = INVOKESTATIC com/jvmbasic/runtime/BasicStr.ToInt(%112)
+    %116 = GETSTATIC java/lang/System.out
+            INVOKEVIRTUAL %116, java/io/PrintStream.println(%113)
+    %117 = SCONST "Str test complete!"
+    %120 = GETSTATIC java/lang/System.out
+            INVOKEVIRTUAL %120, java/io/PrintStream.println(%117)
+            RETURN
+end function
+

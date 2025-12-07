@@ -1,0 +1,181 @@
+; SIR Module: select_case_test
+; ============================================================
+
+; Entry point
+static function main(args: Array[elementType=Reference[name=java.lang.String]])
+  ; locals: args@0, num@1, grade@2, color@3, x@4
+  entry:
+    %0   = SCONST "Integer Select Case test:"
+    %3   = GETSTATIC java/lang/System.out
+            INVOKEVIRTUAL %3, java/io/PrintStream.println(%0)
+            ; var num
+    %4   = ICONST 3
+            STORE 1, %4 ; num
+    %5   = LOAD 1 ; num
+    %6   = ICONST 1
+    %7   = ICMP_EQ %5, %6
+            IFFALSE %7, else_1
+  then_0:
+    %8   = SCONST "One"
+    %11  = GETSTATIC java/lang/System.out
+            INVOKEVIRTUAL %11, java/io/PrintStream.println(%8)
+            GOTO endif_2
+  else_1:
+    %12  = LOAD 1 ; num
+    %13  = ICONST 2
+    %14  = ICMP_EQ %12, %13
+            IFFALSE %14, else_4
+  then_3:
+    %15  = SCONST "Two"
+    %18  = GETSTATIC java/lang/System.out
+            INVOKEVIRTUAL %18, java/io/PrintStream.println(%15)
+            GOTO endif_5
+  else_4:
+    %19  = LOAD 1 ; num
+    %20  = ICONST 3
+    %21  = ICMP_EQ %19, %20
+            IFFALSE %21, else_7
+  then_6:
+    %22  = SCONST "Three"
+    %25  = GETSTATIC java/lang/System.out
+            INVOKEVIRTUAL %25, java/io/PrintStream.println(%22)
+            GOTO endif_8
+  else_7:
+    %26  = SCONST "Other"
+    %29  = GETSTATIC java/lang/System.out
+            INVOKEVIRTUAL %29, java/io/PrintStream.println(%26)
+            GOTO endif_8
+  endif_8:
+            GOTO endif_5
+  endif_5:
+            GOTO endif_2
+  endif_2:
+    %30  = SCONST "Multiple values test:"
+    %33  = GETSTATIC java/lang/System.out
+            INVOKEVIRTUAL %33, java/io/PrintStream.println(%30)
+            ; var grade
+    %34  = ICONST 85
+            STORE 2, %34 ; grade
+    %35  = LOAD 2 ; grade
+    %36  = ICONST 90
+    %37  = ICMP_EQ %35, %36
+    %38  = LOAD 2 ; grade
+    %39  = ICONST 91
+    %40  = ICMP_EQ %38, %39
+    %41  = IOR %37, %40
+    %42  = LOAD 2 ; grade
+    %43  = ICONST 92
+    %44  = ICMP_EQ %42, %43
+    %45  = IOR %41, %44
+    %46  = LOAD 2 ; grade
+    %47  = ICONST 93
+    %48  = ICMP_EQ %46, %47
+    %49  = IOR %45, %48
+            IFFALSE %49, else_10
+  then_9:
+    %50  = SCONST "A-"
+    %53  = GETSTATIC java/lang/System.out
+            INVOKEVIRTUAL %53, java/io/PrintStream.println(%50)
+            GOTO endif_11
+  else_10:
+    %54  = LOAD 2 ; grade
+    %55  = ICONST 100
+    %56  = ICMP_EQ %54, %55
+            IFFALSE %56, else_13
+  then_12:
+    %57  = SCONST "A+"
+    %60  = GETSTATIC java/lang/System.out
+            INVOKEVIRTUAL %60, java/io/PrintStream.println(%57)
+            GOTO endif_14
+  else_13:
+    %61  = SCONST "Other grade"
+    %64  = GETSTATIC java/lang/System.out
+            INVOKEVIRTUAL %64, java/io/PrintStream.println(%61)
+            GOTO endif_14
+  endif_14:
+            GOTO endif_11
+  endif_11:
+    %65  = SCONST "String Select Case test:"
+    %68  = GETSTATIC java/lang/System.out
+            INVOKEVIRTUAL %68, java/io/PrintStream.println(%65)
+            ; var color
+    %69  = SCONST "red"
+            STORE 3, %69 ; color
+    %70  = LOAD 3 ; color
+    %71  = SCONST "red"
+    %72  = ICMP_EQ %70, %71
+            IFFALSE %72, else_16
+  then_15:
+    %73  = SCONST "Stop!"
+    %76  = GETSTATIC java/lang/System.out
+            INVOKEVIRTUAL %76, java/io/PrintStream.println(%73)
+            GOTO endif_17
+  else_16:
+    %77  = LOAD 3 ; color
+    %78  = SCONST "yellow"
+    %79  = ICMP_EQ %77, %78
+            IFFALSE %79, else_19
+  then_18:
+    %80  = SCONST "Caution"
+    %83  = GETSTATIC java/lang/System.out
+            INVOKEVIRTUAL %83, java/io/PrintStream.println(%80)
+            GOTO endif_20
+  else_19:
+    %84  = LOAD 3 ; color
+    %85  = SCONST "green"
+    %86  = ICMP_EQ %84, %85
+            IFFALSE %86, else_22
+  then_21:
+    %87  = SCONST "Go!"
+    %90  = GETSTATIC java/lang/System.out
+            INVOKEVIRTUAL %90, java/io/PrintStream.println(%87)
+            GOTO endif_23
+  else_22:
+    %91  = SCONST "Unknown color"
+    %94  = GETSTATIC java/lang/System.out
+            INVOKEVIRTUAL %94, java/io/PrintStream.println(%91)
+            GOTO endif_23
+  endif_23:
+            GOTO endif_20
+  endif_20:
+            GOTO endif_17
+  endif_17:
+    %95  = SCONST "Case Else test:"
+    %98  = GETSTATIC java/lang/System.out
+            INVOKEVIRTUAL %98, java/io/PrintStream.println(%95)
+            ; var x
+    %99  = ICONST 99
+            STORE 4, %99 ; x
+    %100 = LOAD 4 ; x
+    %101 = ICONST 1
+    %102 = ICMP_EQ %100, %101
+            IFFALSE %102, else_25
+  then_24:
+    %103 = SCONST "One"
+    %106 = GETSTATIC java/lang/System.out
+            INVOKEVIRTUAL %106, java/io/PrintStream.println(%103)
+            GOTO endif_26
+  else_25:
+    %107 = LOAD 4 ; x
+    %108 = ICONST 2
+    %109 = ICMP_EQ %107, %108
+            IFFALSE %109, else_28
+  then_27:
+    %110 = SCONST "Two"
+    %113 = GETSTATIC java/lang/System.out
+            INVOKEVIRTUAL %113, java/io/PrintStream.println(%110)
+            GOTO endif_29
+  else_28:
+    %114 = SCONST "Neither one nor two"
+    %117 = GETSTATIC java/lang/System.out
+            INVOKEVIRTUAL %117, java/io/PrintStream.println(%114)
+            GOTO endif_29
+  endif_29:
+            GOTO endif_26
+  endif_26:
+    %118 = SCONST "All Select Case tests passed!"
+    %121 = GETSTATIC java/lang/System.out
+            INVOKEVIRTUAL %121, java/io/PrintStream.println(%118)
+            RETURN
+end function
+

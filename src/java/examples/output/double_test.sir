@@ -1,0 +1,79 @@
+; SIR Module: double_test
+; ============================================================
+
+; Entry point
+static function main(args: Array[elementType=Reference[name=java.lang.String]])
+  ; locals: args@0, pi@1, radius@3, area@5, a@7, b@9
+  entry:
+            ; var pi
+    %0   = DCONST 3.14159
+            STORE 1, %0 ; pi
+            ; var radius
+    %1   = DCONST 2.5
+            STORE 3, %1 ; radius
+            ; var area
+    %2   = LOAD 1 ; pi
+    %3   = LOAD 3 ; radius
+    %4   = IMUL %2, %3
+    %5   = LOAD 3 ; radius
+    %6   = IMUL %4, %5
+            STORE 5, %6 ; area
+    %7   = SCONST "Pi = "
+    %10  = GETSTATIC java/lang/System.out
+            INVOKEVIRTUAL %10, java/io/PrintStream.println(%7)
+    %11  = LOAD 1 ; pi
+    %14  = GETSTATIC java/lang/System.out
+            INVOKEVIRTUAL %14, java/io/PrintStream.println(%11)
+    %15  = SCONST "Radius = "
+    %18  = GETSTATIC java/lang/System.out
+            INVOKEVIRTUAL %18, java/io/PrintStream.println(%15)
+    %19  = LOAD 3 ; radius
+    %22  = GETSTATIC java/lang/System.out
+            INVOKEVIRTUAL %22, java/io/PrintStream.println(%19)
+    %23  = SCONST "Area = "
+    %26  = GETSTATIC java/lang/System.out
+            INVOKEVIRTUAL %26, java/io/PrintStream.println(%23)
+    %27  = LOAD 5 ; area
+    %30  = GETSTATIC java/lang/System.out
+            INVOKEVIRTUAL %30, java/io/PrintStream.println(%27)
+            ; var a
+    %31  = DCONST 10.5
+            STORE 7, %31 ; a
+            ; var b
+    %32  = DCONST 3.2
+            STORE 9, %32 ; b
+    %33  = SCONST "a + b = "
+    %36  = GETSTATIC java/lang/System.out
+            INVOKEVIRTUAL %36, java/io/PrintStream.println(%33)
+    %37  = LOAD 7 ; a
+    %38  = LOAD 9 ; b
+    %39  = IADD %37, %38
+    %42  = GETSTATIC java/lang/System.out
+            INVOKEVIRTUAL %42, java/io/PrintStream.println(%39)
+    %43  = SCONST "a - b = "
+    %46  = GETSTATIC java/lang/System.out
+            INVOKEVIRTUAL %46, java/io/PrintStream.println(%43)
+    %47  = LOAD 7 ; a
+    %48  = LOAD 9 ; b
+    %49  = ISUB %47, %48
+    %52  = GETSTATIC java/lang/System.out
+            INVOKEVIRTUAL %52, java/io/PrintStream.println(%49)
+    %53  = SCONST "a * b = "
+    %56  = GETSTATIC java/lang/System.out
+            INVOKEVIRTUAL %56, java/io/PrintStream.println(%53)
+    %57  = LOAD 7 ; a
+    %58  = LOAD 9 ; b
+    %59  = IMUL %57, %58
+    %62  = GETSTATIC java/lang/System.out
+            INVOKEVIRTUAL %62, java/io/PrintStream.println(%59)
+    %63  = SCONST "a / b = "
+    %66  = GETSTATIC java/lang/System.out
+            INVOKEVIRTUAL %66, java/io/PrintStream.println(%63)
+    %67  = LOAD 7 ; a
+    %68  = LOAD 9 ; b
+    %69  = IDIV %67, %68
+    %72  = GETSTATIC java/lang/System.out
+            INVOKEVIRTUAL %72, java/io/PrintStream.println(%69)
+            RETURN
+end function
+

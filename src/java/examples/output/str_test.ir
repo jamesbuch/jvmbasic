@@ -1,0 +1,28 @@
+CompilationUnit(str_test)
+  Statements:
+    Console.WriteLine("Str namespace test:")
+    var text: Reference[name=java.lang.String] = "Hello World"
+    Console.WriteLine("Length of text:")
+    Console.WriteLine(Str.Length(text))
+    Console.WriteLine("ToUpper:")
+    Console.WriteLine(Str.ToUpper(text))
+    Console.WriteLine("ToLower:")
+    Console.WriteLine(Str.ToLower(text))
+    Console.WriteLine("Left 5:")
+    Console.WriteLine(Str.Left(text, 5))
+    Console.WriteLine("Right 5:")
+    Console.WriteLine(Str.Right(text, 5))
+    Console.WriteLine("IndexOf World:")
+    Console.WriteLine(Str.IndexOf(text, "World"))
+    Console.WriteLine("Contains Hello:")
+    if (Str.Contains(text, "Hello")) { ... }
+    Console.WriteLine("Replace World with BASIC:")
+    Console.WriteLine(Str.Replace(text, "World", "BASIC"))
+    var padded: Reference[name=java.lang.String] = "  trimmed  "
+    Console.WriteLine("Trim:")
+    Console.WriteLine(Str.Trim(padded))
+    Console.WriteLine("Repeat ab 3 times:")
+    Console.WriteLine(Str.Repeat("ab", 3))
+    Console.WriteLine("ToInt 42:")
+    Console.WriteLine(Str.ToInt("42"))
+    Console.WriteLine("Str test complete!")

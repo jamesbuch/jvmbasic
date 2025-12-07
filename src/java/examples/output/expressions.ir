@@ -1,0 +1,74 @@
+CompilationUnit(expressions)
+  Statements:
+    var a: Primitive[kind=INT] = 10
+    var b: Primitive[kind=INT] = 3
+    Console.WriteLine($"Arithmetic operators (a={a}, b={b}):")
+    Console.WriteLine($"  a + b = {(a ADD b)}")
+    Console.WriteLine($"  a - b = {(a SUB b)}")
+    Console.WriteLine($"  a * b = {(a MUL b)}")
+    Console.WriteLine($"  a / b = {(a DIV b)}")
+    Console.WriteLine($"  a \ b = {(a INTDIV b)}")
+    Console.WriteLine($"  a mod b = {(a MOD b)}")
+    Console.WriteLine($"  a ^ 2 = {(a POWER 2)}")
+    var x: Primitive[kind=DOUBLE] = 10.5F
+    var y: Primitive[kind=DOUBLE] = 3.2F
+    Console.WriteLine($"Floating point (x={x}, y={y}):")
+    Console.WriteLine($"  x / y = {(x DIV y)}")
+    Console.WriteLine("Comparison operators:")
+    Console.WriteLine($"  10 = 10: {(10 EQ 10)}")
+    Console.WriteLine($"  10 <> 5: {(10 NE 5)}")
+    Console.WriteLine($"  10 < 20: {(10 LT 20)}")
+    Console.WriteLine($"  10 > 5: {(10 GT 5)}")
+    Console.WriteLine($"  10 <= 10: {(10 LE 10)}")
+    Console.WriteLine($"  10 >= 5: {(10 GE 5)}")
+    var t: Primitive[kind=BOOLEAN] = true
+    var f: Primitive[kind=BOOLEAN] = false
+    Console.WriteLine("Logical operators:")
+    Console.WriteLine($"  true and true: {(t AND t)}")
+    Console.WriteLine($"  true and false: {(t AND f)}")
+    Console.WriteLine($"  true or false: {(t OR f)}")
+    Console.WriteLine($"  false or false: {(f OR f)}")
+    Console.WriteLine($"  true xor true: {(t BIT_XOR t)}")
+    Console.WriteLine($"  true xor false: {(t BIT_XOR f)}")
+    Console.WriteLine($"  not true: {(NOT t)}")
+    Console.WriteLine($"  not false: {(NOT f)}")
+    var m: Primitive[kind=INT] = 10
+    var n: Primitive[kind=INT] = 12
+    Console.WriteLine("Bitwise operators (m=0b1010=10, n=0b1100=12):")
+    Console.WriteLine($"  m + n = {(m ADD n)}")
+    Console.WriteLine($"  m | n = {(m BIT_OR n)}")
+    Console.WriteLine($"  m xor n = {(m BIT_XOR n)}")
+    Console.WriteLine($"  ~m = {(BIT_NOT m)}")
+    Console.WriteLine($"  m << 2 = {(m SHL 2)}")
+    Console.WriteLine($"  n >> 1 = {(n SHR 1)}")
+    var firstName: Reference[name=java.lang.String] = "John"
+    var lastName: Reference[name=java.lang.String] = "Doe"
+    Console.WriteLine("String concatenation:")
+    Console.WriteLine($"  firstName + lastName = {firstName} {lastName}")
+    var c: Primitive[kind=INT] = 10
+    Console.WriteLine("Compound assignment (starting c=10):")
+    c += 5
+    Console.WriteLine($"  c += 5: c = {c}")
+    c -= 3
+    Console.WriteLine($"  c -= 3: c = {c}")
+    c *= 2
+    Console.WriteLine($"  c *= 2: c = {c}")
+    c /= 4
+    Console.WriteLine($"  c /= 4: c = {c}")
+    var p: Primitive[kind=INT] = 5
+    var q: Primitive[kind=INT] = (MINUS 5)
+    Console.WriteLine("Unary operators:")
+    Console.WriteLine($"  +p = {(PLUS p)}")
+    Console.WriteLine($"  -p = {(MINUS p)}")
+    Console.WriteLine($"  -q = {(MINUS q)}")
+    Console.WriteLine("Operator precedence:")
+    Console.WriteLine($"  2 + 3 * 4 = {(2 ADD (3 MUL 4))}")
+    Console.WriteLine($"  (2 + 3) * 4 = {((2 ADD 3) MUL 4)}")
+    Console.WriteLine($"  2 ^ 3 ^ 2 = {(2 POWER (3 POWER 2))}")
+    Console.WriteLine($"  10 - 5 - 2 = {((10 SUB 5) SUB 2)}")
+    var age: Primitive[kind=INT] = 21
+    var status: Reference[name=java.lang.String] = ((age GE 18) ? "Adult" : "Minor")
+    Console.WriteLine($"Ternary: age {age} is {status}")
+    age = 15
+    status = ((age GE 18) ? "Adult" : "Minor")
+    Console.WriteLine($"Ternary: age {age} is {status}")

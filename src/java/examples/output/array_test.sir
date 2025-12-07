@@ -1,0 +1,80 @@
+; SIR Module: array_test
+; ============================================================
+
+; Entry point
+static function main(args: Array[elementType=Reference[name=java.lang.String]])
+  ; locals: args@0, arr@1, sum@2, i@3
+  entry:
+            ; var arr
+    %0   = ICONST 5
+    %1   = NEWARRAY Primitive[kind=INT], %0
+            STORE 1, %1 ; arr
+    %2   = ICONST 10
+    %3   = ICONST 20
+    %4   = ICONST 30
+    %5   = ICONST 40
+    %6   = ICONST 50
+    %7   = SCONST "Array elements:"
+    %10  = GETSTATIC java/lang/System.out
+            INVOKEVIRTUAL %10, java/io/PrintStream.println(%7)
+    %11  = LOAD 1 ; arr
+    %12  = ICONST 0
+    %13  = ARRAYLOAD %11, %12
+    %16  = GETSTATIC java/lang/System.out
+            INVOKEVIRTUAL %16, java/io/PrintStream.println(%13)
+    %17  = LOAD 1 ; arr
+    %18  = ICONST 1
+    %19  = ARRAYLOAD %17, %18
+    %22  = GETSTATIC java/lang/System.out
+            INVOKEVIRTUAL %22, java/io/PrintStream.println(%19)
+    %23  = LOAD 1 ; arr
+    %24  = ICONST 2
+    %25  = ARRAYLOAD %23, %24
+    %28  = GETSTATIC java/lang/System.out
+            INVOKEVIRTUAL %28, java/io/PrintStream.println(%25)
+    %29  = LOAD 1 ; arr
+    %30  = ICONST 3
+    %31  = ARRAYLOAD %29, %30
+    %34  = GETSTATIC java/lang/System.out
+            INVOKEVIRTUAL %34, java/io/PrintStream.println(%31)
+    %35  = LOAD 1 ; arr
+    %36  = ICONST 4
+    %37  = ARRAYLOAD %35, %36
+    %40  = GETSTATIC java/lang/System.out
+            INVOKEVIRTUAL %40, java/io/PrintStream.println(%37)
+            ; var sum
+    %41  = ICONST 0
+            STORE 2, %41 ; sum
+            ; for i
+    %42  = ICONST 0
+            STORE 3, %42 ; i
+            GOTO for_cond_0
+  for_cond_0:
+    %43  = LOAD 3 ; i
+    %44  = ICONST 4
+    %45  = ICMP_LE %43, %44
+            IFFALSE %45, for_end_3
+  for_body_1:
+    %46  = LOAD 2 ; sum
+    %47  = LOAD 1 ; arr
+    %48  = LOAD 3 ; i
+    %49  = ARRAYLOAD %47, %48
+    %50  = IADD %46, %49
+            STORE 2, %50 ; sum
+            GOTO for_step_2
+  for_step_2:
+    %51  = LOAD 3 ; i
+    %52  = ICONST 1
+    %53  = IADD %51, %52
+            STORE 3, %53 ; i
+            GOTO for_cond_0
+  for_end_3:
+    %54  = SCONST "Sum:"
+    %57  = GETSTATIC java/lang/System.out
+            INVOKEVIRTUAL %57, java/io/PrintStream.println(%54)
+    %58  = LOAD 2 ; sum
+    %61  = GETSTATIC java/lang/System.out
+            INVOKEVIRTUAL %61, java/io/PrintStream.println(%58)
+            RETURN
+end function
+

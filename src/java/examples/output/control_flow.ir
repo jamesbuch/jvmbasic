@@ -1,0 +1,40 @@
+CompilationUnit(control_flow)
+  Statements:
+    var score: Primitive[kind=INT] = 85
+    if ((score GE 90)) { ... }
+    var x: Primitive[kind=INT] = 10
+    var y: Primitive[kind=INT] = 20
+    if ((x GT 0)) { ... }
+    Console.WriteLine("For loop 1 to 5:")
+    for i = 1 to 5 { ... }
+    Console.WriteLine("")
+    Console.WriteLine("For loop with step 2:")
+    for i = 0 to 10 { ... }
+    Console.WriteLine("")
+    Console.WriteLine("Countdown:")
+    for i = 5 to 1 { ... }
+    Console.WriteLine("Blast off!")
+    Console.WriteLine("While loop:")
+    var counter: Primitive[kind=INT] = 0
+    while ((counter LT 5)) { ... }
+    Console.WriteLine("")
+    Console.WriteLine("Do While:")
+    counter = 0
+    while ((counter LT 3)) { ... }
+    Console.WriteLine("")
+    Console.WriteLine("Do Until:")
+    counter = 0
+    while ((NOT (counter GE 3))) { ... }
+    Console.WriteLine("")
+    var day: Primitive[kind=INT] = 3
+    Console.Write($"Day {day} is: ")
+    if ((day EQ 1)) { ... }
+    Console.WriteLine("Exit For at 5:")
+    for i = 1 to 10 { ... }
+    Console.WriteLine("")
+    Console.WriteLine("Continue (skip even):")
+    for i = 1 to 10 { ... }
+    Console.WriteLine("")
+    Console.WriteLine("Nested loops (exit inner at j=2):")
+    for i = 1 to 3 { ... }
+    Console.WriteLine("")

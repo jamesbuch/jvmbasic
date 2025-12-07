@@ -1,0 +1,32 @@
+; SIR Module: simple_while
+; ============================================================
+
+; Entry point
+static function main(args: Array[elementType=Reference[name=java.lang.String]])
+  ; locals: args@0, i@1
+  entry:
+            ; var i
+    %0   = ICONST 0
+            STORE 1, %0 ; i
+            GOTO while_cond_0
+  while_cond_0:
+    %1   = LOAD 1 ; i
+    %2   = ICONST 5
+    %3   = ICMP_LT %1, %2
+            IFFALSE %3, while_end_2
+  while_body_1:
+    %4   = LOAD 1 ; i
+    %7   = GETSTATIC java/lang/System.out
+            INVOKEVIRTUAL %7, java/io/PrintStream.println(%4)
+    %8   = LOAD 1 ; i
+    %9   = ICONST 1
+    %10  = IADD %8, %9
+            STORE 1, %10 ; i
+            GOTO while_cond_0
+  while_end_2:
+    %11  = SCONST "Done"
+    %14  = GETSTATIC java/lang/System.out
+            INVOKEVIRTUAL %14, java/io/PrintStream.println(%11)
+            RETURN
+end function
+

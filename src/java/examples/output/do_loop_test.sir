@@ -1,0 +1,111 @@
+; SIR Module: do_loop_test
+; ============================================================
+
+; Entry point
+static function main(args: Array[elementType=Reference[name=java.lang.String]])
+  ; locals: args@0, i@1
+  entry:
+    %0   = SCONST "=== DO WHILE test ==="
+    %3   = GETSTATIC java/lang/System.out
+            INVOKEVIRTUAL %3, java/io/PrintStream.println(%0)
+            ; var i
+    %4   = ICONST 1
+            STORE 1, %4 ; i
+            GOTO while_cond_0
+  while_cond_0:
+    %5   = LOAD 1 ; i
+    %6   = ICONST 5
+    %7   = ICMP_LE %5, %6
+            IFFALSE %7, while_end_2
+  while_body_1:
+    %8   = LOAD 1 ; i
+    %11  = GETSTATIC java/lang/System.out
+            INVOKEVIRTUAL %11, java/io/PrintStream.println(%8)
+    %12  = LOAD 1 ; i
+    %13  = ICONST 1
+    %14  = IADD %12, %13
+            STORE 1, %14 ; i
+            GOTO while_cond_0
+  while_end_2:
+    %15  = SCONST "Done!"
+    %18  = GETSTATIC java/lang/System.out
+            INVOKEVIRTUAL %18, java/io/PrintStream.println(%15)
+    %19  = SCONST "=== DO UNTIL test ==="
+    %22  = GETSTATIC java/lang/System.out
+            INVOKEVIRTUAL %22, java/io/PrintStream.println(%19)
+    %23  = ICONST 1
+            STORE 1, %23 ; i
+            GOTO while_cond_3
+  while_cond_3:
+    %24  = LOAD 1 ; i
+    %25  = ICONST 5
+    %26  = ICMP_GT %24, %25
+    %28  = ICONST 0
+    %27  = ICMP_EQ %26, %28
+            IFFALSE %27, while_end_5
+  while_body_4:
+    %29  = LOAD 1 ; i
+    %32  = GETSTATIC java/lang/System.out
+            INVOKEVIRTUAL %32, java/io/PrintStream.println(%29)
+    %33  = LOAD 1 ; i
+    %34  = ICONST 1
+    %35  = IADD %33, %34
+            STORE 1, %35 ; i
+            GOTO while_cond_3
+  while_end_5:
+    %36  = SCONST "Done!"
+    %39  = GETSTATIC java/lang/System.out
+            INVOKEVIRTUAL %39, java/io/PrintStream.println(%36)
+    %40  = SCONST "=== DO ... LOOP WHILE test ==="
+    %43  = GETSTATIC java/lang/System.out
+            INVOKEVIRTUAL %43, java/io/PrintStream.println(%40)
+    %44  = ICONST 1
+            STORE 1, %44 ; i
+            GOTO while_cond_6
+  while_cond_6:
+    %45  = LOAD 1 ; i
+    %46  = ICONST 5
+    %47  = ICMP_LE %45, %46
+            IFFALSE %47, while_end_8
+  while_body_7:
+    %48  = LOAD 1 ; i
+    %51  = GETSTATIC java/lang/System.out
+            INVOKEVIRTUAL %51, java/io/PrintStream.println(%48)
+    %52  = LOAD 1 ; i
+    %53  = ICONST 1
+    %54  = IADD %52, %53
+            STORE 1, %54 ; i
+            GOTO while_cond_6
+  while_end_8:
+    %55  = SCONST "Done!"
+    %58  = GETSTATIC java/lang/System.out
+            INVOKEVIRTUAL %58, java/io/PrintStream.println(%55)
+    %59  = SCONST "=== DO ... LOOP UNTIL test ==="
+    %62  = GETSTATIC java/lang/System.out
+            INVOKEVIRTUAL %62, java/io/PrintStream.println(%59)
+    %63  = ICONST 1
+            STORE 1, %63 ; i
+            GOTO while_cond_9
+  while_cond_9:
+    %64  = LOAD 1 ; i
+    %65  = ICONST 5
+    %66  = ICMP_GT %64, %65
+    %68  = ICONST 0
+    %67  = ICMP_EQ %66, %68
+            IFFALSE %67, while_end_11
+  while_body_10:
+    %69  = LOAD 1 ; i
+    %72  = GETSTATIC java/lang/System.out
+            INVOKEVIRTUAL %72, java/io/PrintStream.println(%69)
+    %73  = LOAD 1 ; i
+    %74  = ICONST 1
+    %75  = IADD %73, %74
+            STORE 1, %75 ; i
+            GOTO while_cond_9
+  while_end_11:
+    %76  = SCONST "Done!"
+    %79  = GETSTATIC java/lang/System.out
+            INVOKEVIRTUAL %79, java/io/PrintStream.println(%76)
+            RETURN
+end function
+

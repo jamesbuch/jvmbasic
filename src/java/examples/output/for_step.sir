@@ -1,0 +1,37 @@
+; SIR Module: for_step
+; ============================================================
+
+; Entry point
+static function main(args: Array[elementType=Reference[name=java.lang.String]])
+  ; locals: args@0, i@1
+  entry:
+    %0   = SCONST "Counting by 2s:"
+    %3   = GETSTATIC java/lang/System.out
+            INVOKEVIRTUAL %3, java/io/PrintStream.println(%0)
+            ; for i
+    %4   = ICONST 0
+            STORE 1, %4 ; i
+            GOTO for_cond_0
+  for_cond_0:
+    %5   = LOAD 1 ; i
+    %6   = ICONST 10
+    %7   = ICMP_LE %5, %6
+            IFFALSE %7, for_end_3
+  for_body_1:
+    %8   = LOAD 1 ; i
+    %11  = GETSTATIC java/lang/System.out
+            INVOKEVIRTUAL %11, java/io/PrintStream.println(%8)
+            GOTO for_step_2
+  for_step_2:
+    %12  = LOAD 1 ; i
+    %13  = ICONST 2
+    %14  = IADD %12, %13
+            STORE 1, %14 ; i
+            GOTO for_cond_0
+  for_end_3:
+    %15  = SCONST "Done!"
+    %18  = GETSTATIC java/lang/System.out
+            INVOKEVIRTUAL %18, java/io/PrintStream.println(%15)
+            RETURN
+end function
+

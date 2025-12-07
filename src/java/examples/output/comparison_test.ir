@@ -1,0 +1,22 @@
+CompilationUnit(comparison_test)
+  Statements:
+    Console.WriteLine("Integer comparisons:")
+    var a: Primitive[kind=INT] = 10
+    var b: Primitive[kind=INT] = 20
+    if ((a LT b)) { ... }
+    Console.WriteLine("Float comparisons:")
+    var fa: Primitive[kind=FLOAT] = 1.5F
+    var fb: Primitive[kind=FLOAT] = 2.5F
+    if ((fa LT fb)) { ... }
+    Console.WriteLine("Double comparisons:")
+    var da: Primitive[kind=DOUBLE] = 3.14159
+    var db: Primitive[kind=DOUBLE] = 2.71828
+    if ((da GT db)) { ... }
+    if ((da GE da)) { ... }
+    Console.WriteLine("Epsilon comparison:")
+    var x: Primitive[kind=DOUBLE] = (0.1 ADD 0.2)
+    var y: Primitive[kind=DOUBLE] = 0.3
+    Console.WriteLine($"0.1 + 0.2 = {x}")
+    Console.WriteLine($"0.3 = {y}")
+    if (Math.ApproxEqual(x, y)) { ... }
+    Console.WriteLine("Comparison test complete!")

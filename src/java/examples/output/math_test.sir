@@ -1,0 +1,93 @@
+; SIR Module: math_test
+; ============================================================
+
+; Entry point
+static function main(args: Array[elementType=Reference[name=java.lang.String]])
+  ; locals: args@0
+  entry:
+    %0   = SCONST "Math namespace test:"
+    %3   = GETSTATIC java/lang/System.out
+            INVOKEVIRTUAL %3, java/io/PrintStream.println(%0)
+    %4   = SCONST "Pi:"
+    %7   = GETSTATIC java/lang/System.out
+            INVOKEVIRTUAL %7, java/io/PrintStream.println(%4)
+    %8   = INVOKESTATIC com/jvmbasic/runtime/BasicMath.Pi()
+    %11  = GETSTATIC java/lang/System.out
+            INVOKEVIRTUAL %11, java/io/PrintStream.println(%8)
+    %12  = SCONST "E:"
+    %15  = GETSTATIC java/lang/System.out
+            INVOKEVIRTUAL %15, java/io/PrintStream.println(%12)
+    %16  = INVOKESTATIC com/jvmbasic/runtime/BasicMath.E()
+    %19  = GETSTATIC java/lang/System.out
+            INVOKEVIRTUAL %19, java/io/PrintStream.println(%16)
+    %20  = SCONST "Sqrt(16):"
+    %23  = GETSTATIC java/lang/System.out
+            INVOKEVIRTUAL %23, java/io/PrintStream.println(%20)
+    %24  = FCONST 16.0f
+    %25  = INVOKESTATIC com/jvmbasic/runtime/BasicMath.Sqrt(%24)
+    %28  = GETSTATIC java/lang/System.out
+            INVOKEVIRTUAL %28, java/io/PrintStream.println(%25)
+    %29  = SCONST "Pow(2, 8):"
+    %32  = GETSTATIC java/lang/System.out
+            INVOKEVIRTUAL %32, java/io/PrintStream.println(%29)
+    %33  = FCONST 2.0f
+    %34  = FCONST 8.0f
+    %35  = INVOKESTATIC com/jvmbasic/runtime/BasicMath.Pow(%33, %34)
+    %38  = GETSTATIC java/lang/System.out
+            INVOKEVIRTUAL %38, java/io/PrintStream.println(%35)
+    %39  = SCONST "Sin(0):"
+    %42  = GETSTATIC java/lang/System.out
+            INVOKEVIRTUAL %42, java/io/PrintStream.println(%39)
+    %43  = FCONST 0.0f
+    %44  = INVOKESTATIC com/jvmbasic/runtime/BasicMath.Sin(%43)
+    %47  = GETSTATIC java/lang/System.out
+            INVOKEVIRTUAL %47, java/io/PrintStream.println(%44)
+    %48  = SCONST "Cos(0):"
+    %51  = GETSTATIC java/lang/System.out
+            INVOKEVIRTUAL %51, java/io/PrintStream.println(%48)
+    %52  = FCONST 0.0f
+    %53  = INVOKESTATIC com/jvmbasic/runtime/BasicMath.Cos(%52)
+    %56  = GETSTATIC java/lang/System.out
+            INVOKEVIRTUAL %56, java/io/PrintStream.println(%53)
+    %57  = SCONST "Floor(3.7):"
+    %60  = GETSTATIC java/lang/System.out
+            INVOKEVIRTUAL %60, java/io/PrintStream.println(%57)
+    %61  = FCONST 3.7f
+    %62  = INVOKESTATIC com/jvmbasic/runtime/BasicMath.Floor(%61)
+    %65  = GETSTATIC java/lang/System.out
+            INVOKEVIRTUAL %65, java/io/PrintStream.println(%62)
+    %66  = SCONST "Ceil(3.2):"
+    %69  = GETSTATIC java/lang/System.out
+            INVOKEVIRTUAL %69, java/io/PrintStream.println(%66)
+    %70  = FCONST 3.2f
+    %71  = INVOKESTATIC com/jvmbasic/runtime/BasicMath.Ceil(%70)
+    %74  = GETSTATIC java/lang/System.out
+            INVOKEVIRTUAL %74, java/io/PrintStream.println(%71)
+    %75  = SCONST "Min(5, 3):"
+    %78  = GETSTATIC java/lang/System.out
+            INVOKEVIRTUAL %78, java/io/PrintStream.println(%75)
+    %79  = FCONST 5.0f
+    %80  = FCONST 3.0f
+    %81  = INVOKESTATIC com/jvmbasic/runtime/BasicMath.Min(%79, %80)
+    %84  = GETSTATIC java/lang/System.out
+            INVOKEVIRTUAL %84, java/io/PrintStream.println(%81)
+    %85  = SCONST "Max(5, 3):"
+    %88  = GETSTATIC java/lang/System.out
+            INVOKEVIRTUAL %88, java/io/PrintStream.println(%85)
+    %89  = FCONST 5.0f
+    %90  = FCONST 3.0f
+    %91  = INVOKESTATIC com/jvmbasic/runtime/BasicMath.Max(%89, %90)
+    %94  = GETSTATIC java/lang/System.out
+            INVOKEVIRTUAL %94, java/io/PrintStream.println(%91)
+    %95  = SCONST "Random (0-1):"
+    %98  = GETSTATIC java/lang/System.out
+            INVOKEVIRTUAL %98, java/io/PrintStream.println(%95)
+    %99  = INVOKESTATIC com/jvmbasic/runtime/BasicMath.Random()
+    %102 = GETSTATIC java/lang/System.out
+            INVOKEVIRTUAL %102, java/io/PrintStream.println(%99)
+    %103 = SCONST "Math test complete!"
+    %106 = GETSTATIC java/lang/System.out
+            INVOKEVIRTUAL %106, java/io/PrintStream.println(%103)
+            RETURN
+end function
+

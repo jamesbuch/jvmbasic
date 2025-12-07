@@ -1,0 +1,30 @@
+; SIR Module: hello_console
+; ============================================================
+
+; Entry point
+static function main(args: Array[elementType=Reference[name=java.lang.String]])
+  ; locals: args@0, x@1, y@2, z@3
+  entry:
+    %0   = SCONST "Hello, World!"
+    %3   = GETSTATIC java/lang/System.out
+            INVOKEVIRTUAL %3, java/io/PrintStream.println(%0)
+            ; var x
+    %4   = ICONST 5
+            STORE 1, %4 ; x
+            ; var y
+    %5   = ICONST 10
+            STORE 2, %5 ; y
+            ; var z
+    %6   = LOAD 1 ; x
+    %7   = LOAD 2 ; y
+    %8   = IADD %6, %7
+            STORE 3, %8 ; z
+    %9   = SCONST "Sum is:"
+    %12  = GETSTATIC java/lang/System.out
+            INVOKEVIRTUAL %12, java/io/PrintStream.println(%9)
+    %13  = LOAD 3 ; z
+    %16  = GETSTATIC java/lang/System.out
+            INVOKEVIRTUAL %16, java/io/PrintStream.println(%13)
+            RETURN
+end function
+

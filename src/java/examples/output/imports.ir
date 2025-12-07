@@ -1,0 +1,43 @@
+CompilationUnit(imports)
+  Imports:
+    import java.util.ArrayList
+    import java.util.HashMap
+    import java.util.Date
+    import java.io.File
+    import java.io.*
+  Statements:
+    Console.WriteLine("=== ArrayList ===")
+    var list: Reference[name=ArrayList] = new Reference[name=ArrayList]()
+    list.add("First")
+    list.add("Second")
+    list.add("Third")
+    Console.WriteLine(("List size: " CONCAT list.size().ToString()))
+    Console.WriteLine(("First item: " CONCAT list.toString()))
+    Console.WriteLine(("Contains 'Second': " CONCAT list.contains("Second").ToString()))
+    Console.WriteLine(("  List contents: " CONCAT list.toString()))
+    Console.WriteLine("")
+    Console.WriteLine("=== HashMap ===")
+    var map: Reference[name=HashMap] = new Reference[name=HashMap]()
+    map.put("name", "Alice")
+    map.put("age", 30)
+    map.put("city", "New York")
+    Console.WriteLine(("Map size: " CONCAT map.size().ToString()))
+    Console.WriteLine(("Map contents: " CONCAT map.toString()))
+    Console.WriteLine(("Contains 'name': " CONCAT map.containsKey("name").ToString()))
+    Console.WriteLine("")
+    Console.WriteLine("=== Date ===")
+    var now: Reference[name=Date] = new Reference[name=Date]()
+    Console.WriteLine(("Current time: " CONCAT now.toString()))
+    Console.WriteLine(("Time in millis: " CONCAT now.getTime().ToString()))
+    Console.WriteLine("")
+    Console.WriteLine("=== File ===")
+    var file: Reference[name=File] = new Reference[name=File](".")
+    Console.WriteLine(("Current directory: " CONCAT file.getAbsolutePath()))
+    Console.WriteLine(("Exists: " CONCAT file.exists().ToString()))
+    Console.WriteLine(("Is directory: " CONCAT file.isDirectory().ToString()))
+    Console.WriteLine("")
+    Console.WriteLine("=== Wildcard Import ===")
+    var tempFile: Reference[name=File] = new Reference[name=File]("/tmp/test.txt")
+    Console.WriteLine(("Temp file path: " CONCAT tempFile.getAbsolutePath()))
+    Console.WriteLine("")
+    Console.WriteLine("All import tests complete!")

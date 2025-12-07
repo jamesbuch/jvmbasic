@@ -1,0 +1,35 @@
+CompilationUnit(classes)
+  Classes:
+    class Point extends java.lang.Object
+    class Person extends java.lang.Object
+    class Employee extends Person
+    class Rectangle extends java.lang.Object implements IShape
+    class Circle extends java.lang.Object implements IShape
+    abstract class Animal extends java.lang.Object
+    class Dog extends Animal
+    class Cat extends Animal
+    class Counter extends java.lang.Object
+  Statements:
+    var p: Reference[name=Point] = new Reference[name=Point](3, 4)
+    Console.WriteLine($"Point: {p.toString()}")
+    Console.WriteLine($"Distance from origin: {p.distanceFromOrigin()}")
+    var person: Reference[name=Person] = new Reference[name=Person]("Alice", 30)
+    Console.WriteLine(person.greet())
+    person.Name = "Bob"
+    person.Age = 25
+    Console.WriteLine(person.greet())
+    var emp: Reference[name=Employee] = new Reference[name=Employee]("Charlie", 35, "Developer", 5000.0F)
+    Console.WriteLine(emp.greet())
+    Console.WriteLine($"Annual salary: {emp.getAnnualSalary()}")
+    var rect: Reference[name=Rectangle] = new Reference[name=Rectangle](10.0F, 5.0F)
+    var circle: Reference[name=Circle] = new Reference[name=Circle](7.0F)
+    Console.WriteLine($"{rect.toString()} - Area: {rect.area()}, Perimeter: {rect.perimeter()}")
+    Console.WriteLine($"{circle.toString()} - Area: {circle.area()}, Perimeter: {circle.perimeter()}")
+    var dog: Reference[name=Dog] = new Reference[name=Dog]("Buddy")
+    var cat: Reference[name=Cat] = new Reference[name=Cat]("Whiskers")
+    Console.WriteLine(dog.speak())
+    Console.WriteLine(cat.speak())
+    var c1: Reference[name=Counter] = new Reference[name=Counter]()
+    var c2: Reference[name=Counter] = new Reference[name=Counter]()
+    var c3: Reference[name=Counter] = new Reference[name=Counter]()
+    Console.WriteLine($"Counter instances created: {Counter.getCount()}")

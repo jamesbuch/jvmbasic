@@ -1,0 +1,41 @@
+; SIR Module: foreach_test
+; ============================================================
+
+; Entry point
+static function main(args: Array[elementType=Reference[name=java.lang.String]])
+  ; locals: args@0, numbers@1, sum@2
+  entry:
+            ; var numbers
+    %0   = ICONST 5
+    %1   = NEWARRAY Primitive[kind=INT], %0
+            STORE 1, %1 ; numbers
+    %2   = ICONST 10
+    %3   = ICONST 20
+    %4   = ICONST 30
+    %5   = ICONST 40
+    %6   = ICONST 50
+    %7   = SCONST "For Each loop:"
+    %10  = GETSTATIC java/lang/System.out
+            INVOKEVIRTUAL %10, java/io/PrintStream.println(%7)
+            ; var sum
+    %11  = ICONST 0
+            STORE 2, %11 ; sum
+            ; for each n
+            ; unresolved: n
+    %12  = NULL
+    %15  = GETSTATIC java/lang/System.out
+            INVOKEVIRTUAL %15, java/io/PrintStream.println(%12)
+    %16  = LOAD 2 ; sum
+            ; unresolved: n
+    %17  = NULL
+    %18  = IADD %16, %17
+            STORE 2, %18 ; sum
+    %19  = SCONST "Sum:"
+    %22  = GETSTATIC java/lang/System.out
+            INVOKEVIRTUAL %22, java/io/PrintStream.println(%19)
+    %23  = LOAD 2 ; sum
+    %26  = GETSTATIC java/lang/System.out
+            INVOKEVIRTUAL %26, java/io/PrintStream.println(%23)
+            RETURN
+end function
+

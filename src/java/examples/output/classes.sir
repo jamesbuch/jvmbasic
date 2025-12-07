@@ -1,0 +1,479 @@
+; SIR Module: classes
+; ============================================================
+
+class Point
+  field x: Primitive[kind=INT]
+  field y: Primitive[kind=INT]
+
+  function <init>(x: Primitive[kind=INT], y: Primitive[kind=INT])
+    ; locals: x@1, y@2
+    entry:
+      %0   = LOAD 1 ; x
+      %1   = LOAD 2 ; y
+              RETURN
+  end function
+
+  function getX() -> Primitive[kind=INT]
+    entry:
+              ; unresolved: x
+      %0   = NULL
+              RETURN %0
+  end function
+
+  function getY() -> Primitive[kind=INT]
+    entry:
+              ; unresolved: y
+      %0   = NULL
+              RETURN %0
+  end function
+
+  function distanceFromOrigin() -> Primitive[kind=DOUBLE]
+    entry:
+              ; unresolved: x
+      %0   = NULL
+              ; unresolved: x
+      %1   = NULL
+      %2   = IMUL %0, %1
+              ; unresolved: y
+      %3   = NULL
+              ; unresolved: y
+      %4   = NULL
+      %5   = IMUL %3, %4
+      %6   = IADD %2, %5
+      %7   = INVOKESTATIC com/jvmbasic/runtime/BasicMath.Sqrt(%6)
+              RETURN %7
+  end function
+
+  function toString() -> Reference[name=java.lang.String]
+    entry:
+      %0   = SCONST "("
+              ; unresolved: x
+      %1   = NULL
+      %2   = TOSTRING %1
+      %3   = CONCAT %0, %2
+      %4   = SCONST ", "
+      %5   = CONCAT %3, %4
+              ; unresolved: y
+      %6   = NULL
+      %7   = TOSTRING %6
+      %8   = CONCAT %5, %7
+      %9   = SCONST ")"
+      %10  = CONCAT %8, %9
+              RETURN %10
+  end function
+end class
+
+class Person
+  field name: Reference[name=java.lang.String]
+  field age: Primitive[kind=INT]
+
+  function <init>(name: Reference[name=java.lang.String], age: Primitive[kind=INT])
+    ; locals: name@1, age@2
+    entry:
+      %0   = LOAD 1 ; name
+      %1   = LOAD 2 ; age
+              RETURN
+  end function
+
+  function greet() -> Reference[name=java.lang.String]
+    entry:
+      %0   = SCONST "Hi, I'm "
+              ; unresolved: name
+      %1   = NULL
+      %2   = TOSTRING %1
+      %3   = CONCAT %0, %2
+      %4   = SCONST " and I'm "
+      %5   = CONCAT %3, %4
+              ; unresolved: age
+      %6   = NULL
+      %7   = TOSTRING %6
+      %8   = CONCAT %5, %7
+      %9   = SCONST " years old"
+      %10  = CONCAT %8, %9
+              RETURN %10
+  end function
+end class
+
+class Employee extends Person
+  field title: Reference[name=java.lang.String]
+  field salary: Primitive[kind=DOUBLE]
+
+  function <init>(name: Reference[name=java.lang.String], age: Primitive[kind=INT], title: Reference[name=java.lang.String], salary: Primitive[kind=DOUBLE])
+    ; locals: name@1, age@2, title@3, salary@4
+    entry:
+              ; unresolved: super
+      %0   = NULL
+      %1   = LOAD 1 ; name
+      %2   = LOAD 2 ; age
+      %3   = INVOKEVIRTUAL %0, java/lang/Object.new(%1, %2)
+              POP %3
+      %4   = LOAD 3 ; title
+      %5   = LOAD 4 ; salary
+              RETURN
+  end function
+
+  function greet() -> Reference[name=java.lang.String]
+    entry:
+              ; unresolved: super
+      %0   = NULL
+      %1   = INVOKEVIRTUAL %0, java/lang/Object.greet()
+      %2   = TOSTRING %1
+      %3   = SCONST ". I work as a "
+      %4   = CONCAT %2, %3
+              ; unresolved: title
+      %5   = NULL
+      %6   = TOSTRING %5
+      %7   = CONCAT %4, %6
+              RETURN %7
+  end function
+
+  function getAnnualSalary() -> Primitive[kind=DOUBLE]
+    entry:
+              ; unresolved: salary
+      %0   = NULL
+      %1   = ICONST 12
+      %2   = IMUL %0, %1
+              RETURN %2
+  end function
+end class
+
+class Rectangle implements IShape
+  field width: Primitive[kind=DOUBLE]
+  field height: Primitive[kind=DOUBLE]
+
+  function <init>(width: Primitive[kind=DOUBLE], height: Primitive[kind=DOUBLE])
+    ; locals: width@1, height@3
+    entry:
+      %0   = LOAD 1 ; width
+      %1   = LOAD 3 ; height
+              RETURN
+  end function
+
+  function area() -> Primitive[kind=DOUBLE]
+    entry:
+              ; unresolved: width
+      %0   = NULL
+              ; unresolved: height
+      %1   = NULL
+      %2   = IMUL %0, %1
+              RETURN %2
+  end function
+
+  function perimeter() -> Primitive[kind=DOUBLE]
+    entry:
+      %0   = ICONST 2
+              ; unresolved: width
+      %1   = NULL
+              ; unresolved: height
+      %2   = NULL
+      %3   = IADD %1, %2
+      %4   = IMUL %0, %3
+              RETURN %4
+  end function
+
+  function toString() -> Reference[name=java.lang.String]
+    entry:
+      %0   = SCONST "Rectangle("
+              ; unresolved: width
+      %1   = NULL
+      %2   = TOSTRING %1
+      %3   = CONCAT %0, %2
+      %4   = SCONST " x "
+      %5   = CONCAT %3, %4
+              ; unresolved: height
+      %6   = NULL
+      %7   = TOSTRING %6
+      %8   = CONCAT %5, %7
+      %9   = SCONST ")"
+      %10  = CONCAT %8, %9
+              RETURN %10
+  end function
+end class
+
+class Circle implements IShape
+  field radius: Primitive[kind=DOUBLE]
+
+  function <init>(radius: Primitive[kind=DOUBLE])
+    ; locals: radius@1
+    entry:
+      %0   = LOAD 1 ; radius
+              RETURN
+  end function
+
+  function area() -> Primitive[kind=DOUBLE]
+    entry:
+      %0   = FCONST 3.14159f
+              ; unresolved: radius
+      %1   = NULL
+      %2   = FMUL %0, %1
+              ; unresolved: radius
+      %3   = NULL
+      %4   = FMUL %2, %3
+              RETURN %4
+  end function
+
+  function perimeter() -> Primitive[kind=DOUBLE]
+    entry:
+      %0   = ICONST 2
+      %1   = FCONST 3.14159f
+      %2   = IMUL %0, %1
+              ; unresolved: radius
+      %3   = NULL
+      %4   = IMUL %2, %3
+              RETURN %4
+  end function
+
+  function toString() -> Reference[name=java.lang.String]
+    entry:
+      %0   = SCONST "Circle(r="
+              ; unresolved: radius
+      %1   = NULL
+      %2   = TOSTRING %1
+      %3   = CONCAT %0, %2
+      %4   = SCONST ")"
+      %5   = CONCAT %3, %4
+              RETURN %5
+  end function
+end class
+
+abstract class Animal
+  field name: Reference[name=java.lang.String]
+
+  function <init>(name: Reference[name=java.lang.String])
+    ; locals: name@1
+    entry:
+      %0   = LOAD 1 ; name
+              RETURN
+  end function
+
+  function getName() -> Reference[name=java.lang.String]
+    entry:
+              ; unresolved: name
+      %0   = NULL
+              RETURN %0
+  end function
+
+  function speak() -> Reference[name=java.lang.String]
+    entry:
+      %0   = SCONST ""
+              RETURN %0
+  end function
+end class
+
+class Dog extends Animal
+
+  function <init>(name: Reference[name=java.lang.String])
+    ; locals: name@1
+    entry:
+              ; unresolved: super
+      %0   = NULL
+      %1   = LOAD 1 ; name
+      %2   = INVOKEVIRTUAL %0, java/lang/Object.new(%1)
+              POP %2
+              RETURN
+  end function
+
+  function speak() -> Reference[name=java.lang.String]
+    entry:
+              ; unresolved: name
+      %0   = NULL
+      %1   = TOSTRING %0
+      %2   = SCONST " says: Woof!"
+      %3   = CONCAT %1, %2
+              RETURN %3
+  end function
+end class
+
+class Cat extends Animal
+
+  function <init>(name: Reference[name=java.lang.String])
+    ; locals: name@1
+    entry:
+              ; unresolved: super
+      %0   = NULL
+      %1   = LOAD 1 ; name
+      %2   = INVOKEVIRTUAL %0, java/lang/Object.new(%1)
+              POP %2
+              RETURN
+  end function
+
+  function speak() -> Reference[name=java.lang.String]
+    entry:
+              ; unresolved: name
+      %0   = NULL
+      %1   = TOSTRING %0
+      %2   = SCONST " says: Meow!"
+      %3   = CONCAT %1, %2
+              RETURN %3
+  end function
+end class
+
+class Counter
+  field count: Primitive[kind=INT]
+
+  function <init>()
+    entry:
+      %0   = ICONST 1
+              RETURN
+  end function
+
+  static function getCount() -> Primitive[kind=INT]
+    entry:
+              ; unresolved: count
+      %0   = NULL
+              RETURN %0
+  end function
+end class
+
+; Entry point
+static function main(args: Array[elementType=Reference[name=java.lang.String]])
+  ; locals: args@0, p@1, person@2, emp@3, rect@4, circle@5, dog@6, cat@7, c1@8, c2@9, c3@10
+  entry:
+            ; var p
+    %0   = NEW Point
+    %1   = DUP %0
+    %2   = ICONST 3
+    %3   = ICONST 4
+            INVOKESPECIAL %1, Point.<init>(%2, %3)
+            STORE 1, %0 ; p
+    %4   = SCONST "Point: "
+    %5   = LOAD 1 ; p
+    %6   = INVOKEVIRTUAL %5, java/lang/Object.toString()
+    %7   = CONCAT %4, %6
+    %10  = GETSTATIC java/lang/System.out
+            INVOKEVIRTUAL %10, java/io/PrintStream.println(%7)
+    %11  = SCONST "Distance from origin: "
+    %12  = LOAD 1 ; p
+    %13  = INVOKEVIRTUAL %12, java/lang/Object.distanceFromOrigin()
+    %14  = TOSTRING %13
+    %15  = CONCAT %11, %14
+    %18  = GETSTATIC java/lang/System.out
+            INVOKEVIRTUAL %18, java/io/PrintStream.println(%15)
+            ; var person
+    %19  = NEW Person
+    %20  = DUP %19
+    %21  = SCONST "Alice"
+    %22  = ICONST 30
+            INVOKESPECIAL %20, Person.<init>(%21, %22)
+            STORE 2, %19 ; person
+    %23  = LOAD 2 ; person
+    %24  = INVOKEVIRTUAL %23, java/lang/Object.greet()
+    %27  = GETSTATIC java/lang/System.out
+            INVOKEVIRTUAL %27, java/io/PrintStream.println(%24)
+    %28  = SCONST "Bob"
+    %29  = ICONST 25
+    %30  = LOAD 2 ; person
+    %31  = INVOKEVIRTUAL %30, java/lang/Object.greet()
+    %34  = GETSTATIC java/lang/System.out
+            INVOKEVIRTUAL %34, java/io/PrintStream.println(%31)
+            ; var emp
+    %35  = NEW Employee
+    %36  = DUP %35
+    %37  = SCONST "Charlie"
+    %38  = ICONST 35
+    %39  = SCONST "Developer"
+    %40  = FCONST 5000.0f
+            INVOKESPECIAL %36, Employee.<init>(%37, %38, %39, %40)
+            STORE 3, %35 ; emp
+    %41  = LOAD 3 ; emp
+    %42  = INVOKEVIRTUAL %41, java/lang/Object.greet()
+    %45  = GETSTATIC java/lang/System.out
+            INVOKEVIRTUAL %45, java/io/PrintStream.println(%42)
+    %46  = SCONST "Annual salary: "
+    %47  = LOAD 3 ; emp
+    %48  = INVOKEVIRTUAL %47, java/lang/Object.getAnnualSalary()
+    %49  = TOSTRING %48
+    %50  = CONCAT %46, %49
+    %53  = GETSTATIC java/lang/System.out
+            INVOKEVIRTUAL %53, java/io/PrintStream.println(%50)
+            ; var rect
+    %54  = NEW Rectangle
+    %55  = DUP %54
+    %56  = FCONST 10.0f
+    %57  = FCONST 5.0f
+            INVOKESPECIAL %55, Rectangle.<init>(%56, %57)
+            STORE 4, %54 ; rect
+            ; var circle
+    %58  = NEW Circle
+    %59  = DUP %58
+    %60  = FCONST 7.0f
+            INVOKESPECIAL %59, Circle.<init>(%60)
+            STORE 5, %58 ; circle
+    %61  = LOAD 4 ; rect
+    %62  = INVOKEVIRTUAL %61, java/lang/Object.toString()
+    %63  = SCONST " - Area: "
+    %64  = CONCAT %62, %63
+    %65  = LOAD 4 ; rect
+    %66  = INVOKEVIRTUAL %65, java/lang/Object.area()
+    %67  = TOSTRING %66
+    %68  = CONCAT %64, %67
+    %69  = SCONST ", Perimeter: "
+    %70  = CONCAT %68, %69
+    %71  = LOAD 4 ; rect
+    %72  = INVOKEVIRTUAL %71, java/lang/Object.perimeter()
+    %73  = TOSTRING %72
+    %74  = CONCAT %70, %73
+    %77  = GETSTATIC java/lang/System.out
+            INVOKEVIRTUAL %77, java/io/PrintStream.println(%74)
+    %78  = LOAD 5 ; circle
+    %79  = INVOKEVIRTUAL %78, java/lang/Object.toString()
+    %80  = SCONST " - Area: "
+    %81  = CONCAT %79, %80
+    %82  = LOAD 5 ; circle
+    %83  = INVOKEVIRTUAL %82, java/lang/Object.area()
+    %84  = TOSTRING %83
+    %85  = CONCAT %81, %84
+    %86  = SCONST ", Perimeter: "
+    %87  = CONCAT %85, %86
+    %88  = LOAD 5 ; circle
+    %89  = INVOKEVIRTUAL %88, java/lang/Object.perimeter()
+    %90  = TOSTRING %89
+    %91  = CONCAT %87, %90
+    %94  = GETSTATIC java/lang/System.out
+            INVOKEVIRTUAL %94, java/io/PrintStream.println(%91)
+            ; var dog
+    %95  = NEW Dog
+    %96  = DUP %95
+    %97  = SCONST "Buddy"
+            INVOKESPECIAL %96, Dog.<init>(%97)
+            STORE 6, %95 ; dog
+            ; var cat
+    %98  = NEW Cat
+    %99  = DUP %98
+    %100 = SCONST "Whiskers"
+            INVOKESPECIAL %99, Cat.<init>(%100)
+            STORE 7, %98 ; cat
+    %101 = LOAD 6 ; dog
+    %102 = INVOKEVIRTUAL %101, java/lang/Object.speak()
+    %105 = GETSTATIC java/lang/System.out
+            INVOKEVIRTUAL %105, java/io/PrintStream.println(%102)
+    %106 = LOAD 7 ; cat
+    %107 = INVOKEVIRTUAL %106, java/lang/Object.speak()
+    %110 = GETSTATIC java/lang/System.out
+            INVOKEVIRTUAL %110, java/io/PrintStream.println(%107)
+            ; var c1
+    %111 = NEW Counter
+    %112 = DUP %111
+            INVOKESPECIAL %112, Counter.<init>()
+            STORE 8, %111 ; c1
+            ; var c2
+    %113 = NEW Counter
+    %114 = DUP %113
+            INVOKESPECIAL %114, Counter.<init>()
+            STORE 9, %113 ; c2
+            ; var c3
+    %115 = NEW Counter
+    %116 = DUP %115
+            INVOKESPECIAL %116, Counter.<init>()
+            STORE 10, %115 ; c3
+    %117 = SCONST "Counter instances created: "
+            ; unresolved: Counter
+    %118 = NULL
+    %119 = INVOKEVIRTUAL %118, java/lang/Object.getCount()
+    %120 = TOSTRING %119
+    %121 = CONCAT %117, %120
+    %124 = GETSTATIC java/lang/System.out
+            INVOKEVIRTUAL %124, java/io/PrintStream.println(%121)
+            RETURN
+end function
+

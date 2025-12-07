@@ -1,0 +1,44 @@
+CompilationUnit(calculator)
+  Functions:
+    Function Factorial(n: Primitive[kind=INT]) -> Primitive[kind=INT]
+    Function IntPower(base: Primitive[kind=INT], exp: Primitive[kind=INT]) -> Primitive[kind=INT]
+    Function IsEven(n: Primitive[kind=INT]) -> Primitive[kind=BOOLEAN]
+    Function SumOfDigits(n: Primitive[kind=INT]) -> Primitive[kind=INT]
+    Function ReverseNumber(n: Primitive[kind=INT]) -> Primitive[kind=INT]
+  Statements:
+    Console.WriteLine("=== Calculator Demo ===")
+    Console.WriteLine("")
+    Console.WriteLine("--- Basic Operations ---")
+    var a: Primitive[kind=INT] = 15
+    var b: Primitive[kind=INT] = 4
+    Console.WriteLine($"a = {a}, b = {b}")
+    Console.WriteLine($"a + b = {(a ADD b)}")
+    Console.WriteLine($"a - b = {(a SUB b)}")
+    Console.WriteLine($"a * b = {(a MUL b)}")
+    Console.WriteLine($"a / b = {(a DIV b)}")
+    Console.WriteLine($"a mod b = {(a MOD b)}")
+    Console.WriteLine("")
+    Console.WriteLine("--- Powers ---")
+    Console.WriteLine($"2^10 = {IntPower(2, 10)}")
+    Console.WriteLine($"3^4 = {IntPower(3, 4)}")
+    Console.WriteLine($"5^3 = {IntPower(5, 3)}")
+    Console.WriteLine("")
+    Console.WriteLine("--- Factorials ---")
+    Console.WriteLine($"5! = {Factorial(5)}")
+    Console.WriteLine($"7! = {Factorial(7)}")
+    Console.WriteLine($"10! = {Factorial(10)}")
+    Console.WriteLine("")
+    Console.WriteLine("--- Even/Odd Check ---")
+    Console.WriteLine($"Is 10 even? {IsEven(10)}")
+    Console.WriteLine($"Is 7 even? {IsEven(7)}")
+    Console.WriteLine($"Is 0 even? {IsEven(0)}")
+    Console.WriteLine("")
+    Console.WriteLine("--- Sum of Digits ---")
+    Console.WriteLine($"Sum of digits of 12345: {SumOfDigits(12345)}")
+    Console.WriteLine($"Sum of digits of 9876: {SumOfDigits(9876)}")
+    Console.WriteLine("")
+    Console.WriteLine("--- Reverse Number ---")
+    Console.WriteLine($"Reverse of 12345: {ReverseNumber(12345)}")
+    Console.WriteLine($"Reverse of 9876: {ReverseNumber(9876)}")
+    Console.WriteLine("")
+    Console.WriteLine("=== Calculator Demo Complete ===")

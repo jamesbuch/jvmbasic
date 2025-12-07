@@ -1,0 +1,5 @@
+CompilationUnit(simple_if2)
+  Statements:
+    var x: Primitive[kind=INT] = 3
+    if ((x GT 5)) { ... }
+    Console.WriteLine("Done")

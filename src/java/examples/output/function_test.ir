@@ -1,0 +1,9 @@
+CompilationUnit(function_test)
+  Functions:
+    Function add(a: Primitive[kind=INT], b: Primitive[kind=INT]) -> Primitive[kind=INT]
+  Statements:
+    var result: Primitive[kind=INT] = add(5, 3)
+    Console.WriteLine("5 + 3 = ")
+    Console.WriteLine(result)
+    Console.WriteLine("10 + 20 = ")
+    Console.WriteLine(add(10, 20))

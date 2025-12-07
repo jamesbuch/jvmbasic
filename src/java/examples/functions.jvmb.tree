@@ -1,0 +1,445 @@
+compilationUnit
+  topLevelElement
+    declaration
+      functionDeclaration
+        FUNCTION: 'function' (line 4)
+        IDENTIFIER: 'factorial' (line 4)
+        parameterList
+          LPAREN: '(' (line 4)
+          parameter
+            IDENTIFIER: 'n' (line 4)
+            AS: 'as' (line 4)
+            typeName
+              primitiveType
+                INTEGER: 'Integer' (line 4)
+          RPAREN: ')' (line 4)
+        AS: 'as' (line 4)
+        typeName
+          primitiveType
+            INTEGER: 'Integer' (line 4)
+        statement
+          ifStatement
+            IF: 'if' (line 5)
+            expression
+              conditionalOrExpression
+                conditionalAndExpression
+                  bitwiseOrExpression
+                    bitwiseXorExpression
+                      bitwiseAndExpression
+                        equalityExpression
+                          relationalExpression
+                            shiftExpression
+                              additiveExpression
+                                multiplicativeExpression
+                                  powerExpression
+                                    unaryExpression
+                                      postfixExpression
+                                        primaryExpression
+                                          IDENTIFIER: 'n' (line 5)
+                            LE: '<=' (line 5)
+                            shiftExpression
+                              additiveExpression
+                                multiplicativeExpression
+                                  powerExpression
+                                    unaryExpression
+                                      postfixExpression
+                                        primaryExpression
+                                          literal
+                                            INTEGER_LITERAL: '1' (line 5)
+            THEN: 'then' (line 5)
+            statement
+              returnStatement
+                RETURN: 'return' (line 6)
+                expression
+                  conditionalOrExpression
+                    conditionalAndExpression
+                      bitwiseOrExpression
+                        bitwiseXorExpression
+                          bitwiseAndExpression
+                            equalityExpression
+                              relationalExpression
+                                shiftExpression
+                                  additiveExpression
+                                    multiplicativeExpression
+                                      powerExpression
+                                        unaryExpression
+                                          postfixExpression
+                                            primaryExpression
+                                              literal
+                                                INTEGER_LITERAL: '1' (line 6)
+            END: 'end' (line 7)
+            IF: 'if' (line 7)
+        statement
+          returnStatement
+            RETURN: 'return' (line 8)
+            expression
+              conditionalOrExpression
+                conditionalAndExpression
+                  bitwiseOrExpression
+                    bitwiseXorExpression
+                      bitwiseAndExpression
+                        equalityExpression
+                          relationalExpression
+                            shiftExpression
+                              additiveExpression
+                                multiplicativeExpression
+                                  powerExpression
+                                    unaryExpression
+                                      postfixExpression
+                                        primaryExpression
+                                          IDENTIFIER: 'n' (line 8)
+                                  STAR: '*' (line 8)
+                                  powerExpression
+                                    unaryExpression
+                                      postfixExpression
+                                        primaryExpression
+                                          IDENTIFIER: 'factorial' (line 8)
+                                        postfixOp
+                                          LPAREN: '(' (line 8)
+                                          argumentList
+                                            argument
+                                              expression
+                                                conditionalOrExpression
+                                                  conditionalAndExpression
+                                                    bitwiseOrExpression
+                                                      bitwiseXorExpression
+                                                        bitwiseAndExpression
+                                                          equalityExpression
+                                                            relationalExpression
+                                                              shiftExpression
+                                                                additiveExpression
+                                                                  multiplicativeExpression
+                                                                    powerExpression
+                                                                      unaryExpression
+                                                                        postfixExpression
+                                                                          primaryExpression
+                                                                            IDENTIFIER: 'n' (line 8)
+                                                                  MINUS: '-' (line 8)
+                                                                  multiplicativeExpression
+                                                                    powerExpression
+                                                                      unaryExpression
+                                                                        postfixExpression
+                                                                          primaryExpression
+                                                                            literal
+                                                                              INTEGER_LITERAL: '1' (line 8)
+                                          RPAREN: ')' (line 8)
+        END: 'end' (line 9)
+        FUNCTION: 'function' (line 9)
+  topLevelElement
+    declaration
+      subDeclaration
+        SUB: 'sub' (line 12)
+        IDENTIFIER: 'printGreeting' (line 12)
+        parameterList
+          LPAREN: '(' (line 12)
+          parameter
+            IDENTIFIER: 'name' (line 12)
+            AS: 'as' (line 12)
+            typeName
+              primitiveType
+                STRING: 'String' (line 12)
+          RPAREN: ')' (line 12)
+        statement
+          expressionStatement
+            expression
+              conditionalOrExpression
+                conditionalAndExpression
+                  bitwiseOrExpression
+                    bitwiseXorExpression
+                      bitwiseAndExpression
+                        equalityExpression
+                          relationalExpression
+                            shiftExpression
+                              additiveExpression
+                                multiplicativeExpression
+                                  powerExpression
+                                    unaryExpression
+                                      postfixExpression
+                                        primaryExpression
+                                          IDENTIFIER: 'Console' (line 13)
+                                        postfixOp
+                                          DOT: '.' (line 13)
+                                          IDENTIFIER: 'WriteLine' (line 13)
+                                        postfixOp
+                                          LPAREN: '(' (line 13)
+                                          argumentList
+                                            argument
+                                              expression
+                                                conditionalOrExpression
+                                                  conditionalAndExpression
+                                                    bitwiseOrExpression
+                                                      bitwiseXorExpression
+                                                        bitwiseAndExpression
+                                                          equalityExpression
+                                                            relationalExpression
+                                                              shiftExpression
+                                                                additiveExpression
+                                                                  multiplicativeExpression
+                                                                    powerExpression
+                                                                      unaryExpression
+                                                                        postfixExpression
+                                                                          primaryExpression
+                                                                            literal
+                                                                              INTERPOLATED_STRING: '$"Hello, {name}!"' (line 13)
+                                          RPAREN: ')' (line 13)
+        END: 'end' (line 14)
+        SUB: 'sub' (line 14)
+  topLevelElement
+    statement
+      varStatement
+        VAR: 'var' (line 17)
+        IDENTIFIER: 'result' (line 17)
+        AS: 'as' (line 17)
+        typeName
+          primitiveType
+            INTEGER: 'Integer' (line 17)
+        EQ: '=' (line 17)
+        expression
+          conditionalOrExpression
+            conditionalAndExpression
+              bitwiseOrExpression
+                bitwiseXorExpression
+                  bitwiseAndExpression
+                    equalityExpression
+                      relationalExpression
+                        shiftExpression
+                          additiveExpression
+                            multiplicativeExpression
+                              powerExpression
+                                unaryExpression
+                                  postfixExpression
+                                    primaryExpression
+                                      IDENTIFIER: 'factorial' (line 17)
+                                    postfixOp
+                                      LPAREN: '(' (line 17)
+                                      argumentList
+                                        argument
+                                          expression
+                                            conditionalOrExpression
+                                              conditionalAndExpression
+                                                bitwiseOrExpression
+                                                  bitwiseXorExpression
+                                                    bitwiseAndExpression
+                                                      equalityExpression
+                                                        relationalExpression
+                                                          shiftExpression
+                                                            additiveExpression
+                                                              multiplicativeExpression
+                                                                powerExpression
+                                                                  unaryExpression
+                                                                    postfixExpression
+                                                                      primaryExpression
+                                                                        literal
+                                                                          INTEGER_LITERAL: '5' (line 17)
+                                      RPAREN: ')' (line 17)
+  topLevelElement
+    statement
+      expressionStatement
+        expression
+          conditionalOrExpression
+            conditionalAndExpression
+              bitwiseOrExpression
+                bitwiseXorExpression
+                  bitwiseAndExpression
+                    equalityExpression
+                      relationalExpression
+                        shiftExpression
+                          additiveExpression
+                            multiplicativeExpression
+                              powerExpression
+                                unaryExpression
+                                  postfixExpression
+                                    primaryExpression
+                                      IDENTIFIER: 'Console' (line 18)
+                                    postfixOp
+                                      DOT: '.' (line 18)
+                                      IDENTIFIER: 'WriteLine' (line 18)
+                                    postfixOp
+                                      LPAREN: '(' (line 18)
+                                      argumentList
+                                        argument
+                                          expression
+                                            conditionalOrExpression
+                                              conditionalAndExpression
+                                                bitwiseOrExpression
+                                                  bitwiseXorExpression
+                                                    bitwiseAndExpression
+                                                      equalityExpression
+                                                        relationalExpression
+                                                          shiftExpression
+                                                            additiveExpression
+                                                              multiplicativeExpression
+                                                                powerExpression
+                                                                  unaryExpression
+                                                                    postfixExpression
+                                                                      primaryExpression
+                                                                        literal
+                                                                          INTERPOLATED_STRING: '$"5! = {result}"' (line 18)
+                                      RPAREN: ')' (line 18)
+  topLevelElement
+    statement
+      expressionStatement
+        expression
+          conditionalOrExpression
+            conditionalAndExpression
+              bitwiseOrExpression
+                bitwiseXorExpression
+                  bitwiseAndExpression
+                    equalityExpression
+                      relationalExpression
+                        shiftExpression
+                          additiveExpression
+                            multiplicativeExpression
+                              powerExpression
+                                unaryExpression
+                                  postfixExpression
+                                    primaryExpression
+                                      IDENTIFIER: 'printGreeting' (line 20)
+                                    postfixOp
+                                      LPAREN: '(' (line 20)
+                                      argumentList
+                                        argument
+                                          expression
+                                            conditionalOrExpression
+                                              conditionalAndExpression
+                                                bitwiseOrExpression
+                                                  bitwiseXorExpression
+                                                    bitwiseAndExpression
+                                                      equalityExpression
+                                                        relationalExpression
+                                                          shiftExpression
+                                                            additiveExpression
+                                                              multiplicativeExpression
+                                                                powerExpression
+                                                                  unaryExpression
+                                                                    postfixExpression
+                                                                      primaryExpression
+                                                                        literal
+                                                                          STRING_LITERAL: '"JVM BASIC"' (line 20)
+                                      RPAREN: ')' (line 20)
+  topLevelElement
+    statement
+      varStatement
+        VAR: 'var' (line 23)
+        IDENTIFIER: 'i' (line 23)
+        AS: 'as' (line 23)
+        typeName
+          primitiveType
+            INTEGER: 'Integer' (line 23)
+        EQ: '=' (line 23)
+        expression
+          conditionalOrExpression
+            conditionalAndExpression
+              bitwiseOrExpression
+                bitwiseXorExpression
+                  bitwiseAndExpression
+                    equalityExpression
+                      relationalExpression
+                        shiftExpression
+                          additiveExpression
+                            multiplicativeExpression
+                              powerExpression
+                                unaryExpression
+                                  postfixExpression
+                                    primaryExpression
+                                      literal
+                                        INTEGER_LITERAL: '0' (line 23)
+  topLevelElement
+    statement
+      whileStatement
+        WHILE: 'while' (line 24)
+        expression
+          conditionalOrExpression
+            conditionalAndExpression
+              bitwiseOrExpression
+                bitwiseXorExpression
+                  bitwiseAndExpression
+                    equalityExpression
+                      relationalExpression
+                        shiftExpression
+                          additiveExpression
+                            multiplicativeExpression
+                              powerExpression
+                                unaryExpression
+                                  postfixExpression
+                                    primaryExpression
+                                      IDENTIFIER: 'i' (line 24)
+                        LT: '<' (line 24)
+                        shiftExpression
+                          additiveExpression
+                            multiplicativeExpression
+                              powerExpression
+                                unaryExpression
+                                  postfixExpression
+                                    primaryExpression
+                                      literal
+                                        INTEGER_LITERAL: '3' (line 24)
+        statement
+          expressionStatement
+            expression
+              conditionalOrExpression
+                conditionalAndExpression
+                  bitwiseOrExpression
+                    bitwiseXorExpression
+                      bitwiseAndExpression
+                        equalityExpression
+                          relationalExpression
+                            shiftExpression
+                              additiveExpression
+                                multiplicativeExpression
+                                  powerExpression
+                                    unaryExpression
+                                      postfixExpression
+                                        primaryExpression
+                                          IDENTIFIER: 'Console' (line 25)
+                                        postfixOp
+                                          DOT: '.' (line 25)
+                                          IDENTIFIER: 'WriteLine' (line 25)
+                                        postfixOp
+                                          LPAREN: '(' (line 25)
+                                          argumentList
+                                            argument
+                                              expression
+                                                conditionalOrExpression
+                                                  conditionalAndExpression
+                                                    bitwiseOrExpression
+                                                      bitwiseXorExpression
+                                                        bitwiseAndExpression
+                                                          equalityExpression
+                                                            relationalExpression
+                                                              shiftExpression
+                                                                additiveExpression
+                                                                  multiplicativeExpression
+                                                                    powerExpression
+                                                                      unaryExpression
+                                                                        postfixExpression
+                                                                          primaryExpression
+                                                                            literal
+                                                                              INTERPOLATED_STRING: '$"Loop iteration: {i}"' (line 25)
+                                          RPAREN: ')' (line 25)
+        statement
+          assignmentStatement
+            lvalue
+              IDENTIFIER: 'i' (line 26)
+            assignmentOp
+              PLUS_EQ: '+=' (line 26)
+            expression
+              conditionalOrExpression
+                conditionalAndExpression
+                  bitwiseOrExpression
+                    bitwiseXorExpression
+                      bitwiseAndExpression
+                        equalityExpression
+                          relationalExpression
+                            shiftExpression
+                              additiveExpression
+                                multiplicativeExpression
+                                  powerExpression
+                                    unaryExpression
+                                      postfixExpression
+                                        primaryExpression
+                                          literal
+                                            INTEGER_LITERAL: '1' (line 26)
+        END: 'end' (line 27)
+        WHILE: 'while' (line 27)
+  EOF: '<EOF>' (line 28)

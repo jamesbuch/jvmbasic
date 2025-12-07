@@ -1,0 +1,5 @@
+CompilationUnit(simple_while)
+  Statements:
+    var i: Primitive[kind=INT] = 0
+    while ((i LT 5)) { ... }
+    Console.WriteLine("Done")

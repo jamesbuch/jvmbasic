@@ -1,0 +1,185 @@
+; SIR Module: algo_fibonacci
+; ============================================================
+
+static function FibIterative(n: Primitive[kind=INT]) -> Primitive[kind=INT]
+  ; locals: n@0, prev@1, curr@2, i@3, tmp@4
+  entry:
+    %0   = LOAD 0 ; n
+    %1   = ICONST 1
+    %2   = ICMP_LE %0, %1
+            IFFALSE %2, else_1
+  then_0:
+    %3   = LOAD 0 ; n
+            RETURN %3
+  else_1:
+            GOTO endif_2
+  endif_2:
+            ; var prev
+    %4   = ICONST 0
+            STORE 1, %4 ; prev
+            ; var curr
+    %5   = ICONST 1
+            STORE 2, %5 ; curr
+            ; var i
+    %6   = ICONST 2
+            STORE 3, %6 ; i
+            GOTO while_cond_3
+  while_cond_3:
+    %7   = LOAD 3 ; i
+    %8   = LOAD 0 ; n
+    %9   = ICMP_LE %7, %8
+            IFFALSE %9, while_end_5
+  while_body_4:
+            ; var tmp
+    %10  = LOAD 1 ; prev
+    %11  = LOAD 2 ; curr
+    %12  = IADD %10, %11
+            STORE 4, %12 ; tmp
+    %13  = LOAD 2 ; curr
+            STORE 1, %13 ; prev
+    %14  = LOAD 4 ; tmp
+            STORE 2, %14 ; curr
+    %15  = LOAD 3 ; i
+    %16  = ICONST 1
+    %17  = IADD %15, %16
+            STORE 3, %17 ; i
+            GOTO while_cond_3
+  while_end_5:
+    %18  = LOAD 2 ; curr
+            RETURN %18
+end function
+
+static function FibRecursive(n: Primitive[kind=INT]) -> Primitive[kind=INT]
+  ; locals: n@0
+  entry:
+    %0   = LOAD 0 ; n
+    %1   = ICONST 1
+    %2   = ICMP_LE %0, %1
+            IFFALSE %2, else_1
+  then_0:
+    %3   = LOAD 0 ; n
+            RETURN %3
+  else_1:
+            GOTO endif_2
+  endif_2:
+    %4   = LOAD 0 ; n
+    %5   = ICONST 1
+    %6   = ISUB %4, %5
+    %7   = INVOKESTATIC algo_fibonacci.FibRecursive(%6)
+    %8   = LOAD 0 ; n
+    %9   = ICONST 2
+    %10  = ISUB %8, %9
+    %11  = INVOKESTATIC algo_fibonacci.FibRecursive(%10)
+    %12  = IADD %7, %11
+            RETURN %12
+end function
+
+; Entry point
+static function main(args: Array[elementType=Reference[name=java.lang.String]])
+  ; locals: args@0, i@2, iterVal@3, recVal@4
+  entry:
+    %0   = SCONST "=== Fibonacci Sequence Demo ==="
+    %3   = GETSTATIC java/lang/System.out
+            INVOKEVIRTUAL %3, java/io/PrintStream.println(%0)
+    %4   = SCONST ""
+    %7   = GETSTATIC java/lang/System.out
+            INVOKEVIRTUAL %7, java/io/PrintStream.println(%4)
+    %8   = SCONST "First 15 Fibonacci numbers (iterative):"
+    %11  = GETSTATIC java/lang/System.out
+            INVOKEVIRTUAL %11, java/io/PrintStream.println(%8)
+            ; for i
+    %12  = ICONST 0
+            STORE 1, %12 ; i
+            GOTO for_cond_0
+  for_cond_0:
+    %13  = LOAD 1 ; i
+    %14  = ICONST 14
+    %15  = ICMP_LE %13, %14
+            IFFALSE %15, for_end_3
+  for_body_1:
+    %16  = LOAD 1 ; i
+    %17  = ICONST 0
+    %18  = ICMP_GT %16, %17
+            IFFALSE %18, else_5
+  then_4:
+    %19  = SCONST ", "
+    %22  = GETSTATIC java/lang/System.out
+            INVOKEVIRTUAL %22, java/io/PrintStream.print(%19)
+            GOTO endif_6
+  else_5:
+            GOTO endif_6
+  endif_6:
+    %23  = LOAD 1 ; i
+    %24  = INVOKESTATIC algo_fibonacci.FibIterative(%23)
+    %27  = GETSTATIC java/lang/System.out
+            INVOKEVIRTUAL %27, java/io/PrintStream.print(%24)
+            GOTO for_step_2
+  for_step_2:
+    %28  = LOAD 1 ; i
+    %29  = ICONST 1
+    %30  = IADD %28, %29
+            STORE 1, %30 ; i
+            GOTO for_cond_0
+  for_end_3:
+    %31  = SCONST ""
+    %34  = GETSTATIC java/lang/System.out
+            INVOKEVIRTUAL %34, java/io/PrintStream.println(%31)
+    %35  = SCONST ""
+    %38  = GETSTATIC java/lang/System.out
+            INVOKEVIRTUAL %38, java/io/PrintStream.println(%35)
+    %39  = SCONST "Comparing iterative vs recursive (first 10):"
+    %42  = GETSTATIC java/lang/System.out
+            INVOKEVIRTUAL %42, java/io/PrintStream.println(%39)
+            ; for i
+    %43  = ICONST 0
+            STORE 2, %43 ; i
+            GOTO for_cond_7
+  for_cond_7:
+    %44  = LOAD 2 ; i
+    %45  = ICONST 9
+    %46  = ICMP_LE %44, %45
+            IFFALSE %46, for_end_10
+  for_body_8:
+            ; var iterVal
+    %47  = LOAD 2 ; i
+    %48  = INVOKESTATIC algo_fibonacci.FibIterative(%47)
+            STORE 3, %48 ; iterVal
+            ; var recVal
+    %49  = LOAD 2 ; i
+    %50  = INVOKESTATIC algo_fibonacci.FibRecursive(%49)
+            STORE 4, %50 ; recVal
+    %51  = SCONST "  Fib("
+    %52  = LOAD 2 ; i
+    %53  = TOSTRING %52
+    %54  = CONCAT %51, %53
+    %55  = SCONST ") = "
+    %56  = CONCAT %54, %55
+    %57  = LOAD 3 ; iterVal
+    %58  = TOSTRING %57
+    %59  = CONCAT %56, %58
+    %60  = SCONST " (iter), "
+    %61  = CONCAT %59, %60
+    %62  = LOAD 4 ; recVal
+    %63  = TOSTRING %62
+    %64  = CONCAT %61, %63
+    %65  = SCONST " (rec)"
+    %66  = CONCAT %64, %65
+    %69  = GETSTATIC java/lang/System.out
+            INVOKEVIRTUAL %69, java/io/PrintStream.println(%66)
+            GOTO for_step_9
+  for_step_9:
+    %70  = LOAD 2 ; i
+    %71  = ICONST 1
+    %72  = IADD %70, %71
+            STORE 2, %72 ; i
+            GOTO for_cond_7
+  for_end_10:
+    %73  = SCONST ""
+    %76  = GETSTATIC java/lang/System.out
+            INVOKEVIRTUAL %76, java/io/PrintStream.println(%73)
+    %77  = SCONST "=== Fibonacci Demo Complete ==="
+    %80  = GETSTATIC java/lang/System.out
+            INVOKEVIRTUAL %80, java/io/PrintStream.println(%77)
+            RETURN
+end function
+

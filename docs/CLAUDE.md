@@ -2,30 +2,9 @@
 
 This document provides context for Claude when working on the JVM BASIC 2.0 compiler.
 
-## ⚠️ CRITICAL: Avoid Confusion with Legacy JVM Basic 1.0
+## Project Structure (Reorganized)
 
-There are TWO implementations in this repository:
-
-| Aspect | JVM BASIC 2.0 (ACTIVE) | Legacy JVM Basic 1.0 (IGNORE) |
-|--------|------------------------|-------------------------------|
-| Location | `src/java/` | Root directory (*.cpp, *.h) |
-| Language | Java | C++ |
-| Build | `./gradlew build` | `make` or `./rebuild.sh` |
-| Examples | `src/java/examples/*.jvmb` | `examples/*.bas` |
-| Binary | JAR file | `./jvmbasic` executable |
-| Web server | NOT YET IMPLEMENTED | TaskApp (Jetty on port 8080) |
-
-**DO NOT:**
-- Confuse legacy `.bas` files with new `.jvmb` files
-- Try to run legacy TaskApp (uses port 8080) - kill with `fuser -k 8080/tcp`
-- Modify C++ files unless explicitly asked
-- The legacy files will be moved to `legacy-jvm-basic/` directory soon
-
-## Current Focus: JVM BASIC 2.0 (Java/ANTLR)
-
-We are actively developing **JVM BASIC 2.0**, a complete rewrite of the BASIC compiler in Java using ANTLR4 and ASM for bytecode generation.
-
-## Project Structure
+The repository has been reorganized to cleanly separate JVM BASIC 2.0 from the legacy C++ implementation:
 
 ```
 /home/james/development/jvmbasic/
@@ -38,28 +17,41 @@ We are actively developing **JVM BASIC 2.0**, a complete rewrite of the BASIC co
 │   │   ├── sir/                 # Stack-based IR / SSA-style IR (future codegen)
 │   │   ├── visitor/             # ANTLR visitors for code generation
 │   │   │   ├── CompilerVisitor.java  # BYTECODE GENERATION (ASM)
-│   │   │   ├── SymbolCollector.java  # Pass 1: symbol table
+│   │   │   ├── SymbolCollector.java  # Pass 1: symbol table + scoping
 │   │   │   └── DebugListener.java    # Debug output
 │   │   └── Main.java            # Entry point
-│   ├── examples/                # Example .jvmb programs
+│   ├── examples/                # Example .jvmb programs (TO BE MOVED)
 │   ├── build.gradle.kts         # Gradle build file
 │   ├── test-examples.sh         # TEST SCRIPT - RUN BEFORE COMMITS
 │   └── gradlew                  # Gradle wrapper
 │
-├── docs/
+├── docs/                        # JVM BASIC 2.0 documentation
 │   ├── CLAUDE.md                # THIS FILE - Claude context
-│   ├── jvmbasic-2.0/            # Current compiler docs
-│   │   ├── CODEGEN.md           # Code generation guide (ASM examples)
-│   │   ├── DEVELOPER_GUIDE.md   # Architecture, adding features
-│   │   ├── USER_GUIDE.md        # Language reference
-│   │   └── IR_TO_BYTECODE.md    # IR to bytecode mapping (future)
-│   └── legacy-jvmbasic/         # Old C++ compiler docs (IGNORE)
+│   └── jvmbasic-2.0/            # Current compiler docs
+│       ├── CODEGEN.md           # Code generation guide (ASM examples)
+│       ├── DEVELOPER_GUIDE.md   # Architecture, adding features
+│       ├── USER_GUIDE.md        # Language reference
+│       └── IR_TO_BYTECODE.md    # IR to bytecode mapping (future)
 │
-├── basicrt/                     # Runtime library (BasicRuntime.class)
+├── examples/                    # JVM BASIC 2.0 examples (TO BE POPULATED)
+├── tests/                       # JVM BASIC 2.0 tests (TO BE POPULATED)
+│
 ├── lib/                         # Dependencies (ANTLR, ASM JARs)
 │
-└── [C++ files]                  # LEGACY - will be moved to legacy-jvm-basic/
+└── legacy-jvm-basic/            # LEGACY C++ implementation (ARCHIVED)
+    ├── *.cpp, *.h               # C++ source files
+    ├── basicrt/                 # Legacy runtime
+    ├── examples/*.bas           # Legacy .bas examples
+    ├── tests/                   # Legacy tests
+    ├── docs/                    # Legacy documentation
+    └── ...                      # Other legacy files
 ```
+
+## Current Focus: JVM BASIC 2.0 (Java/ANTLR)
+
+We are actively developing **JVM BASIC 2.0**, a complete rewrite of the BASIC compiler in Java using ANTLR4 and ASM for bytecode generation.
+
+**DO NOT** modify files in `legacy-jvm-basic/` unless explicitly asked.
 
 ## Building and Running
 
@@ -321,14 +313,13 @@ When adding a new feature:
 
 ## Important Rules
 
-1. **DO NOT** modify the C++ compiler (jvmbasic binary, *.cpp files)
+1. **DO NOT** modify files in `legacy-jvm-basic/` unless explicitly asked
 2. **ALWAYS** use `./gradlew build` from `src/java/` directory
 3. **DO NOT** use IR for code generation yet - use CompilerVisitor
 4. **UPDATE** `CODEGEN.md` when adding new code generation features
 5. **ALWAYS** run `./test-examples.sh` before committing
 6. **NEVER** push code that breaks tests to main branch
-7. **KILL** stale legacy processes: `fuser -k 8080/tcp` if TaskApp is running
-8. **USE** `src/java/examples/*.jvmb` NOT `examples/*.bas` (legacy)
+7. **USE** `src/java/examples/*.jvmb` for JVM BASIC 2.0 examples
 
 ## Continuation Notes (for Auto-Compact)
 
@@ -359,4 +350,4 @@ java -cp .:../../basicrt CLASSNAME
 2. Expand standard library (Http, Json, Db, Crypto, Xml)
 3. Add Jetty web server integration
 4. Explore Java SE library integration
-5. Move legacy files to `legacy-jvm-basic/` directory
+5. Move examples and tests from src/java/ to top-level directories

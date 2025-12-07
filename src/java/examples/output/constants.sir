@@ -1,0 +1,290 @@
+; SIR Module: constants
+; ============================================================
+
+class Physics
+  field SPEED_OF_LIGHT: Primitive[kind=LONG]
+  field GRAVITY: Primitive[kind=DOUBLE]
+  field PLANCK: Primitive[kind=DOUBLE]
+
+  static function calculateEnergy(mass: Primitive[kind=DOUBLE]) -> Primitive[kind=DOUBLE]
+    ; locals: mass@0
+    entry:
+      %0   = LOAD 0 ; mass
+              ; unresolved: SPEED_OF_LIGHT
+      %1   = NULL
+      %2   = IMUL %0, %1
+              ; unresolved: SPEED_OF_LIGHT
+      %3   = NULL
+      %4   = IMUL %2, %3
+              RETURN %4
+  end function
+
+  static function calculateWeight(mass: Primitive[kind=DOUBLE]) -> Primitive[kind=DOUBLE]
+    ; locals: mass@0
+    entry:
+      %0   = LOAD 0 ; mass
+              ; unresolved: GRAVITY
+      %1   = NULL
+      %2   = IMUL %0, %1
+              RETURN %2
+  end function
+end class
+
+; Entry point
+static function main(args: Array[elementType=Reference[name=java.lang.String]])
+  ; locals: args@0, PI@1, E@3, GOLDEN_RATIO@5, MAX_SIZE@7, APP_NAME@8, DEBUG@9, radius@10, circumference@12, area@14, mass@16, OPTION_A@18, OPTION_B@19, OPTION_C@20, selection@21, GREETING@22, FAREWELL@23
+  entry:
+            ; var PI
+    %0   = FCONST 3.1415927f
+            STORE 1, %0 ; PI
+            ; var E
+    %1   = FCONST 2.7182817f
+            STORE 3, %1 ; E
+            ; var GOLDEN_RATIO
+    %2   = FCONST 1.618034f
+            STORE 5, %2 ; GOLDEN_RATIO
+            ; var MAX_SIZE
+    %3   = ICONST 100
+            STORE 7, %3 ; MAX_SIZE
+            ; var APP_NAME
+    %4   = SCONST "JVM BASIC 2.0"
+            STORE 8, %4 ; APP_NAME
+            ; var DEBUG
+    %5   = ICONST 1
+            STORE 9, %5 ; DEBUG
+    %6   = SCONST "=== Constants ==="
+    %9   = GETSTATIC java/lang/System.out
+            INVOKEVIRTUAL %9, java/io/PrintStream.println(%6)
+    %10  = SCONST "PI = "
+    %11  = LOAD 1 ; PI
+    %12  = INVOKEVIRTUAL %11, java/lang/Object.ToString()
+    %13  = CONCAT %10, %12
+    %16  = GETSTATIC java/lang/System.out
+            INVOKEVIRTUAL %16, java/io/PrintStream.println(%13)
+    %17  = SCONST "E = "
+    %18  = LOAD 3 ; E
+    %19  = INVOKEVIRTUAL %18, java/lang/Object.ToString()
+    %20  = CONCAT %17, %19
+    %23  = GETSTATIC java/lang/System.out
+            INVOKEVIRTUAL %23, java/io/PrintStream.println(%20)
+    %24  = SCONST "Golden Ratio = "
+    %25  = LOAD 5 ; GOLDEN_RATIO
+    %26  = INVOKEVIRTUAL %25, java/lang/Object.ToString()
+    %27  = CONCAT %24, %26
+    %30  = GETSTATIC java/lang/System.out
+            INVOKEVIRTUAL %30, java/io/PrintStream.println(%27)
+    %31  = SCONST "Max Size = "
+    %32  = LOAD 7 ; MAX_SIZE
+    %33  = INVOKEVIRTUAL %32, java/lang/Object.ToString()
+    %34  = CONCAT %31, %33
+    %37  = GETSTATIC java/lang/System.out
+            INVOKEVIRTUAL %37, java/io/PrintStream.println(%34)
+    %38  = SCONST "App Name = "
+    %39  = LOAD 8 ; APP_NAME
+    %40  = CONCAT %38, %39
+    %43  = GETSTATIC java/lang/System.out
+            INVOKEVIRTUAL %43, java/io/PrintStream.println(%40)
+    %44  = SCONST "Debug = "
+    %45  = LOAD 9 ; DEBUG
+    %46  = INVOKEVIRTUAL %45, java/lang/Object.ToString()
+    %47  = CONCAT %44, %46
+    %50  = GETSTATIC java/lang/System.out
+            INVOKEVIRTUAL %50, java/io/PrintStream.println(%47)
+    %51  = SCONST ""
+    %54  = GETSTATIC java/lang/System.out
+            INVOKEVIRTUAL %54, java/io/PrintStream.println(%51)
+    %55  = SCONST "=== Using Constants in Calculations ==="
+    %58  = GETSTATIC java/lang/System.out
+            INVOKEVIRTUAL %58, java/io/PrintStream.println(%55)
+            ; var radius
+    %59  = FCONST 5.0f
+            STORE 10, %59 ; radius
+            ; var circumference
+    %60  = ICONST 2
+    %61  = LOAD 1 ; PI
+    %62  = IMUL %60, %61
+    %63  = LOAD 10 ; radius
+    %64  = IMUL %62, %63
+            STORE 12, %64 ; circumference
+            ; var area
+    %65  = LOAD 1 ; PI
+    %66  = LOAD 10 ; radius
+    %67  = IMUL %65, %66
+    %68  = LOAD 10 ; radius
+    %69  = IMUL %67, %68
+            STORE 14, %69 ; area
+    %70  = SCONST "Circle with radius "
+    %71  = LOAD 10 ; radius
+    %72  = INVOKEVIRTUAL %71, java/lang/Object.ToString()
+    %73  = CONCAT %70, %72
+    %74  = SCONST ":"
+    %75  = CONCAT %73, %74
+    %78  = GETSTATIC java/lang/System.out
+            INVOKEVIRTUAL %78, java/io/PrintStream.println(%75)
+    %79  = SCONST "  Circumference = "
+    %80  = LOAD 12 ; circumference
+    %81  = INVOKEVIRTUAL %80, java/lang/Object.ToString()
+    %82  = CONCAT %79, %81
+    %85  = GETSTATIC java/lang/System.out
+            INVOKEVIRTUAL %85, java/io/PrintStream.println(%82)
+    %86  = SCONST "  Area = "
+    %87  = LOAD 14 ; area
+    %88  = INVOKEVIRTUAL %87, java/lang/Object.ToString()
+    %89  = CONCAT %86, %88
+    %92  = GETSTATIC java/lang/System.out
+            INVOKEVIRTUAL %92, java/io/PrintStream.println(%89)
+    %93  = SCONST ""
+    %96  = GETSTATIC java/lang/System.out
+            INVOKEVIRTUAL %96, java/io/PrintStream.println(%93)
+    %97  = SCONST "=== Class Constants ==="
+    %100 = GETSTATIC java/lang/System.out
+            INVOKEVIRTUAL %100, java/io/PrintStream.println(%97)
+    %101 = SCONST "Speed of Light: "
+            ; unresolved: Physics
+    %102 = NULL
+    %103 = GETFIELD %102, java/lang/Object.SPEED_OF_LIGHT
+    %104 = INVOKEVIRTUAL %103, java/lang/Object.ToString()
+    %105 = CONCAT %101, %104
+    %106 = SCONST " m/s"
+    %107 = CONCAT %105, %106
+    %110 = GETSTATIC java/lang/System.out
+            INVOKEVIRTUAL %110, java/io/PrintStream.println(%107)
+    %111 = SCONST "Gravity: "
+            ; unresolved: Physics
+    %112 = NULL
+    %113 = GETFIELD %112, java/lang/Object.GRAVITY
+    %114 = INVOKEVIRTUAL %113, java/lang/Object.ToString()
+    %115 = CONCAT %111, %114
+    %116 = SCONST " m/s^2"
+    %117 = CONCAT %115, %116
+    %120 = GETSTATIC java/lang/System.out
+            INVOKEVIRTUAL %120, java/io/PrintStream.println(%117)
+            ; var mass
+    %121 = FCONST 10.0f
+            STORE 16, %121 ; mass
+    %122 = SCONST "Weight of "
+    %123 = LOAD 16 ; mass
+    %124 = INVOKEVIRTUAL %123, java/lang/Object.ToString()
+    %125 = CONCAT %122, %124
+    %126 = SCONST " kg: "
+    %127 = CONCAT %125, %126
+            ; unresolved: Physics
+    %128 = NULL
+    %129 = LOAD 16 ; mass
+    %130 = INVOKEVIRTUAL %128, java/lang/Object.calculateWeight(%129)
+    %131 = INVOKEVIRTUAL %130, java/lang/Object.ToString()
+    %132 = CONCAT %127, %131
+    %133 = SCONST " N"
+    %134 = CONCAT %132, %133
+    %137 = GETSTATIC java/lang/System.out
+            INVOKEVIRTUAL %137, java/io/PrintStream.println(%134)
+    %138 = SCONST ""
+    %141 = GETSTATIC java/lang/System.out
+            INVOKEVIRTUAL %141, java/io/PrintStream.println(%138)
+    %142 = SCONST "=== Constants in Switch ==="
+    %145 = GETSTATIC java/lang/System.out
+            INVOKEVIRTUAL %145, java/io/PrintStream.println(%142)
+            ; var OPTION_A
+    %146 = ICONST 1
+            STORE 18, %146 ; OPTION_A
+            ; var OPTION_B
+    %147 = ICONST 2
+            STORE 19, %147 ; OPTION_B
+            ; var OPTION_C
+    %148 = ICONST 3
+            STORE 20, %148 ; OPTION_C
+            ; var selection
+    %149 = ICONST 2
+            STORE 21, %149 ; selection
+    %150 = LOAD 21 ; selection
+    %151 = LOAD 18 ; OPTION_A
+    %152 = ICMP_EQ %150, %151
+            IFFALSE %152, else_1
+  then_0:
+    %153 = SCONST "Selected Option A"
+    %156 = GETSTATIC java/lang/System.out
+            INVOKEVIRTUAL %156, java/io/PrintStream.println(%153)
+            GOTO endif_2
+  else_1:
+    %157 = LOAD 21 ; selection
+    %158 = LOAD 19 ; OPTION_B
+    %159 = ICMP_EQ %157, %158
+            IFFALSE %159, else_4
+  then_3:
+    %160 = SCONST "Selected Option B"
+    %163 = GETSTATIC java/lang/System.out
+            INVOKEVIRTUAL %163, java/io/PrintStream.println(%160)
+            GOTO endif_5
+  else_4:
+    %164 = LOAD 21 ; selection
+    %165 = LOAD 20 ; OPTION_C
+    %166 = ICMP_EQ %164, %165
+            IFFALSE %166, else_7
+  then_6:
+    %167 = SCONST "Selected Option C"
+    %170 = GETSTATIC java/lang/System.out
+            INVOKEVIRTUAL %170, java/io/PrintStream.println(%167)
+            GOTO endif_8
+  else_7:
+    %171 = SCONST "Unknown option"
+    %174 = GETSTATIC java/lang/System.out
+            INVOKEVIRTUAL %174, java/io/PrintStream.println(%171)
+            GOTO endif_8
+  endif_8:
+            GOTO endif_5
+  endif_5:
+            GOTO endif_2
+  endif_2:
+    %175 = SCONST ""
+    %178 = GETSTATIC java/lang/System.out
+            INVOKEVIRTUAL %178, java/io/PrintStream.println(%175)
+    %179 = SCONST "=== String Constants ==="
+    %182 = GETSTATIC java/lang/System.out
+            INVOKEVIRTUAL %182, java/io/PrintStream.println(%179)
+            ; var GREETING
+    %183 = SCONST "Welcome to "
+            STORE 22, %183 ; GREETING
+            ; var FAREWELL
+    %184 = SCONST "Goodbye from "
+            STORE 23, %184 ; FAREWELL
+    %185 = LOAD 22 ; GREETING
+    %186 = LOAD 8 ; APP_NAME
+    %187 = IADD %185, %186
+    %190 = GETSTATIC java/lang/System.out
+            INVOKEVIRTUAL %190, java/io/PrintStream.println(%187)
+    %191 = LOAD 23 ; FAREWELL
+    %192 = LOAD 8 ; APP_NAME
+    %193 = IADD %191, %192
+    %196 = GETSTATIC java/lang/System.out
+            INVOKEVIRTUAL %196, java/io/PrintStream.println(%193)
+    %197 = SCONST ""
+    %200 = GETSTATIC java/lang/System.out
+            INVOKEVIRTUAL %200, java/io/PrintStream.println(%197)
+    %201 = SCONST "=== Debug Constants ==="
+    %204 = GETSTATIC java/lang/System.out
+            INVOKEVIRTUAL %204, java/io/PrintStream.println(%201)
+    %205 = LOAD 9 ; DEBUG
+            IFFALSE %205, else_10
+  then_9:
+    %206 = SCONST "[DEBUG] Debugging is enabled"
+    %209 = GETSTATIC java/lang/System.out
+            INVOKEVIRTUAL %209, java/io/PrintStream.println(%206)
+    %210 = SCONST "[DEBUG] Max size configured: "
+    %211 = LOAD 7 ; MAX_SIZE
+    %212 = INVOKEVIRTUAL %211, java/lang/Object.ToString()
+    %213 = CONCAT %210, %212
+    %216 = GETSTATIC java/lang/System.out
+            INVOKEVIRTUAL %216, java/io/PrintStream.println(%213)
+            GOTO endif_11
+  else_10:
+            GOTO endif_11
+  endif_11:
+    %217 = SCONST ""
+    %220 = GETSTATIC java/lang/System.out
+            INVOKEVIRTUAL %220, java/io/PrintStream.println(%217)
+    %221 = SCONST "All constant tests complete!"
+    %224 = GETSTATIC java/lang/System.out
+            INVOKEVIRTUAL %224, java/io/PrintStream.println(%221)
+            RETURN
+end function
+

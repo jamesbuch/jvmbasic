@@ -1,0 +1,8 @@
+CompilationUnit(hello_console)
+  Statements:
+    Console.WriteLine("Hello, World!")
+    var x: Primitive[kind=INT] = 5
+    var y: Primitive[kind=INT] = 10
+    var z: Primitive[kind=INT] = (x ADD y)
+    Console.WriteLine("Sum is:")
+    Console.WriteLine(z)

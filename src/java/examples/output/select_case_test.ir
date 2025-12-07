@@ -1,0 +1,15 @@
+CompilationUnit(select_case_test)
+  Statements:
+    Console.WriteLine("Integer Select Case test:")
+    var num: Primitive[kind=INT] = 3
+    if ((num EQ 1)) { ... }
+    Console.WriteLine("Multiple values test:")
+    var grade: Primitive[kind=INT] = 85
+    if (((((grade EQ 90) OR (grade EQ 91)) OR (grade EQ 92)) OR (grade EQ 93))) { ... }
+    Console.WriteLine("String Select Case test:")
+    var color: Reference[name=java.lang.String] = "red"
+    if ((color EQ "red")) { ... }
+    Console.WriteLine("Case Else test:")
+    var x: Primitive[kind=INT] = 99
+    if ((x EQ 1)) { ... }
+    Console.WriteLine("All Select Case tests passed!")

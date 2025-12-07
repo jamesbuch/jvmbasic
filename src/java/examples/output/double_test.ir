@@ -1,0 +1,21 @@
+CompilationUnit(double_test)
+  Statements:
+    var pi: Primitive[kind=DOUBLE] = 3.14159
+    var radius: Primitive[kind=DOUBLE] = 2.5
+    var area: Primitive[kind=DOUBLE] = ((pi MUL radius) MUL radius)
+    Console.WriteLine("Pi = ")
+    Console.WriteLine(pi)
+    Console.WriteLine("Radius = ")
+    Console.WriteLine(radius)
+    Console.WriteLine("Area = ")
+    Console.WriteLine(area)
+    var a: Primitive[kind=DOUBLE] = 10.5
+    var b: Primitive[kind=DOUBLE] = 3.2
+    Console.WriteLine("a + b = ")
+    Console.WriteLine((a ADD b))
+    Console.WriteLine("a - b = ")
+    Console.WriteLine((a SUB b))
+    Console.WriteLine("a * b = ")
+    Console.WriteLine((a MUL b))
+    Console.WriteLine("a / b = ")
+    Console.WriteLine((a DIV b))
