@@ -2,9 +2,28 @@
 
 This document provides context for Claude when working on the JVM BASIC 2.0 compiler.
 
+## ⚠️ CRITICAL: Avoid Confusion with Legacy JVM Basic 1.0
+
+There are TWO implementations in this repository:
+
+| Aspect | JVM BASIC 2.0 (ACTIVE) | Legacy JVM Basic 1.0 (IGNORE) |
+|--------|------------------------|-------------------------------|
+| Location | `src/java/` | Root directory (*.cpp, *.h) |
+| Language | Java | C++ |
+| Build | `./gradlew build` | `make` or `./rebuild.sh` |
+| Examples | `src/java/examples/*.jvmb` | `examples/*.bas` |
+| Binary | JAR file | `./jvmbasic` executable |
+| Web server | NOT YET IMPLEMENTED | TaskApp (Jetty on port 8080) |
+
+**DO NOT:**
+- Confuse legacy `.bas` files with new `.jvmb` files
+- Try to run legacy TaskApp (uses port 8080) - kill with `fuser -k 8080/tcp`
+- Modify C++ files unless explicitly asked
+- The legacy files will be moved to `legacy-jvm-basic/` directory soon
+
 ## Current Focus: JVM BASIC 2.0 (Java/ANTLR)
 
-We are actively developing **JVM BASIC 2.0**, a complete rewrite of the BASIC compiler in Java using ANTLR4 and ASM for bytecode generation. **Ignore the legacy C++ compiler** (the `jvmbasic` binary in the root directory and related C++ source files).
+We are actively developing **JVM BASIC 2.0**, a complete rewrite of the BASIC compiler in Java using ANTLR4 and ASM for bytecode generation.
 
 ## Project Structure
 
@@ -15,8 +34,8 @@ We are actively developing **JVM BASIC 2.0**, a complete rewrite of the BASIC co
 │   │   ├── grammar/             # ANTLR grammar files
 │   │   │   ├── JvmBasicLexer.g4
 │   │   │   └── JvmBasicParser.g4
-│   │   ├── ir/                  # Tree-based IR (debugging only)
-│   │   ├── sir/                 # Stack-based IR (debugging only)
+│   │   ├── ir/                  # Tree-based IR (debugging/future optimization)
+│   │   ├── sir/                 # Stack-based IR / SSA-style IR (future codegen)
 │   │   ├── visitor/             # ANTLR visitors for code generation
 │   │   │   ├── CompilerVisitor.java  # BYTECODE GENERATION (ASM)
 │   │   │   ├── SymbolCollector.java  # Pass 1: symbol table
@@ -24,6 +43,7 @@ We are actively developing **JVM BASIC 2.0**, a complete rewrite of the BASIC co
 │   │   └── Main.java            # Entry point
 │   ├── examples/                # Example .jvmb programs
 │   ├── build.gradle.kts         # Gradle build file
+│   ├── test-examples.sh         # TEST SCRIPT - RUN BEFORE COMMITS
 │   └── gradlew                  # Gradle wrapper
 │
 ├── docs/
@@ -38,7 +58,7 @@ We are actively developing **JVM BASIC 2.0**, a complete rewrite of the BASIC co
 ├── basicrt/                     # Runtime library (BasicRuntime.class)
 ├── lib/                         # Dependencies (ANTLR, ASM JARs)
 │
-└── [C++ files]                  # LEGACY - ignore these
+└── [C++ files]                  # LEGACY - will be moved to legacy-jvm-basic/
 ```
 
 ## Building and Running
@@ -53,19 +73,17 @@ cd /home/james/development/jvmbasic/src/java
 # Compile a BASIC program
 java -jar build/libs/jvmbasic-compiler-2.0.0-SNAPSHOT.jar examples/demo.jvmb
 
-# Run the compiled class
-java demo
+# Run the compiled class (may need runtime for Str functions)
+java -cp .:../../basicrt demo
 
 # Debug: show parse tree
 java -jar build/libs/jvmbasic-compiler-2.0.0-SNAPSHOT.jar -tree -parse-only examples/demo.jvmb
 
-# Debug: show IR (for visualization only)
+# Debug: show IR and sIR (SSA-style IR)
 java -jar build/libs/jvmbasic-compiler-2.0.0-SNAPSHOT.jar -ir -sir -parse-only examples/demo.jvmb
 ```
 
-## Architecture: How Code Generation Works
-
-### IMPORTANT: We use VISITOR-based codegen, NOT IR-based
+## Architecture: Compilation Pipeline
 
 ```
 Source Code (.jvmb)
@@ -76,18 +94,33 @@ Source Code (.jvmb)
        ▼
    Parse Tree (CST)
        │
-       ├─────────────────────────────────────────┐
-       │                                         │
-       ▼                                         ▼
- CompilerVisitor ◄── ACTUAL CODEGEN        IR (debug only)
- (uses ASM)                                      │
-       │                                    NOT USED
-       ▼                                    for codegen
-   .class file
+       ├──────────────────────────────────────────────────────┐
+       │                                                      │
+       ▼                                                      ▼
+ SymbolCollector (Pass 1)                              IR Generation
+ - Collects variable declarations                      - Tree IR (visualization)
+ - Collects function/sub signatures                    - sIR (SSA-style, future codegen)
+ - Collects class definitions                               │
+       │                                               NOT YET USED
+       ▼                                               for codegen
+ Semantic Analysis                                          │
+ - Type checking                                       [FUTURE: Optimization]
+ - Symbol resolution                                        │
+       │                                               [FUTURE: sIR-based codegen]
+       ▼
+ CompilerVisitor (Pass 2) ◄── CURRENT BYTECODE GENERATION
+ - Walks parse tree
+ - Emits JVM bytecode via ASM
+       │
+       ▼
+   .class file(s)
 ```
 
-The `CompilerVisitor` walks the ANTLR parse tree and emits JVM bytecode using ASM.
-The IR (Tree IR and Stack IR) are for **debugging/visualization only** - they are not used in code generation.
+### Current Status of IR Pipeline
+- **IR Generation**: Outputs tree-based IR for debugging (`-ir` flag)
+- **sIR Generation**: Outputs SSA-style stack IR for debugging (`-sir` flag)
+- **Lowering**: sIR is generated but NOT YET used for code generation
+- **Future**: Move code generation entirely to sIR for optimization passes
 
 ### Key Files for Code Generation
 
@@ -96,11 +129,6 @@ The IR (Tree IR and Stack IR) are for **debugging/visualization only** - they ar
 | `CompilerVisitor.java` | Generates bytecode from parse tree |
 | `SymbolCollector.java` | Pass 1: collects variable/function declarations |
 | `Main.java` | Orchestrates parsing and compilation |
-
-### See Also
-
-For detailed code generation examples with ASM bytecode, see:
-**`docs/jvmbasic-2.0/CODEGEN.md`**
 
 ## What's Working Now
 
@@ -124,24 +152,77 @@ For detailed code generation examples with ASM bytecode, see:
 | While loops | `while x < 10 ... end while` | ✅ |
 | Do loops | All variants (while/until, pre/post) | ✅ |
 | Arrays | `new Integer[5]`, `arr[0] = 10` | ✅ |
-| Functions | `function add(a as Integer, b as Integer) as Integer` | ✅ |
+| Functions | With parameters and return values | ✅ |
 | Subroutines | `sub greet(name as String)` | ✅ |
+| String interpolation | `$"Hello {name}!"` | ✅ |
+| Exit/Continue | `exit for`, `continue while` | ✅ |
+| Select Case | Multi-value cases, Case Else | ✅ |
+| Math namespace | `Math.Sqrt()`, `Math.Sin()`, etc. | ✅ |
+| Str namespace | `Str.ToUpper()`, `Str.Length()`, etc. | ✅ |
+| **OOP Classes** | Class, constructor, instance methods | ✅ |
+| **OOP Fields** | `this.fieldName` access and assignment | ✅ |
+
+## OOP Support (Recently Added)
+
+Classes with constructors, fields, and methods are now supported:
+
+```basic
+class Counter
+    public var count as Integer
+
+    public sub New(initial as Integer)
+        this.count = initial
+    end sub
+
+    public sub Increment()
+        this.count = this.count + 1
+    end sub
+
+    public function GetValue() as Integer
+        return this.count
+    end function
+end class
+
+var c as Counter = new Counter(10)
+c.Increment()
+Console.WriteLine(c.GetValue())  ' Outputs: 11
+```
+
+### Known OOP Limitations
+- Local variables in class methods must be declared before use in loops
+- Some complex control flow in methods may cause bytecode verification issues
+
+## Known Compiler Limitations (To Fix)
+
+These are bugs/limitations that need to be addressed:
+
+| Issue | Description | Workaround | Fix Priority |
+|-------|-------------|------------|--------------|
+| String `+` operator | `+` for string concatenation with integers generates `iadd` instead of concat | Use `&` operator or string interpolation `$"..."` | High |
+| Reserved word variables | Variables like `next` conflict with FOR loop keyword; semantic analysis should catch this | Avoid reserved words (`next`, `step`, `to`, `then`, etc.) | High |
+| FOR in functions | FOR loops inside functions may have variable scoping issues | Declare loop variables explicitly before the FOR loop | Medium |
+| Array params in subs | Some complex patterns with subs that have array parameters cause compilation issues | Simplify parameter patterns | Medium |
+
+**Note**: The semantic analysis phase should detect reserved word usage and report an error - this is a bug to fix.
 
 ## What's NOT Yet Implemented
 
-| Feature | Priority |
-|---------|----------|
-| String interpolation | High |
-| Exit/Continue statements | High |
-| Select Case | High |
-| Standard library (File, Math, etc.) | High |
-| Classes | Medium |
-| Modules/Imports | Medium |
-| Generics | Low |
+| Feature | Priority | Notes |
+|---------|----------|-------|
+| Inheritance | High | `extends`, `super` |
+| Interfaces | Medium | `implements` |
+| Http namespace | High | REST client |
+| Json namespace | High | JSON parsing |
+| Db namespace | High | Database access |
+| Crypto namespace | Medium | SHA, AES, Base64 |
+| Xml namespace | Medium | XML parsing |
+| Jetty integration | Medium | Web server |
+| Guava utilities | Low | Collections, I/O |
+| Apache Commons | Low | Additional utilities |
 
-## Future: IR-Based Code Generation
+## Future: sIR-Based Code Generation
 
-The Stack IR is designed to eventually be used for code generation:
+The Stack IR (sIR) is designed to eventually replace visitor-based codegen:
 
 ```
 Stack IR:                    JVM Bytecode:
@@ -151,50 +232,63 @@ Stack IR:                    JVM Bytecode:
 ISTORE local_0, %2     →     ISTORE 1
 ```
 
-Benefits of IR-based codegen (future work):
-- Optimization passes (constant folding, dead code)
+Benefits of sIR-based codegen (future work):
+- Optimization passes (constant folding, dead code elimination)
 - Better register allocation
-- Multiple backends
+- Multiple backends (JVM, native, LLVM)
 
-## Testing Requirements
+## MANDATORY: Testing and Commit Requirements
 
-### MANDATORY: Run Tests Before Every Commit
+### Before EVERY Commit
 
-Before committing any changes to the JVM BASIC 2.0 compiler, you MUST:
-
-1. Run the test suite:
+1. **Run the test suite**:
    ```bash
    cd /home/james/development/jvmbasic/src/java
    ./test-examples.sh
    ```
 
-2. All tests must pass before committing. If any test fails:
-   - Fix the issue before committing
-   - Never commit code that breaks existing tests
-   - The main branch must always have passing tests
+2. **All tests MUST pass** before committing
 
-### Test Suite
+3. **All example programs MUST compile and run correctly**
+
+4. **Never push code that breaks tests to main branch**
+
+### Test Suite Examples
 
 The test script `src/java/test-examples.sh` tests these example programs:
 - `hello.jvmb` - Basic hello world
-- `demo.jvmb` - Comprehensive demo of all features
-- `array_test.jvmb` - Array creation and access
-- `foreach_test.jvmb` - For Each loops
-- `function_test.jvmb` - User-defined functions
-- `do_loop_test.jvmb` - All Do loop variants
-- `simple_for.jvmb` - For loops with STEP
-- `simple_while.jvmb` - While loops
-- `simple_if.jvmb` - If/Then/Else
-- `float_long_test.jvmb` - Float and Long types
-- `double_test.jvmb` - Double type
+- `demo.jvmb` - Comprehensive demo
+- `class_test.jvmb` - OOP classes
+- `calculator.jvmb` - Math functions demo
+- `algo_fibonacci.jvmb` - Fibonacci algorithm
+- `oop_shapes.jvmb` - Point and Rectangle classes
+- `oop_linked_list.jvmb` - Node class demonstration
+- And many more...
 
 ### Adding New Tests
 
 When adding a new feature:
-1. Create a test example in `examples/` (e.g., `new_feature_test.jvmb`)
+1. Create a test example in `src/java/examples/` (e.g., `new_feature_test.jvmb`)
 2. Add it to the TESTS array in `test-examples.sh`
 3. Run `./test-examples.sh` to verify it works
 4. Commit both the feature and the test
+
+## Development Roadmap
+
+### Next Steps (In Order)
+1. **More OOP Testing**: Inheritance, complex method interactions
+2. **Standard Library Expansion**:
+   - Http namespace (REST client)
+   - Json namespace (parsing/serialization)
+   - Db namespace (database connectivity)
+   - Crypto namespace (SHA, AES, Base64)
+   - Xml namespace
+3. **Jetty Integration**: Web server support
+4. **Third-party Libraries**:
+   - Guava utilities
+   - Apache Commons integration
+   - Java SE library wrapping
+5. **sIR-Based Codegen**: Move from visitor-based to IR-based generation
 
 ## Important Rules
 
@@ -204,3 +298,36 @@ When adding a new feature:
 4. **UPDATE** `CODEGEN.md` when adding new code generation features
 5. **ALWAYS** run `./test-examples.sh` before committing
 6. **NEVER** push code that breaks tests to main branch
+7. **KILL** stale legacy processes: `fuser -k 8080/tcp` if TaskApp is running
+8. **USE** `src/java/examples/*.jvmb` NOT `examples/*.bas` (legacy)
+
+## Continuation Notes (for Auto-Compact)
+
+### Session Progress
+- Fixed OOP bytecode generation for field access and instance methods
+- Added 4 working example programs: calculator, algo_fibonacci, oop_shapes, oop_linked_list
+- Identified compiler limitations with certain constructs
+
+### Key Directories for JVM BASIC 2.0
+- Source: `src/java/com/jvmbasic/`
+- Grammar: `src/java/com/jvmbasic/grammar/`
+- Visitors: `src/java/com/jvmbasic/visitor/`
+- Examples: `src/java/examples/*.jvmb`
+- Tests: `src/java/test-examples.sh`
+- Build: `src/java/build/libs/jvmbasic-compiler-2.0.0-SNAPSHOT.jar`
+
+### Build and Test Commands
+```bash
+cd /home/james/development/jvmbasic/src/java
+./gradlew build
+./test-examples.sh
+java -jar build/libs/jvmbasic-compiler-2.0.0-SNAPSHOT.jar examples/FILE.jvmb
+java -cp .:../../basicrt CLASSNAME
+```
+
+### Next Tasks
+1. Test more OOP functionality (inheritance, interfaces)
+2. Expand standard library (Http, Json, Db, Crypto, Xml)
+3. Add Jetty web server integration
+4. Explore Java SE library integration
+5. Move legacy files to `legacy-jvm-basic/` directory
