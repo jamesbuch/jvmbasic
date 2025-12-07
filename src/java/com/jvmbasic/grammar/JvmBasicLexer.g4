@@ -299,8 +299,19 @@ fragment INTERPOLATED_CHAR
     | '$$'  // Escaped dollar sign
     ;
 
+// Interpolation expressions can contain:
+// - Regular characters except } and "
+// - String literals (with their own escapes)
+// - Nested braces for method calls like {obj.method()}
 fragment INTERPOLATION
-    : '{' ~[}]* '}'
+    : '{' INTERPOLATION_CONTENT* '}'
+    ;
+
+fragment INTERPOLATION_CONTENT
+    : ~[{}"\\]                              // Regular chars except braces, quotes, backslash
+    | '"' STRING_CHAR* '"'                  // Embedded string literals
+    | '\\' .                                // Escape sequences
+    | '{' INTERPOLATION_CONTENT* '}'        // Nested braces
     ;
 
 // Escape sequences

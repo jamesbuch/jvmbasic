@@ -1181,17 +1181,13 @@ public class IRBuilder extends JvmBasicParserBaseVisitor<Object> {
                     parts.add(new IRStringLiteral(literal.toString(), line, column));
                     literal.setLength(0);
                 }
-                // Find matching closing brace
-                int braceCount = 1;
-                int start = i + 1;
-                i++;
-                while (i < content.length() && braceCount > 0) {
-                    if (content.charAt(i) == '{') braceCount++;
-                    else if (content.charAt(i) == '}') braceCount--;
-                    if (braceCount > 0) i++;
+                // Find matching closing brace (handles nested braces and embedded strings)
+                int closeBrace = findMatchingCloseBrace(content, i);
+                if (closeBrace == -1) {
+                    throw new RuntimeException("Unclosed interpolation in string at line " + line);
                 }
-                String exprText = content.substring(start, i);
-                i++; // Skip closing brace
+                String exprText = content.substring(i + 1, closeBrace);
+                i = closeBrace + 1; // Skip closing brace
 
                 // Parse the expression using ANTLR
                 IRExpression exprNode = parseInterpolationExpression(exprText.trim(), line, column);
@@ -1230,11 +1226,68 @@ public class IRBuilder extends JvmBasicParserBaseVisitor<Object> {
     }
 
     /**
+     * Find the matching close brace for an interpolation expression.
+     * Handles nested braces and string literals that may contain braces.
+     *
+     * @param content The string content
+     * @param openBrace The position of the opening brace
+     * @return The position of the matching close brace, or -1 if not found
+     */
+    private int findMatchingCloseBrace(String content, int openBrace) {
+        int depth = 1;
+        int i = openBrace + 1;
+
+        while (i < content.length() && depth > 0) {
+            char c = content.charAt(i);
+
+            if (c == '"') {
+                // Inside a string literal - skip to the end of the string
+                i++;
+                while (i < content.length()) {
+                    char sc = content.charAt(i);
+                    if (sc == '\\' && i + 1 < content.length()) {
+                        // Skip escape sequence (e.g., \", \\)
+                        i += 2;
+                    } else if (sc == '"') {
+                        // End of string literal
+                        i++;
+                        break;
+                    } else {
+                        i++;
+                    }
+                }
+            } else if (c == '\\' && i + 1 < content.length()) {
+                // Skip escape sequence outside string
+                i += 2;
+            } else if (c == '{') {
+                depth++;
+                i++;
+            } else if (c == '}') {
+                depth--;
+                if (depth == 0) {
+                    return i;
+                }
+                i++;
+            } else {
+                i++;
+            }
+        }
+
+        return -1; // No matching brace found
+    }
+
+    /**
      * Parse an expression from string interpolation using ANTLR.
      * This allows complex expressions like Str.ToUpper(name) or Math.Sqrt(count).
      */
     private IRExpression parseInterpolationExpression(String exprText, int line, int column) {
         try {
+            // Convert escaped quotes \" to regular quotes "
+            // Inside an interpolation like $"test {Json.Get(arr, \"1\")}",
+            // the user writes \" to include a quote, but when we parse the
+            // expression standalone, these should be regular string delimiters
+            exprText = exprText.replace("\\\"", "\"");
+
             // Create ANTLR lexer and parser for the expression
             var input = CharStreams.fromString(exprText);
             var lexer = new JvmBasicLexer(input);

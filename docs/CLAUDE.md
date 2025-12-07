@@ -194,9 +194,6 @@ Console.WriteLine(c.GetValue())  ' Outputs: 11
 - Local variables in class methods must be declared before use in loops
 - Some complex control flow in methods may cause bytecode verification issues
 
-### Known Compiler Bugs (To Investigate)
-- **Deeply nested if blocks**: Multiple levels of nested if/elseif/else blocks may cause bytecode generation issues. Workaround: simplify nesting structure by using early returns or restructuring control flow.
-
 ## Known Compiler Limitations (To Fix)
 
 **All critical limitations have been fixed!** The following issues were resolved:
@@ -360,7 +357,7 @@ java -cp ".:lib/*" CLASSNAME
 
 ### Next Tasks
 1. Test more OOP functionality (inheritance, interfaces)
-2. Investigate deeply nested if block compiler bug
+2. Add Math.BigInteger and Math.Decimal support
 3. Add Crypto namespace (SHA, AES, Base64)
 4. Add Xml namespace
 5. Add Jetty web server integration

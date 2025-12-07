@@ -3614,6 +3614,7 @@ public class CompilerVisitor extends JvmBasicParserBaseVisitor<Object> {
             .replace("\\t", "\t")
             .replace("\\r", "\r")
             .replace("\\\"", "\"")
+            .replace("\\'", "'")
             .replace("\\\\", "\\");
     }
 
@@ -3727,8 +3728,8 @@ public class CompilerVisitor extends JvmBasicParserBaseVisitor<Object> {
                     literalPart.setLength(0);
                 }
 
-                // Find the closing brace
-                int closeBrace = content.indexOf('}', i);
+                // Find the closing brace (handling nested braces and string literals)
+                int closeBrace = findMatchingCloseBrace(content, i);
                 if (closeBrace == -1) {
                     throw new RuntimeException("Unclosed interpolation in string: missing '}'");
                 }
@@ -3784,7 +3785,59 @@ public class CompilerVisitor extends JvmBasicParserBaseVisitor<Object> {
             .replace("\\t", "\t")
             .replace("\\r", "\r")
             .replace("\\\"", "\"")
+            .replace("\\'", "'")
             .replace("\\\\", "\\");
+    }
+
+    /**
+     * Find the matching close brace for an interpolation expression.
+     * Handles nested braces and string literals that may contain braces.
+     *
+     * @param content The string content
+     * @param openBrace The position of the opening brace
+     * @return The position of the matching close brace, or -1 if not found
+     */
+    private int findMatchingCloseBrace(String content, int openBrace) {
+        int depth = 1;
+        int i = openBrace + 1;
+
+        while (i < content.length() && depth > 0) {
+            char c = content.charAt(i);
+
+            if (c == '"') {
+                // Inside a string literal - skip to the end of the string
+                i++;
+                while (i < content.length()) {
+                    char sc = content.charAt(i);
+                    if (sc == '\\' && i + 1 < content.length()) {
+                        // Skip escape sequence
+                        i += 2;
+                    } else if (sc == '"') {
+                        // End of string literal
+                        i++;
+                        break;
+                    } else {
+                        i++;
+                    }
+                }
+            } else if (c == '\\' && i + 1 < content.length()) {
+                // Skip escape sequence
+                i += 2;
+            } else if (c == '{') {
+                depth++;
+                i++;
+            } else if (c == '}') {
+                depth--;
+                if (depth == 0) {
+                    return i;
+                }
+                i++;
+            } else {
+                i++;
+            }
+        }
+
+        return -1; // No matching brace found
     }
 
     /**
@@ -3800,6 +3853,12 @@ public class CompilerVisitor extends JvmBasicParserBaseVisitor<Object> {
      */
     private void compileInterpolationExpression(String exprText) {
         try {
+            // Convert escaped quotes \" to regular quotes "
+            // Inside an interpolation like $"test {Json.Get(arr, \"1\")}",
+            // the user writes \" to include a quote, but when we parse the
+            // expression standalone, these should be regular string delimiters
+            exprText = exprText.replace("\\\"", "\"");
+
             // Re-parse the expression using ANTLR
             org.antlr.v4.runtime.CharStream input = org.antlr.v4.runtime.CharStreams.fromString(exprText);
             JvmBasicLexer lexer = new JvmBasicLexer(input);
