@@ -677,25 +677,31 @@ Similar process, but add to `ir/expr/` and the expression rules in the grammar.
 ### Testing a Change
 
 ```bash
+# From project root:
+JAR=src/java/build/libs/jvmbasic-compiler-2.0.0-SNAPSHOT.jar
+
 # Compile and test with IR output
-java -jar build/libs/jvmbasic-compiler-2.0.0-SNAPSHOT.jar -ir -parse-only examples/hello.jvmb
+java -jar $JAR -ir -parse-only examples/hello.jvmb
 
 # Full compile and run
-java -jar build/libs/jvmbasic-compiler-2.0.0-SNAPSHOT.jar examples/hello.jvmb
+java -jar $JAR examples/hello.jvmb
 java hello
+
+# Run full test suite
+./test-examples.sh
 ```
 
 ### Debug Output
 
 ```bash
 # Show parse tree
-java -jar ... -tree examples/hello.jvmb
+java -jar $JAR -tree examples/hello.jvmb
 
 # Show token stream
-java -jar ... -tokens examples/hello.jvmb
+java -jar $JAR -tokens examples/hello.jvmb
 
 # Full debug
-java -jar ... -d examples/hello.jvmb
+java -jar $JAR -d examples/hello.jvmb
 ```
 
 ---

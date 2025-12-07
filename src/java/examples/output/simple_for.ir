@@ -1,5 +1,0 @@
-CompilationUnit(simple_for)
-  Statements:
-    Console.WriteLine("Counting 1 to 5:")
-    for i = 1 to 5 { ... }
-    Console.WriteLine("Done!")

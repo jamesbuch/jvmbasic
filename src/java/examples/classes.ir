@@ -1,6 +1,0 @@
-Compiling: examples/classes.jvmb -> classes.jvmb.class
-line 237:18 token recognition error at: '$"Annual salary: ${'
-examples/classes.jvmb:237:58: error: no viable alternative at input '(emp.getAnnualSalary()}'
-line 237:59 token recognition error at: '")\n'
-examples/classes.jvmb:237:58: error: mismatched input '}' expecting {AND, OR, XOR, MOD, '+', '-', '*', '/', '\', '^', '=', '<>', '<', '>', '<=', '>=', '&', '|', '<<', '>>', '?', '(', ')', '[', '.'}
-Compilation failed with 2 syntax error(s)

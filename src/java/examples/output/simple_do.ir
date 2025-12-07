@@ -1,5 +1,0 @@
-CompilationUnit(simple_do)
-  Statements:
-    var i: Primitive[kind=INT] = 1
-    while ((i LE 3)) { ... }
-    Console.WriteLine("Done!")

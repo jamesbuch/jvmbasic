@@ -1,6 +1,0 @@
-CompilationUnit(hello)
-  Statements:
-    var message: Reference[name=java.lang.String] = "Hello, World!"
-    var count: Primitive[kind=INT] = 5
-    for i = 1 to count { ... }
-    Console.WriteLine("Done!")

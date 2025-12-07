@@ -7,7 +7,10 @@ set -e  # Exit on first error
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$SCRIPT_DIR"
 
-JAR="build/libs/jvmbasic-compiler-2.0.0-SNAPSHOT.jar"
+# Paths
+COMPILER_DIR="src/java"
+JAR="$COMPILER_DIR/build/libs/jvmbasic-compiler-2.0.0-SNAPSHOT.jar"
+EXAMPLES_DIR="examples"
 
 # Colors for output
 RED='\033[0;31m'
@@ -27,7 +30,7 @@ echo ""
 
 # Build first
 echo -n "Building compiler... "
-if ./gradlew build -q 2>/dev/null; then
+if (cd "$COMPILER_DIR" && ./gradlew build -q 2>/dev/null); then
     echo -e "${GREEN}OK${NC}"
 else
     echo -e "${RED}FAILED${NC}"
@@ -69,7 +72,7 @@ TESTS=(
 for test in "${TESTS[@]}"; do
     IFS=':' read -r source classname <<< "$test"
 
-    if [ ! -f "examples/$source" ]; then
+    if [ ! -f "$EXAMPLES_DIR/$source" ]; then
         echo -e "  ${YELLOW}SKIP${NC} $source (file not found)"
         continue
     fi
@@ -77,7 +80,7 @@ for test in "${TESTS[@]}"; do
     echo -n "  Testing $source... "
 
     # Compile
-    if ! java -jar "$JAR" "examples/$source" 2>/dev/null; then
+    if ! java -jar "$JAR" "$EXAMPLES_DIR/$source" 2>/dev/null; then
         echo -e "${RED}COMPILE FAILED${NC}"
         FAILED=$((FAILED + 1))
         FAILED_TESTS="$FAILED_TESTS $source(compile)"

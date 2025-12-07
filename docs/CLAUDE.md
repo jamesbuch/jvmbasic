@@ -2,13 +2,11 @@
 
 This document provides context for Claude when working on the JVM BASIC 2.0 compiler.
 
-## Project Structure (Reorganized)
-
-The repository has been reorganized to cleanly separate JVM BASIC 2.0 from the legacy C++ implementation:
+## Project Structure
 
 ```
 /home/james/development/jvmbasic/
-├── src/java/                    # JVM BASIC 2.0 compiler (ACTIVE)
+├── src/java/                    # JVM BASIC 2.0 compiler source
 │   ├── com/jvmbasic/
 │   │   ├── grammar/             # ANTLR grammar files
 │   │   │   ├── JvmBasicLexer.g4
@@ -20,10 +18,12 @@ The repository has been reorganized to cleanly separate JVM BASIC 2.0 from the l
 │   │   │   ├── SymbolCollector.java  # Pass 1: symbol table + scoping
 │   │   │   └── DebugListener.java    # Debug output
 │   │   └── Main.java            # Entry point
-│   ├── examples/                # Example .jvmb programs (TO BE MOVED)
 │   ├── build.gradle.kts         # Gradle build file
-│   ├── test-examples.sh         # TEST SCRIPT - RUN BEFORE COMMITS
 │   └── gradlew                  # Gradle wrapper
+│
+├── examples/                    # JVM BASIC 2.0 example programs (*.jvmb)
+├── tests/                       # JVM BASIC 2.0 tests (future)
+├── test-examples.sh             # TEST SCRIPT - RUN BEFORE COMMITS
 │
 ├── docs/                        # JVM BASIC 2.0 documentation
 │   ├── CLAUDE.md                # THIS FILE - Claude context
@@ -32,9 +32,6 @@ The repository has been reorganized to cleanly separate JVM BASIC 2.0 from the l
 │       ├── DEVELOPER_GUIDE.md   # Architecture, adding features
 │       ├── USER_GUIDE.md        # Language reference
 │       └── IR_TO_BYTECODE.md    # IR to bytecode mapping (future)
-│
-├── examples/                    # JVM BASIC 2.0 examples (TO BE POPULATED)
-├── tests/                       # JVM BASIC 2.0 tests (TO BE POPULATED)
 │
 ├── lib/                         # Dependencies (ANTLR, ASM JARs)
 │
@@ -56,23 +53,25 @@ We are actively developing **JVM BASIC 2.0**, a complete rewrite of the BASIC co
 ## Building and Running
 
 ```bash
-# ALWAYS work from src/java directory:
-cd /home/james/development/jvmbasic/src/java
+# From project root directory:
 
 # Build the compiler
-./gradlew build
+cd src/java && ./gradlew build && cd ../..
 
 # Compile a BASIC program
-java -jar build/libs/jvmbasic-compiler-2.0.0-SNAPSHOT.jar examples/demo.jvmb
+java -jar src/java/build/libs/jvmbasic-compiler-2.0.0-SNAPSHOT.jar examples/demo.jvmb
 
-# Run the compiled class (may need runtime for Str functions)
-java -cp .:../../basicrt demo
+# Run the compiled class
+java demo
+
+# Run the test suite (from project root)
+./test-examples.sh
 
 # Debug: show parse tree
-java -jar build/libs/jvmbasic-compiler-2.0.0-SNAPSHOT.jar -tree -parse-only examples/demo.jvmb
+java -jar src/java/build/libs/jvmbasic-compiler-2.0.0-SNAPSHOT.jar -tree -parse-only examples/demo.jvmb
 
 # Debug: show IR and sIR (SSA-style IR)
-java -jar build/libs/jvmbasic-compiler-2.0.0-SNAPSHOT.jar -ir -sir -parse-only examples/demo.jvmb
+java -jar src/java/build/libs/jvmbasic-compiler-2.0.0-SNAPSHOT.jar -ir -sir -parse-only examples/demo.jvmb
 ```
 
 ## Architecture: Compilation Pipeline
@@ -220,7 +219,7 @@ next j
 ```
 
 ### Testing
-New test files were added to verify these fixes:
+Test files in `examples/` verify these fixes:
 - `string_plus_test.jvmb` - Tests string `+` operator with various types
 - `for_in_function_test.jvmb` - Tests FOR loops inside functions
 - `array_param_test.jvmb` - Tests array parameters in functions and subs
@@ -262,9 +261,8 @@ Benefits of sIR-based codegen (future work):
 
 ### Before EVERY Commit
 
-1. **Run the test suite**:
+1. **Run the test suite** (from project root):
    ```bash
-   cd /home/james/development/jvmbasic/src/java
    ./test-examples.sh
    ```
 
@@ -276,7 +274,7 @@ Benefits of sIR-based codegen (future work):
 
 ### Test Suite Examples
 
-The test script `src/java/test-examples.sh` tests these example programs:
+The test script `./test-examples.sh` tests these example programs:
 - `hello.jvmb` - Basic hello world
 - `demo.jvmb` - Comprehensive demo
 - `class_test.jvmb` - OOP classes
@@ -289,7 +287,7 @@ The test script `src/java/test-examples.sh` tests these example programs:
 ### Adding New Tests
 
 When adding a new feature:
-1. Create a test example in `src/java/examples/` (e.g., `new_feature_test.jvmb`)
+1. Create a test example in `examples/` (e.g., `new_feature_test.jvmb`)
 2. Add it to the TESTS array in `test-examples.sh`
 3. Run `./test-examples.sh` to verify it works
 4. Commit both the feature and the test
@@ -314,35 +312,36 @@ When adding a new feature:
 ## Important Rules
 
 1. **DO NOT** modify files in `legacy-jvm-basic/` unless explicitly asked
-2. **ALWAYS** use `./gradlew build` from `src/java/` directory
+2. **ALWAYS** use `./gradlew build` from `src/java/` directory for building
 3. **DO NOT** use IR for code generation yet - use CompilerVisitor
 4. **UPDATE** `CODEGEN.md` when adding new code generation features
-5. **ALWAYS** run `./test-examples.sh` before committing
+5. **ALWAYS** run `./test-examples.sh` from project root before committing
 6. **NEVER** push code that breaks tests to main branch
-7. **USE** `src/java/examples/*.jvmb` for JVM BASIC 2.0 examples
+7. **USE** `examples/*.jvmb` for JVM BASIC 2.0 examples
 
 ## Continuation Notes (for Auto-Compact)
 
 ### Session Progress
 - Fixed OOP bytecode generation for field access and instance methods
-- Added 4 working example programs: calculator, algo_fibonacci, oop_shapes, oop_linked_list
-- Identified compiler limitations with certain constructs
+- Implemented proper block-level scoping with slot reuse
+- Reorganized repository structure (legacy files moved to legacy-jvm-basic/)
+- Moved examples to top-level examples/ directory
 
 ### Key Directories for JVM BASIC 2.0
 - Source: `src/java/com/jvmbasic/`
 - Grammar: `src/java/com/jvmbasic/grammar/`
 - Visitors: `src/java/com/jvmbasic/visitor/`
-- Examples: `src/java/examples/*.jvmb`
-- Tests: `src/java/test-examples.sh`
+- Examples: `examples/*.jvmb`
+- Tests: `./test-examples.sh`
 - Build: `src/java/build/libs/jvmbasic-compiler-2.0.0-SNAPSHOT.jar`
 
 ### Build and Test Commands
 ```bash
-cd /home/james/development/jvmbasic/src/java
-./gradlew build
+# From project root:
+cd src/java && ./gradlew build && cd ../..
 ./test-examples.sh
-java -jar build/libs/jvmbasic-compiler-2.0.0-SNAPSHOT.jar examples/FILE.jvmb
-java -cp .:../../basicrt CLASSNAME
+java -jar src/java/build/libs/jvmbasic-compiler-2.0.0-SNAPSHOT.jar examples/FILE.jvmb
+java CLASSNAME
 ```
 
 ### Next Tasks
@@ -350,4 +349,3 @@ java -cp .:../../basicrt CLASSNAME
 2. Expand standard library (Http, Json, Db, Crypto, Xml)
 3. Add Jetty web server integration
 4. Explore Java SE library integration
-5. Move examples and tests from src/java/ to top-level directories
