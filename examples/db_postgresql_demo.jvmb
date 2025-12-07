@@ -1,0 +1,158 @@
+' PostgreSQL Database Demo
+' Demonstrates database operations with PostgreSQL
+' Prerequisites: PostgreSQL running on localhost:5432
+'                User 'developer' with password 'test'
+'                User has CREATE DATABASE and DROP DATABASE privileges
+
+Console.WriteLine("=== PostgreSQL Database Demo ===")
+Console.WriteLine("")
+
+' Connection string for PostgreSQL (connect to postgres database first)
+var jdbcUrl as String = "jdbc:postgresql://localhost:5432/postgres"
+var username as String = "developer"
+var password as String = "test"
+
+Console.WriteLine($"Connecting to PostgreSQL as {username}...")
+var connected as Boolean = Db.Connect(jdbcUrl, username, password)
+
+if not connected then
+    Console.WriteLine("Failed to connect to PostgreSQL.")
+    Console.WriteLine("Make sure PostgreSQL is running and user 'developer' exists with password 'test'.")
+else
+    Console.WriteLine("Connected successfully!")
+    Console.WriteLine("")
+
+    ' Create a test database (using EXECUTE with IF EXISTS workaround)
+    Console.WriteLine("Creating test database 'jvmbasic_demo'...")
+    Db.Execute("DROP DATABASE IF EXISTS jvmbasic_demo")
+    Db.Execute("CREATE DATABASE jvmbasic_demo")
+    Db.Close()
+
+    ' Reconnect to the new database
+    Console.WriteLine("Reconnecting to jvmbasic_demo database...")
+    jdbcUrl = "jdbc:postgresql://localhost:5432/jvmbasic_demo"
+    Db.Connect(jdbcUrl, username, password)
+
+    ' Create a table
+    Console.WriteLine("Creating 'products' table...")
+    Db.Execute("CREATE TABLE products (id SERIAL PRIMARY KEY, name VARCHAR(100), price NUMERIC, in_stock BOOLEAN)")
+    Console.WriteLine("Table created.")
+    Console.WriteLine("")
+
+    ' Insert data using parameterized queries
+    Console.WriteLine("Inserting products with parameterized queries...")
+
+    Db.Prepare("INSERT INTO products (name, price, in_stock) VALUES (?, ?, ?)")
+    Db.SetString(1, "Laptop")
+    Db.SetDouble(2, 999.99)
+    Db.SetInt(3, 1)
+    var rows as Integer = Db.ExecuteUpdate()
+    Console.WriteLine($"  Inserted Laptop ({rows} row)")
+    Db.CloseStmt()
+
+    Db.Prepare("INSERT INTO products (name, price, in_stock) VALUES (?, ?, ?)")
+    Db.SetString(1, "Mouse")
+    Db.SetDouble(2, 29.99)
+    Db.SetInt(3, 1)
+    rows = Db.ExecuteUpdate()
+    Console.WriteLine($"  Inserted Mouse ({rows} row)")
+    Db.CloseStmt()
+
+    Db.Prepare("INSERT INTO products (name, price, in_stock) VALUES (?, ?, ?)")
+    Db.SetString(1, "Keyboard")
+    Db.SetDouble(2, 79.99)
+    Db.SetInt(3, 0)
+    rows = Db.ExecuteUpdate()
+    Console.WriteLine($"  Inserted Keyboard ({rows} row)")
+    Db.CloseStmt()
+
+    Db.Prepare("INSERT INTO products (name, price, in_stock) VALUES (?, ?, ?)")
+    Db.SetString(1, "Monitor")
+    Db.SetDouble(2, 349.99)
+    Db.SetInt(3, 1)
+    rows = Db.ExecuteUpdate()
+    Console.WriteLine($"  Inserted Monitor ({rows} row)")
+    Db.CloseStmt()
+
+    Console.WriteLine("")
+
+    ' Query all products
+    Console.WriteLine("Querying all products:")
+    Db.QueryCursor("SELECT id, name, price, in_stock FROM products ORDER BY id")
+    while Db.NextRow()
+        var id as Integer = Db.GetInt("id")
+        var name as String = Db.GetString("name")
+        var price as Double = Db.GetDouble("price")
+        var inStock as Integer = Db.GetInt("in_stock")
+        var stockStatus as String = "Out of Stock"
+        if inStock = 1 then
+            stockStatus = "In Stock"
+        end if
+        Console.WriteLine($"  [{id}] {name} - {price} USD ({stockStatus})")
+    end while
+    Db.CloseResults()
+    Console.WriteLine("")
+
+    ' Aggregate query
+    Console.WriteLine("Calculating totals:")
+    Db.QueryCursor("SELECT COUNT(*) as total_products, SUM(price) as total_value, AVG(price) as avg_price FROM products")
+    if Db.NextRow() then
+        var total as Integer = Db.GetInt("total_products")
+        var totalValue as Double = Db.GetDouble("total_value")
+        var avgPrice as Double = Db.GetDouble("avg_price")
+        Console.WriteLine($"  Total products: {total}")
+        Console.WriteLine($"  Total value: {totalValue} USD")
+        Console.WriteLine($"  Average price: {avgPrice} USD")
+    end if
+    Db.CloseResults()
+    Console.WriteLine("")
+
+    ' Parameterized SELECT - find products under a price
+    Console.WriteLine("Finding products under 100 USD (parameterized query):")
+    Db.Prepare("SELECT name, price FROM products WHERE price < ? ORDER BY price")
+    Db.SetDouble(1, 100.0)
+    Db.ExecuteQueryCursor()
+    while Db.NextRow()
+        var name as String = Db.GetString("name")
+        var price as Double = Db.GetDouble("price")
+        Console.WriteLine($"  {name}: {price} USD")
+    end while
+    Db.CloseResults()
+    Db.CloseStmt()
+    Console.WriteLine("")
+
+    ' Update with transaction
+    Console.WriteLine("Applying 10% discount in a transaction...")
+    Db.BeginTransaction()
+    Db.Execute("UPDATE products SET price = price * 0.9")
+    Db.Commit()
+    Console.WriteLine("Transaction committed - 10% discount applied!")
+    Console.WriteLine("")
+
+    ' Verify update
+    Console.WriteLine("Verifying new prices:")
+    Db.QueryCursor("SELECT name, price FROM products ORDER BY id")
+    while Db.NextRow()
+        var name as String = Db.GetString("name")
+        var price as Double = Db.GetDouble("price")
+        Console.WriteLine($"  {name}: {price} USD")
+    end while
+    Db.CloseResults()
+
+    Db.Close()
+
+    ' Cleanup - reconnect to postgres and drop test database
+    Console.WriteLine("")
+    Console.WriteLine("Cleaning up - dropping test database...")
+    jdbcUrl = "jdbc:postgresql://localhost:5432/postgres"
+    Db.Connect(jdbcUrl, username, password)
+    Db.Execute("DROP DATABASE IF EXISTS jvmbasic_demo")
+    Console.WriteLine("Database dropped.")
+    Db.Close()
+
+    Console.WriteLine("")
+    Console.WriteLine("Connection closed.")
+end if
+
+Console.WriteLine("")
+Console.WriteLine("=== PostgreSQL Demo Complete ===")

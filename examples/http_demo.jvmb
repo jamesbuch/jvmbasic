@@ -1,0 +1,69 @@
+' HTTP Demo - Working examples using httpbin.org
+' This example demonstrates HTTP requests with proper User-Agent headers
+
+Console.WriteLine("=== JVM BASIC HTTP Demo ===")
+Console.WriteLine("")
+
+' Set a proper User-Agent for all requests
+Http.SetHeader("User-Agent", "JvmBasic/2.0 (https://github.com/jamesbuch/jvmbasic)")
+
+' --- GET Request ---
+Console.WriteLine("1. GET Request to httpbin.org/get")
+var response as String = Http.Get("https://httpbin.org/get")
+var status as Integer = Http.GetStatus()
+Console.WriteLine($"   Status: {status}")
+if Http.IsSuccess() then
+    ' Parse the JSON response to show our User-Agent was received
+    var userAgent as String = Json.Get(response, "headers.User-Agent")
+    Console.WriteLine($"   Server saw User-Agent: {userAgent}")
+    var origin as String = Json.Get(response, "origin")
+    Console.WriteLine($"   Origin IP: {origin}")
+end if
+Console.WriteLine("")
+
+' --- POST Request with JSON ---
+Console.WriteLine("2. POST Request with JSON body")
+Http.SetHeader("User-Agent", "JvmBasic/2.0 (https://github.com/jamesbuch/jvmbasic)")
+Http.SetHeader("Content-Type", "application/json")
+var postBody as String = Json.Create()
+postBody = Json.Set(postBody, "name", "JVM BASIC")
+postBody = Json.Set(postBody, "version", "2.0")
+postBody = Json.SetBool(postBody, "awesome", true)
+
+var postResponse as String = Http.Post("https://httpbin.org/post", postBody)
+status = Http.GetStatus()
+Console.WriteLine($"   Status: {status}")
+if Http.IsSuccess() then
+    ' httpbin echoes back what we sent in the "json" field
+    var echoedName as String = Json.Get(postResponse, "json.name")
+    var echoedVersion as String = Json.Get(postResponse, "json.version")
+    Console.WriteLine($"   Server echoed: name={echoedName}, version={echoedVersion}")
+end if
+Console.WriteLine("")
+
+' --- HTTP Status Codes ---
+Console.WriteLine("3. Testing HTTP Status Codes")
+Http.SetHeader("User-Agent", "JvmBasic/2.0")
+
+' Test 404
+var notFound as String = Http.Get("https://httpbin.org/status/404")
+Console.WriteLine($"   404 test - Status: {Http.GetStatus()}, IsClientError: {Http.IsClientError()}")
+
+' Test 500
+var serverError as String = Http.Get("https://httpbin.org/status/500")
+Console.WriteLine($"   500 test - Status: {Http.GetStatus()}, IsServerError: {Http.IsServerError()}")
+
+' Test redirect (follows automatically)
+var redirect as String = Http.Get("https://httpbin.org/redirect/1")
+Console.WriteLine($"   Redirect test - Final Status: {Http.GetStatus()}")
+Console.WriteLine("")
+
+' --- URL Encoding ---
+Console.WriteLine("4. URL Encoding")
+var encoded as String = Http.UrlEncode("Hello World! Special chars: &?=")
+Console.WriteLine($"   Encoded: {encoded}")
+var decoded as String = Http.UrlDecode(encoded)
+Console.WriteLine($"   Decoded: {decoded}")
+Console.WriteLine("")
+
+Console.WriteLine("=== HTTP Demo Complete ===")

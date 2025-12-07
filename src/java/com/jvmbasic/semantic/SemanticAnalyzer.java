@@ -853,17 +853,20 @@ public class SemanticAnalyzer {
             };
             case "Regex" -> switch (methodName) {
                 case "IsMatch" -> IRType.Primitive.BOOLEAN;
-                case "Matches", "Split" -> new IRType.Array(IRType.Reference.STRING);
+                case "Matches", "Split", "Groups" -> new IRType.Array(IRType.Reference.STRING);
                 default -> IRType.Reference.STRING;
             };
             case "Db" -> switch (methodName) {
                 case "Connect", "IsConnected", "ExecuteAny", "BeginTransaction", "Commit", "Rollback",
                      "Prepare", "SetString", "SetInt", "SetLong", "SetFloat", "SetDouble", "SetNull",
-                     "ClearParameters" -> IRType.Primitive.BOOLEAN;
-                case "Execute", "ExecuteUpdate" -> IRType.Primitive.INT;
-                case "GetLastInsertId" -> IRType.Primitive.LONG;
+                     "ClearParameters", "NextRow", "GetBool" -> IRType.Primitive.BOOLEAN;
+                case "Execute", "ExecuteUpdate", "GetInt" -> IRType.Primitive.INT;
+                case "GetLastInsertId", "GetLong" -> IRType.Primitive.LONG;
+                case "GetFloat" -> IRType.Primitive.FLOAT;
+                case "GetDouble" -> IRType.Primitive.DOUBLE;
                 case "GetTables", "GetColumns" -> new IRType.Array(IRType.Reference.STRING);
-                case "Close", "CloseStmt" -> IRType.Primitive.VOID;
+                case "Close", "CloseStmt", "QueryCursor", "ExecuteQueryCursor", "CloseResults" -> IRType.Primitive.VOID;
+                case "GetString" -> IRType.Reference.STRING;
                 default -> IRType.Reference.STRING;
             };
             case "Json" -> switch (methodName) {

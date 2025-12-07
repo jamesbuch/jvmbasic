@@ -1,0 +1,66 @@
+' Wikipedia API Demo - Fetching and parsing JSON from Wikipedia
+' Demonstrates HTTP + JSON parsing with real-world API
+
+Console.WriteLine("=== Wikipedia API Demo ===")
+Console.WriteLine("")
+
+' Set User-Agent (required by Wikipedia API)
+Http.SetHeader("User-Agent", "JvmBasic/2.0 (https://github.com/jamesbuch/jvmbasic; educational project)")
+
+' Fetch summary for "Java (programming language)"
+Console.WriteLine("Fetching Wikipedia summary for 'Java (programming language)'...")
+var response as String = Http.Get("https://en.wikipedia.org/api/rest_v1/page/summary/Java_(programming_language)")
+
+if Http.IsSuccess() then
+    Console.WriteLine($"Status: {Http.GetStatus()} OK")
+    Console.WriteLine("")
+
+    ' Parse JSON response
+    var title as String = Json.Get(response, "title")
+    var description as String = Json.Get(response, "description")
+    var extract as String = Json.Get(response, "extract")
+    var pageUrl as String = Json.Get(response, "content_urls.desktop.page")
+
+    Console.WriteLine($"Title: {title}")
+    Console.WriteLine($"Description: {description}")
+    Console.WriteLine("")
+    Console.WriteLine("Summary (first 200 chars):")
+    if Str.Length(extract) > 200 then
+        Console.WriteLine(Str.Substring(extract, 0, 200) + "...")
+    else
+        Console.WriteLine(extract)
+    end if
+    Console.WriteLine("")
+    Console.WriteLine($"Full article: {pageUrl}")
+else
+    Console.WriteLine($"Error: HTTP {Http.GetStatus()}")
+end if
+
+Console.WriteLine("")
+Console.WriteLine("--- Fetching another article ---")
+Console.WriteLine("")
+
+' Fetch summary for BASIC programming language
+Http.SetHeader("User-Agent", "JvmBasic/2.0 (https://github.com/jamesbuch/jvmbasic; educational project)")
+response = Http.Get("https://en.wikipedia.org/api/rest_v1/page/summary/BASIC")
+
+if Http.IsSuccess() then
+    var title2 as String = Json.Get(response, "title")
+    var desc2 as String = Json.Get(response, "description")
+    var extract2 as String = Json.Get(response, "extract")
+
+    Console.WriteLine($"Title: {title2}")
+    Console.WriteLine($"Description: {desc2}")
+    Console.WriteLine("")
+    Console.WriteLine("Summary (first 200 chars):")
+    if Str.Length(extract2) > 200 then
+        Console.WriteLine(Str.Substring(extract2, 0, 200) + "...")
+    else
+        Console.WriteLine(extract2)
+    end if
+else
+    Console.WriteLine($"Error: HTTP {Http.GetStatus()}")
+end if
+
+Console.WriteLine("")
+Console.WriteLine("=== Wikipedia Demo Complete ===")

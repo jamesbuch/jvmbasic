@@ -2622,6 +2622,50 @@ public class CompilerVisitor extends JvmBasicParserBaseVisitor<Object> {
                 lastExprType = "String[]";
             }
 
+            // Cursor-based query iteration (avoids NEXT keyword conflict)
+            case "QueryCursor" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "QueryCursor", "(Ljava/lang/String;)V", false);
+                lastExprType = "void";
+            }
+            case "NextRow" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "NextRow", "()Z", false);
+                lastExprType = "Boolean";
+            }
+            case "ExecuteQueryCursor" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "ExecuteQueryCursor", "()V", false);
+                lastExprType = "void";
+            }
+            case "CloseResults" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "CloseResults", "()V", false);
+                lastExprType = "void";
+            }
+
+            // Row value getters (for cursor iteration)
+            case "GetString" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "GetString", "(Ljava/lang/String;)Ljava/lang/String;", false);
+                lastExprType = "String";
+            }
+            case "GetInt" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "GetInt", "(Ljava/lang/String;)I", false);
+                lastExprType = "Integer";
+            }
+            case "GetLong" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "GetLong", "(Ljava/lang/String;)J", false);
+                lastExprType = "Long";
+            }
+            case "GetFloat" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "GetFloat", "(Ljava/lang/String;)F", false);
+                lastExprType = "Float";
+            }
+            case "GetDouble" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "GetDouble", "(Ljava/lang/String;)D", false);
+                lastExprType = "Double";
+            }
+            case "GetBool" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "GetBool", "(Ljava/lang/String;)Z", false);
+                lastExprType = "Boolean";
+            }
+
             default -> throw new RuntimeException("Unknown Db function: " + methodName);
         }
 

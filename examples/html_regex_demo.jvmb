@@ -1,0 +1,79 @@
+' HTML Regex Demo - Fetching HTML and extracting data with regex
+' Demonstrates HTTP + Regex for web scraping
+
+Console.WriteLine("=== HTML Regex Demo ===")
+Console.WriteLine("")
+
+' Set User-Agent
+Http.SetHeader("User-Agent", "JvmBasic/2.0 (https://github.com/jamesbuch/jvmbasic; educational project)")
+
+' Fetch a simple HTML page from httpbin
+Console.WriteLine("Fetching HTML page from httpbin.org...")
+var html as String = Http.Get("https://httpbin.org/html")
+
+if Http.IsSuccess() then
+    Console.WriteLine($"Status: {Http.GetStatus()} OK")
+    Console.WriteLine($"Content length: {Str.Length(html)} characters")
+    Console.WriteLine("")
+
+    ' Extract the title using regex
+    Console.WriteLine("Extracting data with regex:")
+    Console.WriteLine("")
+
+    ' Find the <h1> content
+    var h1Match as String = Regex.Find(html, "<h1>([^<]+)</h1>")
+    Console.WriteLine($"H1 tag found: {h1Match}")
+
+    ' Extract text from all <p> tags (just find first one for demo)
+    var pMatch as String = Regex.Find(html, "<p>([^<]+)")
+    Console.WriteLine($"First <p> content: {pMatch}")
+
+    ' Check if specific text exists
+    var hasHerman as Boolean = Regex.IsMatch(html, "Herman Melville")
+    Console.WriteLine($"Contains 'Herman Melville': {hasHerman}")
+
+    var hasMoby as Boolean = Regex.IsMatch(html, "Moby Dick")
+    Console.WriteLine($"Contains 'Moby Dick': {hasMoby}")
+
+    Console.WriteLine("")
+
+    ' Extract using groups
+    Console.WriteLine("Using regex groups:")
+    var groups as String[] = Regex.Groups(html, "<h1>([^<]+)</h1>")
+    if groups[0] <> "" then
+        Console.WriteLine($"  Full match: {groups[0]}")
+        Console.WriteLine($"  Group 1 (text only): {groups[1]}")
+    end if
+else
+    Console.WriteLine($"Error: HTTP {Http.GetStatus()}")
+end if
+
+Console.WriteLine("")
+Console.WriteLine("--- Email extraction example ---")
+Console.WriteLine("")
+
+' Demo: Extract emails from text
+var sampleText as String = "Contact us at support@example.com or sales@company.org for more info."
+Console.WriteLine($"Sample text: {sampleText}")
+
+var emailPattern as String = "[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]+"
+var email1 as String = Regex.Find(sampleText, emailPattern)
+Console.WriteLine($"First email found: {email1}")
+
+' Replace emails with [REDACTED]
+var redacted as String = Regex.ReplaceAll(sampleText, emailPattern, "[REDACTED]")
+Console.WriteLine($"Redacted: {redacted}")
+
+Console.WriteLine("")
+Console.WriteLine("--- URL extraction example ---")
+Console.WriteLine("")
+
+var urlText as String = "Visit https://github.com/jamesbuch/jvmbasic or http://example.com for details."
+Console.WriteLine($"Sample text: {urlText}")
+
+var urlPattern as String = "https?://[a-zA-Z0-9.-]+(/[a-zA-Z0-9./_-]*)?"
+var url1 as String = Regex.Find(urlText, urlPattern)
+Console.WriteLine($"First URL found: {url1}")
+
+Console.WriteLine("")
+Console.WriteLine("=== HTML Regex Demo Complete ===")

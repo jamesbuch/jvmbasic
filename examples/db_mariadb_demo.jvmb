@@ -1,0 +1,125 @@
+' MariaDB Database Demo
+' Demonstrates database operations with MariaDB/MySQL
+' Prerequisites: MariaDB running on localhost:3306
+'                User 'developer' with password 'test'
+'                User has CREATE DATABASE and DROP DATABASE privileges
+
+Console.WriteLine("=== MariaDB Database Demo ===")
+Console.WriteLine("")
+
+' Connection string for MariaDB
+var jdbcUrl as String = "jdbc:mariadb://localhost:3306/"
+var username as String = "developer"
+var password as String = "test"
+
+Console.WriteLine($"Connecting to MariaDB as {username}...")
+var connected as Boolean = Db.Connect(jdbcUrl, username, password)
+
+if not connected then
+    Console.WriteLine("Failed to connect to MariaDB.")
+    Console.WriteLine("Make sure MariaDB is running and user 'developer' exists with password 'test'.")
+else
+    Console.WriteLine("Connected successfully!")
+    Console.WriteLine("")
+
+    ' Create a test database
+    Console.WriteLine("Creating test database 'jvmbasic_demo'...")
+    Db.Execute("DROP DATABASE IF EXISTS jvmbasic_demo")
+    Db.Execute("CREATE DATABASE jvmbasic_demo")
+    Db.Execute("USE jvmbasic_demo")
+    Console.WriteLine("Database created.")
+    Console.WriteLine("")
+
+    ' Create a table
+    Console.WriteLine("Creating 'users' table...")
+    Db.Execute("CREATE TABLE users (id INT AUTO_INCREMENT PRIMARY KEY, name VARCHAR(100), email VARCHAR(100), age INT)")
+    Console.WriteLine("Table created.")
+    Console.WriteLine("")
+
+    ' Insert data using parameterized queries (SQL injection safe)
+    Console.WriteLine("Inserting users with parameterized queries...")
+
+    Db.Prepare("INSERT INTO users (name, email, age) VALUES (?, ?, ?)")
+    Db.SetString(1, "Alice Smith")
+    Db.SetString(2, "alice@example.com")
+    Db.SetInt(3, 28)
+    var rows as Integer = Db.ExecuteUpdate()
+    Console.WriteLine($"  Inserted Alice ({rows} row)")
+    Db.CloseStmt()
+
+    Db.Prepare("INSERT INTO users (name, email, age) VALUES (?, ?, ?)")
+    Db.SetString(1, "Bob Johnson")
+    Db.SetString(2, "bob@example.com")
+    Db.SetInt(3, 35)
+    rows = Db.ExecuteUpdate()
+    Console.WriteLine($"  Inserted Bob ({rows} row)")
+    Db.CloseStmt()
+
+    Db.Prepare("INSERT INTO users (name, email, age) VALUES (?, ?, ?)")
+    Db.SetString(1, "Carol Williams")
+    Db.SetString(2, "carol@example.com")
+    Db.SetInt(3, 42)
+    rows = Db.ExecuteUpdate()
+    Console.WriteLine($"  Inserted Carol ({rows} row)")
+    Db.CloseStmt()
+
+    Console.WriteLine("")
+
+    ' Query all users
+    Console.WriteLine("Querying all users:")
+    Db.QueryCursor("SELECT id, name, email, age FROM users ORDER BY id")
+    while Db.NextRow()
+        var id as Integer = Db.GetInt("id")
+        var name as String = Db.GetString("name")
+        var email as String = Db.GetString("email")
+        var age as Integer = Db.GetInt("age")
+        Console.WriteLine($"  [{id}] {name} <{email}> - Age: {age}")
+    end while
+    Db.CloseResults()
+    Console.WriteLine("")
+
+    ' Parameterized SELECT query
+    Console.WriteLine("Finding users over 30 (parameterized query):")
+    Db.Prepare("SELECT name, age FROM users WHERE age > ?")
+    Db.SetInt(1, 30)
+    Db.ExecuteQueryCursor()
+    while Db.NextRow()
+        var name as String = Db.GetString("name")
+        var age as Integer = Db.GetInt("age")
+        Console.WriteLine($"  {name}: {age} years old")
+    end while
+    Db.CloseResults()
+    Db.CloseStmt()
+    Console.WriteLine("")
+
+    ' Update with transaction
+    Console.WriteLine("Updating ages in a transaction...")
+    Db.BeginTransaction()
+    Db.Execute("UPDATE users SET age = age + 1")
+    Db.Commit()
+    Console.WriteLine("Transaction committed - everyone is 1 year older!")
+    Console.WriteLine("")
+
+    ' Verify update
+    Console.WriteLine("Verifying updated ages:")
+    Db.QueryCursor("SELECT name, age FROM users ORDER BY id")
+    while Db.NextRow()
+        var name as String = Db.GetString("name")
+        var age as Integer = Db.GetInt("age")
+        Console.WriteLine($"  {name}: {age}")
+    end while
+    Db.CloseResults()
+    Console.WriteLine("")
+
+    ' Cleanup - drop the test database
+    Console.WriteLine("Cleaning up - dropping test database...")
+    Db.Execute("DROP DATABASE jvmbasic_demo")
+    Console.WriteLine("Database dropped.")
+
+    Db.Close()
+    Console.WriteLine("")
+    Console.WriteLine("Connection closed.")
+end if
+
+Console.WriteLine("")
+Console.WriteLine("=== MariaDB Demo Complete ===")

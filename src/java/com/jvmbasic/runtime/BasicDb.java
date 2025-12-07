@@ -29,6 +29,8 @@ public final class BasicDb {
     // Active connection (thread-local for safety)
     private static final ThreadLocal<Connection> currentConnection = new ThreadLocal<>();
     private static final ThreadLocal<PreparedStatement> currentStatement = new ThreadLocal<>();
+    private static final ThreadLocal<Statement> currentQueryStatement = new ThreadLocal<>();
+    private static final ThreadLocal<ResultSet> currentResultSet = new ThreadLocal<>();
 
     // ========================================================================
     // Connection Management
@@ -118,6 +120,175 @@ public final class BasicDb {
         } catch (SQLException e) {
             System.err.println("Query error: " + e.getMessage());
             return new String[0][];
+        }
+    }
+
+    /**
+     * Execute a SELECT query for cursor-based iteration
+     * Use with NextRow() and GetString/GetInt/GetDouble
+     */
+    public static void QueryCursor(String sql) {
+        Connection conn = currentConnection.get();
+        if (conn == null) {
+            System.err.println("No database connection");
+            return;
+        }
+
+        try {
+            CloseResults(); // Close any existing result set
+            Statement stmt = conn.createStatement();
+            currentQueryStatement.set(stmt);
+            ResultSet rs = stmt.executeQuery(sql);
+            currentResultSet.set(rs);
+        } catch (SQLException e) {
+            System.err.println("Query error: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Advance to the next row in the result set
+     * Returns true if there is a next row, false if no more rows
+     * Note: Called "NextRow" to avoid conflict with BASIC "NEXT" keyword
+     */
+    public static boolean NextRow() {
+        ResultSet rs = currentResultSet.get();
+        if (rs == null) {
+            return false;
+        }
+        try {
+            return rs.next();
+        } catch (SQLException e) {
+            System.err.println("NextRow error: " + e.getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Get a string value from current row by column name
+     */
+    public static String GetString(String columnName) {
+        ResultSet rs = currentResultSet.get();
+        if (rs == null) return "";
+        try {
+            String value = rs.getString(columnName);
+            return value != null ? value : "";
+        } catch (SQLException e) {
+            System.err.println("GetString error: " + e.getMessage());
+            return "";
+        }
+    }
+
+    /**
+     * Get an integer value from current row by column name
+     */
+    public static int GetInt(String columnName) {
+        ResultSet rs = currentResultSet.get();
+        if (rs == null) return 0;
+        try {
+            return rs.getInt(columnName);
+        } catch (SQLException e) {
+            System.err.println("GetInt error: " + e.getMessage());
+            return 0;
+        }
+    }
+
+    /**
+     * Get a long value from current row by column name
+     */
+    public static long GetLong(String columnName) {
+        ResultSet rs = currentResultSet.get();
+        if (rs == null) return 0L;
+        try {
+            return rs.getLong(columnName);
+        } catch (SQLException e) {
+            System.err.println("GetLong error: " + e.getMessage());
+            return 0L;
+        }
+    }
+
+    /**
+     * Get a double value from current row by column name
+     */
+    public static double GetDouble(String columnName) {
+        ResultSet rs = currentResultSet.get();
+        if (rs == null) return 0.0;
+        try {
+            return rs.getDouble(columnName);
+        } catch (SQLException e) {
+            System.err.println("GetDouble error: " + e.getMessage());
+            return 0.0;
+        }
+    }
+
+    /**
+     * Get a float value from current row by column name
+     */
+    public static float GetFloat(String columnName) {
+        ResultSet rs = currentResultSet.get();
+        if (rs == null) return 0.0f;
+        try {
+            return rs.getFloat(columnName);
+        } catch (SQLException e) {
+            System.err.println("GetFloat error: " + e.getMessage());
+            return 0.0f;
+        }
+    }
+
+    /**
+     * Get a boolean value from current row by column name
+     */
+    public static boolean GetBool(String columnName) {
+        ResultSet rs = currentResultSet.get();
+        if (rs == null) return false;
+        try {
+            return rs.getBoolean(columnName);
+        } catch (SQLException e) {
+            System.err.println("GetBool error: " + e.getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Execute prepared SELECT query for cursor-based iteration
+     * Use with NextRow() and GetString/GetInt/GetDouble
+     */
+    public static void ExecuteQueryCursor() {
+        PreparedStatement pstmt = currentStatement.get();
+        if (pstmt == null) {
+            System.err.println("No prepared statement");
+            return;
+        }
+
+        try {
+            CloseResults(); // Close any existing result set
+            ResultSet rs = pstmt.executeQuery();
+            currentResultSet.set(rs);
+        } catch (SQLException e) {
+            System.err.println("ExecuteQueryCursor error: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Close the current result set and query statement
+     */
+    public static void CloseResults() {
+        ResultSet rs = currentResultSet.get();
+        if (rs != null) {
+            try {
+                rs.close();
+            } catch (SQLException e) {
+                // Ignore close errors
+            }
+            currentResultSet.remove();
+        }
+        Statement stmt = currentQueryStatement.get();
+        if (stmt != null) {
+            try {
+                stmt.close();
+            } catch (SQLException e) {
+                // Ignore close errors
+            }
+            currentQueryStatement.remove();
         }
     }
 
