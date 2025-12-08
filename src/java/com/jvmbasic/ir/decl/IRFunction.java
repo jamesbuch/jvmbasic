@@ -20,16 +20,22 @@ public class IRFunction implements IRNode {
     private final boolean isStatic;
     private final boolean isOverride;
     private final boolean isConstructor;
+    private final boolean isAbstract;
     private final Access access;
     private final int line;
     private final int column;
 
     public IRFunction(String name, IRType returnType, int line, int column) {
-        this(name, returnType, true, false, false, Access.PACKAGE, line, column);
+        this(name, returnType, true, false, false, false, Access.PACKAGE, line, column);
     }
 
     public IRFunction(String name, IRType returnType, boolean isStatic, boolean isOverride,
                       boolean isConstructor, Access access, int line, int column) {
+        this(name, returnType, isStatic, isOverride, isConstructor, false, access, line, column);
+    }
+
+    public IRFunction(String name, IRType returnType, boolean isStatic, boolean isOverride,
+                      boolean isConstructor, boolean isAbstract, Access access, int line, int column) {
         this.name = name;
         this.returnType = returnType;
         this.parameters = new ArrayList<>();
@@ -37,6 +43,7 @@ public class IRFunction implements IRNode {
         this.isStatic = isStatic;
         this.isOverride = isOverride;
         this.isConstructor = isConstructor;
+        this.isAbstract = isAbstract;
         this.access = access;
         this.line = line;
         this.column = column;
@@ -49,6 +56,7 @@ public class IRFunction implements IRNode {
     public boolean isStatic() { return isStatic; }
     public boolean isOverride() { return isOverride; }
     public boolean isConstructor() { return isConstructor; }
+    public boolean isAbstract() { return isAbstract; }
     public Access getAccess() { return access; }
 
     public void addParameter(IRParameter param) { parameters.add(param); }

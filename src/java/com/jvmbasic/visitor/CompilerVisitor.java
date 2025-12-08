@@ -350,7 +350,9 @@ public class CompilerVisitor extends JvmBasicParserBaseVisitor<Object> {
 
         // Determine access flags (check for abstract)
         int accessFlags = ACC_PUBLIC | ACC_SUPER;
-        // Note: ABSTRACT keyword handling would require grammar context check here
+        if (classSym.isAbstract()) {
+            accessFlags |= ACC_ABSTRACT;
+        }
 
         cw.visit(V21, accessFlags, classNameStr, null, baseClassInternal, interfaces);
 
@@ -381,6 +383,15 @@ public class CompilerVisitor extends JvmBasicParserBaseVisitor<Object> {
         for (JvmBasicParser.ClassMemberContext member : ctx.classMember()) {
             if (member.methodDeclaration() != null) {
                 generateMethod(member.methodDeclaration(), classNameStr, classSym);
+            } else if (member.abstractMethodDeclaration() != null) {
+                generateAbstractMethod(member.abstractMethodDeclaration(), classNameStr, classSym);
+            }
+        }
+
+        // Generate properties (backing field + getter/setter methods)
+        for (JvmBasicParser.ClassMemberContext member : ctx.classMember()) {
+            if (member.propertyDeclaration() != null) {
+                generateProperty(member.propertyDeclaration(), classNameStr);
             }
         }
 
@@ -395,6 +406,277 @@ public class CompilerVisitor extends JvmBasicParserBaseVisitor<Object> {
         currentClass = savedCurrentClass;
 
         return null;
+    }
+
+    // ========================================================================
+    // Enum Declarations
+    // ========================================================================
+
+    @Override
+    public Object visitEnumDeclaration(JvmBasicParser.EnumDeclarationContext ctx) {
+        String enumName = ctx.IDENTIFIER().getText();
+
+        // Save current class writer state
+        ClassWriter savedCw = cw;
+        MethodVisitor savedMv = mv;
+
+        // Create new class writer for this enum (as a final class with int constants)
+        cw = new ClassWriter(ClassWriter.COMPUTE_FRAMES | ClassWriter.COMPUTE_MAXS);
+
+        // Generate as a final class (not an actual Java enum for simplicity)
+        int accessFlags = ACC_PUBLIC | ACC_FINAL | ACC_SUPER;
+        cw.visit(V21, accessFlags, enumName, null, "java/lang/Object", null);
+
+        // Generate static int fields for each enum member
+        int nextValue = 0;
+        for (JvmBasicParser.EnumMemberContext member : ctx.enumMember()) {
+            String memberName = member.IDENTIFIER().getText();
+
+            // Check if value is explicitly specified
+            if (member.INTEGER_LITERAL() != null) {
+                nextValue = Integer.parseInt(member.INTEGER_LITERAL().getText());
+            }
+
+            // Generate: public static final int MEMBER_NAME = value;
+            FieldVisitor fv = cw.visitField(
+                ACC_PUBLIC | ACC_STATIC | ACC_FINAL,
+                memberName,
+                "I",  // int descriptor
+                null,
+                nextValue  // Initial value
+            );
+            fv.visitEnd();
+
+            nextValue++;  // Auto-increment for next member
+        }
+
+        // Generate private constructor to prevent instantiation
+        mv = cw.visitMethod(ACC_PRIVATE, "<init>", "()V", null, null);
+        mv.visitCode();
+        mv.visitVarInsn(ALOAD, 0);
+        mv.visitMethodInsn(INVOKESPECIAL, "java/lang/Object", "<init>", "()V", false);
+        mv.visitInsn(RETURN);
+        mv.visitMaxs(1, 1);
+        mv.visitEnd();
+
+        cw.visitEnd();
+
+        // Store generated class bytecode
+        generatedClasses.put(enumName, cw.toByteArray());
+
+        // Restore class writer state
+        cw = savedCw;
+        mv = savedMv;
+
+        return null;
+    }
+
+    // ========================================================================
+    // Interface Declarations
+    // ========================================================================
+
+    @Override
+    public Object visitInterfaceDeclaration(JvmBasicParser.InterfaceDeclarationContext ctx) {
+        String ifaceName = ctx.IDENTIFIER().getText();
+
+        // Save current class writer state
+        ClassWriter savedCw = cw;
+        MethodVisitor savedMv = mv;
+
+        // Create new class writer for this interface
+        cw = new ClassWriter(ClassWriter.COMPUTE_FRAMES | ClassWriter.COMPUTE_MAXS);
+
+        // Collect parent interfaces (extends for interfaces)
+        String[] parentInterfaces = null;
+        if (ctx.typeNameList() != null) {
+            parentInterfaces = ctx.typeNameList().typeName().stream()
+                .map(t -> t.getText().replace(".", "/"))
+                .toArray(String[]::new);
+        }
+
+        // Generate interface with ACC_INTERFACE | ACC_ABSTRACT
+        int accessFlags = ACC_PUBLIC | ACC_INTERFACE | ACC_ABSTRACT;
+        cw.visit(V21, accessFlags, ifaceName, null, "java/lang/Object", parentInterfaces);
+
+        // Generate abstract method signatures for each interface member
+        for (JvmBasicParser.InterfaceMemberContext member : ctx.interfaceMember()) {
+            if (member.FUNCTION() != null || member.SUB() != null) {
+                String methodName = member.IDENTIFIER().getText();
+                boolean isSub = member.SUB() != null;
+
+                // Build method descriptor
+                StringBuilder descBuilder = new StringBuilder("(");
+                if (member.parameterList() != null) {
+                    for (JvmBasicParser.ParameterContext param : member.parameterList().parameter()) {
+                        String paramType = param.typeName().getText();
+                        descBuilder.append(typeToDescriptor(paramType));
+                    }
+                }
+                descBuilder.append(")");
+
+                // Return type
+                if (isSub) {
+                    descBuilder.append("V");
+                } else if (member.typeName() != null) {
+                    descBuilder.append(typeToDescriptor(member.typeName().getText()));
+                } else {
+                    descBuilder.append("Ljava/lang/Object;");
+                }
+
+                // Interface methods are public abstract (no body)
+                mv = cw.visitMethod(ACC_PUBLIC | ACC_ABSTRACT, methodName, descBuilder.toString(), null, null);
+                mv.visitEnd();
+            } else if (member.PROPERTY() != null) {
+                // Interface property - generate abstract getter/setter
+                String propName = member.IDENTIFIER().getText();
+                String propType = member.typeName().getText();
+                String typeDesc = typeToDescriptor(propType);
+
+                // Generate abstract getter: getPropertyName() as Type
+                String getterName = "get" + propName;
+                mv = cw.visitMethod(ACC_PUBLIC | ACC_ABSTRACT, getterName, "()" + typeDesc, null, null);
+                mv.visitEnd();
+
+                // Generate abstract setter: setPropertyName(value as Type)
+                String setterName = "set" + propName;
+                mv = cw.visitMethod(ACC_PUBLIC | ACC_ABSTRACT, setterName, "(" + typeDesc + ")V", null, null);
+                mv.visitEnd();
+            }
+        }
+
+        cw.visitEnd();
+
+        // Store generated interface bytecode
+        generatedClasses.put(ifaceName, cw.toByteArray());
+
+        // Restore class writer state
+        cw = savedCw;
+        mv = savedMv;
+
+        return null;
+    }
+
+    // ========================================================================
+    // Property Generation
+    // ========================================================================
+
+    private void generateProperty(JvmBasicParser.PropertyDeclarationContext ctx, String className) {
+        String propName = ctx.IDENTIFIER().getText();
+        String propType = ctx.typeName().getText();
+        String typeDesc = typeToDescriptor(propType);
+        String backingFieldName = "_" + propName.substring(0, 1).toLowerCase() + propName.substring(1);
+
+        // Determine access modifier
+        int propAccess = ACC_PUBLIC;
+        if (ctx.accessModifier() != null) {
+            propAccess = fieldAccessToOpcodes(ctx.accessModifier().getText());
+        }
+
+        // Generate private backing field
+        cw.visitField(ACC_PRIVATE, backingFieldName, typeDesc, null, null).visitEnd();
+
+        // Check which accessors are defined
+        boolean hasGetter = false;
+        boolean hasSetter = false;
+        JvmBasicParser.PropertyAccessorContext getterCtx = null;
+        JvmBasicParser.PropertyAccessorContext setterCtx = null;
+
+        for (JvmBasicParser.PropertyAccessorContext accessor : ctx.propertyAccessor()) {
+            if (accessor.GET() != null) {
+                hasGetter = true;
+                getterCtx = accessor;
+            } else if (accessor.SET() != null) {
+                hasSetter = true;
+                setterCtx = accessor;
+            }
+        }
+
+        // Generate getter method
+        if (hasGetter) {
+            String getterName = "get" + propName;
+            mv = cw.visitMethod(propAccess, getterName, "()" + typeDesc, null, null);
+            mv.visitCode();
+
+            // Save current context
+            String savedMethod = currentMethod;
+            int savedSlot = localVarSlot;
+            currentMethod = getterName;
+            localVarSlot = 1;  // slot 0 is 'this'
+
+            // If getter has custom body, compile it
+            if (getterCtx != null && !getterCtx.statement().isEmpty()) {
+                for (JvmBasicParser.StatementContext stmt : getterCtx.statement()) {
+                    visit(stmt);
+                }
+            } else {
+                // Default getter: return backing field
+                mv.visitVarInsn(ALOAD, 0);
+                mv.visitFieldInsn(GETFIELD, className, backingFieldName, typeDesc);
+                generateReturnForType(propType);
+            }
+
+            mv.visitMaxs(0, 0);
+            mv.visitEnd();
+            currentMethod = savedMethod;
+            localVarSlot = savedSlot;
+        }
+
+        // Generate setter method
+        if (hasSetter) {
+            String setterName = "set" + propName;
+            mv = cw.visitMethod(propAccess, setterName, "(" + typeDesc + ")V", null, null);
+            mv.visitCode();
+
+            // Save current context
+            String savedMethod = currentMethod;
+            int savedSlot = localVarSlot;
+            currentMethod = setterName;
+            localVarSlot = 2;  // slot 0 is 'this', slot 1 is value parameter
+
+            // If setter has custom body, compile it
+            if (setterCtx != null && !setterCtx.statement().isEmpty()) {
+                // Add the parameter to scope (value parameter from SET accessor)
+                String valueParamName = setterCtx.IDENTIFIER().getText();
+                addScopedVariable(valueParamName, propType, 1);
+
+                for (JvmBasicParser.StatementContext stmt : setterCtx.statement()) {
+                    visit(stmt);
+                }
+            } else {
+                // Default setter: backing field = value
+                mv.visitVarInsn(ALOAD, 0);
+                loadLocalByType(1, propType);
+                mv.visitFieldInsn(PUTFIELD, className, backingFieldName, typeDesc);
+            }
+
+            mv.visitInsn(RETURN);
+            mv.visitMaxs(0, 0);
+            mv.visitEnd();
+            currentMethod = savedMethod;
+            localVarSlot = savedSlot;
+        }
+    }
+
+    private void generateReturnForType(String type) {
+        String t = type.toLowerCase();
+        switch (t) {
+            case "integer", "int", "boolean", "byte", "short", "char" -> mv.visitInsn(IRETURN);
+            case "long" -> mv.visitInsn(LRETURN);
+            case "float" -> mv.visitInsn(FRETURN);
+            case "double" -> mv.visitInsn(DRETURN);
+            default -> mv.visitInsn(ARETURN);  // Reference types
+        }
+    }
+
+    private void loadLocalByType(int slot, String type) {
+        String t = type.toLowerCase();
+        switch (t) {
+            case "integer", "int", "boolean", "byte", "short", "char" -> mv.visitVarInsn(ILOAD, slot);
+            case "long" -> mv.visitVarInsn(LLOAD, slot);
+            case "float" -> mv.visitVarInsn(FLOAD, slot);
+            case "double" -> mv.visitVarInsn(DLOAD, slot);
+            default -> mv.visitVarInsn(ALOAD, slot);  // Reference types
+        }
     }
 
     private int fieldAccessToOpcodes(String accessModifier) {
@@ -524,6 +806,60 @@ public class CompilerVisitor extends JvmBasicParserBaseVisitor<Object> {
         mv.visitEnd();
 
         currentMethod = null;
+    }
+
+    /**
+     * Generate an abstract method declaration (no body).
+     * Abstract methods have ACC_ABSTRACT flag and no code.
+     */
+    private void generateAbstractMethod(JvmBasicParser.AbstractMethodDeclarationContext ctx,
+                                        String classNameStr, ClassSymbol classSym) {
+        String methodName = ctx.IDENTIFIER().getText();
+
+        // Get method symbol from class - look it up by name
+        FunctionSymbol methodSym = classSym.getMethod(methodName);
+        if (methodSym == null) {
+            // Create a temporary method symbol for descriptor building
+            String returnType = "Void";
+            if (ctx.typeName() != null) {
+                returnType = ctx.typeName().getText();
+            }
+
+            // Build descriptor manually for abstract methods not in symbol table
+            StringBuilder desc = new StringBuilder("(");
+            if (ctx.parameterList() != null) {
+                for (JvmBasicParser.ParameterContext param : ctx.parameterList().parameter()) {
+                    String paramType = param.typeName().getText();
+                    desc.append(typeToDescriptor(paramType));
+                }
+            }
+            desc.append(")");
+            desc.append(typeToDescriptor(returnType));
+
+            // Determine access
+            int access = ACC_PUBLIC | ACC_ABSTRACT;  // Abstract methods must be public or protected
+            if (ctx.accessModifier() != null) {
+                access = fieldAccessToOpcodes(ctx.accessModifier().getText()) | ACC_ABSTRACT;
+            }
+
+            // Generate abstract method (no code)
+            mv = cw.visitMethod(access, methodName, desc.toString(), null, null);
+            mv.visitEnd();
+            return;
+        }
+
+        // Build descriptor from method symbol
+        String descriptor = buildMethodDescriptor(methodSym);
+
+        // Determine access
+        int access = ACC_PUBLIC | ACC_ABSTRACT;  // Abstract methods must be public or protected
+        if (ctx.accessModifier() != null) {
+            access = fieldAccessToOpcodes(ctx.accessModifier().getText()) | ACC_ABSTRACT;
+        }
+
+        // Generate abstract method (no code - just visitMethod + visitEnd)
+        mv = cw.visitMethod(access, methodName, descriptor, null, null);
+        mv.visitEnd();
     }
 
     private boolean methodEndsWithReturn(JvmBasicParser.MethodDeclarationContext ctx) {

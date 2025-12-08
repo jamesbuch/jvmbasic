@@ -244,6 +244,8 @@ public class IRBuilder extends JvmBasicParserBaseVisitor<Object> {
                 cls.addMethod(processConstructorDeclaration(member.constructorDeclaration(), className));
             } else if (member.methodDeclaration() != null) {
                 cls.addMethod(processMethodDeclaration(member.methodDeclaration()));
+            } else if (member.abstractMethodDeclaration() != null) {
+                cls.addMethod(processAbstractMethodDeclaration(member.abstractMethodDeclaration()));
             }
             // TODO: propertyDeclaration
         }
@@ -314,6 +316,28 @@ public class IRBuilder extends JvmBasicParserBaseVisitor<Object> {
             }
         }
 
+        return func;
+    }
+
+    private IRFunction processAbstractMethodDeclaration(JvmBasicParser.AbstractMethodDeclarationContext ctx) {
+        String name = ctx.IDENTIFIER().getText();
+        Token token = ctx.getStart();
+
+        IRType returnType = ctx.typeName() != null ? visitTypeName(ctx.typeName()) : IRType.Primitive.VOID;
+        IRFunction.Access access = parseMethodAccessModifier(ctx.accessModifier());
+
+        // Abstract methods: not static, not override, not constructor, IS abstract
+        IRFunction func = new IRFunction(name, returnType, false, false, false, true, access,
+                                        token.getLine(), token.getCharPositionInLine());
+
+        // Parameters
+        if (ctx.parameterList() != null) {
+            for (JvmBasicParser.ParameterContext param : ctx.parameterList().parameter()) {
+                func.addParameter(visitParameter(param));
+            }
+        }
+
+        // Abstract methods have no body
         return func;
     }
 

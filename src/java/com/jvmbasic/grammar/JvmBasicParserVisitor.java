@@ -101,6 +101,12 @@ public interface JvmBasicParserVisitor<T> extends ParseTreeVisitor<T> {
 	 */
 	T visitMethodDeclaration(JvmBasicParser.MethodDeclarationContext ctx);
 	/**
+	 * Visit a parse tree produced by {@link JvmBasicParser#abstractMethodDeclaration}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitAbstractMethodDeclaration(JvmBasicParser.AbstractMethodDeclarationContext ctx);
+	/**
 	 * Visit a parse tree produced by {@link JvmBasicParser#interfaceDeclaration}.
 	 * @param ctx the parse tree
 	 * @return the visitor result
