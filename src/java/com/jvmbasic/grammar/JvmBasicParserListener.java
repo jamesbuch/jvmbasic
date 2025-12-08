@@ -158,6 +158,16 @@ public interface JvmBasicParserListener extends ParseTreeListener {
 	 */
 	void exitMethodDeclaration(JvmBasicParser.MethodDeclarationContext ctx);
 	/**
+	 * Enter a parse tree produced by {@link JvmBasicParser#abstractMethodDeclaration}.
+	 * @param ctx the parse tree
+	 */
+	void enterAbstractMethodDeclaration(JvmBasicParser.AbstractMethodDeclarationContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link JvmBasicParser#abstractMethodDeclaration}.
+	 * @param ctx the parse tree
+	 */
+	void exitAbstractMethodDeclaration(JvmBasicParser.AbstractMethodDeclarationContext ctx);
+	/**
 	 * Enter a parse tree produced by {@link JvmBasicParser#interfaceDeclaration}.
 	 * @param ctx the parse tree
 	 */

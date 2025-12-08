@@ -269,6 +269,37 @@ public class SymbolCollector extends JvmBasicParserBaseListener {
         currentFunction = null;
     }
 
+    // ========================================================================
+    // Abstract Method Declarations (only inside abstract classes)
+    // ========================================================================
+
+    @Override
+    public void enterAbstractMethodDeclaration(JvmBasicParser.AbstractMethodDeclarationContext ctx) {
+        if (currentClass == null) return;  // Should only be in a class
+
+        String name = ctx.IDENTIFIER().getText();
+        int line = ctx.getStart().getLine();
+
+        // Get return type - default to Void for SUB
+        String returnType = "Void";
+        if (ctx.typeName() != null) {
+            returnType = ctx.typeName().getText();
+        }
+
+        FunctionSymbol method = new FunctionSymbol(name, returnType, line);
+        method.setSub(ctx.SUB() != null && ctx.FUNCTION() == null);
+        method.setAbstract(true);  // Mark as abstract
+        collectParameters(ctx.parameterList(), method);
+
+        symbols.getClass(currentClass).addMethod(method);
+        // No scope for abstract methods - they have no body
+    }
+
+    @Override
+    public void exitAbstractMethodDeclaration(JvmBasicParser.AbstractMethodDeclarationContext ctx) {
+        // Nothing to do - abstract methods have no body/scope
+    }
+
     private void collectParameters(JvmBasicParser.ParameterListContext ctx, FunctionSymbol func) {
         if (ctx == null) return;
 
@@ -703,6 +734,10 @@ public class SymbolCollector extends JvmBasicParserBaseListener {
 
         public void setSub(boolean sub) { this.isSub = sub; }
         public boolean isSub() { return isSub; }
+
+        private boolean isAbstract = false;
+        public void setAbstract(boolean isAbstract) { this.isAbstract = isAbstract; }
+        public boolean isAbstract() { return isAbstract; }
 
         public void addParameter(ParameterSymbol p) { parameters.add(p); }
         public List<ParameterSymbol> getParameters() { return parameters; }

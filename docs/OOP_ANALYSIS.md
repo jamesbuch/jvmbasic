@@ -50,6 +50,7 @@ The IR representations (Tree IR and sIR) currently exist for **debugging and vis
 | Constructors | ✅ | ✅ | ✅ | **Complete** |
 | Access Modifiers | ✅ | ✅ | ✅ | **Complete** |
 | Abstract Classes | ✅ | ✅ | ✅ | **Complete** |
+| Abstract Methods | ✅ | ✅ | ✅ | **Complete** |
 | this keyword | ✅ | N/A | ✅ | **Complete** |
 | super keyword | ✅ | N/A | ✅ | **Complete** |
 | Fields | ✅ | ✅ | ✅ | **Complete** |
@@ -448,6 +449,47 @@ methodDeclaration
 - Generic type parameters
 - Return type for functions
 
+### Abstract Method Declaration
+
+```antlr
+abstractMethodDeclaration
+    : accessModifier? ABSTRACT (FUNCTION | SUB) IDENTIFIER
+      typeParameters?
+      parameterList?
+      (AS typeName)?
+    ;
+```
+
+**Features:**
+- Explicit `ABSTRACT` keyword required
+- No method body (no `END FUNCTION/SUB`)
+- Only valid inside abstract classes
+- Generated with `ACC_ABSTRACT` flag in bytecode
+
+**Example:**
+```basic
+abstract class Shape
+    public abstract function Area() as Double
+    public abstract function Perimeter() as Double
+end class
+
+class Circle extends Shape
+    private var _radius as Double
+
+    public function Area() as Double
+        return Math.Pi() * _radius * _radius
+    end function
+
+    public function Perimeter() as Double
+        return 2 * Math.Pi() * _radius
+    end function
+end class
+```
+
+**Semantic Validation:**
+- Abstract methods can only be declared in abstract classes
+- Non-abstract classes that extend abstract classes must implement all abstract methods (checked at runtime)
+
 ### Bytecode Generation
 
 ```java
@@ -652,11 +694,9 @@ All OOP codegen currently happens in `CompilerVisitor.java` which works directly
 - Instance and static fields
 - Method override
 - **Abstract classes** - `ACC_ABSTRACT` flag added, semantic error on instantiation
+- **Abstract methods** - `ACC_ABSTRACT` on methods in abstract classes, with syntax: `abstract function Name() as Type`
 - **Enums** - Generated as final classes with `public static final int` fields
 - **Properties** - Generated as backing field + getter/setter methods
-
-### Not Implemented (Grammar Exists)
-- **Abstract methods**: Grammar supports but no `ACC_ABSTRACT` on individual methods yet
 
 ### Not Implemented (No Grammar)
 - Annotations (#[] style or @style) - see [ANNOTATIONS_PROPOSAL.md](ANNOTATIONS_PROPOSAL.md)
@@ -669,5 +709,5 @@ All OOP codegen currently happens in `CompilerVisitor.java` which works directly
 3. ✅ ~~Add `ACC_ABSTRACT` support for abstract classes~~ (Fixed)
 4. ✅ ~~Implement `visitEnumDeclaration` for enum bytecode generation~~ (Fixed - as int constants)
 5. ✅ ~~Implement property getter/setter bytecode generation~~ (Fixed)
-6. Add abstract method support within abstract classes
+6. ✅ ~~Add abstract method support within abstract classes~~ (Fixed)
 7. Design and implement annotation system

@@ -425,14 +425,27 @@ public class SemanticAnalyzer {
             }
         }
 
+        // Check abstract method constraints
+        for (IRFunction method : cls.getMethods()) {
+            if (method.isAbstract()) {
+                // Abstract methods can only exist in abstract classes
+                if (!cls.isAbstract()) {
+                    error(method.getLine(), method.getColumn(),
+                        "Abstract method '" + method.getName() + "' can only be declared in an abstract class");
+                }
+            }
+        }
+
         // Add fields to scope
         for (IRVariable field : cls.getFields()) {
             currentScope().defineVariable(field.getName(), field.getType(), false);
         }
 
-        // Analyze methods
+        // Analyze methods (only non-abstract methods have bodies to analyze)
         for (IRFunction method : cls.getMethods()) {
-            analyzeFunction(method);
+            if (!method.isAbstract()) {
+                analyzeFunction(method);
+            }
         }
 
         popScope();

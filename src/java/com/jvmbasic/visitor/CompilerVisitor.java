@@ -383,6 +383,8 @@ public class CompilerVisitor extends JvmBasicParserBaseVisitor<Object> {
         for (JvmBasicParser.ClassMemberContext member : ctx.classMember()) {
             if (member.methodDeclaration() != null) {
                 generateMethod(member.methodDeclaration(), classNameStr, classSym);
+            } else if (member.abstractMethodDeclaration() != null) {
+                generateAbstractMethod(member.abstractMethodDeclaration(), classNameStr, classSym);
             }
         }
 
@@ -804,6 +806,60 @@ public class CompilerVisitor extends JvmBasicParserBaseVisitor<Object> {
         mv.visitEnd();
 
         currentMethod = null;
+    }
+
+    /**
+     * Generate an abstract method declaration (no body).
+     * Abstract methods have ACC_ABSTRACT flag and no code.
+     */
+    private void generateAbstractMethod(JvmBasicParser.AbstractMethodDeclarationContext ctx,
+                                        String classNameStr, ClassSymbol classSym) {
+        String methodName = ctx.IDENTIFIER().getText();
+
+        // Get method symbol from class - look it up by name
+        FunctionSymbol methodSym = classSym.getMethod(methodName);
+        if (methodSym == null) {
+            // Create a temporary method symbol for descriptor building
+            String returnType = "Void";
+            if (ctx.typeName() != null) {
+                returnType = ctx.typeName().getText();
+            }
+
+            // Build descriptor manually for abstract methods not in symbol table
+            StringBuilder desc = new StringBuilder("(");
+            if (ctx.parameterList() != null) {
+                for (JvmBasicParser.ParameterContext param : ctx.parameterList().parameter()) {
+                    String paramType = param.typeName().getText();
+                    desc.append(typeToDescriptor(paramType));
+                }
+            }
+            desc.append(")");
+            desc.append(typeToDescriptor(returnType));
+
+            // Determine access
+            int access = ACC_PUBLIC | ACC_ABSTRACT;  // Abstract methods must be public or protected
+            if (ctx.accessModifier() != null) {
+                access = fieldAccessToOpcodes(ctx.accessModifier().getText()) | ACC_ABSTRACT;
+            }
+
+            // Generate abstract method (no code)
+            mv = cw.visitMethod(access, methodName, desc.toString(), null, null);
+            mv.visitEnd();
+            return;
+        }
+
+        // Build descriptor from method symbol
+        String descriptor = buildMethodDescriptor(methodSym);
+
+        // Determine access
+        int access = ACC_PUBLIC | ACC_ABSTRACT;  // Abstract methods must be public or protected
+        if (ctx.accessModifier() != null) {
+            access = fieldAccessToOpcodes(ctx.accessModifier().getText()) | ACC_ABSTRACT;
+        }
+
+        // Generate abstract method (no code - just visitMethod + visitEnd)
+        mv = cw.visitMethod(access, methodName, descriptor, null, null);
+        mv.visitEnd();
     }
 
     private boolean methodEndsWithReturn(JvmBasicParser.MethodDeclarationContext ctx) {

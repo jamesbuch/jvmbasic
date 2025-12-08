@@ -197,6 +197,18 @@ public class JvmBasicParserBaseListener implements JvmBasicParserListener {
 	 *
 	 * <p>The default implementation does nothing.</p>
 	 */
+	@Override public void enterAbstractMethodDeclaration(JvmBasicParser.AbstractMethodDeclarationContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitAbstractMethodDeclaration(JvmBasicParser.AbstractMethodDeclarationContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
 	@Override public void enterInterfaceDeclaration(JvmBasicParser.InterfaceDeclarationContext ctx) { }
 	/**
 	 * {@inheritDoc}

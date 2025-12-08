@@ -88,6 +88,7 @@ classMember
     : fieldDeclaration
     | propertyDeclaration
     | methodDeclaration
+    | abstractMethodDeclaration
     | constructorDeclaration
     ;
 
@@ -119,6 +120,15 @@ methodDeclaration
       (AS typeName)?
       statement*
       END (FUNCTION | SUB)
+    ;
+
+// Abstract method declaration (only valid inside abstract classes)
+// No body, no END - just a signature like interface methods
+abstractMethodDeclaration
+    : accessModifier? ABSTRACT (FUNCTION | SUB) IDENTIFIER
+      typeParameters?
+      parameterList?
+      (AS typeName)?
     ;
 
 // --- Interface Declaration ---
