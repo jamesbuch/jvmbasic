@@ -683,6 +683,19 @@ public class SemanticAnalyzer {
     }
 
     private IRType analyzeNewObject(IRNewObject newObj) {
+        // Check if trying to instantiate an abstract class
+        IRType objType = newObj.type();
+        if (objType instanceof IRType.Reference ref) {
+            Symbol classSym = currentScope().lookup(ref.name());
+            if (classSym != null && classSym.getKind() == Symbol.Kind.CLASS) {
+                Object classDecl = classSym.getClassDecl();
+                if (classDecl instanceof IRClass irClass && irClass.isAbstract()) {
+                    error(newObj.getLine(), newObj.getColumn(),
+                        "Cannot instantiate abstract class '" + ref.name() + "'");
+                }
+            }
+        }
+
         // Analyze constructor arguments
         for (IRExpression arg : newObj.arguments()) {
             analyzeExpression(arg);

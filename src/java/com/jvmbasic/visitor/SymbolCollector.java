@@ -107,6 +107,11 @@ public class SymbolCollector extends JvmBasicParserBaseListener {
 
         ClassSymbol classSymbol = new ClassSymbol(name, line);
 
+        // Check for abstract modifier
+        if (ctx.ABSTRACT() != null) {
+            classSymbol.setAbstract(true);
+        }
+
         // Check for extends
         if (ctx.typeName() != null) {
             classSymbol.setBaseClass(ctx.typeName().getText());
@@ -656,6 +661,7 @@ public class SymbolCollector extends JvmBasicParserBaseListener {
         public final String name;
         public final int line;
         private String baseClass = "Object";
+        private boolean isAbstract = false;
         private final List<String> interfaces = new ArrayList<>();
         private final Map<String, FieldSymbol> fields = new LinkedHashMap<>();
         private final Map<String, FunctionSymbol> methods = new LinkedHashMap<>();
@@ -667,6 +673,8 @@ public class SymbolCollector extends JvmBasicParserBaseListener {
 
         public void setBaseClass(String base) { this.baseClass = base; }
         public String getBaseClass() { return baseClass; }
+        public void setAbstract(boolean isAbstract) { this.isAbstract = isAbstract; }
+        public boolean isAbstract() { return isAbstract; }
         public void addInterface(String iface) { interfaces.add(iface); }
         public List<String> getInterfaces() { return interfaces; }
 

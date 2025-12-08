@@ -350,7 +350,9 @@ public class CompilerVisitor extends JvmBasicParserBaseVisitor<Object> {
 
         // Determine access flags (check for abstract)
         int accessFlags = ACC_PUBLIC | ACC_SUPER;
-        // Note: ABSTRACT keyword handling would require grammar context check here
+        if (classSym.isAbstract()) {
+            accessFlags |= ACC_ABSTRACT;
+        }
 
         cw.visit(V21, accessFlags, classNameStr, null, baseClassInternal, interfaces);
 
@@ -393,6 +395,69 @@ public class CompilerVisitor extends JvmBasicParserBaseVisitor<Object> {
         cw = savedCw;
         mv = savedMv;
         currentClass = savedCurrentClass;
+
+        return null;
+    }
+
+    // ========================================================================
+    // Enum Declarations
+    // ========================================================================
+
+    @Override
+    public Object visitEnumDeclaration(JvmBasicParser.EnumDeclarationContext ctx) {
+        String enumName = ctx.IDENTIFIER().getText();
+
+        // Save current class writer state
+        ClassWriter savedCw = cw;
+        MethodVisitor savedMv = mv;
+
+        // Create new class writer for this enum (as a final class with int constants)
+        cw = new ClassWriter(ClassWriter.COMPUTE_FRAMES | ClassWriter.COMPUTE_MAXS);
+
+        // Generate as a final class (not an actual Java enum for simplicity)
+        int accessFlags = ACC_PUBLIC | ACC_FINAL | ACC_SUPER;
+        cw.visit(V21, accessFlags, enumName, null, "java/lang/Object", null);
+
+        // Generate static int fields for each enum member
+        int nextValue = 0;
+        for (JvmBasicParser.EnumMemberContext member : ctx.enumMember()) {
+            String memberName = member.IDENTIFIER().getText();
+
+            // Check if value is explicitly specified
+            if (member.INTEGER_LITERAL() != null) {
+                nextValue = Integer.parseInt(member.INTEGER_LITERAL().getText());
+            }
+
+            // Generate: public static final int MEMBER_NAME = value;
+            FieldVisitor fv = cw.visitField(
+                ACC_PUBLIC | ACC_STATIC | ACC_FINAL,
+                memberName,
+                "I",  // int descriptor
+                null,
+                nextValue  // Initial value
+            );
+            fv.visitEnd();
+
+            nextValue++;  // Auto-increment for next member
+        }
+
+        // Generate private constructor to prevent instantiation
+        mv = cw.visitMethod(ACC_PRIVATE, "<init>", "()V", null, null);
+        mv.visitCode();
+        mv.visitVarInsn(ALOAD, 0);
+        mv.visitMethodInsn(INVOKESPECIAL, "java/lang/Object", "<init>", "()V", false);
+        mv.visitInsn(RETURN);
+        mv.visitMaxs(1, 1);
+        mv.visitEnd();
+
+        cw.visitEnd();
+
+        // Store generated class bytecode
+        generatedClasses.put(enumName, cw.toByteArray());
+
+        // Restore class writer state
+        cw = savedCw;
+        mv = savedMv;
 
         return null;
     }
