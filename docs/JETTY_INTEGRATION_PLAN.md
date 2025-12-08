@@ -6,11 +6,25 @@ This document outlines the plan for integrating Jetty as an embedded web server 
 
 ## Goals
 
-1. **Class-based Controllers**: Route handlers organized in controller classes
-2. **Annotation-based Routing**: `#[Route("/path")]` syntax for declarative routing
-3. **Request/Response API**: Clean access to HTTP request/response data
-4. **Static File Serving**: Serve CSS, JS, images from directories
-5. **JSON API Support**: Seamless integration with existing Json namespace
+1. **Namespace-based API**: `WebServer.Create()`, `Request.GetMethod()`, `Response.Write()`
+2. **Class-based Controllers**: Route handlers organized in controller classes
+3. **Annotation-based Routing**: `#[Route("/path")]` syntax for declarative routing (Phase 2)
+4. **Request/Response API**: Clean access to HTTP request/response data
+5. **Static File Serving**: Serve CSS, JS, images from directories
+6. **JSON API Support**: Seamless integration with existing Json namespace
+
+## Key Implementation Pattern
+
+The legacy JVM BASIC uses a simple, effective pattern:
+
+1. **Namespace calls** map to `BasicRuntime` static methods:
+   - `WebServer.Create(8080)` → `INVOKESTATIC BasicRuntime.webserver_Create(I)I`
+   - `Request.GetMethod()` → `INVOKESTATIC BasicRuntime.request_GetMethod()Ljava/lang/String;`
+   - `Response.Write(text)` → `INVOKESTATIC BasicRuntime.response_Write(Ljava/lang/String;)V`
+
+2. **Thread-local storage** for request/response context in handlers
+
+3. **Reflection-based dispatch** to call BASIC handlers from Jetty servlet
 
 ## Available Libraries
 
@@ -168,7 +182,600 @@ app.Start()
 
 ## Implementation Architecture
 
-### Step 1: Grammar Changes for Annotations
+### File Changes Required
+
+```
+src/java/com/jvmbasic/
+├── runtime/
+│   └── BasicWeb.java         # NEW: WebServer, Request, Response runtime
+├── visitor/
+│   └── CompilerVisitor.java  # MODIFY: Add WebServer, Request, Response handlers
+```
+
+### Step 1: Create BasicWeb.java Runtime
+
+**File: `src/java/com/jvmbasic/runtime/BasicWeb.java`**
+
+This is the runtime class that provides the actual Jetty integration. It follows the same pattern as `BasicHttp.java`, `BasicJson.java`, etc.
+
+```java
+package com.jvmbasic.runtime;
+
+import org.eclipse.jetty.server.Server;
+import org.eclipse.jetty.servlet.ServletContextHandler;
+import org.eclipse.jetty.servlet.ServletHolder;
+import jakarta.servlet.http.HttpServlet;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import java.util.*;
+import java.util.concurrent.*;
+
+public class BasicWeb {
+
+    // Server storage
+    private static Map<Integer, Server> servers = new ConcurrentHashMap<>();
+    private static Map<Integer, List<RouteInfo>> serverRoutes = new ConcurrentHashMap<>();
+    private static Map<Integer, List<String[]>> serverStaticDirs = new ConcurrentHashMap<>();
+    private static int nextServerId = 1;
+
+    // Thread-local request/response context
+    private static ThreadLocal<HttpServletRequest> currentRequest = new ThreadLocal<>();
+    private static ThreadLocal<HttpServletResponse> currentResponse = new ThreadLocal<>();
+    private static ThreadLocal<Map<String, String>> currentPathParams = new ThreadLocal<>();
+
+    // ========================================================================
+    // WebServer namespace methods
+    // ========================================================================
+
+    public static int webserver_Create(int port) {
+        try {
+            Server server = new Server(port);
+            ServletContextHandler context = new ServletContextHandler(
+                ServletContextHandler.SESSIONS);
+            context.setContextPath("/");
+
+            int id = nextServerId++;
+            servers.put(id, server);
+            serverRoutes.put(id, new CopyOnWriteArrayList<>());
+            serverStaticDirs.put(id, new CopyOnWriteArrayList<>());
+
+            // Add dispatcher servlet
+            context.addServlet(new ServletHolder(new BasicWebDispatcher(id)), "/*");
+            server.setHandler(context);
+
+            return id;
+        } catch (Exception e) {
+            System.err.println("WebServer.Create error: " + e.getMessage());
+            return -1;
+        }
+    }
+
+    public static int webserver_AddRoute(int serverId, String method, String path,
+                                          String className, String handlerMethod) {
+        List<RouteInfo> routes = serverRoutes.get(serverId);
+        if (routes != null) {
+            routes.add(new RouteInfo(method.toUpperCase(), path, className, handlerMethod));
+            return 0;
+        }
+        return -1;
+    }
+
+    public static int webserver_ServeStatic(int serverId, String urlPrefix, String directory) {
+        List<String[]> staticDirs = serverStaticDirs.get(serverId);
+        if (staticDirs != null) {
+            staticDirs.add(new String[] { urlPrefix, directory });
+            return 0;
+        }
+        return -1;
+    }
+
+    public static int webserver_Start(int serverId) {
+        try {
+            Server server = servers.get(serverId);
+            if (server != null) {
+                server.start();
+                return 0;
+            }
+            return -1;
+        } catch (Exception e) {
+            System.err.println("WebServer.Start error: " + e.getMessage());
+            return -1;
+        }
+    }
+
+    public static void webserver_Join(int serverId) {
+        try {
+            Server server = servers.get(serverId);
+            if (server != null) {
+                server.join();
+            }
+        } catch (Exception e) {
+            // Ignore interruption
+        }
+    }
+
+    public static int webserver_Stop(int serverId) {
+        try {
+            Server server = servers.get(serverId);
+            if (server != null) {
+                server.stop();
+                return 0;
+            }
+            return -1;
+        } catch (Exception e) {
+            return -1;
+        }
+    }
+
+    public static int webserver_IsRunning(int serverId) {
+        Server server = servers.get(serverId);
+        return (server != null && server.isRunning()) ? 1 : 0;
+    }
+
+    // ========================================================================
+    // Request namespace methods
+    // ========================================================================
+
+    public static String request_GetMethod() {
+        HttpServletRequest req = currentRequest.get();
+        return req != null ? req.getMethod() : "";
+    }
+
+    public static String request_GetPath() {
+        HttpServletRequest req = currentRequest.get();
+        String path = req != null ? req.getPathInfo() : "";
+        return path != null ? path : "/";
+    }
+
+    public static String request_GetQueryString() {
+        HttpServletRequest req = currentRequest.get();
+        String qs = req != null ? req.getQueryString() : "";
+        return qs != null ? qs : "";
+    }
+
+    public static String request_GetParameter(String name) {
+        HttpServletRequest req = currentRequest.get();
+        String val = req != null ? req.getParameter(name) : "";
+        return val != null ? val : "";
+    }
+
+    public static String request_GetHeader(String name) {
+        HttpServletRequest req = currentRequest.get();
+        String val = req != null ? req.getHeader(name) : "";
+        return val != null ? val : "";
+    }
+
+    public static String request_GetBody() {
+        HttpServletRequest req = currentRequest.get();
+        if (req == null) return "";
+        try {
+            return new String(req.getInputStream().readAllBytes());
+        } catch (Exception e) {
+            return "";
+        }
+    }
+
+    public static int request_GetJsonBody() {
+        String body = request_GetBody();
+        if (body.isEmpty()) return -1;
+        try {
+            return BasicJson.parse(body);
+        } catch (Exception e) {
+            return -1;
+        }
+    }
+
+    public static String request_GetPathParam(String name) {
+        Map<String, String> params = currentPathParams.get();
+        if (params != null && params.containsKey(name)) {
+            return params.get(name);
+        }
+        return "";
+    }
+
+    public static String request_GetContentType() {
+        HttpServletRequest req = currentRequest.get();
+        String ct = req != null ? req.getContentType() : "";
+        return ct != null ? ct : "";
+    }
+
+    public static String request_GetRemoteAddr() {
+        HttpServletRequest req = currentRequest.get();
+        return req != null ? req.getRemoteAddr() : "";
+    }
+
+    // ========================================================================
+    // Response namespace methods
+    // ========================================================================
+
+    public static void response_SetStatus(int status) {
+        HttpServletResponse resp = currentResponse.get();
+        if (resp != null) {
+            resp.setStatus(status);
+        }
+    }
+
+    public static void response_SetContentType(String contentType) {
+        HttpServletResponse resp = currentResponse.get();
+        if (resp != null) {
+            resp.setContentType(contentType);
+        }
+    }
+
+    public static void response_SetHeader(String name, String value) {
+        HttpServletResponse resp = currentResponse.get();
+        if (resp != null) {
+            resp.setHeader(name, value);
+        }
+    }
+
+    public static void response_Write(String content) {
+        HttpServletResponse resp = currentResponse.get();
+        if (resp != null) {
+            try {
+                resp.getWriter().write(content);
+            } catch (Exception e) {
+                // Ignore
+            }
+        }
+    }
+
+    public static void response_WriteLine(String content) {
+        HttpServletResponse resp = currentResponse.get();
+        if (resp != null) {
+            try {
+                resp.getWriter().println(content);
+            } catch (Exception e) {
+                // Ignore
+            }
+        }
+    }
+
+    public static void response_Redirect(String url) {
+        HttpServletResponse resp = currentResponse.get();
+        if (resp != null) {
+            try {
+                resp.sendRedirect(url);
+            } catch (Exception e) {
+                // Ignore
+            }
+        }
+    }
+
+    // ========================================================================
+    // Internal classes
+    // ========================================================================
+
+    static class RouteInfo {
+        String method;
+        String path;
+        String className;
+        String handlerMethod;
+        java.util.regex.Pattern pattern;
+        List<String> paramNames = new ArrayList<>();
+
+        RouteInfo(String method, String path, String className, String handlerMethod) {
+            this.method = method;
+            this.path = path;
+            this.className = className;
+            this.handlerMethod = handlerMethod;
+
+            // Convert path params like {id} to regex
+            String regex = path.replaceAll("\\{([^}]+)\\}", "([^/]+)");
+            this.pattern = java.util.regex.Pattern.compile("^" + regex + "$");
+
+            // Extract param names
+            java.util.regex.Matcher m = java.util.regex.Pattern.compile("\\{([^}]+)\\}").matcher(path);
+            while (m.find()) {
+                paramNames.add(m.group(1));
+            }
+        }
+
+        Map<String, String> match(String requestPath) {
+            java.util.regex.Matcher m = pattern.matcher(requestPath);
+            if (m.matches()) {
+                Map<String, String> params = new HashMap<>();
+                for (int i = 0; i < paramNames.size(); i++) {
+                    params.put(paramNames.get(i), m.group(i + 1));
+                }
+                return params;
+            }
+            return null;
+        }
+    }
+
+    static class BasicWebDispatcher extends HttpServlet {
+        private final int serverId;
+
+        BasicWebDispatcher(int serverId) {
+            this.serverId = serverId;
+        }
+
+        @Override
+        protected void service(HttpServletRequest req, HttpServletResponse resp)
+                throws jakarta.servlet.ServletException, java.io.IOException {
+
+            String method = req.getMethod();
+            String path = req.getPathInfo();
+            if (path == null) path = "/";
+
+            // Find matching route
+            List<RouteInfo> routes = serverRoutes.get(serverId);
+            RouteInfo matchedRoute = null;
+            Map<String, String> pathParams = null;
+
+            if (routes != null) {
+                for (RouteInfo route : routes) {
+                    if (route.method.equals(method)) {
+                        // Try exact match first
+                        if (route.path.equals(path)) {
+                            matchedRoute = route;
+                            pathParams = new HashMap<>();
+                            break;
+                        }
+                        // Try pattern match
+                        Map<String, String> params = route.match(path);
+                        if (params != null) {
+                            matchedRoute = route;
+                            pathParams = params;
+                            break;
+                        }
+                    }
+                }
+            }
+
+            if (matchedRoute == null) {
+                resp.sendError(404, "Not Found: " + path);
+                return;
+            }
+
+            // Set thread-local context
+            currentRequest.set(req);
+            currentResponse.set(resp);
+            currentPathParams.set(pathParams);
+
+            try {
+                // Call BASIC handler via reflection
+                Class<?> clazz = Class.forName(matchedRoute.className);
+                java.lang.reflect.Method handler = clazz.getMethod(matchedRoute.handlerMethod);
+                handler.invoke(null);  // Static method call
+            } catch (Exception e) {
+                resp.sendError(500, "Handler error: " + e.getMessage());
+                e.printStackTrace();
+            } finally {
+                currentRequest.remove();
+                currentResponse.remove();
+                currentPathParams.remove();
+            }
+        }
+    }
+}
+```
+
+### Step 2: Add CompilerVisitor Handlers
+
+**File: `src/java/com/jvmbasic/visitor/CompilerVisitor.java`**
+
+Add these namespace handlers after the existing `Crypto` handler (around line 2352):
+
+```java
+// Handle WebServer namespace - calls com.jvmbasic.runtime.BasicWeb
+if ("WebServer".equalsIgnoreCase(pendingNamespace)) {
+    pendingNamespace = null;
+    return handleWebServerCall(methodName, ctx.argumentList());
+}
+
+// Handle Request namespace - calls com.jvmbasic.runtime.BasicWeb
+if ("Request".equalsIgnoreCase(pendingNamespace)) {
+    pendingNamespace = null;
+    return handleRequestCall(methodName, ctx.argumentList());
+}
+
+// Handle Response namespace - calls com.jvmbasic.runtime.BasicWeb
+if ("Response".equalsIgnoreCase(pendingNamespace)) {
+    pendingNamespace = null;
+    return handleResponseCall(methodName, ctx.argumentList());
+}
+```
+
+Then add the handler methods:
+
+```java
+private Object handleWebServerCall(String methodName, JvmBasicParser.ArgumentListContext args) {
+    String runtimeClass = "com/jvmbasic/runtime/BasicWeb";
+
+    switch (methodName.toLowerCase()) {
+        case "create":
+            // WebServer.Create(port) -> int
+            visitArguments(args);
+            mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "webserver_Create", "(I)I", false);
+            lastExprType = "Integer";
+            break;
+
+        case "addroute":
+            // WebServer.AddRoute(serverId, method, path, className, methodName)
+            visitArguments(args);
+            mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "webserver_AddRoute",
+                "(ILjava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)I", false);
+            lastExprType = "Integer";
+            break;
+
+        case "servestatic":
+            // WebServer.ServeStatic(serverId, urlPrefix, directory)
+            visitArguments(args);
+            mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "webserver_ServeStatic",
+                "(ILjava/lang/String;Ljava/lang/String;)I", false);
+            lastExprType = "Integer";
+            break;
+
+        case "start":
+            visitArguments(args);
+            mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "webserver_Start", "(I)I", false);
+            lastExprType = "Integer";
+            break;
+
+        case "stop":
+            visitArguments(args);
+            mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "webserver_Stop", "(I)I", false);
+            lastExprType = "Integer";
+            break;
+
+        case "join":
+            visitArguments(args);
+            mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "webserver_Join", "(I)V", false);
+            lastExprType = "Void";
+            break;
+
+        case "isrunning":
+            visitArguments(args);
+            mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "webserver_IsRunning", "(I)I", false);
+            lastExprType = "Integer";
+            break;
+
+        default:
+            throw new RuntimeException("Unknown WebServer method: " + methodName);
+    }
+    return null;
+}
+
+private Object handleRequestCall(String methodName, JvmBasicParser.ArgumentListContext args) {
+    String runtimeClass = "com/jvmbasic/runtime/BasicWeb";
+
+    switch (methodName.toLowerCase()) {
+        case "getmethod":
+            mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "request_GetMethod",
+                "()Ljava/lang/String;", false);
+            lastExprType = "String";
+            break;
+
+        case "getpath":
+            mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "request_GetPath",
+                "()Ljava/lang/String;", false);
+            lastExprType = "String";
+            break;
+
+        case "getquerystring":
+            mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "request_GetQueryString",
+                "()Ljava/lang/String;", false);
+            lastExprType = "String";
+            break;
+
+        case "getparameter":
+            visitArguments(args);
+            mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "request_GetParameter",
+                "(Ljava/lang/String;)Ljava/lang/String;", false);
+            lastExprType = "String";
+            break;
+
+        case "getheader":
+            visitArguments(args);
+            mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "request_GetHeader",
+                "(Ljava/lang/String;)Ljava/lang/String;", false);
+            lastExprType = "String";
+            break;
+
+        case "getbody":
+            mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "request_GetBody",
+                "()Ljava/lang/String;", false);
+            lastExprType = "String";
+            break;
+
+        case "getjsonbody":
+            mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "request_GetJsonBody",
+                "()I", false);
+            lastExprType = "Integer";
+            break;
+
+        case "getpathparam":
+            visitArguments(args);
+            mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "request_GetPathParam",
+                "(Ljava/lang/String;)Ljava/lang/String;", false);
+            lastExprType = "String";
+            break;
+
+        case "getcontenttype":
+            mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "request_GetContentType",
+                "()Ljava/lang/String;", false);
+            lastExprType = "String";
+            break;
+
+        case "getremoteaddr":
+            mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "request_GetRemoteAddr",
+                "()Ljava/lang/String;", false);
+            lastExprType = "String";
+            break;
+
+        default:
+            throw new RuntimeException("Unknown Request method: " + methodName);
+    }
+    return null;
+}
+
+private Object handleResponseCall(String methodName, JvmBasicParser.ArgumentListContext args) {
+    String runtimeClass = "com/jvmbasic/runtime/BasicWeb";
+
+    switch (methodName.toLowerCase()) {
+        case "setstatus":
+            visitArguments(args);
+            mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "response_SetStatus", "(I)V", false);
+            lastExprType = "Void";
+            break;
+
+        case "setcontenttype":
+            visitArguments(args);
+            mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "response_SetContentType",
+                "(Ljava/lang/String;)V", false);
+            lastExprType = "Void";
+            break;
+
+        case "setheader":
+            visitArguments(args);
+            mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "response_SetHeader",
+                "(Ljava/lang/String;Ljava/lang/String;)V", false);
+            lastExprType = "Void";
+            break;
+
+        case "write":
+            // Handle Response.Write with string conversion (like Console.WriteLine)
+            mv.visitFieldInsn(GETSTATIC, "java/lang/System", "out", "Ljava/io/PrintStream;");
+            if (args != null && !args.argument().isEmpty()) {
+                visit(args.argument(0).expression());
+                ensureString();
+            } else {
+                mv.visitLdcInsn("");
+            }
+            mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "response_Write",
+                "(Ljava/lang/String;)V", false);
+            lastExprType = "Void";
+            break;
+
+        case "writeline":
+            if (args != null && !args.argument().isEmpty()) {
+                visit(args.argument(0).expression());
+                ensureString();
+            } else {
+                mv.visitLdcInsn("");
+            }
+            mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "response_WriteLine",
+                "(Ljava/lang/String;)V", false);
+            lastExprType = "Void";
+            break;
+
+        case "redirect":
+            visitArguments(args);
+            mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "response_Redirect",
+                "(Ljava/lang/String;)V", false);
+            lastExprType = "Void";
+            break;
+
+        default:
+            throw new RuntimeException("Unknown Response method: " + methodName);
+    }
+    return null;
+}
+```
+
+### Step 3: Grammar Changes for Annotations (Phase 2)
 
 **Add to JvmBasicLexer.g4:**
 ```antlr
