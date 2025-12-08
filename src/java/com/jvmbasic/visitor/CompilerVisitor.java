@@ -170,6 +170,9 @@ public class CompilerVisitor extends JvmBasicParserBaseVisitor<Object> {
         cw = new ClassWriter(ClassWriter.COMPUTE_FRAMES | ClassWriter.COMPUTE_MAXS);
         cw.visit(V21, ACC_PUBLIC | ACC_SUPER, className, null, "java/lang/Object", null);
 
+        // Generate static fields for global variables
+        generateGlobalFields();
+
         // Generate default constructor
         generateDefaultConstructor();
 
@@ -189,6 +192,18 @@ public class CompilerVisitor extends JvmBasicParserBaseVisitor<Object> {
 
         cw.visitEnd();
         return null;
+    }
+
+    /**
+     * Generate static fields for all global variables.
+     * These are variables declared at file level before any functions/subs.
+     */
+    private void generateGlobalFields() {
+        for (VariableSymbol global : symbols.getGlobals()) {
+            int access = ACC_PRIVATE | ACC_STATIC;
+            String descriptor = typeToDescriptor(global.type);
+            cw.visitField(access, global.name, descriptor, null, null).visitEnd();
+        }
     }
 
     private void generateDefaultConstructor() {
@@ -877,6 +892,26 @@ public class CompilerVisitor extends JvmBasicParserBaseVisitor<Object> {
     public Object visitVarStatement(JvmBasicParser.VarStatementContext ctx) {
         String name = ctx.IDENTIFIER().getText();
         String type = ctx.typeName().getText();
+
+        // Check if this is a global variable (defined before subs/functions)
+        VariableSymbol global = symbols.getGlobal(name);
+        if (global != null && "main".equals(currentMethod)) {
+            // Global variable - use static field storage
+            // Generate initialization if present
+            if (ctx.expression() != null) {
+                visit(ctx.expression());
+                // Coerce expression value to match declared type
+                coerceToType(type);
+            } else {
+                // Initialize with default value
+                generateDefaultValue(type);
+            }
+            // Store to static field
+            mv.visitFieldInsn(PUTSTATIC, className, name, typeToDescriptor(type));
+            return null;
+        }
+
+        // Local variable - use local variable slot
         int slot = allocateSlot(type);
 
         // Add to current scope for proper block scoping
@@ -1029,6 +1064,12 @@ public class CompilerVisitor extends JvmBasicParserBaseVisitor<Object> {
                         return local.type();
                     }
                 }
+            }
+
+            // Check globals
+            VariableSymbol global = symbols.getGlobal(name);
+            if (global != null) {
+                return global.type;
             }
         }
         return null;
@@ -6163,6 +6204,13 @@ public class CompilerVisitor extends JvmBasicParserBaseVisitor<Object> {
                         return;
                     }
                 }
+            }
+
+            // Check for global variable
+            VariableSymbol global = symbols.getGlobal(name);
+            if (global != null) {
+                mv.visitFieldInsn(PUTSTATIC, className, name, typeToDescriptor(global.type));
+                return;
             }
         }
     }
