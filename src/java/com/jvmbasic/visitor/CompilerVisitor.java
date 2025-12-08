@@ -339,7 +339,20 @@ public class CompilerVisitor extends JvmBasicParserBaseVisitor<Object> {
             baseClassInternal = baseClass.replace(".", "/");
         }
 
-        cw.visit(V21, ACC_PUBLIC | ACC_SUPER, classNameStr, null, baseClassInternal, null);
+        // Collect interfaces
+        List<String> ifaceList = classSym.getInterfaces();
+        String[] interfaces = null;
+        if (ifaceList != null && !ifaceList.isEmpty()) {
+            interfaces = ifaceList.stream()
+                .map(iface -> iface.replace(".", "/"))
+                .toArray(String[]::new);
+        }
+
+        // Determine access flags (check for abstract)
+        int accessFlags = ACC_PUBLIC | ACC_SUPER;
+        // Note: ABSTRACT keyword handling would require grammar context check here
+
+        cw.visit(V21, accessFlags, classNameStr, null, baseClassInternal, interfaces);
 
         // Generate fields
         for (FieldSymbol field : classSym.getFields()) {

@@ -23,22 +23,40 @@ This document provides a comprehensive analysis of the OOP features in JVM BASIC
 
 JVM BASIC 2.0 has comprehensive OOP support at the grammar level, with most features fully implemented in the compiler. The language follows a VB.NET-like syntax while targeting JVM bytecode.
 
+### Code Generation Architecture
+
+**Current Path (Used)**:
+```
+Source (.jvmb) → ANTLR Parser → Parse Tree (CST) → CompilerVisitor → ASM → .class file
+```
+
+The compiler currently generates bytecode **directly from the parse tree** via `CompilerVisitor`. This is fast and works well but limits optimization opportunities.
+
+**Future Path (Planned)**:
+```
+Source (.jvmb) → Parse Tree → IRBuilder → Tree IR → IRLowering → Stack IR (sIR) → BytecodeGenerator → .class file
+```
+
+The IR representations (Tree IR and sIR) currently exist for **debugging and visualization only** (`-ir` and `-sir` flags). Once sIR-based code generation is implemented, it will enable optimization passes before bytecode emission.
+
 ### Implementation Status Summary
 
 | Feature | Grammar | Symbol Collection | Code Generation | Status |
 |---------|---------|-------------------|-----------------|--------|
 | Class Declaration | ✅ | ✅ | ✅ | **Complete** |
 | Single Inheritance | ✅ | ✅ | ✅ | **Complete** |
-| Interfaces | ✅ | ✅ | ⚠️ Partial | **In Progress** |
+| Interfaces (implements) | ✅ | ✅ | ✅ | **Complete** |
+| Interface Declarations | ✅ | ✅ | ❌ | **Not Implemented** |
 | Constructors | ✅ | ✅ | ✅ | **Complete** |
 | Access Modifiers | ✅ | ✅ | ✅ | **Complete** |
+| Abstract Classes | ✅ | ✅ | ❌ | **Not Implemented** |
 | this keyword | ✅ | N/A | ✅ | **Complete** |
 | super keyword | ✅ | N/A | ✅ | **Complete** |
 | Fields | ✅ | ✅ | ✅ | **Complete** |
 | Methods | ✅ | ✅ | ✅ | **Complete** |
 | Static Members | ✅ | ✅ | ✅ | **Complete** |
-| Properties | ✅ | ✅ | ⚠️ Partial | **In Progress** |
-| Enums | ✅ | ✅ | ⚠️ Partial | **In Progress** |
+| Properties | ✅ | ✅ | ⚠️ Partial | **Needs Verification** |
+| Enums | ✅ | ✅ | ❌ | **Not Implemented** |
 | Annotations | ❌ | ❌ | ❌ | **Not Started** |
 
 ---
@@ -69,13 +87,24 @@ classDeclaration
 ### Bytecode Generation (CompilerVisitor.java, lines 319-385)
 
 ```java
-// Class creation with inheritance
+// Determine base class
 String baseClass = classSym.getBaseClass();
 String baseClassInternal = "java/lang/Object";
 if (baseClass != null && !baseClass.equals("Object")) {
     baseClassInternal = baseClass.replace(".", "/");
 }
-cw.visit(V21, ACC_PUBLIC | ACC_SUPER, classNameStr, null, baseClassInternal, null);
+
+// Collect interfaces
+List<String> ifaceList = classSym.getInterfaces();
+String[] interfaces = null;
+if (ifaceList != null && !ifaceList.isEmpty()) {
+    interfaces = ifaceList.stream()
+        .map(iface -> iface.replace(".", "/"))
+        .toArray(String[]::new);
+}
+
+// Create class with inheritance and interfaces
+cw.visit(V21, ACC_PUBLIC | ACC_SUPER, classNameStr, null, baseClassInternal, interfaces);
 ```
 
 ### Example
@@ -169,31 +198,38 @@ interfaceMember
 
 ### Implementation Status
 
+**Class implements interface**: ✅ **Complete**
+
 - **Grammar**: Complete
 - **Symbol Collection**: Interfaces stored in `ClassSymbol.interfaces`
-- **Code Generation**: Partial - interfaces array not passed to `ClassWriter.visit()`
-
-### Current Limitation
-
-The `ClassWriter.visit()` call doesn't include implemented interfaces:
+- **Code Generation**: Complete - interfaces array passed to `ClassWriter.visit()`
 
 ```java
-// Current (incomplete):
-cw.visit(V21, ACC_PUBLIC | ACC_SUPER, classNameStr, null, baseClassInternal, null);
-
-// Should be:
-String[] interfaces = classSym.getInterfaces().toArray(new String[0]);
-cw.visit(V21, ACC_PUBLIC | ACC_SUPER, classNameStr, null, baseClassInternal, interfaces);
+// Collect interfaces from symbol table
+List<String> ifaceList = classSym.getInterfaces();
+String[] interfaces = null;
+if (ifaceList != null && !ifaceList.isEmpty()) {
+    interfaces = ifaceList.stream()
+        .map(iface -> iface.replace(".", "/"))
+        .toArray(String[]::new);
+}
+cw.visit(V21, accessFlags, classNameStr, null, baseClassInternal, interfaces);
 ```
+
+**Interface declarations**: ❌ **Not Implemented**
+
+While the grammar supports defining interfaces, `CompilerVisitor` does not have a `visitInterfaceDeclaration` method. Interface declarations are parsed but no bytecode is generated for them.
 
 ### Example
 
 ```basic
+' Interface declaration (parsed but no bytecode generated)
 public interface IShape
     function area() as Double
     function perimeter() as Double
 end interface
 
+' Class implementing interface (works correctly)
 public class Circle implements IShape
     private var _radius as Double
 
@@ -205,6 +241,31 @@ public class Circle implements IShape
         return 2 * 3.14159 * _radius
     end function
 end class
+```
+
+### Implementation Gap
+
+To fully support interfaces, `CompilerVisitor` needs:
+
+```java
+@Override
+public Object visitInterfaceDeclaration(JvmBasicParser.InterfaceDeclarationContext ctx) {
+    String ifaceName = ctx.IDENTIFIER().getText();
+    cw = new ClassWriter(ClassWriter.COMPUTE_FRAMES | ClassWriter.COMPUTE_MAXS);
+
+    // Interfaces use ACC_INTERFACE | ACC_ABSTRACT
+    cw.visit(V21, ACC_PUBLIC | ACC_INTERFACE | ACC_ABSTRACT, ifaceName, null,
+             "java/lang/Object", null);
+
+    // Generate abstract method signatures
+    for (var member : ctx.interfaceMember()) {
+        // Generate method with ACC_PUBLIC | ACC_ABSTRACT
+    }
+
+    cw.visitEnd();
+    generatedClasses.put(ifaceName, cw.toByteArray());
+    return null;
+}
 ```
 
 ---
@@ -510,8 +571,13 @@ See [ANNOTATIONS_PROPOSAL.md](ANNOTATIONS_PROPOSAL.md) for detailed implementati
 
 ## Summary
 
+### Code Generation Note
+
+All OOP codegen currently happens in `CompilerVisitor.java` which works directly from the ANTLR parse tree (CST). The IR-based path (Tree IR → sIR → bytecode) is planned but not yet connected for code generation.
+
 ### Fully Implemented
-- Class declarations with inheritance
+- Class declarations with inheritance (`extends`)
+- Interface implementation (`implements`) - classes correctly declare interfaces
 - Constructors (including super constructor calls)
 - Access modifiers (public, private, protected)
 - this and super keywords
@@ -519,19 +585,22 @@ See [ANNOTATIONS_PROPOSAL.md](ANNOTATIONS_PROPOSAL.md) for detailed implementati
 - Instance and static fields
 - Method override
 
-### Partially Implemented
-- Interfaces (parsed but not wired to bytecode)
-- Properties (parsed, code gen needs verification)
-- Enums (parsed, bytecode gen needs verification)
+### Not Implemented (Grammar Exists)
+- **Interface declarations**: Grammar parses them but no `visitInterfaceDeclaration` in CompilerVisitor
+- **Abstract classes**: `ABSTRACT` keyword parsed but `ACC_ABSTRACT` flag not added
+- **Enum declarations**: Grammar parses them but no `visitEnumDeclaration` in CompilerVisitor
+- **Properties**: Parsed but getter/setter bytecode generation needs verification
 
-### Not Implemented
-- Annotations (#[] style or @style)
+### Not Implemented (No Grammar)
+- Annotations (#[] style or @style) - see [ANNOTATIONS_PROPOSAL.md](ANNOTATIONS_PROPOSAL.md)
 - Abstract methods
 - Interface default methods
 
 ### Recommended Next Steps
 
-1. Complete interface implementation in `ClassWriter.visit()`
-2. Verify property getter/setter bytecode generation
-3. Implement Java enum bytecode generation
-4. Design and implement annotation system
+1. ✅ ~~Complete interface implementation in `ClassWriter.visit()`~~ (Fixed)
+2. Implement `visitInterfaceDeclaration` for interface bytecode generation
+3. Add `ACC_ABSTRACT` support for abstract classes
+4. Implement `visitEnumDeclaration` for Java enum bytecode generation
+5. Verify property getter/setter bytecode generation
+6. Design and implement annotation system
