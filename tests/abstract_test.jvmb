@@ -1,0 +1,107 @@
+' abstract_test.jvmb - Test abstract classes and abstract methods
+' Tests abstract class declaration, abstract methods, and implementation
+
+Console.WriteLine("=== Abstract Class and Method Tests ===")
+Console.WriteLine("")
+
+' Define an abstract Shape base class
+abstract class Shape
+    public var name as String
+
+    public sub New(shapeName as String)
+        this.name = shapeName
+    end sub
+
+    ' Abstract methods - must be implemented by subclasses
+    public abstract function Area() as Double
+    public abstract function Perimeter() as Double
+
+    ' Concrete method that uses abstract methods
+    public function Describe() as String
+        return $"{this.name}: Area = {this.Area()}, Perimeter = {this.Perimeter()}"
+    end function
+end class
+
+' Concrete Circle class implementing Shape
+class Circle extends Shape
+    public var radius as Double
+
+    public sub New(r as Double)
+        super.New("Circle")
+        this.radius = r
+    end sub
+
+    ' Implement abstract Area method
+    public function Area() as Double
+        return 3.14159 * this.radius * this.radius
+    end function
+
+    ' Implement abstract Perimeter method
+    public function Perimeter() as Double
+        return 2 * 3.14159 * this.radius
+    end function
+end class
+
+' Concrete Rectangle class implementing Shape
+class Rectangle extends Shape
+    public var width as Double
+    public var height as Double
+
+    public sub New(w as Double, h as Double)
+        super.New("Rectangle")
+        this.width = w
+        this.height = h
+    end sub
+
+    public function Area() as Double
+        return this.width * this.height
+    end function
+
+    public function Perimeter() as Double
+        return 2 * (this.width + this.height)
+    end function
+end class
+
+' Concrete Square class (also extends Shape)
+class Square extends Shape
+    public var side as Double
+
+    public sub New(s as Double)
+        super.New("Square")
+        this.side = s
+    end sub
+
+    public function Area() as Double
+        return this.side * this.side
+    end function
+
+    public function Perimeter() as Double
+        return 4 * this.side
+    end function
+end class
+
+' Test 1: Create a Circle
+Console.WriteLine("Test 1: Circle (radius = 5)")
+var circle as Circle = new Circle(5.0)
+Console.WriteLine($"  Area: {circle.Area()}")
+Console.WriteLine($"  Perimeter: {circle.Perimeter()}")
+Console.WriteLine($"  Description: {circle.Describe()}")
+Console.WriteLine("")
+
+' Test 2: Create a Rectangle
+Console.WriteLine("Test 2: Rectangle (10 x 5)")
+var rect as Rectangle = new Rectangle(10.0, 5.0)
+Console.WriteLine($"  Area: {rect.Area()}")
+Console.WriteLine($"  Perimeter: {rect.Perimeter()}")
+Console.WriteLine($"  Description: {rect.Describe()}")
+Console.WriteLine("")
+
+' Test 3: Create a Square
+Console.WriteLine("Test 3: Square (side = 4)")
+var sq as Square = new Square(4.0)
+Console.WriteLine($"  Area: {sq.Area()}")
+Console.WriteLine($"  Perimeter: {sq.Perimeter()}")
+Console.WriteLine($"  Description: {sq.Describe()}")
+Console.WriteLine("")
+
+Console.WriteLine("=== Abstract Tests Complete ===")
