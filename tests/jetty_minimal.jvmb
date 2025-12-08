@@ -1,0 +1,12 @@
+' Minimal test
+
+sub HandleHello()
+    var result as String = Http.Get("http://example.com")
+    var x as Integer = 5
+    if x < 1 then
+        x = 10
+    end if
+    Console.WriteLine(result)
+end sub
+
+Console.WriteLine("Starting server")

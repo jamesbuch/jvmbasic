@@ -11,7 +11,7 @@
 '    curl http://localhost:8080/api/tasks/1
 
 ' Simple in-memory task storage (array of JSON strings)
-var tasks(100) as String
+var tasks as String[] = new String[100]
 var nextTaskId as Integer = 1
 
 ' GET /api/tasks - List all tasks
@@ -22,11 +22,11 @@ sub HandleListTasks()
     var first as Boolean = true
 
     for i = 0 to nextTaskId - 1
-        if Str.Length(tasks(i)) > 0 then
+        if Str.Length(tasks[i]) > 0 then
             if not first then
                 result = result + ","
             end if
-            result = result + tasks(i)
+            result = result + tasks[i]
             first = false
         end if
     next i
@@ -50,11 +50,11 @@ sub HandleGetTask()
 
     Response.SetContentType("application/json")
 
-    if id < 1 or id >= nextTaskId or Str.Length(tasks(id)) = 0 then
+    if id < 1 or id >= nextTaskId or Str.Length(tasks[id]) = 0 then
         Response.SetStatus(404)
         Response.Write("{\"error\": \"Task not found\"}")
     else
-        Response.Write(tasks(id))
+        Response.Write(tasks[id])
     end if
 end sub
 
@@ -84,8 +84,8 @@ sub HandleCreateTask()
     var taskId as Integer = nextTaskId
     nextTaskId = nextTaskId + 1
 
-    var task as String = $"{{\"id\": {taskId}, \"title\": \"{title}\", \"completed\": false}}"
-    tasks(taskId) = task
+    var task as String = "{\"id\": " + taskId + ", \"title\": \"" + title + "\", \"completed\": false}"
+    tasks[taskId] = task
 
     Response.SetContentType("application/json")
     Response.SetStatus(201)
@@ -106,11 +106,11 @@ sub HandleDeleteTask()
 
     Response.SetContentType("application/json")
 
-    if id < 1 or id >= nextTaskId or Str.Length(tasks(id)) = 0 then
+    if id < 1 or id >= nextTaskId or Str.Length(tasks[id]) = 0 then
         Response.SetStatus(404)
         Response.Write("{\"error\": \"Task not found\"}")
     else
-        tasks(id) = ""
+        tasks[id] = ""
         Response.SetStatus(204)
     end if
 end sub
@@ -144,28 +144,25 @@ Console.WriteLine("==============================================")
 Console.WriteLine("")
 
 var server as Integer = WebServer.Create(8080)
-if server < 0 then
-    Console.WriteLine("ERROR: Failed to create server!")
-else
-    ' Register routes
-    WebServer.AddRoute(server, "GET", "/", "ApiServer", "HandleRoot")
-    WebServer.AddRoute(server, "GET", "/api/tasks", "ApiServer", "HandleListTasks")
-    WebServer.AddRoute(server, "GET", "/api/tasks/{id}", "ApiServer", "HandleGetTask")
-    WebServer.AddRoute(server, "POST", "/api/tasks", "ApiServer", "HandleCreateTask")
-    WebServer.AddRoute(server, "DELETE", "/api/tasks/{id}", "ApiServer", "HandleDeleteTask")
 
-    Console.WriteLine("Routes registered:")
-    Console.WriteLine("  GET  /              - Welcome page")
-    Console.WriteLine("  GET  /api/tasks     - List all tasks")
-    Console.WriteLine("  GET  /api/tasks/{id} - Get task by ID")
-    Console.WriteLine("  POST /api/tasks     - Create task")
-    Console.WriteLine("  DELETE /api/tasks/{id} - Delete task")
-    Console.WriteLine("")
+' Register routes
+var r1 as Integer = WebServer.AddRoute(server, "GET", "/", "ApiServer", "HandleRoot")
+var r2 as Integer = WebServer.AddRoute(server, "GET", "/api/tasks", "ApiServer", "HandleListTasks")
+var r3 as Integer = WebServer.AddRoute(server, "GET", "/api/tasks/{id}", "ApiServer", "HandleGetTask")
+var r4 as Integer = WebServer.AddRoute(server, "POST", "/api/tasks", "ApiServer", "HandleCreateTask")
+var r5 as Integer = WebServer.AddRoute(server, "DELETE", "/api/tasks/{id}", "ApiServer", "HandleDeleteTask")
 
-    WebServer.Start(server)
-    Console.WriteLine("Server running on http://localhost:8080")
-    Console.WriteLine("Press Ctrl+C to stop")
-    Console.WriteLine("")
+Console.WriteLine("Routes registered:")
+Console.WriteLine("  GET  /              - Welcome page")
+Console.WriteLine("  GET  /api/tasks     - List all tasks")
+Console.WriteLine("  GET  /api/tasks/{id} - Get task by ID")
+Console.WriteLine("  POST /api/tasks     - Create task")
+Console.WriteLine("  DELETE /api/tasks/{id} - Delete task")
+Console.WriteLine("")
 
-    WebServer.Join(server)
-end if
+var started as Integer = WebServer.Start(server)
+Console.WriteLine("Server running on http://localhost:8080")
+Console.WriteLine("Press Ctrl+C to stop")
+Console.WriteLine("")
+
+WebServer.Join(server)

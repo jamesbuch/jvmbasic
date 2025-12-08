@@ -1035,13 +1035,8 @@ public class CompilerVisitor extends JvmBasicParserBaseVisitor<Object> {
     }
 
     private String getArrayElementTypeFromVariable(String varName) {
-        // Check in main locals
-        if ("main".equals(currentMethod)) {
-            LocalVar local = mainLocals.get(varName);
-            if (local != null && local.type().endsWith("[]")) {
-                return local.type().substring(0, local.type().length() - 2);
-            }
-        } else if (currentMethod != null) {
+        // Check in function/sub locals first
+        if (currentMethod != null && !"main".equals(currentMethod)) {
             FunctionSymbol func = symbols.getFunction(currentMethod);
             if (func != null) {
                 VariableSymbol local = func.getLocal(varName);
@@ -1049,6 +1044,16 @@ public class CompilerVisitor extends JvmBasicParserBaseVisitor<Object> {
                     return local.type.substring(0, local.type.length() - 2);
                 }
             }
+        }
+        // Check in main locals (populated during main method code generation)
+        LocalVar local = mainLocals.get(varName);
+        if (local != null && local.type().endsWith("[]")) {
+            return local.type().substring(0, local.type().length() - 2);
+        }
+        // Check in global symbol table (for variables declared before subs)
+        VariableSymbol global = symbols.getGlobal(varName);
+        if (global != null && global.type.endsWith("[]")) {
+            return global.type.substring(0, global.type.length() - 2);
         }
         return "Integer";  // Default
     }
@@ -2124,6 +2129,21 @@ public class CompilerVisitor extends JvmBasicParserBaseVisitor<Object> {
         if ("Crypto".equalsIgnoreCase(name)) {
             // Crypto namespace - maps to com.jvmbasic.runtime.BasicCrypto
             pendingNamespace = "Crypto";
+            return null;
+        }
+        if ("WebServer".equalsIgnoreCase(name)) {
+            // WebServer namespace - maps to com.jvmbasic.runtime.BasicWeb
+            pendingNamespace = "WebServer";
+            return null;
+        }
+        if ("Request".equalsIgnoreCase(name)) {
+            // Request namespace - maps to com.jvmbasic.runtime.BasicWeb
+            pendingNamespace = "Request";
+            return null;
+        }
+        if ("Response".equalsIgnoreCase(name)) {
+            // Response namespace - maps to com.jvmbasic.runtime.BasicWeb
+            pendingNamespace = "Response";
             return null;
         }
         // Check if this is a function name (will be handled by FunctionCall postfixOp)
@@ -5281,6 +5301,27 @@ public class CompilerVisitor extends JvmBasicParserBaseVisitor<Object> {
         if ("Crypto".equalsIgnoreCase(pendingNamespace)) {
             pendingNamespace = null;
             handleCryptoCall(methodName, argList);
+            return;
+        }
+
+        // Handle WebServer namespace - calls com.jvmbasic.runtime.BasicWeb
+        if ("WebServer".equalsIgnoreCase(pendingNamespace)) {
+            pendingNamespace = null;
+            handleWebServerCall(methodName, argList);
+            return;
+        }
+
+        // Handle Request namespace - calls com.jvmbasic.runtime.BasicWeb
+        if ("Request".equalsIgnoreCase(pendingNamespace)) {
+            pendingNamespace = null;
+            handleRequestCall(methodName, argList);
+            return;
+        }
+
+        // Handle Response namespace - calls com.jvmbasic.runtime.BasicWeb
+        if ("Response".equalsIgnoreCase(pendingNamespace)) {
+            pendingNamespace = null;
+            handleResponseCall(methodName, argList);
             return;
         }
 

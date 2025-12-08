@@ -43,30 +43,27 @@ end sub
 sub HandleEcho()
     var message as String = Request.GetPathParam("message")
     Response.SetContentType("application/json")
-    Response.Write($"{{\"echo\": \"{message}\"}}")
+    Response.Write("{\"echo\": \"" + message + "\"}")
 end sub
 
 ' Main program
 Console.WriteLine("Starting JVM BASIC Web Server...")
 
 var server as Integer = WebServer.Create(8080)
-if server < 0 then
-    Console.WriteLine("Failed to create server!")
-else
-    ' Register routes - use class name and method name
-    WebServer.AddRoute(server, "GET", "/hello", "HelloServer", "HandleHello")
-    WebServer.AddRoute(server, "GET", "/api/status", "HelloServer", "HandleStatus")
-    WebServer.AddRoute(server, "GET", "/api/echo/{message}", "HelloServer", "HandleEcho")
 
-    Console.WriteLine("Routes registered:")
-    Console.WriteLine("  GET /hello - HTML greeting (try ?name=YourName)")
-    Console.WriteLine("  GET /api/status - JSON status")
-    Console.WriteLine("  GET /api/echo/{message} - Echo path parameter")
+' Register routes - use class name and method name
+var r1 as Integer = WebServer.AddRoute(server, "GET", "/hello", "HelloServer", "HandleHello")
+var r2 as Integer = WebServer.AddRoute(server, "GET", "/api/status", "HelloServer", "HandleStatus")
+var r3 as Integer = WebServer.AddRoute(server, "GET", "/api/echo/{message}", "HelloServer", "HandleEcho")
 
-    WebServer.Start(server)
-    Console.WriteLine("")
-    Console.WriteLine("Server running on http://localhost:8080")
-    Console.WriteLine("Press Ctrl+C to stop")
+Console.WriteLine("Routes registered:")
+Console.WriteLine("  GET /hello - HTML greeting (try ?name=YourName)")
+Console.WriteLine("  GET /api/status - JSON status")
+Console.WriteLine("  GET /api/echo/{message} - Echo path parameter")
 
-    WebServer.Join(server)
-end if
+var started as Integer = WebServer.Start(server)
+Console.WriteLine("")
+Console.WriteLine("Server running on http://localhost:8080")
+Console.WriteLine("Press Ctrl+C to stop")
+
+WebServer.Join(server)

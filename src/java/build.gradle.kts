@@ -46,6 +46,14 @@ dependencies {
     implementation("org.bouncycastle:bcprov-jdk18on:1.77")
     implementation("org.bouncycastle:bcpkix-jdk18on:1.77")
 
+    // Jetty for embedded web server
+    implementation("org.eclipse.jetty:jetty-server:11.0.19")
+    implementation("org.eclipse.jetty:jetty-servlet:11.0.19")
+    implementation("org.eclipse.jetty:jetty-util:11.0.19")
+    implementation("jakarta.servlet:jakarta.servlet-api:5.0.0")
+    implementation("org.slf4j:slf4j-api:2.0.9")
+    implementation("org.slf4j:slf4j-simple:2.0.9")
+
     // Testing - JUnit 6.0.1
     testImplementation("org.junit.jupiter:junit-jupiter:6.0.1")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher:2.0.1")
