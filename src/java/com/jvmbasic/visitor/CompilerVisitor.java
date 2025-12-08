@@ -2352,6 +2352,24 @@ public class CompilerVisitor extends JvmBasicParserBaseVisitor<Object> {
             return handleCryptoCall(methodName, ctx.argumentList());
         }
 
+        // Handle WebServer namespace - calls com.jvmbasic.runtime.BasicWeb
+        if ("WebServer".equalsIgnoreCase(pendingNamespace)) {
+            pendingNamespace = null;
+            return handleWebServerCall(methodName, ctx.argumentList());
+        }
+
+        // Handle Request namespace - calls com.jvmbasic.runtime.BasicWeb
+        if ("Request".equalsIgnoreCase(pendingNamespace)) {
+            pendingNamespace = null;
+            return handleRequestCall(methodName, ctx.argumentList());
+        }
+
+        // Handle Response namespace - calls com.jvmbasic.runtime.BasicWeb
+        if ("Response".equalsIgnoreCase(pendingNamespace)) {
+            pendingNamespace = null;
+            return handleResponseCall(methodName, ctx.argumentList());
+        }
+
         // Visit arguments for non-Console method calls
         if (ctx.argumentList() != null) {
             for (JvmBasicParser.ArgumentContext arg : ctx.argumentList().argument()) {
@@ -4565,6 +4583,185 @@ public class CompilerVisitor extends JvmBasicParserBaseVisitor<Object> {
             }
 
             default -> throw new RuntimeException("Unknown Crypto function: " + methodName);
+        }
+
+        return null;
+    }
+
+    // ========================================================================
+    // WebServer namespace - Jetty web server integration
+    // ========================================================================
+
+    private Object handleWebServerCall(String methodName, JvmBasicParser.ArgumentListContext argList) {
+        String runtimeClass = "com/jvmbasic/runtime/BasicWeb";
+
+        // Visit arguments first
+        if (argList != null) {
+            for (JvmBasicParser.ArgumentContext arg : argList.argument()) {
+                visit(arg.expression());
+            }
+        }
+
+        switch (methodName.toLowerCase()) {
+            case "create" -> {
+                // WebServer.Create(port) -> int
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "webserver_Create", "(I)I", false);
+                lastExprType = "Integer";
+            }
+            case "addroute" -> {
+                // WebServer.AddRoute(serverId, method, path, className, methodName) -> int
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "webserver_AddRoute",
+                    "(ILjava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)I", false);
+                lastExprType = "Integer";
+            }
+            case "servestatic" -> {
+                // WebServer.ServeStatic(serverId, urlPrefix, directory) -> int
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "webserver_ServeStatic",
+                    "(ILjava/lang/String;Ljava/lang/String;)I", false);
+                lastExprType = "Integer";
+            }
+            case "start" -> {
+                // WebServer.Start(serverId) -> int
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "webserver_Start", "(I)I", false);
+                lastExprType = "Integer";
+            }
+            case "stop" -> {
+                // WebServer.Stop(serverId) -> int
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "webserver_Stop", "(I)I", false);
+                lastExprType = "Integer";
+            }
+            case "join" -> {
+                // WebServer.Join(serverId) -> void
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "webserver_Join", "(I)V", false);
+                lastExprType = "Void";
+            }
+            case "isrunning" -> {
+                // WebServer.IsRunning(serverId) -> int (1 or 0)
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "webserver_IsRunning", "(I)I", false);
+                lastExprType = "Integer";
+            }
+            default -> throw new RuntimeException("Unknown WebServer method: " + methodName);
+        }
+
+        return null;
+    }
+
+    // ========================================================================
+    // Request namespace - HTTP request access
+    // ========================================================================
+
+    private Object handleRequestCall(String methodName, JvmBasicParser.ArgumentListContext argList) {
+        String runtimeClass = "com/jvmbasic/runtime/BasicWeb";
+
+        // Visit arguments first for methods that take parameters
+        if (argList != null) {
+            for (JvmBasicParser.ArgumentContext arg : argList.argument()) {
+                visit(arg.expression());
+            }
+        }
+
+        switch (methodName.toLowerCase()) {
+            case "getmethod" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "request_GetMethod",
+                    "()Ljava/lang/String;", false);
+                lastExprType = "String";
+            }
+            case "getpath" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "request_GetPath",
+                    "()Ljava/lang/String;", false);
+                lastExprType = "String";
+            }
+            case "getquerystring" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "request_GetQueryString",
+                    "()Ljava/lang/String;", false);
+                lastExprType = "String";
+            }
+            case "getparameter" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "request_GetParameter",
+                    "(Ljava/lang/String;)Ljava/lang/String;", false);
+                lastExprType = "String";
+            }
+            case "getheader" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "request_GetHeader",
+                    "(Ljava/lang/String;)Ljava/lang/String;", false);
+                lastExprType = "String";
+            }
+            case "getbody" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "request_GetBody",
+                    "()Ljava/lang/String;", false);
+                lastExprType = "String";
+            }
+            case "getjsonbody" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "request_GetJsonBody",
+                    "()Ljava/lang/String;", false);
+                lastExprType = "String";
+            }
+            case "getpathparam" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "request_GetPathParam",
+                    "(Ljava/lang/String;)Ljava/lang/String;", false);
+                lastExprType = "String";
+            }
+            case "getcontenttype" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "request_GetContentType",
+                    "()Ljava/lang/String;", false);
+                lastExprType = "String";
+            }
+            case "getremoteaddr" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "request_GetRemoteAddr",
+                    "()Ljava/lang/String;", false);
+                lastExprType = "String";
+            }
+            default -> throw new RuntimeException("Unknown Request method: " + methodName);
+        }
+
+        return null;
+    }
+
+    // ========================================================================
+    // Response namespace - HTTP response building
+    // ========================================================================
+
+    private Object handleResponseCall(String methodName, JvmBasicParser.ArgumentListContext argList) {
+        String runtimeClass = "com/jvmbasic/runtime/BasicWeb";
+
+        // Visit arguments first for methods that take parameters
+        if (argList != null) {
+            for (JvmBasicParser.ArgumentContext arg : argList.argument()) {
+                visit(arg.expression());
+            }
+        }
+
+        switch (methodName.toLowerCase()) {
+            case "setstatus" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "response_SetStatus", "(I)V", false);
+                lastExprType = "Void";
+            }
+            case "setcontenttype" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "response_SetContentType",
+                    "(Ljava/lang/String;)V", false);
+                lastExprType = "Void";
+            }
+            case "setheader" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "response_SetHeader",
+                    "(Ljava/lang/String;Ljava/lang/String;)V", false);
+                lastExprType = "Void";
+            }
+            case "write" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "response_Write",
+                    "(Ljava/lang/String;)V", false);
+                lastExprType = "Void";
+            }
+            case "writeline" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "response_WriteLine",
+                    "(Ljava/lang/String;)V", false);
+                lastExprType = "Void";
+            }
+            case "redirect" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "response_Redirect",
+                    "(Ljava/lang/String;)V", false);
+                lastExprType = "Void";
+            }
+            default -> throw new RuntimeException("Unknown Response method: " + methodName);
         }
 
         return null;
