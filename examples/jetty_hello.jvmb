@@ -1,0 +1,72 @@
+' jetty_hello.jvmb - Simple Hello World Web Server
+' =====================================================================
+' Demonstrates the embedded Jetty web server with basic routing.
+'
+' PREREQUISITES:
+' 1. Jetty jars in lib/ directory (jetty-server, jetty-servlet, etc.)
+' 2. Jakarta Servlet API jar
+'
+' TO RUN:
+' 1. Compile: ./gradlew jar
+' 2. Compile BASIC: java -jar build/libs/jvmbasic.jar examples/jetty_hello.jvmb -o HelloServer
+' 3. Run: java -cp '.:lib/*' HelloServer
+' 4. Visit: http://localhost:8080/hello
+
+' Handler subroutine for GET /hello
+sub HandleHello()
+    var userName as String = Request.GetParameter("name")
+    if Str.Length(userName) < 1 then
+        userName = "World"
+    end if
+
+    ' Capture request info to variables for interpolation
+    var method as String = Request.GetMethod()
+    var path as String = Request.GetPath()
+    var clientIp as String = Request.GetRemoteAddr()
+
+    Response.SetContentType("text/html")
+    Response.Write("<html><body>")
+    Response.Write($"<h1>Hello, {userName}!</h1>")
+    Response.Write($"<p>Request method: {method}</p>")
+    Response.Write($"<p>Request path: {path}</p>")
+    Response.Write($"<p>Client IP: {clientIp}</p>")
+    Response.Write("</body></html>")
+end sub
+
+' Handler for GET /api/status (JSON response)
+sub HandleStatus()
+    Response.SetContentType("application/json")
+    Response.Write("{\"status\": \"ok\", \"server\": \"JVM BASIC 2.0\"}")
+end sub
+
+' Handler for GET /api/echo/{message} - demonstrates path parameters
+sub HandleEcho()
+    var message as String = Request.GetPathParam("message")
+    Response.SetContentType("application/json")
+    Response.Write($"{{\"echo\": \"{message}\"}}")
+end sub
+
+' Main program
+Console.WriteLine("Starting JVM BASIC Web Server...")
+
+var server as Integer = WebServer.Create(8080)
+if server < 0 then
+    Console.WriteLine("Failed to create server!")
+else
+    ' Register routes - use class name and method name
+    WebServer.AddRoute(server, "GET", "/hello", "HelloServer", "HandleHello")
+    WebServer.AddRoute(server, "GET", "/api/status", "HelloServer", "HandleStatus")
+    WebServer.AddRoute(server, "GET", "/api/echo/{message}", "HelloServer", "HandleEcho")
+
+    Console.WriteLine("Routes registered:")
+    Console.WriteLine("  GET /hello - HTML greeting (try ?name=YourName)")
+    Console.WriteLine("  GET /api/status - JSON status")
+    Console.WriteLine("  GET /api/echo/{message} - Echo path parameter")
+
+    WebServer.Start(server)
+    Console.WriteLine("")
+    Console.WriteLine("Server running on http://localhost:8080")
+    Console.WriteLine("Press Ctrl+C to stop")
+
+    WebServer.Join(server)
+end if

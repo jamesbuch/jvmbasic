@@ -1,0 +1,83 @@
+' interface_test.jvmb - Test interface declarations and implementations
+' Tests interface declaration, implementation, and polymorphism
+
+Console.WriteLine("=== Interface Tests ===")
+Console.WriteLine("")
+
+' Define a Drawable interface
+interface IDrawable
+    function Draw() as String
+    function GetColor() as String
+end interface
+
+' Define a Resizable interface
+interface IResizable
+    function Resize(factor as Double) as Boolean
+end interface
+
+' Class implementing single interface
+class Icon implements IDrawable
+    private var color as String
+
+    public sub New(c as String)
+        this.color = c
+    end sub
+
+    public function Draw() as String
+        return $"Drawing icon in {this.color}"
+    end function
+
+    public function GetColor() as String
+        return this.color
+    end function
+end class
+
+' Class implementing multiple interfaces
+class Widget implements IDrawable, IResizable
+    private var color as String
+    private var size as Double
+
+    public sub New(c as String, s as Double)
+        this.color = c
+        this.size = s
+    end sub
+
+    public function Draw() as String
+        return $"Drawing widget [{this.size}px] in {this.color}"
+    end function
+
+    public function GetColor() as String
+        return this.color
+    end function
+
+    public function Resize(factor as Double) as Boolean
+        this.size = this.size * factor
+        return true
+    end function
+
+    public function GetSize() as Double
+        return this.size
+    end function
+end class
+
+' Test 1: Icon implementing IDrawable
+Console.WriteLine("Test 1: Icon (IDrawable)")
+var icon as Icon = new Icon("blue")
+Console.WriteLine($"  {icon.Draw()}")
+Console.WriteLine($"  Color: {icon.GetColor()}")
+Console.WriteLine("")
+
+' Test 2: Widget implementing IDrawable and IResizable
+Console.WriteLine("Test 2: Widget (IDrawable, IResizable)")
+var widget as Widget = new Widget("red", 100.0)
+Console.WriteLine($"  {widget.Draw()}")
+Console.WriteLine($"  Initial size: {widget.GetSize()}")
+Console.WriteLine("")
+
+Console.WriteLine("  Resizing by 1.5x...")
+widget.Resize(1.5)
+Console.WriteLine($"  {widget.Draw()}")
+Console.WriteLine($"  New size: {widget.GetSize()}")
+Console.WriteLine("")
+
+Console.WriteLine("=== Interface Tests Complete ===")
