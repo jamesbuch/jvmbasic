@@ -696,9 +696,159 @@ java -jar jvmbasic-compiler-2.0.0-SNAPSHOT.jar -d source.jvmb
 
 ---
 
+## Web Development
+
+JVM BASIC 2.0 includes built-in web server support using Jetty 11, enabling you to build modern web applications.
+
+### Creating a Web Server
+
+```basic
+' Create a server on port 8080
+var server as Integer = WebServer.Create(8080)
+
+' Register routes
+var r1 as Integer = WebServer.AddRoute(server, "GET", "/", "MyApp", "HandleHome")
+var r2 as Integer = WebServer.AddRoute(server, "GET", "/api/data", "MyApp", "HandleApi")
+var r3 as Integer = WebServer.AddRoute(server, "POST", "/api/submit", "MyApp", "HandleSubmit")
+
+' Start the server
+var started as Integer = WebServer.Start(server)
+Console.WriteLine("Server running on http://localhost:8080")
+
+' Keep server running
+WebServer.Join(server)
+```
+
+### Request Handling
+
+```basic
+sub HandleHome()
+    Response.SetContentType("text/html")
+    Response.Write("<html><body><h1>Hello!</h1></body></html>")
+end sub
+
+sub HandleApi()
+    Response.SetContentType("application/json")
+    var name as String = Request.GetParameter("name")
+    Response.Write("{\"greeting\": \"Hello, " + name + "!\"}")
+end sub
+
+sub HandleSubmit()
+    var body as String = Request.GetBody()
+    Response.SetStatus(201)
+    Response.Write("Created!")
+end sub
+```
+
+### Request Methods
+
+| Method | Description |
+|--------|-------------|
+| `Request.GetParameter(name)` | Get query string parameter |
+| `Request.GetBody()` | Get request body |
+| `Request.GetMethod()` | Get HTTP method (GET, POST, etc.) |
+| `Request.GetPath()` | Get request path |
+| `Request.GetPathParam(name)` | Get path parameter (e.g., `/users/{id}`) |
+| `Request.GetHeader(name)` | Get request header |
+| `Request.GetCookie(name)` | Get cookie value |
+| `Request.HasCookie(name)` | Check if cookie exists |
+
+### Response Methods
+
+| Method | Description |
+|--------|-------------|
+| `Response.Write(content)` | Write response body |
+| `Response.SetContentType(type)` | Set Content-Type header |
+| `Response.SetStatus(code)` | Set HTTP status code |
+| `Response.SetHeader(name, value)` | Set response header |
+| `Response.SetCookie(name, value)` | Set a cookie |
+| `Response.SetCookieEx(name, value, maxAge, path, httpOnly, secure)` | Set cookie with options |
+| `Response.DeleteCookie(name)` | Delete a cookie |
+| `Response.Redirect(url)` | Redirect to URL |
+
+### File Uploads
+
+```basic
+sub HandleUpload()
+    if Request.IsMultipart() then
+        Request.ParseMultipart()
+        if Request.HasUpload("file") then
+            var filename as String = Request.GetUploadFilename("file")
+            var size as Long = Request.GetUploadSize("file")
+            Request.SaveUpload("file", "/uploads/" + filename)
+            Response.Write("Uploaded: " + filename)
+        end if
+    end if
+end sub
+```
+
+### Path Parameters
+
+```basic
+' Route with path parameter
+var r as Integer = WebServer.AddRoute(server, "GET", "/users/{id}", "MyApp", "HandleUser")
+
+sub HandleUser()
+    var userId as String = Request.GetPathParam("id")
+    Response.Write("User ID: " + userId)
+end sub
+```
+
+### Static Files
+
+```basic
+' Serve static files from /public directory
+WebServer.ServeStatic(server, "/static", "/public")
+```
+
+### Caching with Redis
+
+```basic
+' Set a value with 1 hour expiration
+Redis.Connect("localhost", 6379)
+Redis.Set("key", "value")
+Redis.SetEx("temp", "value", 3600)
+
+' Get a value
+var value as String = Redis.Get("key")
+
+' Check existence
+if Redis.Exists("key") then
+    Console.WriteLine("Key exists")
+end if
+
+' Delete
+Redis.Delete("key")
+Redis.Close()
+```
+
+### Caching with Memcached
+
+```basic
+Memcached.Connect("localhost", 11211)
+Memcached.Set("key", "value", 3600)
+var value as String = Memcached.Get("key")
+Memcached.Delete("key")
+Memcached.Close()
+```
+
+### Running a Web Application
+
+```bash
+# Compile
+java -jar build/libs/jvmbasic-compiler-2.0.0-SNAPSHOT.jar myapp.jvmb -o MyApp
+
+# Run (requires lib/ directory with Jetty JARs)
+java -cp '.:lib/*' MyApp
+```
+
+---
+
 ## Example Programs
 
 See the `examples/` directory for complete example programs:
+
+### Basic Examples
 
 - `hello.jvmb` - Hello World
 - `types.jvmb` - All data types
@@ -708,5 +858,16 @@ See the `examples/` directory for complete example programs:
 - `arrays.jvmb` - Array operations
 - `exceptions.jvmb` - Exception handling
 - `expressions.jvmb` - All operators
+
+### Web Examples
+
+- `jetty_hello.jvmb` - Simple web server
+- `jetty_api.jvmb` - REST API example
+- `task_app.jvmb` - Full task manager with Alpine.js, HTMX, and TailwindCSS
+
+### Database Examples
+
+- `db_mariadb_demo.jvmb` - MariaDB/MySQL integration
+- `db_postgresql_demo.jvmb` - PostgreSQL integration
 
 Each example has a corresponding `.ir` file showing the intermediate representation.

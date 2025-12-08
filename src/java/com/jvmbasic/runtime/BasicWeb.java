@@ -6,6 +6,8 @@ import org.eclipse.jetty.servlet.ServletHolder;
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import jakarta.servlet.http.Cookie;
+import jakarta.servlet.http.Part;
 import java.util.*;
 import java.util.concurrent.*;
 import java.io.*;
@@ -354,6 +356,202 @@ public class BasicWeb {
                 // Ignore
             }
         }
+    }
+
+    // ========================================================================
+    // Cookie methods
+    // ========================================================================
+
+    /** Get a cookie value by name */
+    public static String request_GetCookie(String name) {
+        HttpServletRequest req = currentRequest.get();
+        if (req == null) return "";
+        Cookie[] cookies = req.getCookies();
+        if (cookies != null) {
+            for (Cookie cookie : cookies) {
+                if (cookie.getName().equals(name)) {
+                    return cookie.getValue();
+                }
+            }
+        }
+        return "";
+    }
+
+    /** Check if a cookie exists */
+    public static int request_HasCookie(String name) {
+        HttpServletRequest req = currentRequest.get();
+        if (req == null) return 0;
+        Cookie[] cookies = req.getCookies();
+        if (cookies != null) {
+            for (Cookie cookie : cookies) {
+                if (cookie.getName().equals(name)) {
+                    return 1;
+                }
+            }
+        }
+        return 0;
+    }
+
+    /** Set a session cookie (expires when browser closes) */
+    public static void response_SetCookie(String name, String value) {
+        HttpServletResponse resp = currentResponse.get();
+        if (resp != null) {
+            Cookie cookie = new Cookie(name, value);
+            cookie.setPath("/");
+            resp.addCookie(cookie);
+        }
+    }
+
+    /**
+     * Set a cookie with full options.
+     * @param name Cookie name
+     * @param value Cookie value
+     * @param maxAge Max age in seconds (-1 for session, 0 to delete)
+     * @param path Cookie path
+     * @param httpOnly 1 for HttpOnly flag, 0 for accessible to JavaScript
+     * @param secure 1 for HTTPS only, 0 for any protocol
+     */
+    public static void response_SetCookieEx(String name, String value, int maxAge,
+                                             String path, int httpOnly, int secure) {
+        HttpServletResponse resp = currentResponse.get();
+        if (resp != null) {
+            Cookie cookie = new Cookie(name, value);
+            cookie.setMaxAge(maxAge);
+            cookie.setPath(path);
+            cookie.setHttpOnly(httpOnly == 1);
+            cookie.setSecure(secure == 1);
+            resp.addCookie(cookie);
+        }
+    }
+
+    /** Delete a cookie by name */
+    public static void response_DeleteCookie(String name) {
+        HttpServletResponse resp = currentResponse.get();
+        if (resp != null) {
+            Cookie cookie = new Cookie(name, "");
+            cookie.setMaxAge(0);
+            cookie.setPath("/");
+            resp.addCookie(cookie);
+        }
+    }
+
+    // ========================================================================
+    // Multipart/File Upload methods
+    // ========================================================================
+
+    // Thread-local storage for uploaded files
+    private static ThreadLocal<Map<String, UploadedFile>> uploadedFiles = new ThreadLocal<>();
+
+    /** Check if request is multipart form data */
+    public static int request_IsMultipart() {
+        HttpServletRequest req = currentRequest.get();
+        if (req == null) return 0;
+        String contentType = req.getContentType();
+        return (contentType != null && contentType.toLowerCase().startsWith("multipart/")) ? 1 : 0;
+    }
+
+    /**
+     * Parse multipart form data.
+     * @return Number of files parsed, or -1 on error
+     */
+    public static int request_ParseMultipart() {
+        HttpServletRequest req = currentRequest.get();
+        if (req == null) return -1;
+
+        try {
+            Map<String, UploadedFile> files = new HashMap<>();
+            for (Part part : req.getParts()) {
+                String fileName = getSubmittedFileName(part);
+                if (fileName != null && !fileName.isEmpty()) {
+                    UploadedFile uf = new UploadedFile();
+                    uf.fileName = fileName;
+                    uf.contentType = part.getContentType();
+                    uf.size = part.getSize();
+                    uf.data = part.getInputStream().readAllBytes();
+                    files.put(part.getName(), uf);
+                }
+            }
+            uploadedFiles.set(files);
+            return files.size();
+        } catch (Exception e) {
+            System.err.println("ParseMultipart error: " + e.getMessage());
+            return -1;
+        }
+    }
+
+    /** Check if a file was uploaded for the given field name */
+    public static int request_HasUpload(String fieldName) {
+        Map<String, UploadedFile> files = uploadedFiles.get();
+        return (files != null && files.containsKey(fieldName)) ? 1 : 0;
+    }
+
+    /** Get the original filename of an uploaded file */
+    public static String request_GetUploadFileName(String fieldName) {
+        Map<String, UploadedFile> files = uploadedFiles.get();
+        if (files != null && files.containsKey(fieldName)) {
+            return files.get(fieldName).fileName;
+        }
+        return "";
+    }
+
+    /** Get the content type of an uploaded file */
+    public static String request_GetUploadContentType(String fieldName) {
+        Map<String, UploadedFile> files = uploadedFiles.get();
+        if (files != null && files.containsKey(fieldName)) {
+            return files.get(fieldName).contentType;
+        }
+        return "";
+    }
+
+    /** Get the size in bytes of an uploaded file */
+    public static long request_GetUploadSize(String fieldName) {
+        Map<String, UploadedFile> files = uploadedFiles.get();
+        if (files != null && files.containsKey(fieldName)) {
+            return files.get(fieldName).size;
+        }
+        return 0;
+    }
+
+    /**
+     * Save an uploaded file to disk.
+     * @param fieldName Form field name
+     * @param destPath Destination file path
+     * @return 0 on success, -1 on error
+     */
+    public static int request_SaveUpload(String fieldName, String destPath) {
+        Map<String, UploadedFile> files = uploadedFiles.get();
+        if (files == null || !files.containsKey(fieldName)) {
+            return -1;
+        }
+        try {
+            java.nio.file.Files.write(java.nio.file.Paths.get(destPath), files.get(fieldName).data);
+            return 0;
+        } catch (Exception e) {
+            System.err.println("SaveUpload error: " + e.getMessage());
+            return -1;
+        }
+    }
+
+    /** Get uploaded file data as Base64 string (for database storage) */
+    public static String request_GetUploadData(String fieldName) {
+        Map<String, UploadedFile> files = uploadedFiles.get();
+        if (files != null && files.containsKey(fieldName)) {
+            return java.util.Base64.getEncoder().encodeToString(files.get(fieldName).data);
+        }
+        return "";
+    }
+
+    /** Get the submitted filename from a multipart Part (Jakarta Servlet 5.0) */
+    private static String getSubmittedFileName(Part part) {
+        return part.getSubmittedFileName();
+    }
+
+    /** Internal class to hold uploaded file data */
+    static class UploadedFile {
+        String fileName;
+        String contentType;
+        long size;
+        byte[] data;
     }
 
     // ========================================================================

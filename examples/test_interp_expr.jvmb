@@ -1,0 +1,4 @@
+' test_interp_expr.jvmb - Expression string interpolation test
+var age as Integer = 25
+Console.WriteLine($"Next year: {age + 1}")
+Console.WriteLine("Done!")

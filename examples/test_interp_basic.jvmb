@@ -1,0 +1,8 @@
+' test_interp_basic.jvmb - Basic interpolation tests
+var name as String = "John"
+var age as Integer = 25
+
+Console.WriteLine($"Hello, {name}!")
+Console.WriteLine($"Name: {name}, Age: {age}")
+Console.WriteLine($"Next year: {age + 1}")
+Console.WriteLine("Done!")

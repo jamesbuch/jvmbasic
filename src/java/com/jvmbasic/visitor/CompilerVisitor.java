@@ -2110,6 +2110,15 @@ public class CompilerVisitor extends JvmBasicParserBaseVisitor<Object> {
             return null;
         }
 
+        // Check for global variables BEFORE namespace checks
+        // This allows variables named 'json', 'file', etc. to shadow namespace names
+        VariableSymbol globalVar = symbols.getGlobal(name);
+        if (globalVar != null) {
+            mv.visitFieldInsn(GETSTATIC, className, name, typeToDescriptor(globalVar.type));
+            lastExprType = globalVar.type;
+            return null;
+        }
+
         // Check for built-in namespaces (only if not a variable)
         if ("Console".equalsIgnoreCase(name)) {
             // Console is a pseudo-namespace, don't load anything
@@ -2429,6 +2438,18 @@ public class CompilerVisitor extends JvmBasicParserBaseVisitor<Object> {
         if ("Response".equalsIgnoreCase(pendingNamespace)) {
             pendingNamespace = null;
             return handleResponseCall(methodName, ctx.argumentList());
+        }
+
+        // Handle Redis namespace - calls com.jvmbasic.runtime.BasicCache
+        if ("Redis".equalsIgnoreCase(pendingNamespace)) {
+            pendingNamespace = null;
+            return handleRedisCall(methodName, ctx.argumentList());
+        }
+
+        // Handle Memcached namespace - calls com.jvmbasic.runtime.BasicCache
+        if ("Memcached".equalsIgnoreCase(pendingNamespace)) {
+            pendingNamespace = null;
+            return handleMemcachedCall(methodName, ctx.argumentList());
         }
 
         // Visit arguments for non-Console method calls
@@ -4772,6 +4793,58 @@ public class CompilerVisitor extends JvmBasicParserBaseVisitor<Object> {
                     "()Ljava/lang/String;", false);
                 lastExprType = "String";
             }
+            // Cookie methods
+            case "getcookie" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "request_GetCookie",
+                    "(Ljava/lang/String;)Ljava/lang/String;", false);
+                lastExprType = "String";
+            }
+            case "hascookie" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "request_HasCookie",
+                    "(Ljava/lang/String;)I", false);
+                lastExprType = "Integer";
+            }
+            // Multipart/File upload methods
+            case "ismultipart" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "request_IsMultipart",
+                    "()I", false);
+                lastExprType = "Integer";
+            }
+            case "parsemultipart" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "request_ParseMultipart",
+                    "()I", false);
+                lastExprType = "Integer";
+            }
+            case "hasupload" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "request_HasUpload",
+                    "(Ljava/lang/String;)I", false);
+                lastExprType = "Integer";
+            }
+            case "getuploadfilename" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "request_GetUploadFileName",
+                    "(Ljava/lang/String;)Ljava/lang/String;", false);
+                lastExprType = "String";
+            }
+            case "getuploadcontenttype" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "request_GetUploadContentType",
+                    "(Ljava/lang/String;)Ljava/lang/String;", false);
+                lastExprType = "String";
+            }
+            case "getuploadsize" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "request_GetUploadSize",
+                    "(Ljava/lang/String;)J", false);
+                lastExprType = "Long";
+            }
+            case "saveupload" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "request_SaveUpload",
+                    "(Ljava/lang/String;Ljava/lang/String;)I", false);
+                lastExprType = "Integer";
+            }
+            case "getuploaddata" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "request_GetUploadData",
+                    "(Ljava/lang/String;)Ljava/lang/String;", false);
+                lastExprType = "String";
+            }
             default -> throw new RuntimeException("Unknown Request method: " + methodName);
         }
 
@@ -4822,7 +4895,274 @@ public class CompilerVisitor extends JvmBasicParserBaseVisitor<Object> {
                     "(Ljava/lang/String;)V", false);
                 lastExprType = "Void";
             }
+            // Cookie methods
+            case "setcookie" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "response_SetCookie",
+                    "(Ljava/lang/String;Ljava/lang/String;)V", false);
+                lastExprType = "Void";
+            }
+            case "setcookieex" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "response_SetCookieEx",
+                    "(Ljava/lang/String;Ljava/lang/String;ILjava/lang/String;II)V", false);
+                lastExprType = "Void";
+            }
+            case "deletecookie" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "response_DeleteCookie",
+                    "(Ljava/lang/String;)V", false);
+                lastExprType = "Void";
+            }
             default -> throw new RuntimeException("Unknown Response method: " + methodName);
+        }
+
+        return null;
+    }
+
+    // ========================================================================
+    // Redis namespace - Redis caching via Jedis
+    // ========================================================================
+
+    private Object handleRedisCall(String methodName, JvmBasicParser.ArgumentListContext argList) {
+        String runtimeClass = "com/jvmbasic/runtime/BasicCache";
+
+        // Visit arguments first
+        if (argList != null) {
+            for (JvmBasicParser.ArgumentContext arg : argList.argument()) {
+                visit(arg.expression());
+            }
+        }
+
+        switch (methodName.toLowerCase()) {
+            case "connect" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "redis_Connect",
+                    "(Ljava/lang/String;I)I", false);
+                lastExprType = "Integer";
+            }
+            case "connectauth" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "redis_ConnectAuth",
+                    "(Ljava/lang/String;ILjava/lang/String;)I", false);
+                lastExprType = "Integer";
+            }
+            case "close" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "redis_Close", "(I)V", false);
+                lastExprType = "Void";
+            }
+            case "set" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "redis_Set",
+                    "(ILjava/lang/String;Ljava/lang/String;)I", false);
+                lastExprType = "Integer";
+            }
+            case "setex" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "redis_SetEx",
+                    "(ILjava/lang/String;Ljava/lang/String;I)I", false);
+                lastExprType = "Integer";
+            }
+            case "get" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "redis_Get",
+                    "(ILjava/lang/String;)Ljava/lang/String;", false);
+                lastExprType = "String";
+            }
+            case "del" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "redis_Del",
+                    "(ILjava/lang/String;)J", false);
+                lastExprType = "Long";
+            }
+            case "exists" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "redis_Exists",
+                    "(ILjava/lang/String;)I", false);
+                lastExprType = "Integer";
+            }
+            case "expire" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "redis_Expire",
+                    "(ILjava/lang/String;I)J", false);
+                lastExprType = "Long";
+            }
+            case "ttl" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "redis_TTL",
+                    "(ILjava/lang/String;)J", false);
+                lastExprType = "Long";
+            }
+            case "incr" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "redis_Incr",
+                    "(ILjava/lang/String;)J", false);
+                lastExprType = "Long";
+            }
+            case "incrby" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "redis_IncrBy",
+                    "(ILjava/lang/String;J)J", false);
+                lastExprType = "Long";
+            }
+            case "decr" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "redis_Decr",
+                    "(ILjava/lang/String;)J", false);
+                lastExprType = "Long";
+            }
+            case "decrby" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "redis_DecrBy",
+                    "(ILjava/lang/String;J)J", false);
+                lastExprType = "Long";
+            }
+            case "hset" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "redis_HSet",
+                    "(ILjava/lang/String;Ljava/lang/String;Ljava/lang/String;)J", false);
+                lastExprType = "Long";
+            }
+            case "hget" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "redis_HGet",
+                    "(ILjava/lang/String;Ljava/lang/String;)Ljava/lang/String;", false);
+                lastExprType = "String";
+            }
+            case "hdel" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "redis_HDel",
+                    "(ILjava/lang/String;Ljava/lang/String;)J", false);
+                lastExprType = "Long";
+            }
+            case "hgetall" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "redis_HGetAll",
+                    "(ILjava/lang/String;)Ljava/lang/String;", false);
+                lastExprType = "String";
+            }
+            case "lpush" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "redis_LPush",
+                    "(ILjava/lang/String;Ljava/lang/String;)J", false);
+                lastExprType = "Long";
+            }
+            case "rpush" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "redis_RPush",
+                    "(ILjava/lang/String;Ljava/lang/String;)J", false);
+                lastExprType = "Long";
+            }
+            case "lpop" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "redis_LPop",
+                    "(ILjava/lang/String;)Ljava/lang/String;", false);
+                lastExprType = "String";
+            }
+            case "rpop" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "redis_RPop",
+                    "(ILjava/lang/String;)Ljava/lang/String;", false);
+                lastExprType = "String";
+            }
+            case "llen" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "redis_LLen",
+                    "(ILjava/lang/String;)J", false);
+                lastExprType = "Long";
+            }
+            case "lrange" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "redis_LRange",
+                    "(ILjava/lang/String;JJ)Ljava/lang/String;", false);
+                lastExprType = "String";
+            }
+            case "sadd" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "redis_SAdd",
+                    "(ILjava/lang/String;Ljava/lang/String;)J", false);
+                lastExprType = "Long";
+            }
+            case "sismember" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "redis_SIsMember",
+                    "(ILjava/lang/String;Ljava/lang/String;)I", false);
+                lastExprType = "Integer";
+            }
+            case "srem" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "redis_SRem",
+                    "(ILjava/lang/String;Ljava/lang/String;)J", false);
+                lastExprType = "Long";
+            }
+            case "smembers" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "redis_SMembers",
+                    "(ILjava/lang/String;)Ljava/lang/String;", false);
+                lastExprType = "String";
+            }
+            case "ping" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "redis_Ping",
+                    "(I)Ljava/lang/String;", false);
+                lastExprType = "String";
+            }
+            case "flushdb" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "redis_FlushDB",
+                    "(I)I", false);
+                lastExprType = "Integer";
+            }
+            case "select" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "redis_Select",
+                    "(II)I", false);
+                lastExprType = "Integer";
+            }
+            default -> throw new RuntimeException("Unknown Redis method: " + methodName);
+        }
+
+        return null;
+    }
+
+    // ========================================================================
+    // Memcached namespace - Memcached caching via Spymemcached
+    // ========================================================================
+
+    private Object handleMemcachedCall(String methodName, JvmBasicParser.ArgumentListContext argList) {
+        String runtimeClass = "com/jvmbasic/runtime/BasicCache";
+
+        // Visit arguments first
+        if (argList != null) {
+            for (JvmBasicParser.ArgumentContext arg : argList.argument()) {
+                visit(arg.expression());
+            }
+        }
+
+        switch (methodName.toLowerCase()) {
+            case "connect" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "memcached_Connect",
+                    "(Ljava/lang/String;I)I", false);
+                lastExprType = "Integer";
+            }
+            case "close" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "memcached_Close",
+                    "(I)V", false);
+                lastExprType = "Void";
+            }
+            case "set" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "memcached_Set",
+                    "(ILjava/lang/String;Ljava/lang/String;I)I", false);
+                lastExprType = "Integer";
+            }
+            case "get" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "memcached_Get",
+                    "(ILjava/lang/String;)Ljava/lang/String;", false);
+                lastExprType = "String";
+            }
+            case "delete" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "memcached_Delete",
+                    "(ILjava/lang/String;)I", false);
+                lastExprType = "Integer";
+            }
+            case "incr" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "memcached_Incr",
+                    "(ILjava/lang/String;J)J", false);
+                lastExprType = "Long";
+            }
+            case "decr" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "memcached_Decr",
+                    "(ILjava/lang/String;J)J", false);
+                lastExprType = "Long";
+            }
+            case "add" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "memcached_Add",
+                    "(ILjava/lang/String;Ljava/lang/String;I)I", false);
+                lastExprType = "Integer";
+            }
+            case "replace" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "memcached_Replace",
+                    "(ILjava/lang/String;Ljava/lang/String;I)I", false);
+                lastExprType = "Integer";
+            }
+            case "append" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "memcached_Append",
+                    "(ILjava/lang/String;Ljava/lang/String;)I", false);
+                lastExprType = "Integer";
+            }
+            case "flush" -> {
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "memcached_Flush",
+                    "(I)I", false);
+                lastExprType = "Integer";
+            }
+            default -> throw new RuntimeException("Unknown Memcached method: " + methodName);
         }
 
         return null;
@@ -5363,6 +5703,20 @@ public class CompilerVisitor extends JvmBasicParserBaseVisitor<Object> {
         if ("Response".equalsIgnoreCase(pendingNamespace)) {
             pendingNamespace = null;
             handleResponseCall(methodName, argList);
+            return;
+        }
+
+        // Handle Redis namespace - calls com.jvmbasic.runtime.BasicCache
+        if ("Redis".equalsIgnoreCase(pendingNamespace)) {
+            pendingNamespace = null;
+            handleRedisCall(methodName, argList);
+            return;
+        }
+
+        // Handle Memcached namespace - calls com.jvmbasic.runtime.BasicCache
+        if ("Memcached".equalsIgnoreCase(pendingNamespace)) {
+            pendingNamespace = null;
+            handleMemcachedCall(methodName, argList);
             return;
         }
 
@@ -6168,6 +6522,7 @@ public class CompilerVisitor extends JvmBasicParserBaseVisitor<Object> {
         VariableSymbol global = symbols.getGlobal(name);
         if (global != null) {
             mv.visitFieldInsn(GETSTATIC, className, name, typeToDescriptor(global.type));
+            lastExprType = global.type;
             return;
         }
 
@@ -6360,10 +6715,8 @@ public class CompilerVisitor extends JvmBasicParserBaseVisitor<Object> {
                 // Compile the expression (parse and evaluate)
                 compileInterpolationExpression(exprText);
 
-                // Convert result to String and append
-                emitToStringForInterpolation();
-                mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/StringBuilder", "append",
-                                  "(Ljava/lang/String;)Ljava/lang/StringBuilder;", false);
+                // Append to StringBuilder based on the expression type
+                emitAppendForInterpolation();
 
                 i = closeBrace + 1;
             } else if (c == '$' && i + 1 < content.length() && content.charAt(i + 1) == '$') {
@@ -6505,37 +6858,44 @@ public class CompilerVisitor extends JvmBasicParserBaseVisitor<Object> {
     }
 
     /**
-     * Emits code to convert the top of stack to a String for interpolation
+     * Emits code to append the current stack value to a StringBuilder for interpolation.
+     * Uses the correct StringBuilder.append() overload based on the expression type.
      */
-    private void emitToStringForInterpolation() {
-        switch (lastExprType) {
-            case "String" -> {
-                // Already a string, nothing to do
+    private void emitAppendForInterpolation() {
+        String type = lastExprType != null ? lastExprType : "Object";
+        switch (type.toLowerCase()) {
+            case "string" -> {
+                mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/StringBuilder", "append",
+                                  "(Ljava/lang/String;)Ljava/lang/StringBuilder;", false);
             }
-            case "Integer", "int" -> {
-                mv.visitMethodInsn(INVOKESTATIC, "java/lang/Integer", "toString",
-                                  "(I)Ljava/lang/String;", false);
+            case "integer", "int" -> {
+                mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/StringBuilder", "append",
+                                  "(I)Ljava/lang/StringBuilder;", false);
             }
-            case "Long", "long" -> {
-                mv.visitMethodInsn(INVOKESTATIC, "java/lang/Long", "toString",
-                                  "(J)Ljava/lang/String;", false);
+            case "long" -> {
+                mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/StringBuilder", "append",
+                                  "(J)Ljava/lang/StringBuilder;", false);
             }
-            case "Float", "float" -> {
-                mv.visitMethodInsn(INVOKESTATIC, "java/lang/Float", "toString",
-                                  "(F)Ljava/lang/String;", false);
+            case "float" -> {
+                mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/StringBuilder", "append",
+                                  "(F)Ljava/lang/StringBuilder;", false);
             }
-            case "Double", "double" -> {
-                mv.visitMethodInsn(INVOKESTATIC, "java/lang/Double", "toString",
-                                  "(D)Ljava/lang/String;", false);
+            case "double" -> {
+                mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/StringBuilder", "append",
+                                  "(D)Ljava/lang/StringBuilder;", false);
             }
-            case "Boolean", "boolean" -> {
-                mv.visitMethodInsn(INVOKESTATIC, "java/lang/Boolean", "toString",
-                                  "(Z)Ljava/lang/String;", false);
+            case "boolean" -> {
+                mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/StringBuilder", "append",
+                                  "(Z)Ljava/lang/StringBuilder;", false);
+            }
+            case "char" -> {
+                mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/StringBuilder", "append",
+                                  "(C)Ljava/lang/StringBuilder;", false);
             }
             default -> {
-                // For objects, call String.valueOf which handles null safely
-                mv.visitMethodInsn(INVOKESTATIC, "java/lang/String", "valueOf",
-                                  "(Ljava/lang/Object;)Ljava/lang/String;", false);
+                // For any other object type, use append(Object) which calls toString()
+                mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/StringBuilder", "append",
+                                  "(Ljava/lang/Object;)Ljava/lang/StringBuilder;", false);
             }
         }
     }

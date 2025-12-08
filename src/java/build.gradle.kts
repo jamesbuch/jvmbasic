@@ -54,6 +54,12 @@ dependencies {
     implementation("org.slf4j:slf4j-api:2.0.9")
     implementation("org.slf4j:slf4j-simple:2.0.9")
 
+    // Redis client (Jedis)
+    implementation("redis.clients:jedis:5.1.0")
+
+    // Memcached client (Spymemcached)
+    implementation("net.spy:spymemcached:2.12.3")
+
     // Testing - JUnit 6.0.1
     testImplementation("org.junit.jupiter:junit-jupiter:6.0.1")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher:2.0.1")

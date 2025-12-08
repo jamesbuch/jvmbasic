@@ -1,0 +1,4 @@
+' test_interp_simple.jvmb - Simple string interpolation test
+var name as String = "John"
+Console.WriteLine($"Hello, {name}!")
+Console.WriteLine("Done!")

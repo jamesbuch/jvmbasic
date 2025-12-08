@@ -1,0 +1,34 @@
+' test_json_interpolation.jvmb - Test string interpolation with JSON-like content
+' =============================================================================
+' Tests various edge cases of string interpolation
+
+var name as String = "John"
+var age as Integer = 25
+
+' Basic interpolation
+Console.WriteLine($"Hello, {name}!")
+
+' Multiple variables
+Console.WriteLine($"Name: {name}, Age: {age}")
+
+' Expression in interpolation
+Console.WriteLine($"Next year: {age + 1}")
+
+' Escaped dollar sign
+Console.WriteLine("Using $$ for literal $: $$price")
+
+' JSON construction with interpolation (potential issue)
+var taskId as Integer = 42
+var title as String = "Buy milk"
+
+' This should work - building JSON with interpolated values
+var json as String = "{\"id\": " + taskId.ToString() + ", \"title\": \"" + title + "\"}"
+Console.WriteLine("JSON via concatenation: " + json)
+
+' Test interpolation next to curly braces for HTML/JSON
+Console.WriteLine($"<div class=\"user\">{name}</div>")
+
+' Test multiple braces
+Console.WriteLine($"User {name} (age {age})")
+
+Console.WriteLine("All tests passed!")

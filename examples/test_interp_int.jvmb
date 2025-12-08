@@ -1,0 +1,4 @@
+' test_interp_int.jvmb - Integer string interpolation test
+var age as Integer = 25
+Console.WriteLine($"Age: {age}")
+Console.WriteLine("Done!")
