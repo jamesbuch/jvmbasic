@@ -139,6 +139,10 @@ end function
 
 ' Count regex matches in text
 function countMatches(text as String, pattern as String) as Integer
-    var matches() as String = Regex.FindAll(text, pattern)
-    return Str.Length(matches[0]) / 2 + 1
+    var matches as String[] = Regex.FindAll(text, pattern)
+    var count as Integer = 0
+    for each item in matches
+        count = count + 1
+    next
+    return count
 end function

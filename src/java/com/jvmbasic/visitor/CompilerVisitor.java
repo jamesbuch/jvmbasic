@@ -550,6 +550,8 @@ public class CompilerVisitor extends JvmBasicParserBaseVisitor<Object> {
         // Generate initialization if present
         if (ctx.expression() != null) {
             visit(ctx.expression());
+            // Coerce expression value to match declared type (e.g., float literal to double)
+            coerceToType(type);
             storeLocal(slot, type);
         } else {
             // Initialize with default value
@@ -642,9 +644,44 @@ public class CompilerVisitor extends JvmBasicParserBaseVisitor<Object> {
         }
 
         // Regular assignment: evaluate RHS expression, then store
+        // Get the target variable type for coercion
+        String targetType = getLValueType(ctx.lvalue());
         visit(ctx.expression());
+        if (targetType != null) {
+            coerceToType(targetType);
+        }
         visitLValueStore(ctx.lvalue());
 
+        return null;
+    }
+
+    // Get the type of a variable from an lvalue
+    private String getLValueType(JvmBasicParser.LvalueContext lvalue) {
+        if (lvalue instanceof JvmBasicParser.SimpleLValueContext simple) {
+            String name = simple.IDENTIFIER().getText();
+
+            // Check scope stack first
+            LocalVar scopedVar = lookupScopedVariable(name);
+            if (scopedVar != null) {
+                return scopedVar.type();
+            }
+
+            // Check function locals
+            if (currentMethod != null) {
+                FunctionSymbol func = symbols.getFunction(currentMethod);
+                if (func != null) {
+                    VariableSymbol local = func.getLocal(name);
+                    if (local != null) {
+                        return local.type;
+                    }
+                } else if ("main".equals(currentMethod)) {
+                    LocalVar local = mainLocals.get(name);
+                    if (local != null) {
+                        return local.type();
+                    }
+                }
+            }
+        }
         return null;
     }
 
@@ -4207,10 +4244,20 @@ public class CompilerVisitor extends JvmBasicParserBaseVisitor<Object> {
                     if (isStringType(leftType) || isStringType(rightType)) {
                         emitStringConcat(leftType, rightType);
                     } else {
-                        emitAdd(leftType);
+                        // Promote operands to common type for arithmetic
+                        String promoted = promoteType(leftType, rightType);
+                        promoteOperandsForArithmetic(leftType, rightType, promoted);
+                        emitAdd(promoted);
+                        lastExprType = promoted;
                     }
                 }
-                case "-" -> emitSub(leftType);
+                case "-" -> {
+                    // Promote operands to common type for arithmetic
+                    String promoted = promoteType(leftType, rightType);
+                    promoteOperandsForArithmetic(leftType, rightType, promoted);
+                    emitSub(promoted);
+                    lastExprType = promoted;
+                }
                 case "&" -> {
                     // String concatenation - convert both operands to String and concatenate
                     emitStringConcat(leftType, rightType);
@@ -4238,14 +4285,21 @@ public class CompilerVisitor extends JvmBasicParserBaseVisitor<Object> {
         for (int i = 1; i < ctx.powerExpression().size(); i++) {
             String leftType = lastExprType;
             visit(ctx.powerExpression(i));
+            String rightType = lastExprType;
             var opToken = ctx.getChild(2 * i - 1);
             String op = opToken.getText();
+
+            // Promote operands to common type for arithmetic
+            String promoted = promoteType(leftType, rightType);
+            promoteOperandsForArithmetic(leftType, rightType, promoted);
+
             switch (op) {
-                case "*" -> emitMul(leftType);
-                case "/" -> emitDiv(leftType);
+                case "*" -> emitMul(promoted);
+                case "/" -> emitDiv(promoted);
                 case "\\" -> mv.visitInsn(IDIV); // Integer division
-                case "mod", "Mod", "MOD" -> emitRem(leftType);
+                case "mod", "Mod", "MOD" -> emitRem(promoted);
             }
+            lastExprType = promoted;
         }
         return null;
     }
@@ -4293,6 +4347,128 @@ public class CompilerVisitor extends JvmBasicParserBaseVisitor<Object> {
             case "float" -> mv.visitInsn(FREM);
             case "double" -> mv.visitInsn(DREM);
             default -> mv.visitInsn(IREM);
+        }
+    }
+
+    /**
+     * Promote both operands on stack to the target type for arithmetic.
+     * Stack: [left, right] -> [promotedLeft, promotedRight]
+     */
+    private void promoteOperandsForArithmetic(String leftType, String rightType, String promoted) {
+        String l = leftType.toLowerCase();
+        String r = rightType.toLowerCase();
+        String p = promoted.toLowerCase();
+
+        // If both already match the promoted type, nothing to do
+        if (l.equals(p) && r.equals(p)) {
+            return;
+        }
+
+        // First, promote right operand (top of stack) if needed
+        if (!r.equals(p)) {
+            switch (p) {
+                case "double" -> {
+                    switch (r) {
+                        case "integer", "int", "byte", "char" -> mv.visitInsn(I2D);
+                        case "long" -> mv.visitInsn(L2D);
+                        case "float" -> mv.visitInsn(F2D);
+                    }
+                }
+                case "float" -> {
+                    switch (r) {
+                        case "integer", "int", "byte", "char" -> mv.visitInsn(I2F);
+                        case "long" -> mv.visitInsn(L2F);
+                    }
+                }
+                case "long" -> {
+                    switch (r) {
+                        case "integer", "int", "byte", "char" -> mv.visitInsn(I2L);
+                    }
+                }
+            }
+        }
+
+        // Then, promote left operand if needed
+        // Stack is now [left, promotedRight]
+        // We need to swap, promote left, then arrange correctly
+        if (!l.equals(p)) {
+            // Determine the slot sizes for swapping
+            int rightSlots = isWideType(promoted) ? 2 : 1;
+            int leftSlots = isWideType(leftType) ? 2 : 1;
+
+            if (leftSlots == 1 && rightSlots == 1) {
+                // Simple swap
+                mv.visitInsn(SWAP);
+                // Convert left (now on top)
+                emitTypeConversion(l, p);
+                mv.visitInsn(SWAP);
+            } else if (leftSlots == 1 && rightSlots == 2) {
+                // left on bottom (1 slot), promoted right on top (2 slots)
+                // Use DUP_X1 and POP2 pattern to swap
+                mv.visitInsn(DUP2_X1);  // [right, left, right]
+                mv.visitInsn(POP2);      // [right, left]
+                emitTypeConversion(l, p); // Convert left to promoted type
+                // Now we have [right, promotedLeft], need to swap back
+                mv.visitInsn(DUP2_X2);   // [promotedLeft, right, promotedLeft]
+                mv.visitInsn(POP2);       // [promotedLeft, right]
+            } else if (leftSlots == 2 && rightSlots == 1) {
+                // left on bottom (2 slots), promoted right on top (1 slot)
+                // Stack: [leftL, leftH, right]
+                // Use DUP_X2 to get right under left
+                mv.visitInsn(DUP_X2);     // [right, leftL, leftH, right]
+                mv.visitInsn(POP);        // [right, leftL, leftH]
+                emitTypeConversion(l, p); // Convert left to promoted type (now 1 slot)
+                // Stack is now [right, promotedLeft]
+                mv.visitInsn(SWAP);       // [promotedLeft, right]
+            } else if (leftSlots == 2 && rightSlots == 2) {
+                // Both are wide types - complex swap
+                // [leftL, leftH, rightL, rightH]
+                mv.visitInsn(DUP2_X2);   // [rightL, rightH, leftL, leftH, rightL, rightH]
+                mv.visitInsn(POP2);       // [rightL, rightH, leftL, leftH]
+                emitTypeConversion(l, p); // Convert left to promoted type (if needed)
+                mv.visitInsn(DUP2_X2);
+                mv.visitInsn(POP2);
+            }
+        }
+    }
+
+    /**
+     * Emit type conversion instruction
+     */
+    private void emitTypeConversion(String from, String to) {
+        String f = from.toLowerCase();
+        String t = to.toLowerCase();
+        if (f.equals(t)) return;
+
+        switch (t) {
+            case "double" -> {
+                switch (f) {
+                    case "integer", "int", "byte", "char" -> mv.visitInsn(I2D);
+                    case "long" -> mv.visitInsn(L2D);
+                    case "float" -> mv.visitInsn(F2D);
+                }
+            }
+            case "float" -> {
+                switch (f) {
+                    case "integer", "int", "byte", "char" -> mv.visitInsn(I2F);
+                    case "long" -> mv.visitInsn(L2F);
+                    case "double" -> mv.visitInsn(D2F);
+                }
+            }
+            case "long" -> {
+                switch (f) {
+                    case "integer", "int", "byte", "char" -> mv.visitInsn(I2L);
+                    case "float" -> mv.visitInsn(F2L);
+                    case "double" -> mv.visitInsn(D2L);
+                }
+            }
+            case "integer", "int" -> {
+                switch (f) {
+                    case "long" -> mv.visitInsn(L2I);
+                    case "float" -> mv.visitInsn(F2I);
+                    case "double" -> mv.visitInsn(D2I);
+                }
+            }
         }
     }
 
@@ -4797,6 +4973,107 @@ public class CompilerVisitor extends JvmBasicParserBaseVisitor<Object> {
     }
 
     // ========================================================================
+    // Logical Expressions (short-circuit OR and AND)
+    // ========================================================================
+
+    @Override
+    public Object visitConditionalOrExpression(JvmBasicParser.ConditionalOrExpressionContext ctx) {
+        if (ctx.conditionalAndExpression().size() == 1) {
+            return visit(ctx.conditionalAndExpression(0));
+        }
+
+        // Short-circuit OR: if any operand is true, skip remaining
+        Label trueLabel = new Label();
+        Label endLabel = new Label();
+
+        for (int i = 0; i < ctx.conditionalAndExpression().size(); i++) {
+            visit(ctx.conditionalAndExpression(i));
+            // If this operand is true, jump to true (short-circuit)
+            mv.visitJumpInsn(IFNE, trueLabel);
+        }
+
+        // All operands were false
+        mv.visitInsn(ICONST_0);
+        mv.visitJumpInsn(GOTO, endLabel);
+
+        // At least one was true
+        mv.visitLabel(trueLabel);
+        mv.visitInsn(ICONST_1);
+
+        mv.visitLabel(endLabel);
+        lastExprType = "Boolean";
+        return null;
+    }
+
+    @Override
+    public Object visitConditionalAndExpression(JvmBasicParser.ConditionalAndExpressionContext ctx) {
+        if (ctx.bitwiseOrExpression().size() == 1) {
+            return visit(ctx.bitwiseOrExpression(0));
+        }
+
+        // Short-circuit AND: if any operand is false, skip remaining
+        Label falseLabel = new Label();
+        Label endLabel = new Label();
+
+        for (int i = 0; i < ctx.bitwiseOrExpression().size(); i++) {
+            visit(ctx.bitwiseOrExpression(i));
+            // If this operand is false, jump to false (short-circuit)
+            mv.visitJumpInsn(IFEQ, falseLabel);
+        }
+
+        // All operands were true
+        mv.visitInsn(ICONST_1);
+        mv.visitJumpInsn(GOTO, endLabel);
+
+        // At least one was false
+        mv.visitLabel(falseLabel);
+        mv.visitInsn(ICONST_0);
+
+        mv.visitLabel(endLabel);
+        lastExprType = "Boolean";
+        return null;
+    }
+
+    // ========================================================================
+    // Bitwise Expressions
+    // ========================================================================
+
+    @Override
+    public Object visitBitwiseOrExpression(JvmBasicParser.BitwiseOrExpressionContext ctx) {
+        if (ctx.bitwiseXorExpression().size() == 1) {
+            return visit(ctx.bitwiseXorExpression(0));
+        }
+
+        visit(ctx.bitwiseXorExpression(0));
+        for (int i = 1; i < ctx.bitwiseXorExpression().size(); i++) {
+            visit(ctx.bitwiseXorExpression(i));
+            mv.visitInsn(IOR);
+        }
+        lastExprType = "Integer";
+        return null;
+    }
+
+    @Override
+    public Object visitBitwiseXorExpression(JvmBasicParser.BitwiseXorExpressionContext ctx) {
+        if (ctx.bitwiseAndExpression().size() == 1) {
+            return visit(ctx.bitwiseAndExpression(0));
+        }
+
+        visit(ctx.bitwiseAndExpression(0));
+        for (int i = 1; i < ctx.bitwiseAndExpression().size(); i++) {
+            visit(ctx.bitwiseAndExpression(i));
+            mv.visitInsn(IXOR);
+        }
+        lastExprType = "Integer";
+        return null;
+    }
+
+    @Override
+    public Object visitBitwiseAndExpression(JvmBasicParser.BitwiseAndExpressionContext ctx) {
+        return visit(ctx.equalityExpression(0));
+    }
+
+    // ========================================================================
     // Comparison Expressions
     // ========================================================================
 
@@ -5119,6 +5396,49 @@ public class CompilerVisitor extends JvmBasicParserBaseVisitor<Object> {
                 lastExprType = "Double";
             }
             // Double already - no conversion needed
+        }
+    }
+
+    // Coerce the value on stack to target type (for variable assignment)
+    private void coerceToType(String targetType) {
+        String from = lastExprType.toLowerCase();
+        String to = targetType.toLowerCase();
+        if (from.equals(to)) return;
+
+        // Numeric type conversions
+        switch (to) {
+            case "double" -> {
+                switch (from) {
+                    case "integer", "int", "byte", "char" -> mv.visitInsn(I2D);
+                    case "long" -> mv.visitInsn(L2D);
+                    case "float" -> mv.visitInsn(F2D);
+                }
+                lastExprType = "Double";
+            }
+            case "float" -> {
+                switch (from) {
+                    case "integer", "int", "byte", "char" -> mv.visitInsn(I2F);
+                    case "long" -> mv.visitInsn(L2F);
+                    case "double" -> mv.visitInsn(D2F);
+                }
+                lastExprType = "Float";
+            }
+            case "long" -> {
+                switch (from) {
+                    case "integer", "int", "byte", "char" -> mv.visitInsn(I2L);
+                    case "float" -> mv.visitInsn(F2L);
+                    case "double" -> mv.visitInsn(D2L);
+                }
+                lastExprType = "Long";
+            }
+            case "integer", "int" -> {
+                switch (from) {
+                    case "long" -> mv.visitInsn(L2I);
+                    case "float" -> mv.visitInsn(F2I);
+                    case "double" -> mv.visitInsn(D2I);
+                }
+                lastExprType = "Integer";
+            }
         }
     }
 
