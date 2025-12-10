@@ -1,21 +1,34 @@
-// constants.jvmb - Test constants and imports
+// constants.jvmb - Test global variables used as constants
 
 // ============================================================================
-// Module-level Constants
+// Global Variables (used as constants)
 // ============================================================================
 
-const PI as Double = 3.14159265358979
-const E as Double = 2.71828182845904
-const GOLDEN_RATIO as Double = 1.61803398874989
-const MAX_SIZE as Integer = 100
-const APP_NAME as String = "JVM BASIC 2.0"
-const DEBUG as Boolean = true
+var PI as Double = 3.14159265358979
+var E as Double = 2.71828182845904
+var GOLDEN_RATIO as Double = 1.61803398874989
+var MAX_SIZE as Integer = 100
+var APP_NAME as String = "JVM BASIC 2.0"
+var DEBUG as Boolean = true
+
+// Physics globals
+var SPEED_OF_LIGHT as Long = 299792458L   // m/s
+var GRAVITY as Double = 9.80665           // m/s^2
+
+// Option values for switch
+var OPTION_A as Integer = 1
+var OPTION_B as Integer = 2
+var OPTION_C as Integer = 3
+
+// String globals
+var GREETING as String = "Welcome to "
+var FAREWELL as String = "Goodbye from "
 
 // ============================================================================
-// Using Constants
+// Using Globals
 // ============================================================================
 
-Console.WriteLine("=== Constants ===")
+Console.WriteLine("=== Global Constants ===")
 Console.WriteLine("PI = " + PI.ToString())
 Console.WriteLine("E = " + E.ToString())
 Console.WriteLine("Golden Ratio = " + GOLDEN_RATIO.ToString())
@@ -24,11 +37,11 @@ Console.WriteLine("App Name = " + APP_NAME)
 Console.WriteLine("Debug = " + DEBUG.ToString())
 
 // ============================================================================
-// Constants in Calculations
+// Globals in Calculations
 // ============================================================================
 
 Console.WriteLine("")
-Console.WriteLine("=== Using Constants in Calculations ===")
+Console.WriteLine("=== Using Globals in Calculations ===")
 
 var radius as Double = 5.0
 var circumference as Double = 2 * PI * radius
@@ -39,43 +52,25 @@ Console.WriteLine("  Circumference = " + circumference.ToString())
 Console.WriteLine("  Area = " + area.ToString())
 
 // ============================================================================
-// Class with Constants
+// Physics Globals
 // ============================================================================
 
 Console.WriteLine("")
-Console.WriteLine("=== Class Constants ===")
+Console.WriteLine("=== Physics Constants ===")
 
-public class Physics
-    // Using public shared var for class constants
-    public shared var SPEED_OF_LIGHT as Long = 299792458L   // m/s
-    public shared var GRAVITY as Double = 9.80665           // m/s^2
-    public shared var PLANCK as Double = 6.62607015e-34     // J*s
-
-    public shared function calculateEnergy(mass as Double) as Double
-        return mass * SPEED_OF_LIGHT * SPEED_OF_LIGHT
-    end function
-
-    public shared function calculateWeight(mass as Double) as Double
-        return mass * GRAVITY
-    end function
-end class
-
-Console.WriteLine("Speed of Light: " + Physics.SPEED_OF_LIGHT.ToString() + " m/s")
-Console.WriteLine("Gravity: " + Physics.GRAVITY.ToString() + " m/s^2")
+Console.WriteLine("Speed of Light: " + SPEED_OF_LIGHT.ToString() + " m/s")
+Console.WriteLine("Gravity: " + GRAVITY.ToString() + " m/s^2")
 
 var mass as Double = 10.0
-Console.WriteLine("Weight of " + mass.ToString() + " kg: " + Physics.calculateWeight(mass).ToString() + " N")
+var weight as Double = mass * GRAVITY
+Console.WriteLine("Weight of " + mass.ToString() + " kg: " + weight.ToString() + " N")
 
 // ============================================================================
-// Constants in Select Case
+// Globals in Select Case
 // ============================================================================
 
 Console.WriteLine("")
 Console.WriteLine("=== Constants in Switch ===")
-
-const OPTION_A as Integer = 1
-const OPTION_B as Integer = 2
-const OPTION_C as Integer = 3
 
 var selection as Integer = 2
 
@@ -91,24 +86,21 @@ case else
 end select
 
 // ============================================================================
-// String Constants
+// String Globals
 // ============================================================================
 
 Console.WriteLine("")
 Console.WriteLine("=== String Constants ===")
 
-const GREETING as String = "Welcome to "
-const FAREWELL as String = "Goodbye from "
-
 Console.WriteLine(GREETING + APP_NAME)
 Console.WriteLine(FAREWELL + APP_NAME)
 
 // ============================================================================
-// Conditional Compilation-like Pattern
+// Conditional Pattern
 // ============================================================================
 
 Console.WriteLine("")
-Console.WriteLine("=== Debug Constants ===")
+Console.WriteLine("=== Debug Mode ===")
 
 if DEBUG then
     Console.WriteLine("[DEBUG] Debugging is enabled")

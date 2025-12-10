@@ -1,0 +1,41 @@
+' route_annotation_test.jvmb - Test Route annotation syntax for Jetty integration
+
+' Test both annotation styles:
+' 1. Shorthand: #[Route "/path"]
+' 2. PHP style: #[Route("/path")]
+
+#[Route "/api/hello"]
+sub handleHello()
+    Console.WriteLine("Hello handler")
+end sub
+
+#[Route("/api/world")]
+sub handleWorld()
+    Console.WriteLine("World handler (PHP style)")
+end sub
+
+#[Get("/api/status")]
+sub handleStatus()
+    Console.WriteLine("Status handler")
+end sub
+
+#[Post("/api/data")]
+sub handleData()
+    Console.WriteLine("Data handler")
+end sub
+
+' Test with multiple annotations
+#[Route("/api/admin")]
+#[Test "Admin endpoint test"]
+sub handleAdmin()
+    Console.WriteLine("Admin handler")
+end sub
+
+' Run them
+Console.WriteLine("Route annotation test:")
+handleHello()
+handleWorld()
+handleStatus()
+handleData()
+handleAdmin()
+Console.WriteLine("Done!")

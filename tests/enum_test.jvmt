@@ -1,0 +1,72 @@
+' enum_test.jvmt - Test file for enum support
+
+public enum Color
+    Red
+    Green
+    Blue
+end enum
+
+public enum Priority
+    Low = 1
+    Normal = 5
+    High = 10
+end enum
+
+#[Test "Enum declaration and access"]
+sub testEnumAccess()
+    var c as Color = Color.Red
+    assert c = Color.Red, "Should be Red"
+    assert c <> Color.Blue, "Should not be Blue"
+end sub
+
+#[Test "Enum with explicit values"]
+sub testEnumValues()
+    assert Priority.Low = 1, "Low should be 1"
+    assert Priority.Normal = 5, "Normal should be 5"
+    assert Priority.High = 10, "High should be 10"
+end sub
+
+#[Test "Enum in if statement"]
+sub testEnumIfStatement()
+    var c as Color = Color.Green
+    var result as String = ""
+    if c = Color.Red then
+        result = "red"
+    elseif c = Color.Green then
+        result = "green"
+    else
+        result = "blue"
+    end if
+    assert result = "green", "Should match green"
+end sub
+
+#[Test "Enum in select case"]
+sub testEnumSelectCase()
+    var p as Priority = Priority.High
+    var result as String = ""
+    select case p
+    case Priority.Low
+        result = "low"
+    case Priority.Normal
+        result = "normal"
+    case Priority.High
+        result = "high"
+    end select
+    assert result = "high", "Should match high"
+end sub
+
+#[Test "Enum comparison"]
+sub testEnumComparison()
+    var c1 as Color = Color.Blue
+    var c2 as Color = Color.Blue
+    var c3 as Color = Color.Red
+    assert c1 = c2, "Same enum values should be equal"
+    assert c1 <> c3, "Different enum values should not be equal"
+end sub
+
+#[Test "Enum value as integer"]
+sub testEnumIntegerValue()
+    var c as Color = Color.Green
+    ' Green is the second value (0, 1, 2) so it should be 1
+    assert c = 1, "Green should have value 1"
+end sub

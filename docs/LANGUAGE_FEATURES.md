@@ -453,12 +453,12 @@ class Employee extends Person
     private var salary as Double
 
     public sub New(name as String, age as Integer, sal as Double)
-        MyBase.New(name, age)
+        Super.New(name, age)
         this.salary = sal
     end sub
 
     public override function Greet() as String
-        return MyBase.Greet() & " - Employee"
+        return Super.Greet() & " - Employee"
     end function
 end class
 ```

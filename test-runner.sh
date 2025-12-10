@@ -116,22 +116,31 @@ echo ""
 echo -e "${BLUE}Running examples from examples/:${NC}"
 echo "----------------------------------------"
 
-# Examples (from examples/ directory) - a subset that should always work
-EXAMPLES=(
-    "hello.jvmb:hello"
-    "demo.jvmb:demo"
-    "simple_for.jvmb:simple_for"
-    "simple_while.jvmb:simple_while"
-    "simple_if.jvmb:simple_if"
-    "calculator.jvmb:calculator"
-    "algo_fibonacci.jvmb:algo_fibonacci"
-    "oop_shapes.jvmb:oop_shapes"
-    "oop_linked_list.jvmb:oop_linked_list"
-)
+# Examples - dynamically find all .jvmb files in examples/
+# Skip files that require external services (jetty, db demos, etc.)
+SKIP_EXAMPLES="jetty_api jetty_hello task_app db_mariadb_demo db_postgresql_demo http_demo wikipedia_demo types enums lambdas nullables oop_abstract_shapes"
 
-for example in "${EXAMPLES[@]}"; do
-    IFS=':' read -r source classname <<< "$example"
-    run_test "$EXAMPLES_DIR" "$source" "$classname"
+for file in "$SCRIPT_DIR/$EXAMPLES_DIR"/*.jvmb; do
+    if [ -f "$file" ]; then
+        source=$(basename "$file")
+        classname="${source%.jvmb}"
+
+        # Check if this example should be skipped
+        skip=false
+        for skip_name in $SKIP_EXAMPLES; do
+            if [ "$classname" = "$skip_name" ]; then
+                skip=true
+                break
+            fi
+        done
+
+        if [ "$skip" = true ]; then
+            echo -e "  ${YELLOW}SKIP${NC} $source (requires external service)"
+            continue
+        fi
+
+        run_test "$EXAMPLES_DIR" "$source" "$classname"
+    fi
 done
 
 echo ""

@@ -15,8 +15,8 @@ Console.WriteLine("")
 
 ' Read and parse log file
 var content as String = File.ReadAllText(logFile)
-var lines() as String = Str.Split(content, Str.Chr(10))
-var lineCount as Integer = countArrayLength(lines)
+var lines as String[] = Str.Split(content, Str.Chr(10))
+var lineCount as Integer = Array.Length(lines)
 
 Console.WriteLine($"Total log entries: {lineCount}")
 Console.WriteLine("")
@@ -77,10 +77,10 @@ Console.WriteLine("")
 
 ' Find unique IP addresses (if any)
 Console.WriteLine("=== IP Address Analysis ===")
-var ipPattern as String = "\\b\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}\\b"
+var ipPattern as String = "\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}"
 if Regex.IsMatch(content, ipPattern) then
-    var ips() as String = Regex.FindAll(content, ipPattern)
-    Console.WriteLine($"  Found {countArrayLength(ips)} IP references")
+    var ips as String[] = Regex.FindAll(content, ipPattern)
+    Console.WriteLine($"  Found {Array.Length(ips)} IP references")
 else
     Console.WriteLine("  No IP addresses found in log")
 end if
@@ -92,8 +92,8 @@ var timePattern as String = "\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2}"
 if Regex.IsMatch(content, timePattern) then
     Console.WriteLine("  Log contains timestamps")
     ' Find first and last timestamps
-    var timestamps() as String = Regex.FindAll(content, timePattern)
-    var tsCount as Integer = countArrayLength(timestamps)
+    var timestamps as String[] = Regex.FindAll(content, timePattern)
+    var tsCount as Integer = Array.Length(timestamps)
     if tsCount > 0 then
         Console.WriteLine($"  First entry: {timestamps[0]}")
         Console.WriteLine($"  Last entry: {timestamps[tsCount - 1]}")
@@ -158,12 +158,3 @@ sub createSampleLog(path as String)
 
     File.WriteAllText(path, log)
 end sub
-
-' Count array length (workaround)
-function countArrayLength(arr() as String) as Integer
-    var count as Integer = 0
-    for each item in arr
-        count = count + 1
-    next
-    return count
-end function

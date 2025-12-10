@@ -57,12 +57,9 @@ Console.WriteLine("Value: " + num.ToString())
 // Note: Use java.lang.Integer for static methods
 var parsed as Integer = 123
 Console.WriteLine("Parsed value: " + parsed.ToString())
-var maxVal as Integer = Math.Max(10, 20)
-Console.WriteLine("Max(10, 20): " + maxVal.ToString())
-var minVal as Integer = Math.Min(10, 20)
-Console.WriteLine("Min(10, 20): " + minVal.ToString())
-var absVal as Integer = Math.Abs(-42)
-Console.WriteLine("Abs(-42): " + absVal.ToString())
+Console.WriteLine("Max(10, 20): " + Math.Max(10, 20).ToString())
+Console.WriteLine("Min(10, 20): " + Math.Min(10, 20).ToString())
+Console.WriteLine("Abs(-42): " + Math.Abs(-42).ToString())
 
 // ============================================================================
 // Math Methods
@@ -71,22 +68,15 @@ Console.WriteLine("Abs(-42): " + absVal.ToString())
 Console.WriteLine("")
 Console.WriteLine("=== Math Methods ===")
 
-var xval as Double = 2.0
+var x as Double = 2.0
 
-var sqrtVal as Double = Math.Sqrt(16.0)
-Console.WriteLine("Sqrt(16): " + sqrtVal.ToString())
-var powVal as Double = Math.Pow(2.0, 8.0)
-Console.WriteLine("Pow(2, 8): " + powVal.ToString())
-var sinVal as Double = Math.Sin(0.0)
-Console.WriteLine("Sin(0): " + sinVal.ToString())
-var cosVal as Double = Math.Cos(0.0)
-Console.WriteLine("Cos(0): " + cosVal.ToString())
-var floorVal as Double = Math.Floor(3.7)
-Console.WriteLine("Floor(3.7): " + floorVal.ToString())
-var ceilVal as Double = Math.Ceiling(3.2)
-Console.WriteLine("Ceiling(3.2): " + ceilVal.ToString())
-var roundVal as Double = Math.Round(3.5)
-Console.WriteLine("Round(3.5): " + roundVal.ToString())
+Console.WriteLine("Sqrt(16): " + Math.Sqrt(16.0).ToString())
+Console.WriteLine("Pow(2, 8): " + Math.Pow(2.0, 8.0).ToString())
+Console.WriteLine("Sin(0): " + Math.Sin(0.0).ToString())
+Console.WriteLine("Cos(0): " + Math.Cos(0.0).ToString())
+Console.WriteLine("Floor(3.7): " + Math.Floor(3.7).ToString())
+Console.WriteLine("Ceiling(3.2): " + Math.Ceiling(3.2).ToString())
+Console.WriteLine("Round(3.5): " + Math.Round(3.5).ToString())
 
 // ============================================================================
 // Static Method Calls
@@ -100,10 +90,8 @@ var maxInt as Integer = 2147483647
 var minInt as Integer = -2147483647 - 1
 Console.WriteLine("Max Integer: " + maxInt.ToString())
 Console.WriteLine("Min Integer: " + minInt.ToString())
-var piVal as Double = Math.PI
-Console.WriteLine("Math.PI: " + piVal.ToString())
-var eVal as Double = Math.E
-Console.WriteLine("Math.E: " + eVal.ToString())
+Console.WriteLine("Math.PI: " + Math.PI.ToString())
+Console.WriteLine("Math.E: " + Math.E.ToString())
 
 // ============================================================================
 // Object Methods
@@ -121,22 +109,22 @@ public class Calculator
 
     public function add(x as Integer) as Calculator
         _value += x
-        return this
+        return me
     end function
 
     public function subtract(x as Integer) as Calculator
         _value -= x
-        return this
+        return me
     end function
 
     public function multiply(x as Integer) as Calculator
         _value *= x
-        return this
+        return me
     end function
 
     public function divide(x as Integer) as Calculator
         _value /= x
-        return this
+        return me
     end function
 
     public function getValue() as Integer
@@ -145,14 +133,14 @@ public class Calculator
 
     public function reset(val as Integer) as Calculator
         _value = val
-        return this
+        return me
     end function
 end class
 
 // Fluent interface with method chaining
 var calc as Calculator = new Calculator(10)
-var calcResult as Integer = calc.add(5).multiply(2).subtract(10).getValue()
-Console.WriteLine("10 + 5 * 2 - 10 = " + calcResult.ToString())
+var result as Integer = calc.add(5).multiply(2).subtract(10).getValue()
+Console.WriteLine("10 + 5 * 2 - 10 = " + result.ToString())
 
 calc.reset(100).divide(4).add(25)
 Console.WriteLine("100 / 4 + 25 = " + calc.getValue().ToString())
@@ -179,14 +167,14 @@ public class IntArray
 
     public function setItem(index as Integer, value as Integer) as IntArray
         _data[index] = value
-        return this
+        return me
     end function
 
     public function fill(value as Integer) as IntArray
         for i = 0 to _size - 1
             _data[i] = value
         next i
-        return this
+        return me
     end function
 
     public function sum() as Integer

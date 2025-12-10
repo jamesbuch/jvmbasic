@@ -16,25 +16,25 @@ public class Point
 
     // Getters
     public function getX() as Integer
-        return x
+        return this.x
     end function
 
     public function getY() as Integer
-        return y
+        return this.y
     end function
 
     // Method
     public function distanceFromOrigin() as Double
-        return Math.Sqrt(x * x + y * y)
+        return Math.Sqrt(this.x * this.x + this.y * this.y)
     end function
 
     public function toString() as String
-        return $"({x}, {y})"
+        return $"({this.x}, {this.y})"
     end function
 end class
 
 // ============================================================================
-// Class with Properties
+// Class with Methods (getter/setter pattern)
 // ============================================================================
 
 public class Person
@@ -46,28 +46,26 @@ public class Person
         this.age = age
     end sub
 
-    public property Name as String
-        get
-            return name
-        end get
-        set(value as String)
-            name = value
-        end set
-    end property
+    public function getName() as String
+        return this.name
+    end function
 
-    public property Age as Integer
-        get
-            return age
-        end get
-        set(value as Integer)
-            if value >= 0 then
-                age = value
-            end if
-        end set
-    end property
+    public sub setName(value as String)
+        this.name = value
+    end sub
+
+    public function getAge() as Integer
+        return this.age
+    end function
+
+    public sub setAge(value as Integer)
+        if value >= 0 then
+            this.age = value
+        end if
+    end sub
 
     public function greet() as String
-        return $"Hi, I'm {name} and I'm {age} years old"
+        return $"Hi, I'm {this.name} and I'm {this.age} years old"
     end function
 end class
 
@@ -85,21 +83,20 @@ public class Employee extends Person
         this.salary = salary
     end sub
 
-    public property Title as String
-        get
-            return title
-        end get
-        set(value as String)
-            title = value
-        end set
-    end property
+    public function getTitle() as String
+        return this.title
+    end function
+
+    public sub setTitle(value as String)
+        this.title = value
+    end sub
 
     public override function greet() as String
-        return $"{Super.greet()}. I work as a {title}"
+        return $"{Super.greet()}. I work as a {this.title}"
     end function
 
     public function getAnnualSalary() as Double
-        return salary * 12
+        return this.salary * 12
     end function
 end class
 
@@ -117,44 +114,44 @@ end interface
 // ============================================================================
 
 public class Rectangle implements IShape
-    private var width as Double
-    private var height as Double
+    private var width as Integer
+    private var height as Integer
 
-    public sub new(width as Double, height as Double)
+    public sub new(width as Integer, height as Integer)
         this.width = width
         this.height = height
     end sub
 
     public function area() as Double
-        return width * height
+        return this.width * this.height
     end function
 
     public function perimeter() as Double
-        return 2 * (width + height)
+        return 2 * (this.width + this.height)
     end function
 
     public function toString() as String
-        return $"Rectangle({width} x {height})"
+        return $"Rectangle({this.width} x {this.height})"
     end function
 end class
 
 public class Circle implements IShape
-    private var radius as Double
+    private var radius as Integer
 
-    public sub new(radius as Double)
+    public sub new(radius as Integer)
         this.radius = radius
     end sub
 
     public function area() as Double
-        return 3.14159 * radius * radius
+        return 3.14159 * this.radius * this.radius
     end function
 
     public function perimeter() as Double
-        return 2 * 3.14159 * radius
+        return 2 * 3.14159 * this.radius
     end function
 
     public function toString() as String
-        return $"Circle(r={radius})"
+        return $"Circle(r={this.radius})"
     end function
 end class
 
@@ -170,7 +167,7 @@ public abstract class Animal
     end sub
 
     public function getName() as String
-        return name
+        return this.name
     end function
 
     // Abstract method - must be overridden
@@ -185,7 +182,7 @@ public class Dog extends Animal
     end sub
 
     public override function speak() as String
-        return $"{name} says: Woof!"
+        return $"{this.name} says: Woof!"
     end function
 end class
 
@@ -195,23 +192,7 @@ public class Cat extends Animal
     end sub
 
     public override function speak() as String
-        return $"{name} says: Meow!"
-    end function
-end class
-
-// ============================================================================
-// Static/Shared members
-// ============================================================================
-
-public class Counter
-    shared var count as Integer = 0
-
-    public sub new()
-        count += 1
-    end sub
-
-    shared function getCount() as Integer
-        return count
+        return $"{this.name} says: Meow!"
     end function
 end class
 
@@ -227,8 +208,8 @@ Console.WriteLine($"Distance from origin: {p.distanceFromOrigin()}")
 // Test Person
 var person as Person = new Person("Alice", 30)
 Console.WriteLine(person.greet())
-person.Name = "Bob"
-person.Age = 25
+person.setName("Bob")
+person.setAge(25)
 Console.WriteLine(person.greet())
 
 // Test Employee (inheritance)
@@ -237,8 +218,8 @@ Console.WriteLine(emp.greet())
 Console.WriteLine($"Annual salary: {emp.getAnnualSalary()}")
 
 // Test interface with different shapes
-var rect as Rectangle = new Rectangle(10.0, 5.0)
-var circle as Circle = new Circle(7.0)
+var rect as Rectangle = new Rectangle(10, 5)
+var circle as Circle = new Circle(7)
 
 Console.WriteLine($"{rect.toString()} - Area: {rect.area()}, Perimeter: {rect.perimeter()}")
 Console.WriteLine($"{circle.toString()} - Area: {circle.area()}, Perimeter: {circle.perimeter()}")
@@ -249,8 +230,4 @@ var cat as Cat = new Cat("Whiskers")
 Console.WriteLine(dog.speak())
 Console.WriteLine(cat.speak())
 
-// Test static members
-var c1 as Counter = new Counter()
-var c2 as Counter = new Counter()
-var c3 as Counter = new Counter()
-Console.WriteLine($"Counter instances created: {Counter.getCount()}")
+Console.WriteLine("OOP test completed!")

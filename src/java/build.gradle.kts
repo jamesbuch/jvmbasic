@@ -122,12 +122,15 @@ tasks.jar {
     }
 }
 
-// Test configuration
+// Test configuration - disabled since we use our own test framework
+// JVM BASIC has its own #[Test] annotation system with TestRunner.java
 tasks.test {
     useJUnitPlatform()
     testLogging {
         events("passed", "skipped", "failed")
     }
+    // Skip test task entirely - we don't use JUnit
+    onlyIf { false }
 }
 
 // Custom task to show grammar info

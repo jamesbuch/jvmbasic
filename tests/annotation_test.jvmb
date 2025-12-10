@@ -1,0 +1,26 @@
+' annotation_test.jvmb - Test annotation syntax parsing
+' This tests the #[Test] annotation grammar
+
+#[Test "Test that addition works"]
+sub testAddition()
+    var result as Integer = 2 + 2
+    assert result = 4, "2 + 2 should equal 4"
+end sub
+
+#[Test "Test that subtraction works"]
+sub testSubtraction()
+    var result as Integer = 10 - 3
+    assert result = 7, "10 - 3 should equal 7"
+end sub
+
+' Test without annotation - regular sub
+sub regularSub()
+    Console.WriteLine("This is a regular sub")
+end sub
+
+' Main entry point
+Console.WriteLine("Annotation test file parsed successfully!")
+testAddition()
+testSubtraction()
+regularSub()
+Console.WriteLine("All tests passed!")

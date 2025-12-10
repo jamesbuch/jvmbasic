@@ -37,6 +37,9 @@ public class SemanticAnalyzer {
     private IRType currentFunctionReturnType = null;
     private String currentFunctionName = null;
 
+    // Current class being analyzed (for 'me'/'this' reference)
+    private IRClass currentClass = null;
+
     public SemanticAnalyzer() {
         // Initialize with global scope
         scopeStack.push(new SymbolTable("global"));
@@ -408,6 +411,7 @@ public class SemanticAnalyzer {
 
     private void analyzeClass(IRClass cls) {
         pushScope("class:" + cls.getName());
+        currentClass = cls;
 
         // Check superclass exists if specified
         if (cls.getSuperClass() != null) {
@@ -444,10 +448,53 @@ public class SemanticAnalyzer {
         // Analyze methods (only non-abstract methods have bodies to analyze)
         for (IRFunction method : cls.getMethods()) {
             if (!method.isAbstract()) {
-                analyzeFunction(method);
+                analyzeClassMethod(method, cls);
             }
         }
 
+        currentClass = null;
+        popScope();
+    }
+
+    private void analyzeClassMethod(IRFunction method, IRClass cls) {
+        // Enter new scope for method
+        pushScope("method:" + method.getName());
+        currentFunctionReturnType = method.getReturnType();
+        currentFunctionName = method.getName();
+
+        // Add 'me' and 'this' to refer to the current instance
+        IRType classType = new IRType.Reference(cls.getName());
+        currentScope().defineVariable("me", classType, true);
+        currentScope().defineVariable("this", classType, true);
+
+        // Add parameters to scope
+        for (IRParameter param : method.getParameters()) {
+            if (currentScope().hasLocalSymbol(param.getName())) {
+                error(param.getLine(), param.getColumn(),
+                    "Duplicate parameter name: " + param.getName());
+            } else {
+                currentScope().defineVariable(param.getName(), param.getType(), true);
+            }
+        }
+
+        // Analyze body statements
+        boolean hasReturn = false;
+        for (IRStatement stmt : method.getBody()) {
+            analyzeStatement(stmt);
+            if (stmt instanceof IRReturn) {
+                hasReturn = true;
+            }
+        }
+
+        // Check return statement for non-void functions
+        IRType returnType = method.getReturnType();
+        if (returnType != null && !returnType.equals(IRType.Primitive.VOID) && !hasReturn) {
+            warning(method.getLine(), method.getColumn(),
+                "Function '" + method.getName() + "' may not return a value on all paths");
+        }
+
+        currentFunctionReturnType = null;
+        currentFunctionName = null;
         popScope();
     }
 
@@ -759,6 +806,22 @@ public class SemanticAnalyzer {
         if (target == null || source == null) return true;  // Unknown types
         if (target.equals(source)) return true;
 
+        // Handle nullable types (Type?)
+        if (target instanceof IRType.Nullable nullableTarget) {
+            // Nil/Nothing (Object) can be assigned to any nullable type
+            if (source.equals(IRType.Reference.OBJECT)) {
+                return true;
+            }
+            // Non-nullable T can be assigned to T?
+            if (isAssignableFrom(nullableTarget.wrapped(), source)) {
+                return true;
+            }
+            // Nullable T? can be assigned to T? if T is assignable
+            if (source instanceof IRType.Nullable nullableSource) {
+                return isAssignableFrom(nullableTarget.wrapped(), nullableSource.wrapped());
+            }
+        }
+
         // Null can be assigned to any reference type
         if (source.equals(IRType.Reference.OBJECT) && target instanceof IRType.Reference) {
             return true;
@@ -767,6 +830,14 @@ public class SemanticAnalyzer {
         // Numeric widening conversions
         if (isNumericType(target) && isNumericType(source)) {
             return getNumericRank(target) >= getNumericRank(source);
+        }
+
+        // Primitive to nullable primitive (boxed)
+        if (target instanceof IRType.Nullable nullableTarget &&
+            nullableTarget.wrapped() instanceof IRType.Primitive targetPrim &&
+            source instanceof IRType.Primitive sourcePrim) {
+            // Int -> Int? is allowed (boxing)
+            return targetPrim.equals(sourcePrim);
         }
 
         // Object hierarchy (simplified)
@@ -783,6 +854,10 @@ public class SemanticAnalyzer {
 
     private boolean isNumericType(IRType type) {
         if (type == null) return false;
+        // Handle nullable numeric types (Integer?, Long?, etc.)
+        if (type instanceof IRType.Nullable nullable) {
+            return isNumericType(nullable.wrapped());
+        }
         if (type instanceof IRType.Primitive p) {
             return p == IRType.Primitive.INT || p == IRType.Primitive.LONG ||
                    p == IRType.Primitive.FLOAT || p == IRType.Primitive.DOUBLE ||
@@ -793,6 +868,10 @@ public class SemanticAnalyzer {
 
     private boolean isIntegralType(IRType type) {
         if (type == null) return false;
+        // Handle nullable integral types (Integer?, Long?, etc.)
+        if (type instanceof IRType.Nullable nullable) {
+            return isIntegralType(nullable.wrapped());
+        }
         if (type instanceof IRType.Primitive p) {
             return p == IRType.Primitive.INT || p == IRType.Primitive.LONG ||
                    p == IRType.Primitive.BYTE || p == IRType.Primitive.CHAR;
@@ -879,7 +958,7 @@ public class SemanticAnalyzer {
             };
             case "Regex" -> switch (methodName) {
                 case "IsMatch" -> IRType.Primitive.BOOLEAN;
-                case "Matches", "Split", "Groups" -> new IRType.Array(IRType.Reference.STRING);
+                case "Matches", "Split", "Groups", "FindAll", "FindAllNumbers", "FindAllWords" -> new IRType.Array(IRType.Reference.STRING);
                 default -> IRType.Reference.STRING;
             };
             case "Db" -> switch (methodName) {

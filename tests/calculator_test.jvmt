@@ -1,0 +1,39 @@
+' calculator_test.jvmt - Calculator unit tests
+
+#[Test "Addition works correctly"]
+sub testAddition()
+    var result as Integer = 2 + 2
+    assert result = 4, "2 + 2 should equal 4"
+end sub
+
+#[Test "Subtraction works correctly"]
+sub testSubtraction()
+    var result as Integer = 10 - 3
+    assert result = 7, "10 - 3 should equal 7"
+end sub
+
+#[Test "Multiplication works correctly"]
+sub testMultiplication()
+    var result as Integer = 6 * 7
+    assert result = 42, "6 * 7 should equal 42"
+end sub
+
+#[Test "Integer division works correctly"]
+sub testDivision()
+    var result as Integer = 20 / 4
+    assert result = 5, "20 / 4 should equal 5"
+end sub
+
+#[Test "Modulo operation works"]
+sub testModulo()
+    var result as Integer = 17 mod 5
+    assert result = 2, "17 mod 5 should equal 2"
+end sub
+
+#[Test "Power operation works"]
+sub testPower()
+    var result as Integer = 2 ^ 3
+    assert result = 8, "2 ^ 3 should equal 8"
+end sub
+
+Console.WriteLine("Calculator tests loaded")

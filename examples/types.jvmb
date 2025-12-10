@@ -22,7 +22,7 @@ var strWithEscape as String = "Line1\nLine2\tTabbed"
 var strWithQuotes as String = "She said \"Hello\""
 
 // Integer literals in different bases
-var decimal as Integer = 255
+var decimalVal as Integer = 255
 var hex as Integer = 0xFF
 var binary as Integer = 0b11111111
 var octal as Integer = 0o377

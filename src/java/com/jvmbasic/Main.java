@@ -4,6 +4,7 @@ import com.jvmbasic.grammar.*;
 import com.jvmbasic.ir.*;
 import com.jvmbasic.semantic.*;
 import com.jvmbasic.sir.*;
+import com.jvmbasic.test.TestRunner;
 import com.jvmbasic.visitor.CompilerVisitor;
 import com.jvmbasic.visitor.DebugListener;
 import com.jvmbasic.visitor.SymbolCollector;
@@ -12,6 +13,7 @@ import org.antlr.v4.runtime.*;
 import org.antlr.v4.runtime.tree.*;
 
 import java.io.*;
+import java.net.*;
 import java.nio.file.*;
 
 /**
@@ -43,6 +45,7 @@ public class Main {
     private static boolean outputTreeFile = false;
     private static boolean outputIrFile = false;
     private static boolean outputSirFile = false;
+    private static boolean testMode = false;
     private static String outputName = null;
     private static String outputDir = null;
     private static String sourceFile = null;
@@ -117,6 +120,10 @@ public class Main {
                 case "-semantic":
                     semanticCheck = true;
                     break;
+                case "--test":
+                case "-test":
+                    testMode = true;
+                    break;
                 case "-outdir":
                 case "--outdir":
                     if (i + 1 < args.length) {
@@ -154,12 +161,17 @@ public class Main {
               -tokens         Print token stream
               -parse-only     Parse without code generation
               -semantic       Run semantic analysis (type checking, reference checking)
+              --test          Run in test mode (discover and execute #[Test] methods)
               --output-ast    Write AST to <source>.ast file
               --output-tree   Write parse tree to <source>.tree file
               --output-ir     Write IR to <source>.ir file
               --output-sir    Write stack IR to <source>.sir file
               --output-all    Write all output files (.ast, .tree, .ir, .sir)
               -help           Show this help
+
+            File Extensions:
+              .jvmb           Standard JVM BASIC source file
+              .jvmt           Test file (automatically enables --test mode)
 
             IR Representations:
               -ir   Tree-based IR - human readable, shows program structure
@@ -170,6 +182,7 @@ public class Main {
               java -jar jvmbasic.jar -tree -parse-only examples/hello.jvmb
               java -jar jvmbasic.jar -ir -sir -parse-only examples/hello.jvmb
               java -jar jvmbasic.jar --output-all -parse-only examples/hello.jvmb
+              java -jar jvmbasic.jar --test tests/calculator_test.jvmt
             """);
     }
 
@@ -182,7 +195,12 @@ public class Main {
             outputName = Path.of(sourcePath)
                 .getFileName()
                 .toString()
-                .replaceFirst("\\.(bas|jvmb)$", "");
+                .replaceFirst("\\.(bas|jvmb|jvmt)$", "");
+        }
+
+        // Auto-detect test mode from file extension
+        if (sourcePath.endsWith(".jvmt")) {
+            testMode = true;
         }
 
         System.out.println("Compiling: " + sourcePath + " -> " + outputName + ".class");
@@ -258,6 +276,7 @@ public class Main {
                 // IR building failed, but we can continue with direct code generation
                 if (debugMode) {
                     System.err.println("Warning: IR building failed: " + e.getMessage());
+                    e.printStackTrace();
                 }
             }
             String irContent = irUnit != null ? irUnit.toString() : "";
@@ -363,6 +382,47 @@ public class Main {
             }
             Files.write(classPath, classBytecode);
             System.out.println("Generated class: " + classPath + " (" + classBytecode.length + " bytes)");
+        }
+
+        // Run tests if in test mode
+        if (testMode) {
+            runTests(outputPath, outputName);
+        }
+    }
+
+    /**
+     * Run tests discovered in the compiled class.
+     */
+    private static void runTests(Path classPath, String className) {
+        System.out.println();
+        try {
+            // Create a class loader that can load the compiled class
+            // Convert to absolute path and handle case where parent is null (file in current directory)
+            Path absolutePath = classPath.toAbsolutePath();
+            Path parentDir = absolutePath.getParent();
+            if (parentDir == null) {
+                parentDir = Path.of(".").toAbsolutePath();
+            }
+            URL[] urls = { parentDir.toUri().toURL() };
+            try (URLClassLoader loader = new URLClassLoader(urls, Main.class.getClassLoader())) {
+                Class<?> testClass = loader.loadClass(className);
+
+                // Run tests using the TestRunner
+                TestRunner runner = new TestRunner();
+                runner.runTests(testClass);
+                runner.printSummary();
+
+                // Exit with appropriate code
+                if (runner.hasFailures()) {
+                    System.exit(1);
+                }
+            }
+        } catch (Exception e) {
+            System.err.println("Error running tests: " + e.getMessage());
+            if (debugMode) {
+                e.printStackTrace();
+            }
+            System.exit(1);
         }
     }
 

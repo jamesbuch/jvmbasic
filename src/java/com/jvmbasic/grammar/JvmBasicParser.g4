@@ -48,6 +48,40 @@ qualifiedName
     ;
 
 // ============================================================================
+// Annotations (PHP 8 style)
+// ============================================================================
+
+annotation
+    : HASH_LBRACKET annotationName annotationArgs? RBRACKET
+    ;
+
+// Allow keywords to be used as annotation names (e.g., #[Get], #[Set], #[Post])
+annotationName
+    : IDENTIFIER
+    | GET
+    | SET
+    | NEW
+    ;
+
+annotationArgs
+    : STRING_LITERAL                          // Shorthand: #[Test "description"]
+    | LPAREN annotationArgList? RPAREN        // Full form: #[Test(value: "foo")]
+    ;
+
+annotationArgList
+    : annotationArg (COMMA annotationArg)*
+    ;
+
+annotationArg
+    : expression                              // Positional argument
+    | IDENTIFIER COLON expression             // Named argument
+    ;
+
+annotations
+    : annotation*
+    ;
+
+// ============================================================================
 // Declarations
 // ============================================================================
 
@@ -114,7 +148,8 @@ constructorDeclaration
     ;
 
 methodDeclaration
-    : accessModifier? SHARED? OVERRIDE? (FUNCTION | SUB) IDENTIFIER
+    : annotations
+      accessModifier? SHARED? OVERRIDE? (FUNCTION | SUB) IDENTIFIER
       typeParameters?
       parameterList?
       (AS typeName)?
@@ -157,7 +192,8 @@ enumMember
 
 // --- Function/Sub Declaration (Module-level) ---
 functionDeclaration
-    : accessModifier? FUNCTION IDENTIFIER
+    : annotations
+      accessModifier? FUNCTION IDENTIFIER
       typeParameters?
       parameterList?
       AS typeName
@@ -166,7 +202,8 @@ functionDeclaration
     ;
 
 subDeclaration
-    : accessModifier? SUB IDENTIFIER
+    : annotations
+      accessModifier? SUB IDENTIFIER
       parameterList?
       statement*
       END SUB
@@ -255,6 +292,7 @@ assignmentStatement
 lvalue
     : IDENTIFIER                             # SimpleLValue
     | THIS                                   # ThisLValue
+    | ME                                     # MeLValue
     | lvalue DOT IDENTIFIER                  # MemberLValue
     | lvalue LBRACKET expression RBRACKET    # IndexLValue
     ;
@@ -543,6 +581,7 @@ primaryExpression
     | IDENTIFIER                                         # IdentifierExpr
     | BIGINTEGER                                         # BigIntNamespaceExpr
     | DECIMAL                                            # DecimalNamespaceExpr
+    | ASSERT                                             # AssertNamespaceExpr
     | ME                                                 # MeExpr
     | THIS                                               # ThisExpr
     | MYBASE                                             # MyBaseExpr

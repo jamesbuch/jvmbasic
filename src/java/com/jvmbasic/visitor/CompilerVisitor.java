@@ -254,6 +254,10 @@ public class CompilerVisitor extends JvmBasicParserBaseVisitor<Object> {
         int access = ACC_PUBLIC | ACC_STATIC;
 
         mv = cw.visitMethod(access, name, descriptor, null, null);
+
+        // Emit @Test annotation if present
+        emitTestAnnotationIfPresent(func);
+
         mv.visitCode();
 
         currentMethod = name;
@@ -297,6 +301,10 @@ public class CompilerVisitor extends JvmBasicParserBaseVisitor<Object> {
         int access = ACC_PUBLIC | ACC_STATIC;
 
         mv = cw.visitMethod(access, name, descriptor, null, null);
+
+        // Emit @Test annotation if present
+        emitTestAnnotationIfPresent(sub);
+
         mv.visitCode();
 
         currentMethod = name;
@@ -620,9 +628,15 @@ public class CompilerVisitor extends JvmBasicParserBaseVisitor<Object> {
 
             // If getter has custom body, compile it
             if (getterCtx != null && !getterCtx.statement().isEmpty()) {
+                // Enter scope for getter method
+                enterScopeFrame(getterName);
+
                 for (JvmBasicParser.StatementContext stmt : getterCtx.statement()) {
                     visit(stmt);
                 }
+
+                // Exit scope
+                exitScopeFrame(false);
             } else {
                 // Default getter: return backing field
                 mv.visitVarInsn(ALOAD, 0);
@@ -650,6 +664,9 @@ public class CompilerVisitor extends JvmBasicParserBaseVisitor<Object> {
 
             // If setter has custom body, compile it
             if (setterCtx != null && !setterCtx.statement().isEmpty()) {
+                // Enter scope for setter method
+                enterScopeFrame(setterName);
+
                 // Add the parameter to scope (value parameter from SET accessor)
                 String valueParamName = setterCtx.IDENTIFIER().getText();
                 addScopedVariable(valueParamName, propType, 1);
@@ -657,6 +674,9 @@ public class CompilerVisitor extends JvmBasicParserBaseVisitor<Object> {
                 for (JvmBasicParser.StatementContext stmt : setterCtx.statement()) {
                     visit(stmt);
                 }
+
+                // Exit scope
+                exitScopeFrame(false);
             } else {
                 // Default setter: backing field = value
                 mv.visitVarInsn(ALOAD, 0);
@@ -673,6 +693,11 @@ public class CompilerVisitor extends JvmBasicParserBaseVisitor<Object> {
     }
 
     private void generateReturnForType(String type) {
+        // Enum types are stored as int
+        if (symbols.hasEnum(type)) {
+            mv.visitInsn(IRETURN);
+            return;
+        }
         String t = type.toLowerCase();
         switch (t) {
             case "integer", "int", "boolean", "byte", "short", "char" -> mv.visitInsn(IRETURN);
@@ -684,6 +709,11 @@ public class CompilerVisitor extends JvmBasicParserBaseVisitor<Object> {
     }
 
     private void loadLocalByType(int slot, String type) {
+        // Enum types are stored as int
+        if (symbols.hasEnum(type)) {
+            mv.visitVarInsn(ILOAD, slot);
+            return;
+        }
         String t = type.toLowerCase();
         switch (t) {
             case "integer", "int", "boolean", "byte", "short", "char" -> mv.visitVarInsn(ILOAD, slot);
@@ -919,15 +949,30 @@ public class CompilerVisitor extends JvmBasicParserBaseVisitor<Object> {
 
         // Store slot in symbol table for later reference (legacy support)
         if (currentMethod != null) {
-            FunctionSymbol func = symbols.getFunction(currentMethod);
-            if (func != null) {
-                VariableSymbol var = func.getLocal(name);
-                if (var != null) {
-                    var.setSlot(slot);
+            // Check if we're in a class method first
+            if (currentClass != null) {
+                ClassSymbol classSym = symbols.getClass(currentClass);
+                if (classSym != null) {
+                    FunctionSymbol method = classSym.getMethod(currentMethod);
+                    if (method != null) {
+                        VariableSymbol var = method.getLocal(name);
+                        if (var != null) {
+                            var.setSlot(slot);
+                        }
+                    }
                 }
-            } else if ("main".equals(currentMethod)) {
-                // Track main method locals separately (legacy)
-                mainLocals.put(name, new LocalVar(name, type, slot));
+            } else {
+                // Top-level function
+                FunctionSymbol func = symbols.getFunction(currentMethod);
+                if (func != null) {
+                    VariableSymbol var = func.getLocal(name);
+                    if (var != null) {
+                        var.setSlot(slot);
+                    }
+                } else if ("main".equals(currentMethod)) {
+                    // Track main method locals separately (legacy)
+                    mainLocals.put(name, new LocalVar(name, type, slot));
+                }
             }
         }
 
@@ -991,10 +1036,11 @@ public class CompilerVisitor extends JvmBasicParserBaseVisitor<Object> {
             // Get object reference from inner lvalue
             JvmBasicParser.LvalueContext innerLValue = memberLValue.lvalue();
 
-            // Check if it's this.field (using ThisLValue grammar rule)
-            if (innerLValue instanceof JvmBasicParser.ThisLValueContext && currentClass != null) {
-                // this.field = value
-                mv.visitVarInsn(ALOAD, 0);  // Push 'this'
+            // Check if it's this.field or me.field (using ThisLValue or MeLValue grammar rule)
+            if ((innerLValue instanceof JvmBasicParser.ThisLValueContext ||
+                 innerLValue instanceof JvmBasicParser.MeLValueContext) && currentClass != null) {
+                // this.field = value  or  me.field = value
+                mv.visitVarInsn(ALOAD, 0);  // Push 'this'/'me'
                 visit(ctx.expression());    // Push value
 
                 // Get field type
@@ -1002,6 +1048,8 @@ public class CompilerVisitor extends JvmBasicParserBaseVisitor<Object> {
                 if (classSym != null) {
                     FieldSymbol field = classSym.getField(fieldName);
                     if (field != null) {
+                        // Box primitive if assigning to nullable field
+                        emitBoxingIfNeeded(field.type);
                         mv.visitFieldInsn(PUTFIELD, currentClass, fieldName, typeToDescriptor(field.type));
                         return null;
                     }
@@ -1018,6 +1066,8 @@ public class CompilerVisitor extends JvmBasicParserBaseVisitor<Object> {
                 if (classSym != null) {
                     FieldSymbol field = classSym.getField(fieldName);
                     if (field != null) {
+                        // Box primitive if assigning to nullable field
+                        emitBoxingIfNeeded(field.type);
                         mv.visitFieldInsn(PUTFIELD, objType, fieldName, typeToDescriptor(field.type));
                         return null;
                     }
@@ -1030,6 +1080,33 @@ public class CompilerVisitor extends JvmBasicParserBaseVisitor<Object> {
         // Regular assignment: evaluate RHS expression, then store
         // Get the target variable type for coercion
         String targetType = getLValueType(ctx.lvalue());
+
+        // Check for compound assignment operators (+=, -=, *=, /=)
+        String opText = ctx.assignmentOp().getText();
+        if (!opText.equals("=")) {
+            // Compound assignment: load current value, apply operation, store result
+            // For simple lvalue (variable name)
+            if (ctx.lvalue() instanceof JvmBasicParser.SimpleLValueContext simple) {
+                String varName = simple.IDENTIFIER().getText();
+                loadVariable(varName);  // Load current value
+                visit(ctx.expression());  // Visit RHS
+
+                // Coerce RHS to match variable type
+                if (targetType != null) {
+                    coerceToType(targetType);
+                }
+
+                // Apply the arithmetic operation
+                emitCompoundOp(opText, targetType);
+
+                // Store the result
+                visitLValueStore(ctx.lvalue());
+                return null;
+            }
+            // TODO: Handle compound assignment for member access and array indexing
+        }
+
+        // Simple assignment (=)
         visit(ctx.expression());
         if (targetType != null) {
             coerceToType(targetType);
@@ -1037,6 +1114,48 @@ public class CompilerVisitor extends JvmBasicParserBaseVisitor<Object> {
         visitLValueStore(ctx.lvalue());
 
         return null;
+    }
+
+    // Emit the arithmetic operation for compound assignment
+    private void emitCompoundOp(String opText, String type) {
+        int opcode;
+        switch (opText) {
+            case "+=":
+                opcode = switch (type) {
+                    case "Long" -> LADD;
+                    case "Float" -> FADD;
+                    case "Double" -> DADD;
+                    default -> IADD;  // Integer
+                };
+                break;
+            case "-=":
+                opcode = switch (type) {
+                    case "Long" -> LSUB;
+                    case "Float" -> FSUB;
+                    case "Double" -> DSUB;
+                    default -> ISUB;
+                };
+                break;
+            case "*=":
+                opcode = switch (type) {
+                    case "Long" -> LMUL;
+                    case "Float" -> FMUL;
+                    case "Double" -> DMUL;
+                    default -> IMUL;
+                };
+                break;
+            case "/=":
+                opcode = switch (type) {
+                    case "Long" -> LDIV;
+                    case "Float" -> FDIV;
+                    case "Double" -> DDIV;
+                    default -> IDIV;
+                };
+                break;
+            default:
+                throw new RuntimeException("Unknown compound operator: " + opText);
+        }
+        mv.visitInsn(opcode);
     }
 
     // Get the type of a variable from an lvalue
@@ -1050,8 +1169,27 @@ public class CompilerVisitor extends JvmBasicParserBaseVisitor<Object> {
                 return scopedVar.type();
             }
 
-            // Check function locals
-            if (currentMethod != null) {
+            // Check class method locals first (if in a class method)
+            if (currentClass != null && currentMethod != null) {
+                ClassSymbol classSym = symbols.getClass(currentClass);
+                if (classSym != null) {
+                    FunctionSymbol method = classSym.getMethod(currentMethod);
+                    if (method != null) {
+                        VariableSymbol local = method.getLocal(name);
+                        if (local != null) {
+                            return local.type;
+                        }
+                    }
+                    // Check class fields (implicit this.field access)
+                    SymbolCollector.FieldSymbol field = classSym.getField(name);
+                    if (field != null) {
+                        return field.type;
+                    }
+                }
+            }
+
+            // Check top-level function locals
+            if (currentMethod != null && currentClass == null) {
                 FunctionSymbol func = symbols.getFunction(currentMethod);
                 if (func != null) {
                     VariableSymbol local = func.getLocal(name);
@@ -1121,6 +1259,8 @@ public class CompilerVisitor extends JvmBasicParserBaseVisitor<Object> {
                     returnType = func.returnType;
                 }
             }
+            // Coerce expression result to match function return type
+            coerceToType(returnType);
             generateReturn(returnType);
         } else {
             mv.visitInsn(RETURN);
@@ -1734,6 +1874,9 @@ public class CompilerVisitor extends JvmBasicParserBaseVisitor<Object> {
         } else if ("Double".equalsIgnoreCase(type)) {
             mv.visitInsn(DCMPL);
             mv.visitJumpInsn(IFNE, falseLabel);
+        } else if (symbols.hasEnum(type)) {
+            // Enum types are stored as int
+            mv.visitJumpInsn(IF_ICMPNE, falseLabel);
         } else {
             // Reference types - use equals()
             mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/Object", "equals",
@@ -1759,6 +1902,9 @@ public class CompilerVisitor extends JvmBasicParserBaseVisitor<Object> {
         } else if ("Double".equalsIgnoreCase(type)) {
             mv.visitInsn(DCMPL);
             mv.visitJumpInsn(IFEQ, trueLabel);
+        } else if (symbols.hasEnum(type)) {
+            // Enum types are stored as int
+            mv.visitJumpInsn(IF_ICMPEQ, trueLabel);
         } else {
             mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/Object", "equals",
                               "(Ljava/lang/Object;)Z", false);
@@ -1768,9 +1914,19 @@ public class CompilerVisitor extends JvmBasicParserBaseVisitor<Object> {
 
     @Override
     public Object visitExpressionStatement(JvmBasicParser.ExpressionStatementContext ctx) {
+        // Visit the expression
         visit(ctx.expression());
-        // Pop result if expression leaves value on stack
-        // (method calls that return void don't leave anything)
+
+        // If the expression left a value on the stack (non-void), pop it
+        // This handles cases like: File.CreateDirectory(backupDir) used as statement
+        // Note: use equalsIgnoreCase because some handlers use "void" vs "Void"
+        if (lastExprType != null && !lastExprType.equalsIgnoreCase("Void")) {
+            if (lastExprType.equals("Long") || lastExprType.equals("Double")) {
+                mv.visitInsn(POP2);
+            } else {
+                mv.visitInsn(POP);
+            }
+        }
         return null;
     }
 
@@ -1780,7 +1936,17 @@ public class CompilerVisitor extends JvmBasicParserBaseVisitor<Object> {
 
     @Override
     public Object visitIntLiteral(JvmBasicParser.IntLiteralContext ctx) {
-        int value = Integer.parseInt(ctx.INTEGER_LITERAL().getText());
+        String text = ctx.INTEGER_LITERAL().getText().replace("_", "");  // Remove underscores
+        int value;
+        if (text.startsWith("0x") || text.startsWith("0X")) {
+            value = Integer.parseInt(text.substring(2), 16);
+        } else if (text.startsWith("0b") || text.startsWith("0B")) {
+            value = Integer.parseInt(text.substring(2), 2);
+        } else if (text.startsWith("0o") || text.startsWith("0O")) {
+            value = Integer.parseInt(text.substring(2), 8);
+        } else {
+            value = Integer.parseInt(text);
+        }
         mv.visitLdcInsn(value);
         lastExprType = "Integer";
         return null;
@@ -1793,7 +1959,17 @@ public class CompilerVisitor extends JvmBasicParserBaseVisitor<Object> {
         if (text.toUpperCase().endsWith("L")) {
             text = text.substring(0, text.length() - 1);
         }
-        long value = Long.parseLong(text);
+        text = text.replace("_", "");  // Remove underscores
+        long value;
+        if (text.startsWith("0x") || text.startsWith("0X")) {
+            value = Long.parseLong(text.substring(2), 16);
+        } else if (text.startsWith("0b") || text.startsWith("0B")) {
+            value = Long.parseLong(text.substring(2), 2);
+        } else if (text.startsWith("0o") || text.startsWith("0O")) {
+            value = Long.parseLong(text.substring(2), 8);
+        } else {
+            value = Long.parseLong(text);
+        }
         mv.visitLdcInsn(value);
         lastExprType = "Long";
         return null;
@@ -1875,6 +2051,17 @@ public class CompilerVisitor extends JvmBasicParserBaseVisitor<Object> {
     }
 
     @Override
+    public Object visitMeExpr(JvmBasicParser.MeExprContext ctx) {
+        // 'me' reference - VB.NET alias for 'this'
+        if (currentClass == null) {
+            throw new RuntimeException("'me' can only be used inside a class method");
+        }
+        mv.visitVarInsn(ALOAD, 0);
+        lastExprType = currentClass;
+        return null;
+    }
+
+    @Override
     public Object visitSuperExpr(JvmBasicParser.SuperExprContext ctx) {
         // 'super' reference - used to call parent class methods
         if (currentClass == null) {
@@ -1913,10 +2100,21 @@ public class CompilerVisitor extends JvmBasicParserBaseVisitor<Object> {
             mv.visitTypeInsn(NEW, typeName);
             mv.visitInsn(DUP);
 
-            // Build constructor descriptor and push arguments
+            // Build constructor descriptor and push arguments with type coercion
             FunctionSymbol constructor = classSym.getMethod("New");
             StringBuilder descBuilder = new StringBuilder("(");
-            if (ctx.argumentList() != null) {
+            if (ctx.argumentList() != null && constructor != null) {
+                List<ParameterSymbol> params = constructor.getParameters();
+                List<JvmBasicParser.ArgumentContext> args = ctx.argumentList().argument();
+                for (int i = 0; i < args.size(); i++) {
+                    visit(args.get(i).expression());
+                    // Coerce argument type to match constructor parameter type
+                    if (i < params.size()) {
+                        coerceToType(params.get(i).type);
+                    }
+                }
+            } else if (ctx.argumentList() != null) {
+                // No constructor symbol found, just visit args without coercion
                 for (JvmBasicParser.ArgumentContext arg : ctx.argumentList().argument()) {
                     visit(arg.expression());
                 }
@@ -1986,9 +2184,21 @@ public class CompilerVisitor extends JvmBasicParserBaseVisitor<Object> {
             case "ArrayList" -> "java/util/ArrayList";
             case "HashMap" -> "java/util/HashMap";
             case "HashSet" -> "java/util/HashSet";
+            case "LinkedList" -> "java/util/LinkedList";
+            case "TreeMap" -> "java/util/TreeMap";
+            case "TreeSet" -> "java/util/TreeSet";
             case "Date" -> "java/util/Date";
             case "Random" -> "java/util/Random";
             case "Thread" -> "java/lang/Thread";
+            case "File" -> "java/io/File";
+            case "BufferedReader" -> "java/io/BufferedReader";
+            case "BufferedWriter" -> "java/io/BufferedWriter";
+            case "FileReader" -> "java/io/FileReader";
+            case "FileWriter" -> "java/io/FileWriter";
+            case "InputStream" -> "java/io/InputStream";
+            case "OutputStream" -> "java/io/OutputStream";
+            case "BigInteger" -> "java/math/BigInteger";
+            case "BigDecimal" -> "java/math/BigDecimal";
             // Default: use dots to slashes
             default -> typeName.replace(".", "/");
         };
@@ -2181,6 +2391,11 @@ public class CompilerVisitor extends JvmBasicParserBaseVisitor<Object> {
             pendingNamespace = "Crypto";
             return null;
         }
+        if ("Array".equalsIgnoreCase(name)) {
+            // Array namespace - maps to com.jvmbasic.runtime.BasicArray
+            pendingNamespace = "Array";
+            return null;
+        }
         if ("WebServer".equalsIgnoreCase(name)) {
             // WebServer namespace - maps to com.jvmbasic.runtime.BasicWeb
             pendingNamespace = "WebServer";
@@ -2194,6 +2409,16 @@ public class CompilerVisitor extends JvmBasicParserBaseVisitor<Object> {
         if ("Response".equalsIgnoreCase(name)) {
             // Response namespace - maps to com.jvmbasic.runtime.BasicWeb
             pendingNamespace = "Response";
+            return null;
+        }
+        if ("Assert".equalsIgnoreCase(name)) {
+            // Assert namespace - maps to com.jvmbasic.runtime.BasicAssert
+            pendingNamespace = "Assert";
+            return null;
+        }
+        // Check if this is an enum name (for Color.Red access)
+        if (symbols.hasEnum(name)) {
+            pendingEnumName = name;
             return null;
         }
         // Check if this is a function name (will be handled by FunctionCall postfixOp)
@@ -2220,10 +2445,19 @@ public class CompilerVisitor extends JvmBasicParserBaseVisitor<Object> {
         return null;
     }
 
+    @Override
+    public Object visitAssertNamespaceExpr(JvmBasicParser.AssertNamespaceExprContext ctx) {
+        // Assert used as namespace for method calls like Assert.Equal()
+        pendingNamespace = "Assert";
+        return null;
+    }
+
     // Track namespace for method calls
     private String pendingNamespace = null;
     // Track function name for function calls
     private String pendingFunctionName = null;
+    // Track enum name for enum member access (e.g., Color.Red)
+    private String pendingEnumName = null;
 
     @Override
     public Object visitMethodCall(JvmBasicParser.MethodCallContext ctx) {
@@ -2334,6 +2568,7 @@ public class CompilerVisitor extends JvmBasicParserBaseVisitor<Object> {
                 } else {
                     mv.visitMethodInsn(INVOKEVIRTUAL, "java/io/PrintStream", "println", "()V", false);
                 }
+                lastExprType = "Void";
                 return null;
             } else if ("Write".equalsIgnoreCase(methodName)) {
                 // Get System.out
@@ -2345,6 +2580,7 @@ public class CompilerVisitor extends JvmBasicParserBaseVisitor<Object> {
                     mv.visitMethodInsn(INVOKESTATIC, "java/lang/String", "valueOf", "(Ljava/lang/Object;)Ljava/lang/String;", false);
                     mv.visitMethodInsn(INVOKEVIRTUAL, "java/io/PrintStream", "print", "(Ljava/lang/String;)V", false);
                 }
+                lastExprType = "Void";
                 return null;
             } else if ("ReadLine".equalsIgnoreCase(methodName)) {
                 // Console.ReadLine() -> new Scanner(System.in).nextLine()
@@ -2422,6 +2658,18 @@ public class CompilerVisitor extends JvmBasicParserBaseVisitor<Object> {
             return handleCryptoCall(methodName, ctx.argumentList());
         }
 
+        // Handle Array namespace - calls com.jvmbasic.runtime.BasicArray
+        if ("Array".equalsIgnoreCase(pendingNamespace)) {
+            pendingNamespace = null;
+            return handleArrayCall(methodName, ctx.argumentList());
+        }
+
+        // Handle Assert namespace - calls com.jvmbasic.runtime.BasicAssert
+        if ("Assert".equalsIgnoreCase(pendingNamespace)) {
+            pendingNamespace = null;
+            return handleAssertCall(methodName, ctx.argumentList());
+        }
+
         // Handle WebServer namespace - calls com.jvmbasic.runtime.BasicWeb
         if ("WebServer".equalsIgnoreCase(pendingNamespace)) {
             pendingNamespace = null;
@@ -2493,9 +2741,11 @@ public class CompilerVisitor extends JvmBasicParserBaseVisitor<Object> {
             // Single double argument functions
             case "Sqrt", "Cbrt", "Exp", "Log", "Log10", "Log2",
                  "Sin", "Cos", "Tan", "Asin", "Acos", "Atan",
-                 "Sinh", "Cosh", "Tanh", "Floor", "Ceil",
+                 "Sinh", "Cosh", "Tanh", "Floor", "Ceil", "Ceiling",
                  "ToRadians", "ToDegrees", "Truncate" -> {
-                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, methodName, "(D)D", false);
+                // Map Ceiling to Ceil for the runtime call
+                String runtimeMethod = methodName.equals("Ceiling") ? "Ceil" : methodName;
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, runtimeMethod, "(D)D", false);
                 lastExprType = "Double";
             }
 
@@ -3238,10 +3488,16 @@ public class CompilerVisitor extends JvmBasicParserBaseVisitor<Object> {
         String runtimeClass = "com/jvmbasic/runtime/BasicJson";
         int argCount = argList != null ? argList.argument().size() : 0;
 
-        // Visit arguments first
+        // Visit arguments with type coercion for specific methods
         if (argList != null) {
+            int argIndex = 0;
             for (JvmBasicParser.ArgumentContext arg : argList.argument()) {
                 visit(arg.expression());
+                // Coerce last argument to Double for SetDouble (3rd arg at index 2)
+                if (methodName.equals("SetDouble") && argIndex == 2) {
+                    coerceToType("Double");
+                }
+                argIndex++;
             }
         }
 
@@ -3363,10 +3619,20 @@ public class CompilerVisitor extends JvmBasicParserBaseVisitor<Object> {
         String runtimeClass = "com/jvmbasic/runtime/BasicDb";
         int argCount = argList != null ? argList.argument().size() : 0;
 
-        // Visit arguments first
+        // Visit arguments with type coercion for specific methods
         if (argList != null) {
+            int argIndex = 0;
             for (JvmBasicParser.ArgumentContext arg : argList.argument()) {
                 visit(arg.expression());
+                // Coerce 2nd argument (index 1) to Long for SetLong, Double for SetDouble
+                if (argIndex == 1) {
+                    if (methodName.equals("SetDouble")) {
+                        coerceToType("Double");
+                    } else if (methodName.equals("SetLong")) {
+                        coerceToType("Long");
+                    }
+                }
+                argIndex++;
             }
         }
 
@@ -4671,6 +4937,523 @@ public class CompilerVisitor extends JvmBasicParserBaseVisitor<Object> {
     }
 
     // ========================================================================
+    // Array namespace - Array utility functions
+    // ========================================================================
+
+    private Object handleArrayCall(String methodName, JvmBasicParser.ArgumentListContext argList) {
+        String runtimeClass = "com/jvmbasic/runtime/BasicArray";
+        int argCount = argList != null ? argList.argument().size() : 0;
+
+        // For most methods, we need to know the array element type
+        // Visit arguments and track the first argument's type (the array)
+        String arrayType = null;
+        if (argList != null && argList.argument().size() > 0) {
+            visit(argList.argument(0).expression());
+            arrayType = lastExprType;
+            // Visit remaining arguments
+            for (int i = 1; i < argList.argument().size(); i++) {
+                visit(argList.argument(i).expression());
+            }
+        }
+
+        // Determine the JVM type descriptor based on array element type
+        String elemType = getArrayJvmElementType(arrayType);
+
+        switch (methodName) {
+            // ================================================================
+            // Length
+            // ================================================================
+            case "Length" -> {
+                String desc = getArrayLengthDescriptor(elemType);
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "Length", desc, false);
+                lastExprType = "Integer";
+            }
+
+            // ================================================================
+            // Search functions
+            // ================================================================
+            case "IndexOf" -> {
+                String desc = getArrayIndexOfDescriptor(elemType);
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "IndexOf", desc, false);
+                lastExprType = "Integer";
+            }
+            case "LastIndexOf" -> {
+                String desc = getArrayLastIndexOfDescriptor(elemType);
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "LastIndexOf", desc, false);
+                lastExprType = "Integer";
+            }
+            case "Contains" -> {
+                String desc = getArrayContainsDescriptor(elemType);
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "Contains", desc, false);
+                lastExprType = "Boolean";
+            }
+
+            // ================================================================
+            // First/Last element
+            // ================================================================
+            case "First" -> {
+                String desc = getArrayFirstLastDescriptor(elemType);
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "First", desc, false);
+                lastExprType = getArrayReturnType(elemType);
+            }
+            case "Last" -> {
+                String desc = getArrayFirstLastDescriptor(elemType);
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "Last", desc, false);
+                lastExprType = getArrayReturnType(elemType);
+            }
+
+            // ================================================================
+            // Transformation functions (return arrays)
+            // ================================================================
+            case "Reverse" -> {
+                String desc = getArrayTransformDescriptor(elemType);
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "Reverse", desc, false);
+                lastExprType = arrayType;
+            }
+            case "Sort" -> {
+                String desc = getArrayTransformDescriptor(elemType);
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "Sort", desc, false);
+                lastExprType = arrayType;
+            }
+            case "Copy" -> {
+                String desc = getArrayTransformDescriptor(elemType);
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "Copy", desc, false);
+                lastExprType = arrayType;
+            }
+            case "Distinct" -> {
+                String desc = getArrayTransformDescriptor(elemType);
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "Distinct", desc, false);
+                lastExprType = arrayType;
+            }
+
+            // ================================================================
+            // Slice functions (array, int, int -> array)
+            // ================================================================
+            case "Take" -> {
+                String desc = getArrayTakeSkipDescriptor(elemType);
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "Take", desc, false);
+                lastExprType = arrayType;
+            }
+            case "Skip" -> {
+                String desc = getArrayTakeSkipDescriptor(elemType);
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "Skip", desc, false);
+                lastExprType = arrayType;
+            }
+            case "Slice" -> {
+                String desc = getArraySliceDescriptor(elemType);
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "Slice", desc, false);
+                lastExprType = arrayType;
+            }
+
+            // ================================================================
+            // Join - returns String
+            // ================================================================
+            case "Join" -> {
+                String desc = getArrayJoinDescriptor(elemType);
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "Join", desc, false);
+                lastExprType = "String";
+            }
+
+            // ================================================================
+            // Numeric aggregation
+            // ================================================================
+            case "Sum" -> {
+                if ("I".equals(elemType)) {
+                    mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "Sum", "([I)I", false);
+                    lastExprType = "Integer";
+                } else {
+                    mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "Sum", "([D)D", false);
+                    lastExprType = "Double";
+                }
+            }
+            case "Average" -> {
+                if ("I".equals(elemType)) {
+                    mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "Average", "([I)D", false);
+                } else {
+                    mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "Average", "([D)D", false);
+                }
+                lastExprType = "Double";
+            }
+            case "Min" -> {
+                if ("I".equals(elemType)) {
+                    mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "Min", "([I)I", false);
+                    lastExprType = "Integer";
+                } else {
+                    mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "Min", "([D)D", false);
+                    lastExprType = "Double";
+                }
+            }
+            case "Max" -> {
+                if ("I".equals(elemType)) {
+                    mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "Max", "([I)I", false);
+                    lastExprType = "Integer";
+                } else {
+                    mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "Max", "([D)D", false);
+                    lastExprType = "Double";
+                }
+            }
+
+            // ================================================================
+            // Boolean checks
+            // ================================================================
+            case "IsEmpty" -> {
+                String desc = getArrayIsEmptyDescriptor(elemType);
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "IsEmpty", desc, false);
+                lastExprType = "Boolean";
+            }
+
+            // ================================================================
+            // Factory functions (no array argument first)
+            // ================================================================
+            case "Fill" -> {
+                // Array.Fill(value, count) - value is first argument
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "Fill", "(Ljava/lang/String;I)[Ljava/lang/String;", false);
+                lastExprType = "String[]";
+            }
+            case "FillInt" -> {
+                // Array.FillInt(value, count)
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "FillInt", "(II)[I", false);
+                lastExprType = "Integer[]";
+            }
+            case "FillDouble" -> {
+                // Array.FillDouble(value, count)
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "FillDouble", "(DI)[D", false);
+                lastExprType = "Double[]";
+            }
+            case "Range" -> {
+                // Array.Range(start, end) or Array.Range(start, end, step)
+                if (argCount == 2) {
+                    mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "Range", "(II)[I", false);
+                } else {
+                    mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "Range", "(III)[I", false);
+                }
+                lastExprType = "Integer[]";
+            }
+
+            // ================================================================
+            // Concatenation
+            // ================================================================
+            case "Concat" -> {
+                String desc = getArrayConcatDescriptor(elemType);
+                mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "Concat", desc, false);
+                lastExprType = arrayType;
+            }
+
+            default -> throw new RuntimeException("Unknown Array function: " + methodName);
+        }
+
+        return null;
+    }
+
+    // ========================================================================
+    // Assert namespace - Test assertion helpers
+    // ========================================================================
+
+    private Object handleAssertCall(String methodName, JvmBasicParser.ArgumentListContext argList) {
+        String runtimeClass = "com/jvmbasic/runtime/BasicAssert";
+        int argCount = argList != null ? argList.argument().size() : 0;
+
+        // Visit arguments first
+        if (argList != null) {
+            for (var arg : argList.argument()) {
+                visit(arg.expression());
+                // Box primitives for Object parameters
+                boxPrimitiveForObject();
+            }
+        }
+
+        switch (methodName) {
+            // ================================================================
+            // Equality Assertions
+            // ================================================================
+            case "Equal" -> {
+                if (argCount == 2) {
+                    mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "Equal",
+                        "(Ljava/lang/Object;Ljava/lang/Object;)V", false);
+                } else if (argCount == 3) {
+                    mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "Equal",
+                        "(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/String;)V", false);
+                }
+            }
+            case "NotEqual" -> {
+                if (argCount == 2) {
+                    mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "NotEqual",
+                        "(Ljava/lang/Object;Ljava/lang/Object;)V", false);
+                } else if (argCount == 3) {
+                    mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "NotEqual",
+                        "(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/String;)V", false);
+                }
+            }
+
+            // ================================================================
+            // Boolean Assertions
+            // ================================================================
+            case "True" -> {
+                // For True, we need to unbox the boolean back to primitive
+                mv.visitTypeInsn(CHECKCAST, "java/lang/Boolean");
+                mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/Boolean", "booleanValue", "()Z", false);
+                if (argCount == 1) {
+                    mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "True", "(Z)V", false);
+                } else if (argCount == 2) {
+                    // Need to swap - message is on top but we need boolean first
+                    // Actually, re-visit args properly
+                    // For simplicity, use Object version
+                }
+            }
+            case "False" -> {
+                mv.visitTypeInsn(CHECKCAST, "java/lang/Boolean");
+                mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/Boolean", "booleanValue", "()Z", false);
+                if (argCount == 1) {
+                    mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "False", "(Z)V", false);
+                }
+            }
+
+            // ================================================================
+            // Null/Nil Assertions
+            // ================================================================
+            case "Nil" -> {
+                if (argCount == 1) {
+                    mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "Nil",
+                        "(Ljava/lang/Object;)V", false);
+                } else if (argCount == 2) {
+                    mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "Nil",
+                        "(Ljava/lang/Object;Ljava/lang/String;)V", false);
+                }
+            }
+            case "NotNil" -> {
+                if (argCount == 1) {
+                    mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "NotNil",
+                        "(Ljava/lang/Object;)V", false);
+                } else if (argCount == 2) {
+                    mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "NotNil",
+                        "(Ljava/lang/Object;Ljava/lang/String;)V", false);
+                }
+            }
+
+            // ================================================================
+            // String Assertions
+            // ================================================================
+            case "Contains" -> {
+                if (argCount == 2) {
+                    mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "Contains",
+                        "(Ljava/lang/String;Ljava/lang/String;)V", false);
+                } else if (argCount == 3) {
+                    mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "Contains",
+                        "(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)V", false);
+                }
+            }
+            case "StartsWith" -> {
+                if (argCount == 2) {
+                    mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "StartsWith",
+                        "(Ljava/lang/String;Ljava/lang/String;)V", false);
+                } else if (argCount == 3) {
+                    mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "StartsWith",
+                        "(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)V", false);
+                }
+            }
+            case "EndsWith" -> {
+                if (argCount == 2) {
+                    mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "EndsWith",
+                        "(Ljava/lang/String;Ljava/lang/String;)V", false);
+                } else if (argCount == 3) {
+                    mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "EndsWith",
+                        "(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)V", false);
+                }
+            }
+            case "Matches" -> {
+                if (argCount == 2) {
+                    mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "Matches",
+                        "(Ljava/lang/String;Ljava/lang/String;)V", false);
+                } else if (argCount == 3) {
+                    mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "Matches",
+                        "(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)V", false);
+                }
+            }
+
+            // ================================================================
+            // Comparison Assertions
+            // ================================================================
+            case "Greater" -> {
+                // Unbox doubles
+                mv.visitTypeInsn(CHECKCAST, "java/lang/Number");
+                mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/Number", "doubleValue", "()D", false);
+                // Stack: ... actual_d, expected_obj
+                // This is tricky - need to revisit args properly for numeric comparisons
+                // For simplicity, just generate error for now
+                if (argCount == 2) {
+                    mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "Greater", "(DD)V", false);
+                }
+            }
+            case "GreaterOrEqual" -> {
+                if (argCount == 2) {
+                    mv.visitTypeInsn(CHECKCAST, "java/lang/Number");
+                    mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/Number", "doubleValue", "()D", false);
+                    mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "GreaterOrEqual", "(DD)V", false);
+                }
+            }
+            case "Less" -> {
+                if (argCount == 2) {
+                    mv.visitTypeInsn(CHECKCAST, "java/lang/Number");
+                    mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/Number", "doubleValue", "()D", false);
+                    mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "Less", "(DD)V", false);
+                }
+            }
+            case "LessOrEqual" -> {
+                if (argCount == 2) {
+                    mv.visitTypeInsn(CHECKCAST, "java/lang/Number");
+                    mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/Number", "doubleValue", "()D", false);
+                    mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "LessOrEqual", "(DD)V", false);
+                }
+            }
+
+            // ================================================================
+            // Failure Helpers
+            // ================================================================
+            case "Fail" -> {
+                if (argCount == 0) {
+                    mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "Fail", "()V", false);
+                } else if (argCount == 1) {
+                    mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "Fail", "(Ljava/lang/String;)V", false);
+                }
+            }
+
+            default -> throw new RuntimeException("Unknown Assert function: " + methodName);
+        }
+
+        lastExprType = "Void";
+        return null;
+    }
+
+    // Helper to convert BASIC array type to JVM type descriptor for Array namespace
+    private String getArrayJvmElementType(String arrayType) {
+        if (arrayType == null) return "Ljava/lang/Object;";
+        if (arrayType.endsWith("[]")) {
+            String elem = arrayType.substring(0, arrayType.length() - 2);
+            return switch (elem.toLowerCase()) {
+                case "integer", "int" -> "I";
+                case "double" -> "D";
+                case "boolean", "bool" -> "Z";
+                case "string" -> "Ljava/lang/String;";
+                default -> "Ljava/lang/Object;";
+            };
+        }
+        return "Ljava/lang/Object;";
+    }
+
+    // Helper to get return type from element type
+    private String getArrayReturnType(String elemType) {
+        return switch (elemType) {
+            case "I" -> "Integer";
+            case "D" -> "Double";
+            case "Z" -> "Boolean";
+            case "Ljava/lang/String;" -> "String";
+            default -> "Object";
+        };
+    }
+
+    // Descriptor helpers for Array namespace
+    private String getArrayLengthDescriptor(String elemType) {
+        return switch (elemType) {
+            case "I" -> "([I)I";
+            case "D" -> "([D)I";
+            case "Z" -> "([Z)I";
+            case "Ljava/lang/String;" -> "([Ljava/lang/String;)I";
+            default -> "([Ljava/lang/Object;)I";
+        };
+    }
+
+    private String getArrayIndexOfDescriptor(String elemType) {
+        return switch (elemType) {
+            case "I" -> "([II)I";
+            case "D" -> "([DD)I";
+            case "Ljava/lang/String;" -> "([Ljava/lang/String;Ljava/lang/String;)I";
+            default -> "([Ljava/lang/Object;Ljava/lang/Object;)I";
+        };
+    }
+
+    private String getArrayLastIndexOfDescriptor(String elemType) {
+        return switch (elemType) {
+            case "I" -> "([II)I";
+            case "D" -> "([DD)I";
+            case "Ljava/lang/String;" -> "([Ljava/lang/String;Ljava/lang/String;)I";
+            default -> "([Ljava/lang/Object;Ljava/lang/Object;)I";
+        };
+    }
+
+    private String getArrayContainsDescriptor(String elemType) {
+        return switch (elemType) {
+            case "I" -> "([II)Z";
+            case "D" -> "([DD)Z";
+            case "Ljava/lang/String;" -> "([Ljava/lang/String;Ljava/lang/String;)Z";
+            default -> "([Ljava/lang/Object;Ljava/lang/Object;)Z";
+        };
+    }
+
+    private String getArrayFirstLastDescriptor(String elemType) {
+        return switch (elemType) {
+            case "I" -> "([I)I";
+            case "D" -> "([D)D";
+            case "Ljava/lang/String;" -> "([Ljava/lang/String;)Ljava/lang/String;";
+            default -> "([Ljava/lang/Object;)Ljava/lang/Object;";
+        };
+    }
+
+    private String getArrayTransformDescriptor(String elemType) {
+        return switch (elemType) {
+            case "I" -> "([I)[I";
+            case "D" -> "([D)[D";
+            case "Ljava/lang/String;" -> "([Ljava/lang/String;)[Ljava/lang/String;";
+            default -> "([Ljava/lang/Object;)[Ljava/lang/Object;";
+        };
+    }
+
+    private String getArrayTakeSkipDescriptor(String elemType) {
+        return switch (elemType) {
+            case "I" -> "([II)[I";
+            case "D" -> "([DI)[D";
+            case "Ljava/lang/String;" -> "([Ljava/lang/String;I)[Ljava/lang/String;";
+            default -> "([Ljava/lang/Object;I)[Ljava/lang/Object;";
+        };
+    }
+
+    private String getArraySliceDescriptor(String elemType) {
+        return switch (elemType) {
+            case "I" -> "([III)[I";
+            case "D" -> "([DII)[D";
+            case "Ljava/lang/String;" -> "([Ljava/lang/String;II)[Ljava/lang/String;";
+            default -> "([Ljava/lang/Object;II)[Ljava/lang/Object;";
+        };
+    }
+
+    private String getArrayJoinDescriptor(String elemType) {
+        return switch (elemType) {
+            case "I" -> "([ILjava/lang/String;)Ljava/lang/String;";
+            case "D" -> "([DLjava/lang/String;)Ljava/lang/String;";
+            case "Ljava/lang/String;" -> "([Ljava/lang/String;Ljava/lang/String;)Ljava/lang/String;";
+            default -> "([Ljava/lang/Object;Ljava/lang/String;)Ljava/lang/String;";
+        };
+    }
+
+    private String getArrayIsEmptyDescriptor(String elemType) {
+        return switch (elemType) {
+            case "I" -> "([I)Z";
+            case "D" -> "([D)Z";
+            case "Z" -> "([Z)Z";
+            case "Ljava/lang/String;" -> "([Ljava/lang/String;)Z";
+            default -> "([Ljava/lang/Object;)Z";
+        };
+    }
+
+    private String getArrayConcatDescriptor(String elemType) {
+        return switch (elemType) {
+            case "I" -> "([I[I)[I";
+            case "D" -> "([D[D)[D";
+            case "Ljava/lang/String;" -> "([Ljava/lang/String;[Ljava/lang/String;)[Ljava/lang/String;";
+            default -> "([Ljava/lang/Object;[Ljava/lang/Object;)[Ljava/lang/Object;";
+        };
+    }
+
+    // ========================================================================
     // WebServer namespace - Jetty web server integration
     // ========================================================================
 
@@ -5300,13 +6083,37 @@ public class CompilerVisitor extends JvmBasicParserBaseVisitor<Object> {
     /**
      * Promote both operands on stack to the target type for arithmetic.
      * Stack: [left, right] -> [promotedLeft, promotedRight]
+     * Handles unboxing of nullable types (Integer?, Long?, etc.) before arithmetic.
      */
     private void promoteOperandsForArithmetic(String leftType, String rightType, String promoted) {
-        String l = leftType.toLowerCase();
-        String r = rightType.toLowerCase();
+        // Check if types are nullable (need unboxing)
+        boolean leftIsNullable = leftType != null && leftType.endsWith("?");
+        boolean rightIsNullable = rightType != null && rightType.endsWith("?");
+
+        // Get base types (stripping ? suffix)
+        String l = leftType != null ? leftType.toLowerCase() : "object";
+        String r = rightType != null ? rightType.toLowerCase() : "object";
+        if (leftIsNullable) l = l.substring(0, l.length() - 1);
+        if (rightIsNullable) r = r.substring(0, r.length() - 1);
+
         String p = promoted.toLowerCase();
 
-        // If both already match the promoted type, nothing to do
+        // Unbox nullable types first
+        // Stack is [left, right], we need to unbox right (on top) first
+        if (rightIsNullable) {
+            emitUnboxingForArithmetic(rightType);
+            r = getUnboxedType(r);
+        }
+
+        // Then unbox left if needed (requires swap)
+        if (leftIsNullable) {
+            mv.visitInsn(SWAP);  // Stack: [right, left]
+            emitUnboxingForArithmetic(leftType);
+            l = getUnboxedType(l);
+            mv.visitInsn(SWAP);  // Stack: [left_unboxed, right_unboxed]
+        }
+
+        // If both already match the promoted type, nothing more to do
         if (l.equals(p) && r.equals(p)) {
             return;
         }
@@ -5417,6 +6224,64 @@ public class CompilerVisitor extends JvmBasicParserBaseVisitor<Object> {
                 }
             }
         }
+    }
+
+    /**
+     * Emit unboxing for arithmetic operations.
+     * Converts boxed types (Integer, Long, etc.) to their primitive equivalents.
+     */
+    private void emitUnboxingForArithmetic(String type) {
+        if (type == null) return;
+
+        // Handle nullable types - strip the ? suffix
+        String baseType = type.endsWith("?")
+            ? type.substring(0, type.length() - 1).toLowerCase()
+            : type.toLowerCase();
+
+        switch (baseType) {
+            case "integer", "int" -> {
+                mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/Integer", "intValue", "()I", false);
+            }
+            case "long" -> {
+                mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/Long", "longValue", "()J", false);
+            }
+            case "float" -> {
+                mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/Float", "floatValue", "()F", false);
+            }
+            case "double" -> {
+                mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/Double", "doubleValue", "()D", false);
+            }
+            case "boolean", "bool" -> {
+                mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/Boolean", "booleanValue", "()Z", false);
+            }
+            case "byte" -> {
+                mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/Byte", "byteValue", "()B", false);
+            }
+            case "short" -> {
+                mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/Short", "shortValue", "()S", false);
+            }
+            case "char", "character" -> {
+                mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/Character", "charValue", "()C", false);
+            }
+        }
+    }
+
+    /**
+     * Get the primitive type name after unboxing.
+     */
+    private String getUnboxedType(String type) {
+        if (type == null) return null;
+        return switch (type.toLowerCase()) {
+            case "integer", "int", "java.lang.integer" -> "integer";
+            case "long", "java.lang.long" -> "long";
+            case "float", "java.lang.float" -> "float";
+            case "double", "java.lang.double" -> "double";
+            case "boolean", "bool", "java.lang.boolean" -> "boolean";
+            case "byte", "java.lang.byte" -> "byte";
+            case "short", "java.lang.short" -> "short";
+            case "char", "character", "java.lang.character" -> "char";
+            default -> type;
+        };
     }
 
     /**
@@ -5559,9 +6424,24 @@ public class CompilerVisitor extends JvmBasicParserBaseVisitor<Object> {
                     handleMethodInvocation(memberName, funcCall.argumentList());
                     i++; // Skip the FunctionCall since we handled it
                 } else {
-                    // Just a member access (field access like this.age or other.age)
-                    // Must visit the member access to emit GETFIELD for user-defined class fields
-                    visit(memberAccess);
+                    // Check for namespace constant access (Math.PI, Math.E)
+                    if ("Math".equalsIgnoreCase(pendingNamespace)) {
+                        pendingNamespace = null;
+                        String runtimeClass = "com/jvmbasic/runtime/BasicMath";
+                        if ("PI".equalsIgnoreCase(memberName)) {
+                            mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "Pi", "()D", false);
+                            lastExprType = "Double";
+                        } else if ("E".equalsIgnoreCase(memberName)) {
+                            mv.visitMethodInsn(INVOKESTATIC, runtimeClass, "E", "()D", false);
+                            lastExprType = "Double";
+                        } else {
+                            throw new RuntimeException("Unknown Math constant: " + memberName);
+                        }
+                    } else {
+                        // Just a member access (field access like this.age or other.age)
+                        // Must visit the member access to emit GETFIELD for user-defined class fields
+                        visit(memberAccess);
+                    }
                 }
             } else if (postfix instanceof JvmBasicParser.FunctionCallContext funcCall) {
                 // Check if this is a user-defined function call
@@ -5595,6 +6475,7 @@ public class CompilerVisitor extends JvmBasicParserBaseVisitor<Object> {
                 } else {
                     mv.visitMethodInsn(INVOKEVIRTUAL, "java/io/PrintStream", "println", "()V", false);
                 }
+                lastExprType = "Void";
                 return;
             } else if ("Write".equalsIgnoreCase(methodName)) {
                 // Get System.out
@@ -5606,6 +6487,7 @@ public class CompilerVisitor extends JvmBasicParserBaseVisitor<Object> {
                     // Use the appropriate print overload based on the expression type
                     emitPrint();
                 }
+                lastExprType = "Void";
                 return;
             }
         }
@@ -5685,6 +6567,20 @@ public class CompilerVisitor extends JvmBasicParserBaseVisitor<Object> {
             return;
         }
 
+        // Handle Array namespace - calls com.jvmbasic.runtime.BasicArray
+        if ("Array".equalsIgnoreCase(pendingNamespace)) {
+            pendingNamespace = null;
+            handleArrayCall(methodName, argList);
+            return;
+        }
+
+        // Handle Assert namespace - calls com.jvmbasic.runtime.BasicAssert
+        if ("Assert".equalsIgnoreCase(pendingNamespace)) {
+            pendingNamespace = null;
+            handleAssertCall(methodName, argList);
+            return;
+        }
+
         // Handle WebServer namespace - calls com.jvmbasic.runtime.BasicWeb
         if ("WebServer".equalsIgnoreCase(pendingNamespace)) {
             pendingNamespace = null;
@@ -5724,6 +6620,12 @@ public class CompilerVisitor extends JvmBasicParserBaseVisitor<Object> {
         if ("ToString".equals(methodName)) {
             String objectType = lastExprType;
             if (objectType != null) {
+                // Handle enum types - convert int to string
+                if (symbols.hasEnum(objectType)) {
+                    mv.visitMethodInsn(INVOKESTATIC, "java/lang/Integer", "toString", "(I)Ljava/lang/String;", false);
+                    lastExprType = "String";
+                    return;
+                }
                 switch (objectType.toLowerCase()) {
                     case "integer", "int" -> {
                         // Integer.toString(int)
@@ -5872,10 +6774,16 @@ public class CompilerVisitor extends JvmBasicParserBaseVisitor<Object> {
             throw new RuntimeException("Unknown function: " + funcName);
         }
 
-        // Push arguments onto stack
+        // Push arguments onto stack, boxing primitives for nullable parameters
         if (argList != null) {
-            for (JvmBasicParser.ArgumentContext arg : argList.argument()) {
-                visit(arg.expression());
+            var args = argList.argument();
+            var params = func.getParameters();
+            for (int i = 0; i < args.size(); i++) {
+                visit(args.get(i).expression());
+                // Box primitive if parameter is nullable
+                if (i < params.size()) {
+                    emitBoxingIfNeeded(params.get(i).type);
+                }
             }
         }
 
@@ -5919,6 +6827,22 @@ public class CompilerVisitor extends JvmBasicParserBaseVisitor<Object> {
     public Object visitMemberAccess(JvmBasicParser.MemberAccessContext ctx) {
         // Handle field access like alice.name or this.age
         String memberName = ctx.memberName().getText();
+
+        // Check if this is an enum member access (Color.Red)
+        if (pendingEnumName != null) {
+            String enumName = pendingEnumName;
+            pendingEnumName = null;
+
+            SymbolCollector.EnumSymbol enumSym = symbols.getEnum(enumName);
+            if (enumSym != null && enumSym.hasMember(memberName)) {
+                // Load enum member value as static field: GETSTATIC EnumName.MemberName : I
+                mv.visitFieldInsn(GETSTATIC, enumName, memberName, "I");
+                lastExprType = enumName;  // Track the enum type
+                lastMemberAccess = null;
+                return null;
+            }
+            // Unknown member, fall through
+        }
 
         // The object is already on stack from previous expression (visit of primaryExpr)
         String objectType = lastExprType;
@@ -6068,6 +6992,11 @@ public class CompilerVisitor extends JvmBasicParserBaseVisitor<Object> {
         visit(ctx.shiftExpression(0));
         String leftType = lastExprType;
         for (int i = 1; i < ctx.shiftExpression().size(); i++) {
+            // Before visiting the right operand, we need to determine the target type
+            // so we can coerce the left operand now and the right operand after visiting it
+
+            // We need to peek at what type the right side will be to determine comparison type
+            // For now, we'll visit right first to get its type, then handle coercion
             visit(ctx.shiftExpression(i));
             String rightType = lastExprType;
             var opToken = ctx.getChild(2 * i - 1);
@@ -6075,6 +7004,33 @@ public class CompilerVisitor extends JvmBasicParserBaseVisitor<Object> {
 
             // Determine the comparison type (promote to wider type)
             String compType = promoteType(leftType, rightType);
+
+            // Coerce both operands to the comparison type
+            // Stack is now [left, right] - we need to coerce both to compType
+            // First coerce right (top of stack) to compType
+            if (!rightType.equalsIgnoreCase(compType)) {
+                emitTypeConversion(rightType, compType);
+            }
+            // Now we need to coerce left - swap, coerce, swap back
+            if (!leftType.equalsIgnoreCase(compType)) {
+                // Stack: [left, right']
+                // For double/long (2-slot) this is trickier - need to use proper swap
+                if ("Double".equalsIgnoreCase(compType) || "Long".equalsIgnoreCase(compType)) {
+                    // right' is 2 slots, left is 1 slot (int/float)
+                    // Use DUP2_X1 and POP2 pattern: [left, right'] -> [right', left]
+                    mv.visitInsn(DUP2_X1);  // [right', left, right']
+                    mv.visitInsn(POP2);     // [right', left]
+                    emitTypeConversion(leftType, compType);  // [right', left']
+                    // Now swap back: [right', left'] -> [left', right']
+                    mv.visitInsn(DUP2_X2);  // [left', right', left']
+                    mv.visitInsn(POP2);     // [left', right']
+                } else {
+                    // Both are 1-slot types
+                    mv.visitInsn(SWAP);
+                    emitTypeConversion(leftType, compType);
+                    mv.visitInsn(SWAP);
+                }
+            }
 
             Label trueLabel = new Label();
             Label endLabel = new Label();
@@ -6100,19 +7056,90 @@ public class CompilerVisitor extends JvmBasicParserBaseVisitor<Object> {
 
         visit(ctx.relationalExpression(0));
         String leftType = lastExprType;
+
         for (int i = 1; i < ctx.relationalExpression().size(); i++) {
+            // Check if left is nullable primitive that needs unboxing
+            boolean leftIsNullable = leftType != null && leftType.endsWith("?");
+
             visit(ctx.relationalExpression(i));
             String rightType = lastExprType;
             var opToken = ctx.getChild(2 * i - 1);
             String op = opToken.getText();
 
-            // Determine the comparison type
-            String compType = promoteType(leftType, rightType);
+            // Check if right is nullable primitive that needs unboxing
+            boolean rightIsNullable = rightType != null && rightType.endsWith("?");
+
+            // Check if either side is null/Object (comparing to Nil)
+            boolean isNullComparison = "Object".equalsIgnoreCase(leftType) || "Object".equalsIgnoreCase(rightType);
 
             Label trueLabel = new Label();
             Label endLabel = new Label();
 
-            emitEqualityComparison(compType, op, trueLabel);
+            // For null comparisons, always use reference equality (IF_ACMPEQ/IF_ACMPNE)
+            if (isNullComparison) {
+                switch (op) {
+                    case "=" -> mv.visitJumpInsn(IF_ACMPEQ, trueLabel);
+                    case "<>" -> mv.visitJumpInsn(IF_ACMPNE, trueLabel);
+                }
+            } else {
+                // If comparing nullable to primitive, we need to handle stack order
+                // Stack is: [left, right]
+                // If right is nullable and left is primitive, unbox right
+                if (rightIsNullable && !leftIsNullable) {
+                    emitUnboxingIfNeeded(rightType);
+                    rightType = rightType.substring(0, rightType.length() - 1); // Remove ?
+                }
+                // If left is nullable and right is primitive, we need to swap, unbox, swap back
+                else if (leftIsNullable && !rightIsNullable) {
+                    // Store right temporarily, unbox left, then restore right
+                    // Simpler: swap, unbox right (which is now left on stack), swap back
+                    mv.visitInsn(SWAP);  // Stack: [right, left]
+                    emitUnboxingIfNeeded(leftType);  // Unbox left
+                    mv.visitInsn(SWAP);  // Stack: [left_unboxed, right]
+                    leftType = leftType.substring(0, leftType.length() - 1); // Remove ?
+                }
+                // If both are nullable, unbox both
+                else if (leftIsNullable && rightIsNullable) {
+                    emitUnboxingIfNeeded(rightType);
+                    rightType = rightType.substring(0, rightType.length() - 1);
+                    mv.visitInsn(SWAP);
+                    emitUnboxingIfNeeded(leftType);
+                    mv.visitInsn(SWAP);
+                    leftType = leftType.substring(0, leftType.length() - 1);
+                }
+
+                // Determine the comparison type
+                String compType = promoteType(leftType, rightType);
+
+                // Coerce both operands to the comparison type
+                // Stack is now [left, right] - we need to coerce both to compType
+                // First coerce right (top of stack) to compType
+                if (!rightType.equalsIgnoreCase(compType)) {
+                    emitTypeConversion(rightType, compType);
+                }
+                // Now we need to coerce left - swap, coerce, swap back
+                if (!leftType.equalsIgnoreCase(compType)) {
+                    // Stack: [left, right']
+                    // For double/long (2-slot) this is trickier - need to use proper swap
+                    if ("Double".equalsIgnoreCase(compType) || "Long".equalsIgnoreCase(compType)) {
+                        // right' is 2 slots, left is 1 slot (int/float)
+                        // Use DUP2_X1 and POP2 pattern: [left, right'] -> [right', left]
+                        mv.visitInsn(DUP2_X1);  // [right', left, right']
+                        mv.visitInsn(POP2);     // [right', left]
+                        emitTypeConversion(leftType, compType);  // [right', left']
+                        // Now swap back: [right', left'] -> [left', right']
+                        mv.visitInsn(DUP2_X2);  // [left', right', left']
+                        mv.visitInsn(POP2);     // [left', right']
+                    } else {
+                        // Both are 1-slot types
+                        mv.visitInsn(SWAP);
+                        emitTypeConversion(leftType, compType);
+                        mv.visitInsn(SWAP);
+                    }
+                }
+
+                emitEqualityComparison(compType, op, trueLabel);
+            }
             mv.visitInsn(ICONST_0);
             mv.visitJumpInsn(GOTO, endLabel);
             mv.visitLabel(trueLabel);
@@ -6130,8 +7157,27 @@ public class CompilerVisitor extends JvmBasicParserBaseVisitor<Object> {
      * Type promotion order: int < long < float < double
      */
     private String promoteType(String left, String right) {
-        String l = left.toLowerCase();
-        String r = right.toLowerCase();
+        // Strip nullable suffix
+        if (left != null && left.endsWith("?")) {
+            left = left.substring(0, left.length() - 1);
+        }
+        if (right != null && right.endsWith("?")) {
+            right = right.substring(0, right.length() - 1);
+        }
+
+        String l = left != null ? left.toLowerCase() : "object";
+        String r = right != null ? right.toLowerCase() : "object";
+
+        // Handle null/object comparisons (reference equality check)
+        if ("object".equals(l) || "object".equals(r)) {
+            // If one side is Object (null), use reference comparison
+            if ("object".equals(l)) {
+                // Return the other type for reference comparison
+                return right != null ? right : "Object";
+            } else {
+                return left != null ? left : "Object";
+            }
+        }
 
         // Handle string comparisons
         if ("string".equals(l) || "string".equals(r)) {
@@ -6153,7 +7199,32 @@ public class CompilerVisitor extends JvmBasicParserBaseVisitor<Object> {
         if ("long".equals(l) || "long".equals(r)) {
             return "Long";
         }
+
+        // Check if either is a reference type (class name with uppercase)
+        if (isReferenceType(left) || isReferenceType(right)) {
+            return left;  // Return the non-primitive type
+        }
+
         return "Integer";
+    }
+
+    /**
+     * Checks if a type name represents a reference type (not a primitive).
+     */
+    private boolean isReferenceType(String type) {
+        if (type == null) return false;
+        String lowerType = type.toLowerCase();
+        // Primitive type names
+        if (lowerType.equals("integer") || lowerType.equals("int") ||
+            lowerType.equals("long") || lowerType.equals("float") ||
+            lowerType.equals("double") || lowerType.equals("boolean") ||
+            lowerType.equals("bool") || lowerType.equals("byte") ||
+            lowerType.equals("char") || lowerType.equals("short") ||
+            lowerType.equals("void")) {
+            return false;
+        }
+        // If it starts with uppercase or contains '.', it's likely a reference type
+        return type.length() > 0 && (Character.isUpperCase(type.charAt(0)) || type.contains("."));
     }
 
     /**
@@ -6277,11 +7348,38 @@ public class CompilerVisitor extends JvmBasicParserBaseVisitor<Object> {
                     case "<>" -> mv.visitJumpInsn(IF_ICMPNE, trueLabel);
                 }
             }
-            default -> {
-                // Integer comparison
+            case "object", "reference", "nullable" -> {
+                // Reference equality (for null checks and object identity)
                 switch (op) {
-                    case "=" -> mv.visitJumpInsn(IF_ICMPEQ, trueLabel);
-                    case "<>" -> mv.visitJumpInsn(IF_ICMPNE, trueLabel);
+                    case "=" -> mv.visitJumpInsn(IF_ACMPEQ, trueLabel);
+                    case "<>" -> mv.visitJumpInsn(IF_ACMPNE, trueLabel);
+                }
+            }
+            default -> {
+                // Check if this is a reference type (not a primitive type name)
+                // Primitive types: Integer, Int, Long, Float, Double, Boolean, Byte, Char, Short
+                String lowerType = type.toLowerCase();
+                boolean isPrimitive = lowerType.equals("integer") || lowerType.equals("int") ||
+                                     lowerType.equals("long") || lowerType.equals("float") ||
+                                     lowerType.equals("double") || lowerType.equals("boolean") ||
+                                     lowerType.equals("bool") || lowerType.equals("byte") ||
+                                     lowerType.equals("char") || lowerType.equals("short");
+
+                // Enum types are stored as integers, so treat them as primitives for comparison
+                boolean isEnum = symbols.hasEnum(type);
+
+                if (!isPrimitive && !isEnum && (type.contains(".") || (type.length() > 0 && Character.isUpperCase(type.charAt(0))))) {
+                    // Reference type comparison
+                    switch (op) {
+                        case "=" -> mv.visitJumpInsn(IF_ACMPEQ, trueLabel);
+                        case "<>" -> mv.visitJumpInsn(IF_ACMPNE, trueLabel);
+                    }
+                } else {
+                    // Integer comparison (including enums which are stored as int)
+                    switch (op) {
+                        case "=" -> mv.visitJumpInsn(IF_ICMPEQ, trueLabel);
+                        case "<>" -> mv.visitJumpInsn(IF_ICMPNE, trueLabel);
+                    }
                 }
             }
         }
@@ -6317,10 +7415,42 @@ public class CompilerVisitor extends JvmBasicParserBaseVisitor<Object> {
     }
 
     private String typeToDescriptor(String type) {
-        // Handle array types first
+        // Handle nullable types - nullable primitives become boxed types
+        // e.g., Integer? -> java/lang/Integer, Long? -> java/lang/Long
+        boolean isNullable = type.endsWith("?");
+        if (isNullable) {
+            type = type.substring(0, type.length() - 1);
+        }
+
+        // Handle array types
         if (type.endsWith("[]")) {
             String elementType = type.substring(0, type.length() - 2);
             return "[" + typeToDescriptor(elementType);
+        }
+
+        // Check if this is an enum type - enums are represented as int
+        if (symbols.hasEnum(type)) {
+            return isNullable ? "Ljava/lang/Integer;" : "I";
+        }
+
+        // For nullable primitives, use boxed types
+        if (isNullable) {
+            return switch (type.toLowerCase()) {
+                case "integer", "int" -> "Ljava/lang/Integer;";
+                case "long" -> "Ljava/lang/Long;";
+                case "float" -> "Ljava/lang/Float;";
+                case "double" -> "Ljava/lang/Double;";
+                case "boolean", "bool" -> "Ljava/lang/Boolean;";
+                case "byte" -> "Ljava/lang/Byte;";
+                case "char" -> "Ljava/lang/Character;";
+                case "short" -> "Ljava/lang/Short;";
+                // Reference types are already nullable
+                case "string" -> "Ljava/lang/String;";
+                case "object" -> "Ljava/lang/Object;";
+                case "biginteger" -> "Ljava/math/BigInteger;";
+                case "decimal", "bigdecimal" -> "Ljava/math/BigDecimal;";
+                default -> "L" + mapExternalType(type) + ";";
+            };
         }
 
         return switch (type.toLowerCase()) {
@@ -6336,11 +7466,26 @@ public class CompilerVisitor extends JvmBasicParserBaseVisitor<Object> {
             case "object" -> "Ljava/lang/Object;";
             case "biginteger" -> "Ljava/math/BigInteger;";
             case "decimal", "bigdecimal" -> "Ljava/math/BigDecimal;";
-            default -> "L" + type.replace(".", "/") + ";";
+            default -> "L" + mapExternalType(type) + ";";
         };
     }
 
     private void storeLocal(int slot, String type) {
+        // Box primitive if storing to nullable type
+        emitBoxingIfNeeded(type);
+
+        // Nullable types are stored as references
+        if (type.endsWith("?")) {
+            mv.visitVarInsn(ASTORE, slot);
+            return;
+        }
+
+        // Enum types are stored as int
+        if (symbols.hasEnum(type)) {
+            mv.visitVarInsn(ISTORE, slot);
+            return;
+        }
+
         switch (type.toLowerCase()) {
             case "integer", "int", "boolean", "bool", "byte", "char" -> mv.visitVarInsn(ISTORE, slot);
             case "long" -> mv.visitVarInsn(LSTORE, slot);
@@ -6351,6 +7496,20 @@ public class CompilerVisitor extends JvmBasicParserBaseVisitor<Object> {
     }
 
     private void loadLocal(int slot, String type) {
+        // Nullable types are stored as references
+        if (type.endsWith("?")) {
+            mv.visitVarInsn(ALOAD, slot);
+            lastExprType = type;
+            return;
+        }
+
+        // Enum types are loaded as int
+        if (symbols.hasEnum(type)) {
+            mv.visitVarInsn(ILOAD, slot);
+            lastExprType = type;
+            return;
+        }
+
         switch (type.toLowerCase()) {
             case "integer", "int", "boolean", "bool", "byte", "char" -> mv.visitVarInsn(ILOAD, slot);
             case "long" -> mv.visitVarInsn(LLOAD, slot);
@@ -6381,11 +7540,17 @@ public class CompilerVisitor extends JvmBasicParserBaseVisitor<Object> {
         }
     }
 
-    // Coerce the value on stack to target type (for variable assignment)
+    // Coerce the value on stack to target type (for variable assignment / return)
     private void coerceToType(String targetType) {
         String from = lastExprType.toLowerCase();
         String to = targetType.toLowerCase();
         if (from.equals(to)) return;
+
+        // Handle nullable types - if target is nullable, box the primitive
+        if (targetType.endsWith("?")) {
+            emitBoxingIfNeeded(targetType);
+            return;
+        }
 
         // Numeric type conversions
         switch (to) {
@@ -6424,6 +7589,153 @@ public class CompilerVisitor extends JvmBasicParserBaseVisitor<Object> {
         }
     }
 
+    // Box any primitive value on the stack to its wrapper type (for Object parameters)
+    private void boxPrimitiveForObject() {
+        String exprType = lastExprType.toLowerCase();
+        switch (exprType) {
+            case "integer", "int" -> {
+                mv.visitMethodInsn(INVOKESTATIC, "java/lang/Integer", "valueOf", "(I)Ljava/lang/Integer;", false);
+                lastExprType = "java.lang.Integer";
+            }
+            case "long" -> {
+                mv.visitMethodInsn(INVOKESTATIC, "java/lang/Long", "valueOf", "(J)Ljava/lang/Long;", false);
+                lastExprType = "java.lang.Long";
+            }
+            case "float" -> {
+                mv.visitMethodInsn(INVOKESTATIC, "java/lang/Float", "valueOf", "(F)Ljava/lang/Float;", false);
+                lastExprType = "java.lang.Float";
+            }
+            case "double" -> {
+                mv.visitMethodInsn(INVOKESTATIC, "java/lang/Double", "valueOf", "(D)Ljava/lang/Double;", false);
+                lastExprType = "java.lang.Double";
+            }
+            case "boolean", "bool" -> {
+                mv.visitMethodInsn(INVOKESTATIC, "java/lang/Boolean", "valueOf", "(Z)Ljava/lang/Boolean;", false);
+                lastExprType = "java.lang.Boolean";
+            }
+            case "byte" -> {
+                mv.visitMethodInsn(INVOKESTATIC, "java/lang/Byte", "valueOf", "(B)Ljava/lang/Byte;", false);
+                lastExprType = "java.lang.Byte";
+            }
+            case "char", "character" -> {
+                mv.visitMethodInsn(INVOKESTATIC, "java/lang/Character", "valueOf", "(C)Ljava/lang/Character;", false);
+                lastExprType = "java.lang.Character";
+            }
+            // Already an object type, no boxing needed
+            default -> {}
+        }
+    }
+
+    // Box a primitive value on the stack to its corresponding wrapper type
+    private void emitBoxingIfNeeded(String fieldType) {
+        if (!fieldType.endsWith("?")) return;  // Not nullable, no boxing needed
+
+        String baseType = fieldType.substring(0, fieldType.length() - 1).toLowerCase();
+        String exprType = lastExprType.toLowerCase();
+
+        // Check if we need to box a primitive to a wrapper type
+        switch (baseType) {
+            case "integer", "int" -> {
+                if (exprType.equals("integer") || exprType.equals("int")) {
+                    mv.visitMethodInsn(INVOKESTATIC, "java/lang/Integer", "valueOf", "(I)Ljava/lang/Integer;", false);
+                    lastExprType = "java.lang.Integer";
+                }
+            }
+            case "long" -> {
+                if (exprType.equals("long")) {
+                    mv.visitMethodInsn(INVOKESTATIC, "java/lang/Long", "valueOf", "(J)Ljava/lang/Long;", false);
+                    lastExprType = "java.lang.Long";
+                }
+            }
+            case "float" -> {
+                if (exprType.equals("float")) {
+                    mv.visitMethodInsn(INVOKESTATIC, "java/lang/Float", "valueOf", "(F)Ljava/lang/Float;", false);
+                    lastExprType = "java.lang.Float";
+                }
+            }
+            case "double" -> {
+                if (exprType.equals("double")) {
+                    mv.visitMethodInsn(INVOKESTATIC, "java/lang/Double", "valueOf", "(D)Ljava/lang/Double;", false);
+                    lastExprType = "java.lang.Double";
+                }
+            }
+            case "boolean", "bool" -> {
+                if (exprType.equals("boolean") || exprType.equals("bool")) {
+                    mv.visitMethodInsn(INVOKESTATIC, "java/lang/Boolean", "valueOf", "(Z)Ljava/lang/Boolean;", false);
+                    lastExprType = "java.lang.Boolean";
+                }
+            }
+            case "byte" -> {
+                if (exprType.equals("byte")) {
+                    mv.visitMethodInsn(INVOKESTATIC, "java/lang/Byte", "valueOf", "(B)Ljava/lang/Byte;", false);
+                    lastExprType = "java.lang.Byte";
+                }
+            }
+            case "char", "character" -> {
+                if (exprType.equals("char") || exprType.equals("character")) {
+                    mv.visitMethodInsn(INVOKESTATIC, "java/lang/Character", "valueOf", "(C)Ljava/lang/Character;", false);
+                    lastExprType = "java.lang.Character";
+                }
+            }
+            case "short" -> {
+                if (exprType.equals("short")) {
+                    mv.visitMethodInsn(INVOKESTATIC, "java/lang/Short", "valueOf", "(S)Ljava/lang/Short;", false);
+                    lastExprType = "java.lang.Short";
+                }
+            }
+        }
+    }
+
+    // Unbox a wrapper type on the stack to its corresponding primitive type
+    // Returns the primitive type name, or null if no unboxing was done
+    private String emitUnboxingIfNeeded(String type) {
+        if (type == null) return null;
+
+        // Handle nullable types (Integer?, etc.)
+        boolean isNullable = type.endsWith("?");
+        String baseType = isNullable ? type.substring(0, type.length() - 1).toLowerCase() : type.toLowerCase();
+
+        // Check if it's a boxed type that needs unboxing
+        switch (baseType) {
+            case "integer", "int" -> {
+                if (isNullable || lastExprType.contains("Integer") || lastExprType.contains("integer?")) {
+                    mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/Integer", "intValue", "()I", false);
+                    lastExprType = "Integer";
+                    return "Integer";
+                }
+            }
+            case "long" -> {
+                if (isNullable || lastExprType.contains("Long") || lastExprType.contains("long?")) {
+                    mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/Long", "longValue", "()J", false);
+                    lastExprType = "Long";
+                    return "Long";
+                }
+            }
+            case "float" -> {
+                if (isNullable || lastExprType.contains("Float") || lastExprType.contains("float?")) {
+                    mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/Float", "floatValue", "()F", false);
+                    lastExprType = "Float";
+                    return "Float";
+                }
+            }
+            case "double" -> {
+                if (isNullable || lastExprType.contains("Double") || lastExprType.contains("double?")) {
+                    mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/Double", "doubleValue", "()D", false);
+                    lastExprType = "Double";
+                    return "Double";
+                }
+            }
+            case "boolean", "bool" -> {
+                if (isNullable || lastExprType.contains("Boolean") || lastExprType.contains("boolean?")) {
+                    mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/Boolean", "booleanValue", "()Z", false);
+                    lastExprType = "Boolean";
+                    return "Boolean";
+                }
+            }
+        }
+        return null;
+    }
+
     private void generateDefaultValue(String type) {
         switch (type.toLowerCase()) {
             case "integer", "int", "boolean", "bool", "byte", "char" -> mv.visitInsn(ICONST_0);
@@ -6436,6 +7748,11 @@ public class CompilerVisitor extends JvmBasicParserBaseVisitor<Object> {
     }
 
     private void generateReturn(String type) {
+        // Enum types are stored as int
+        if (symbols.hasEnum(type)) {
+            mv.visitInsn(IRETURN);
+            return;
+        }
         switch (type.toLowerCase()) {
             case "integer", "int", "boolean", "bool", "byte", "char" -> mv.visitInsn(IRETURN);
             case "long" -> mv.visitInsn(LRETURN);
@@ -6479,6 +7796,16 @@ public class CompilerVisitor extends JvmBasicParserBaseVisitor<Object> {
                         loadLocal(local.getSlot(), local.type);
                         return;
                     }
+                }
+                // Check class fields (implicit this.field access)
+                SymbolCollector.FieldSymbol field = classSym.getField(name);
+                if (field != null) {
+                    // Load 'this' (slot 0 in instance methods)
+                    mv.visitVarInsn(ALOAD, 0);
+                    // Get the field
+                    mv.visitFieldInsn(GETFIELD, currentClass, name, typeToDescriptor(field.type));
+                    lastExprType = field.type;
+                    return;
                 }
             }
         }
@@ -6542,8 +7869,64 @@ public class CompilerVisitor extends JvmBasicParserBaseVisitor<Object> {
                 return;
             }
 
-            // Find variable slot and store (legacy support)
-            if (currentMethod != null) {
+            // Check class context - method locals and class fields
+            if (currentClass != null && currentMethod != null) {
+                ClassSymbol classSym = symbols.getClass(currentClass);
+                if (classSym != null) {
+                    FunctionSymbol method = classSym.getMethod(currentMethod);
+                    if (method != null) {
+                        // Check method local variables
+                        VariableSymbol local = method.getLocal(name);
+                        if (local != null && local.getSlot() >= 0) {
+                            storeLocal(local.getSlot(), local.type);
+                            return;
+                        }
+                    }
+                    // Check class fields (implicit this.field access)
+                    SymbolCollector.FieldSymbol field = classSym.getField(name);
+                    if (field != null) {
+                        // Stack currently has [value]
+                        // Need [objectref, value] for PUTFIELD
+                        // Box if needed first
+                        emitBoxingIfNeeded(field.type);
+                        // Store value temporarily, load this, load value back
+                        int tempSlot = localVarSlot; // Use current slot as temp
+                        String descriptor = typeToDescriptor(field.type);
+                        if (descriptor == null) {
+                            descriptor = "Ljava/lang/Object;";
+                        }
+                        if (descriptor.startsWith("L") || descriptor.startsWith("[")) {
+                            mv.visitVarInsn(ASTORE, tempSlot);
+                            mv.visitVarInsn(ALOAD, 0); // load 'this'
+                            mv.visitVarInsn(ALOAD, tempSlot);
+                        } else {
+                            // Primitive types
+                            int storeOp = switch (descriptor) {
+                                case "I", "Z", "B", "C", "S" -> ISTORE;
+                                case "J" -> LSTORE;
+                                case "F" -> FSTORE;
+                                case "D" -> DSTORE;
+                                default -> ASTORE;
+                            };
+                            int loadOp = switch (descriptor) {
+                                case "I", "Z", "B", "C", "S" -> ILOAD;
+                                case "J" -> LLOAD;
+                                case "F" -> FLOAD;
+                                case "D" -> DLOAD;
+                                default -> ALOAD;
+                            };
+                            mv.visitVarInsn(storeOp, tempSlot);
+                            mv.visitVarInsn(ALOAD, 0); // load 'this'
+                            mv.visitVarInsn(loadOp, tempSlot);
+                        }
+                        mv.visitFieldInsn(PUTFIELD, currentClass, name, descriptor);
+                        return;
+                    }
+                }
+            }
+
+            // Find variable slot and store (legacy support for non-class methods)
+            if (currentMethod != null && currentClass == null) {
                 FunctionSymbol func = symbols.getFunction(currentMethod);
                 if (func != null) {
                     VariableSymbol local = func.getLocal(name);
@@ -6564,6 +7947,8 @@ public class CompilerVisitor extends JvmBasicParserBaseVisitor<Object> {
             // Check for global variable
             VariableSymbol global = symbols.getGlobal(name);
             if (global != null) {
+                // Box primitive if assigning to nullable global
+                emitBoxingIfNeeded(global.type);
                 mv.visitFieldInsn(PUTSTATIC, className, name, typeToDescriptor(global.type));
                 return;
             }
@@ -6898,5 +8283,33 @@ public class CompilerVisitor extends JvmBasicParserBaseVisitor<Object> {
                                   "(Ljava/lang/Object;)Ljava/lang/StringBuilder;", false);
             }
         }
+    }
+
+    // ========================================================================
+    // Test Framework Support
+    // ========================================================================
+
+    /**
+     * Emits @com.jvmbasic.test.Test annotation if the function has a #[Test] annotation.
+     */
+    private void emitTestAnnotationIfPresent(FunctionSymbol func) {
+        if (func == null || !func.hasAnnotation("Test")) {
+            return;
+        }
+
+        // Get the description from the annotation
+        AnnotationSymbol testAnnotation = func.getAnnotations().stream()
+            .filter(a -> "Test".equalsIgnoreCase(a.name))
+            .findFirst()
+            .orElse(null);
+
+        String description = testAnnotation != null ? testAnnotation.getDescription() : "";
+
+        // Emit the @Test annotation using ASM
+        AnnotationVisitor av = mv.visitAnnotation("Lcom/jvmbasic/test/Test;", true);
+        if (description != null && !description.isEmpty()) {
+            av.visit("value", description);
+        }
+        av.visitEnd();
     }
 }

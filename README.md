@@ -33,9 +33,26 @@ A modern BASIC compiler targeting the Java Virtual Machine, written in Java usin
 | **BigInt Namespace** | Arbitrary precision integers, arithmetic, conversions | ✅ |
 | **Decimal Namespace** | Arbitrary precision decimals, arithmetic, rounding | ✅ |
 
+| **Enums** | Enum types with members and explicit values | ✅ |
+| **Interfaces** | Interface definitions and implementation | ✅ |
+| **Test Framework** | `#[Test]` annotations, `assert`, `.jvmt` files | ✅ |
+
+## Current Status
+
+**68 tests passing** - See [STATUS.md](docs/STATUS.md) for detailed status.
+
+### Known Issues
+
+| Feature | Issue |
+|---------|-------|
+| Lambdas | Compiler crash on lambda expressions |
+| Nullable Types | Runtime `VerifyError` on null comparisons |
+| Abstract Classes | Parse errors with `abstract` keyword |
+| Array Initializers | `{1, 2, 3}` syntax not yet supported |
+
 **Coming Soon:**
 
-- Interfaces (`implements` keyword)
+- Lambda expressions
 - Async/Await and concurrency primitives
 - Jetty web server integration with attributes
 

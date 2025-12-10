@@ -136,6 +136,34 @@ public class SymbolCollector extends JvmBasicParserBaseListener {
     }
 
     // ========================================================================
+    // Enum Declarations
+    // ========================================================================
+
+    @Override
+    public void enterEnumDeclaration(JvmBasicParser.EnumDeclarationContext ctx) {
+        String name = ctx.IDENTIFIER().getText();
+        int line = ctx.getStart().getLine();
+
+        EnumSymbol enumSymbol = new EnumSymbol(name, line);
+
+        // Collect enum members with their values
+        int nextValue = 0;
+        for (JvmBasicParser.EnumMemberContext member : ctx.enumMember()) {
+            String memberName = member.IDENTIFIER().getText();
+
+            // Check if value is explicitly specified
+            if (member.INTEGER_LITERAL() != null) {
+                nextValue = Integer.parseInt(member.INTEGER_LITERAL().getText());
+            }
+
+            enumSymbol.addMember(memberName, nextValue);
+            nextValue++;  // Auto-increment for next member
+        }
+
+        symbols.addEnum(enumSymbol);
+    }
+
+    // ========================================================================
     // Function/Sub Declarations
     // ========================================================================
 
@@ -147,6 +175,7 @@ public class SymbolCollector extends JvmBasicParserBaseListener {
 
         FunctionSymbol func = new FunctionSymbol(name, returnType, line);
         collectParameters(ctx.parameterList(), func);
+        collectAnnotations(ctx.annotations(), func);  // Collect annotations
 
         if (currentClass != null) {
             symbols.getClass(currentClass).addMethod(func);
@@ -177,6 +206,7 @@ public class SymbolCollector extends JvmBasicParserBaseListener {
         FunctionSymbol sub = new FunctionSymbol(name, "Void", line);
         sub.setSub(true);
         collectParameters(ctx.parameterList(), sub);
+        collectAnnotations(ctx.annotations(), sub);  // Collect annotations
 
         if (currentClass != null) {
             symbols.getClass(currentClass).addMethod(sub);
@@ -251,6 +281,7 @@ public class SymbolCollector extends JvmBasicParserBaseListener {
         FunctionSymbol method = new FunctionSymbol(name, returnType, line);
         method.setSub(ctx.SUB() != null && ctx.FUNCTION() == null);
         collectParameters(ctx.parameterList(), method);
+        collectAnnotations(ctx.annotations(), method);  // Collect annotations
 
         symbols.getClass(currentClass).addMethod(method);
         currentFunction = name;
@@ -309,6 +340,65 @@ public class SymbolCollector extends JvmBasicParserBaseListener {
             boolean byRef = param.BYREF() != null;
             func.addParameter(new ParameterSymbol(paramName, paramType, byRef));
         }
+    }
+
+    /**
+     * Collect annotations from an annotations context
+     */
+    private void collectAnnotations(JvmBasicParser.AnnotationsContext ctx, FunctionSymbol func) {
+        if (ctx == null) return;
+
+        for (JvmBasicParser.AnnotationContext annoCtx : ctx.annotation()) {
+            String name = annoCtx.annotationName().getText();
+            int line = annoCtx.getStart().getLine();
+
+            AnnotationSymbol anno = new AnnotationSymbol(name, line);
+
+            // Process annotation arguments
+            if (annoCtx.annotationArgs() != null) {
+                var argsCtx = annoCtx.annotationArgs();
+
+                // Check for shorthand string literal: #[Test "description"]
+                if (argsCtx.STRING_LITERAL() != null) {
+                    String value = argsCtx.STRING_LITERAL().getText();
+                    // Remove quotes
+                    value = value.substring(1, value.length() - 1);
+                    anno.addArgument("$0", value);
+                }
+                // Check for full argument list: #[Test(value: "description")]
+                else if (argsCtx.annotationArgList() != null) {
+                    int positionalIndex = 0;
+                    for (var argCtx : argsCtx.annotationArgList().annotationArg()) {
+                        if (argCtx.IDENTIFIER() != null) {
+                            // Named argument
+                            String key = argCtx.IDENTIFIER().getText();
+                            String value = extractAnnotationValue(argCtx.expression());
+                            anno.addArgument(key, value);
+                        } else {
+                            // Positional argument
+                            String value = extractAnnotationValue(argCtx.expression());
+                            anno.addArgument("$" + positionalIndex++, value);
+                        }
+                    }
+                }
+            }
+
+            func.addAnnotation(anno);
+        }
+    }
+
+    /**
+     * Extract a string value from an annotation argument expression
+     */
+    private String extractAnnotationValue(JvmBasicParser.ExpressionContext expr) {
+        // For simplicity, just get the text - in a full implementation
+        // we'd evaluate constant expressions
+        String text = expr.getText();
+        // Remove quotes if it's a string literal
+        if (text.startsWith("\"") && text.endsWith("\"")) {
+            text = text.substring(1, text.length() - 1);
+        }
+        return text;
     }
 
     // ========================================================================
@@ -668,24 +758,29 @@ public class SymbolCollector extends JvmBasicParserBaseListener {
         private final Map<String, FunctionSymbol> functions = new LinkedHashMap<>();
         private final Map<String, VariableSymbol> globals = new LinkedHashMap<>();
         private final Map<String, ConstantSymbol> constants = new LinkedHashMap<>();
+        private final Map<String, EnumSymbol> enums = new LinkedHashMap<>();
 
         public void addClass(ClassSymbol c) { classes.put(c.name, c); }
         public void addFunction(FunctionSymbol f) { functions.put(f.name, f); }
         public void addGlobal(VariableSymbol v) { globals.put(v.name, v); }
         public void addConstant(ConstantSymbol c) { constants.put(c.name, c); }
+        public void addEnum(EnumSymbol e) { enums.put(e.name, e); }
 
         public ClassSymbol getClass(String name) { return classes.get(name); }
         public FunctionSymbol getFunction(String name) { return functions.get(name); }
         public VariableSymbol getGlobal(String name) { return globals.get(name); }
         public ConstantSymbol getConstant(String name) { return constants.get(name); }
+        public EnumSymbol getEnum(String name) { return enums.get(name); }
 
         public Collection<ClassSymbol> getClasses() { return classes.values(); }
         public Collection<FunctionSymbol> getFunctions() { return functions.values(); }
         public Collection<VariableSymbol> getGlobals() { return globals.values(); }
         public Collection<ConstantSymbol> getConstants() { return constants.values(); }
+        public Collection<EnumSymbol> getEnums() { return enums.values(); }
 
         public boolean hasClass(String name) { return classes.containsKey(name); }
         public boolean hasFunction(String name) { return functions.containsKey(name); }
+        public boolean hasEnum(String name) { return enums.containsKey(name); }
     }
 
     public static class ClassSymbol {
@@ -725,6 +820,7 @@ public class SymbolCollector extends JvmBasicParserBaseListener {
         private final List<ParameterSymbol> parameters = new ArrayList<>();
         private final Map<String, VariableSymbol> locals = new LinkedHashMap<>();
         private final List<Scope> scopes = new ArrayList<>();  // All scopes within this function
+        private final List<AnnotationSymbol> annotations = new ArrayList<>();  // Method annotations
 
         public FunctionSymbol(String name, String returnType, int line) {
             this.name = name;
@@ -748,6 +844,19 @@ public class SymbolCollector extends JvmBasicParserBaseListener {
 
         public void addScope(Scope s) { scopes.add(s); }
         public List<Scope> getScopes() { return scopes; }
+
+        // Annotation support
+        public void addAnnotation(AnnotationSymbol a) { annotations.add(a); }
+        public List<AnnotationSymbol> getAnnotations() { return annotations; }
+        public boolean hasAnnotation(String name) {
+            return annotations.stream().anyMatch(a -> a.name.equalsIgnoreCase(name));
+        }
+        public AnnotationSymbol getAnnotation(String name) {
+            return annotations.stream()
+                .filter(a -> a.name.equalsIgnoreCase(name))
+                .findFirst()
+                .orElse(null);
+        }
     }
 
     public static class ParameterSymbol {
@@ -814,6 +923,97 @@ public class SymbolCollector extends JvmBasicParserBaseListener {
             this.name = name;
             this.type = type;
             this.line = line;
+        }
+    }
+
+    /**
+     * Represents an annotation on a method/function/class
+     * e.g., #[Test "description"]
+     */
+    public static class AnnotationSymbol {
+        public final String name;
+        public final int line;
+        private final Map<String, Object> arguments = new LinkedHashMap<>();
+
+        public AnnotationSymbol(String name, int line) {
+            this.name = name;
+            this.line = line;
+        }
+
+        public void addArgument(String key, Object value) {
+            arguments.put(key, value);
+        }
+
+        public Object getArgument(String key) {
+            return arguments.get(key);
+        }
+
+        public Map<String, Object> getArguments() {
+            return arguments;
+        }
+
+        /**
+         * Get the description - first positional argument or named "value"/"description"
+         */
+        public String getDescription() {
+            Object desc = arguments.get("$0");
+            if (desc == null) desc = arguments.get("value");
+            if (desc == null) desc = arguments.get("description");
+            return desc != null ? desc.toString() : "";
+        }
+
+        @Override
+        public String toString() {
+            StringBuilder sb = new StringBuilder("#[").append(name);
+            if (!arguments.isEmpty()) {
+                sb.append("(");
+                boolean first = true;
+                for (var entry : arguments.entrySet()) {
+                    if (!first) sb.append(", ");
+                    if (!entry.getKey().startsWith("$")) {
+                        sb.append(entry.getKey()).append(": ");
+                    }
+                    sb.append(entry.getValue());
+                    first = false;
+                }
+                sb.append(")");
+            }
+            return sb.append("]").toString();
+        }
+    }
+
+    /**
+     * Represents an enum declaration with its members and values.
+     * e.g., enum Color { Red, Green, Blue }
+     */
+    public static class EnumSymbol {
+        public final String name;
+        public final int line;
+        private final Map<String, Integer> members = new LinkedHashMap<>();
+
+        public EnumSymbol(String name, int line) {
+            this.name = name;
+            this.line = line;
+        }
+
+        public void addMember(String memberName, int value) {
+            members.put(memberName, value);
+        }
+
+        public Integer getMemberValue(String memberName) {
+            return members.get(memberName);
+        }
+
+        public boolean hasMember(String memberName) {
+            return members.containsKey(memberName);
+        }
+
+        public Collection<String> getMemberNames() {
+            return members.keySet();
+        }
+
+        public Map<String, Integer> getMembers() {
+            return members;
         }
     }
 }

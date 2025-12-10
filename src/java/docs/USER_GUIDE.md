@@ -496,12 +496,12 @@ public class Employee extends Person
     private var _salary as Double
 
     public sub new(name as String, salary as Double)
-        MyBase.new(name)  // Call parent constructor
+        Super.new(name)  // Call parent constructor
         _salary = salary
     end sub
 
     public override function greet() as String
-        return MyBase.greet() & " - Employee"
+        return Super.greet() & " - Employee"
     end function
 end class
 ```

@@ -478,14 +478,17 @@ public class IRBuilder extends JvmBasicParserBaseVisitor<Object> {
         IRExpression target = new IRIdentifier(targetName, inferType(value), token.getLine(), token.getCharPositionInLine());
 
         // Determine assignment operator
-        IRAssignment.Operator op = switch (opText) {
-            case "=" -> IRAssignment.Operator.ASSIGN;
-            case "+=" -> IRAssignment.Operator.ADD;
-            case "-=" -> IRAssignment.Operator.SUB;
-            case "*=" -> IRAssignment.Operator.MUL;
-            case "/=" -> IRAssignment.Operator.DIV;
-            default -> IRAssignment.Operator.ASSIGN;
-        };
+        IRAssignment.Operator op = IRAssignment.Operator.ASSIGN;
+        if (opText != null) {
+            op = switch (opText) {
+                case "=" -> IRAssignment.Operator.ASSIGN;
+                case "+=" -> IRAssignment.Operator.ADD;
+                case "-=" -> IRAssignment.Operator.SUB;
+                case "*=" -> IRAssignment.Operator.MUL;
+                case "/=" -> IRAssignment.Operator.DIV;
+                default -> IRAssignment.Operator.ASSIGN;
+            };
+        }
 
         return new IRAssignment(target, value, op, token.getLine(), token.getCharPositionInLine());
     }
@@ -1481,6 +1484,9 @@ public class IRBuilder extends JvmBasicParserBaseVisitor<Object> {
         }
 
         // Instance method guesses
+        if (methodName == null) {
+            return IRType.Reference.OBJECT;
+        }
         return switch (methodName) {
             case "ToString", "toString" -> IRType.Reference.STRING;
             case "Length", "length", "Size", "size" -> IRType.Primitive.INT;
