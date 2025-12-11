@@ -105,6 +105,12 @@ TESTS=(
     "select_case_test.jvmb:select_case_test"
     "string_plus_test.jvmb:string_plus_test"
     "str_test.jvmb:str_test"
+    "test_interp_basic.jvmb:test_interp_basic"
+    "test_interp_expr.jvmb:test_interp_expr"
+    "test_interp_int.jvmb:test_interp_int"
+    "test_interp_multi.jvmb:test_interp_multi"
+    "test_interp_simple.jvmb:test_interp_simple"
+    "test_json_interpolation.jvmb:test_json_interpolation"
 )
 
 for test in "${TESTS[@]}"; do

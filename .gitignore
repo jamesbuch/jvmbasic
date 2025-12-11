@@ -20,3 +20,5 @@ test_output/
 
 # User reference files (not for repo)
 Defining*.txt
+backups/
+PLAN.md
