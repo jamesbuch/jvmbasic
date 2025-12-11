@@ -1306,7 +1306,25 @@ public class CompilerVisitor extends JvmBasicParserBaseVisitor<Object> {
     }
 
     private String getArrayElementTypeFromVariable(String varName) {
-        // Check in function/sub locals first
+        // Check in class method locals first
+        if (currentClass != null && currentMethod != null) {
+            ClassSymbol classSym = symbols.getClass(currentClass);
+            if (classSym != null) {
+                FunctionSymbol method = classSym.getMethod(currentMethod);
+                if (method != null) {
+                    VariableSymbol local = method.getLocal(varName);
+                    if (local != null && local.type.endsWith("[]")) {
+                        return local.type.substring(0, local.type.length() - 2);
+                    }
+                }
+                // Check class fields
+                SymbolCollector.FieldLookupResult fieldLookup = symbols.findFieldInHierarchy(currentClass, varName);
+                if (fieldLookup != null && fieldLookup.field.type.endsWith("[]")) {
+                    return fieldLookup.field.type.substring(0, fieldLookup.field.type.length() - 2);
+                }
+            }
+        }
+        // Check in function/sub locals
         if (currentMethod != null && !"main".equals(currentMethod)) {
             FunctionSymbol func = symbols.getFunction(currentMethod);
             if (func != null) {

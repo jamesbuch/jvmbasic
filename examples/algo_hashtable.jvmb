@@ -1,0 +1,215 @@
+' ============================================================================
+' Hash Table in JVM BASIC 2.0
+' Demonstrates: hashing, collision handling (chaining), dynamic data structures
+' This is a key data structure for implementing a symbol table in a compiler
+' ============================================================================
+
+Console.WriteLine("=== Hash Table Demo ===")
+Console.WriteLine("")
+
+' Create hash table with 16 buckets
+var table as StringHashTable = new StringHashTable(16)
+
+' Test empty table
+Console.WriteLine("Empty table:")
+Console.WriteLine($"  size: {table.size()}")
+Console.WriteLine($"  isEmpty: {table.isEmpty()}")
+Console.WriteLine("")
+
+' Insert key-value pairs
+Console.WriteLine("Inserting entries...")
+table.put("name", "Alice")
+table.put("age", "30")
+table.put("city", "Boston")
+table.put("country", "USA")
+table.put("language", "JVM BASIC")
+table.put("version", "2.0")
+
+Console.WriteLine($"  size: {table.size()}")
+Console.WriteLine("")
+
+' Retrieve values
+Console.WriteLine("Retrieving values:")
+Console.WriteLine($"  name = {table.getVal("name")}")
+Console.WriteLine($"  age = {table.getVal("age")}")
+Console.WriteLine($"  city = {table.getVal("city")}")
+Console.WriteLine($"  language = {table.getVal("language")}")
+Console.WriteLine("")
+
+' Check containsKey
+Console.WriteLine("Contains check:")
+Console.WriteLine($"  containsKey('name'): {table.containsKey("name")}")
+Console.WriteLine($"  containsKey('unknown'): {table.containsKey("unknown")}")
+Console.WriteLine("")
+
+' Update existing key
+Console.WriteLine("Updating 'age' to '31'...")
+table.put("age", "31")
+Console.WriteLine($"  age = {table.getVal("age")}")
+Console.WriteLine($"  size (unchanged): {table.size()}")
+Console.WriteLine("")
+
+' Test collision handling - these might hash to same bucket
+Console.WriteLine("Testing collision handling...")
+table.put("abc", "value1")
+table.put("bca", "value2")
+table.put("cab", "value3")
+Console.WriteLine($"  abc = {table.getVal("abc")}")
+Console.WriteLine($"  bca = {table.getVal("bca")}")
+Console.WriteLine($"  cab = {table.getVal("cab")}")
+Console.WriteLine("")
+
+' Remove a key
+Console.WriteLine("Removing 'city'...")
+table.remove("city")
+Console.WriteLine($"  containsKey('city'): {table.containsKey("city")}")
+Console.WriteLine($"  size: {table.size()}")
+Console.WriteLine("")
+
+' Print all entries
+Console.WriteLine("All entries:")
+table.printAll()
+
+Console.WriteLine("")
+Console.WriteLine("Hash Table demo complete!")
+
+' ============================================================================
+' HashEntry class - a key-value pair node for chaining
+' ============================================================================
+class HashEntry
+    public var key as String
+    public var value as String
+    public var nextEntry as HashEntry
+
+    public sub New(k as String, v as String)
+        key = k
+        value = v
+        nextEntry = nil
+    end sub
+end class
+
+' ============================================================================
+' StringHashTable class - hash table with string keys and values
+' Uses separate chaining for collision resolution
+' ============================================================================
+class StringHashTable
+    public var buckets as HashEntry[]
+    public var bucketCount as Integer
+    public var entryCount as Integer
+
+    public sub New(numBuckets as Integer)
+        bucketCount = numBuckets
+        buckets = new HashEntry[numBuckets]
+        entryCount = 0
+        ' Java arrays are already initialized to null, no need to explicitly set
+    end sub
+
+    ' Simple hash function using string character codes
+    public function hash(key as String) as Integer
+        var h as Integer = 0
+        var len as Integer = Str.Length(key)
+        for i = 0 to len - 1
+            var ch as String = Str.Substring(key, i, 1)
+            var code as Integer = Str.Asc(ch)
+            h = (h * 31 + code) mod bucketCount
+        next i
+        ' Ensure positive
+        if h < 0 then
+            h = h + bucketCount
+        end if
+        return h
+    end function
+
+    public function size() as Integer
+        return entryCount
+    end function
+
+    public function isEmpty() as Boolean
+        return entryCount = 0
+    end function
+
+    ' Insert or update a key-value pair
+    public sub put(key as String, value as String)
+        var index as Integer = this.hash(key)
+        var entry as HashEntry = buckets[index]
+
+        ' Check if key already exists in chain
+        while entry <> nil
+            if entry.key = key then
+                ' Update existing entry
+                entry.value = value
+                return
+            end if
+            entry = entry.nextEntry
+        end while
+
+        ' Key not found - insert at head of chain
+        var newEntry as HashEntry = new HashEntry(key, value)
+        newEntry.nextEntry = buckets[index]
+        buckets[index] = newEntry
+        entryCount = entryCount + 1
+    end sub
+
+    ' Get value for a key (returns empty string if not found)
+    public function getVal(key as String) as String
+        var index as Integer = this.hash(key)
+        var entry as HashEntry = buckets[index]
+
+        while entry <> nil
+            if entry.key = key then
+                return entry.value
+            end if
+            entry = entry.nextEntry
+        end while
+
+        return ""
+    end function
+
+    ' Check if key exists
+    public function containsKey(key as String) as Boolean
+        var index as Integer = this.hash(key)
+        var entry as HashEntry = buckets[index]
+
+        while entry <> nil
+            if entry.key = key then
+                return true
+            end if
+            entry = entry.nextEntry
+        end while
+
+        return false
+    end function
+
+    ' Remove a key
+    public sub remove(key as String)
+        var index as Integer = this.hash(key)
+        var entry as HashEntry = buckets[index]
+        var prev as HashEntry = nil
+
+        while entry <> nil
+            if entry.key = key then
+                if prev = nil then
+                    ' Removing head of chain
+                    buckets[index] = entry.nextEntry
+                else
+                    prev.nextEntry = entry.nextEntry
+                end if
+                entryCount = entryCount - 1
+                return
+            end if
+            prev = entry
+            entry = entry.nextEntry
+        end while
+    end sub
+
+    ' Print all entries (for debugging)
+    public sub printAll()
+        for i = 0 to bucketCount - 1
+            var entry as HashEntry = buckets[i]
+            while entry <> nil
+                Console.WriteLine($"  [{i}] {entry.key} = {entry.value}")
+                entry = entry.nextEntry
+            end while
+        next i
+    end sub
+end class
