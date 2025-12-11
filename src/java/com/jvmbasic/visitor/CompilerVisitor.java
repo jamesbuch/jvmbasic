@@ -117,6 +117,18 @@ public class CompilerVisitor extends JvmBasicParserBaseVisitor<Object> {
 
     private record LocalVar(String name, String type, int slot) {}
 
+    // Lambda support: collect lambdas to generate as static methods
+    private final java.util.List<LambdaInfo> pendingLambdas = new java.util.ArrayList<>();
+    private int lambdaCounter = 0;
+
+    private record LambdaInfo(
+        String methodName,
+        java.util.List<String> paramNames,
+        java.util.List<String> paramTypes,
+        String returnType,
+        JvmBasicParser.ExpressionContext bodyExpr
+    ) {}
+
     // Loop context for exit/continue statements
     private final java.util.Deque<LoopContext> loopStack = new java.util.ArrayDeque<>();
 
@@ -190,6 +202,9 @@ public class CompilerVisitor extends JvmBasicParserBaseVisitor<Object> {
             generateMainMethod(ctx);
         }
 
+        // Generate any pending lambda methods
+        generateLambdaMethods();
+
         cw.visitEnd();
         return null;
     }
@@ -239,6 +254,88 @@ public class CompilerVisitor extends JvmBasicParserBaseVisitor<Object> {
         mv.visitEnd();
 
         currentMethod = null;
+    }
+
+    // ========================================================================
+    // Lambda Method Generation
+    // ========================================================================
+
+    /**
+     * Generate static methods for all collected lambdas.
+     * Each lambda becomes a private static method like $lambda$0, $lambda$1, etc.
+     */
+    private void generateLambdaMethods() {
+        MethodVisitor savedMv = mv;
+
+        for (LambdaInfo lambda : pendingLambdas) {
+            // Build method descriptor from param types and return type
+            StringBuilder descriptor = new StringBuilder("(");
+            for (String paramType : lambda.paramTypes()) {
+                descriptor.append(typeToDescriptor(paramType));
+            }
+            descriptor.append(")");
+            descriptor.append(typeToDescriptor(lambda.returnType()));
+
+            // Generate private static synthetic method
+            mv = cw.visitMethod(
+                ACC_PRIVATE | ACC_STATIC | ACC_SYNTHETIC,
+                lambda.methodName(),
+                descriptor.toString(),
+                null,
+                null
+            );
+            mv.visitCode();
+
+            // Set up parameter variables for lambda body
+            dynamicLocals.clear();
+            scopeStack.clear();
+            enterScopeFrame("lambda");
+            localVarSlot = 0;
+
+            for (int i = 0; i < lambda.paramNames().size(); i++) {
+                String paramName = lambda.paramNames().get(i);
+                String paramType = lambda.paramTypes().get(i);
+                addScopedVariable(paramName, paramType, localVarSlot);
+                dynamicLocals.put(paramName, new LocalVar(paramName, paramType, localVarSlot));
+                localVarSlot += typeSlotSize(paramType);
+            }
+
+            // Visit the lambda body expression
+            visit(lambda.bodyExpr());
+
+            // Generate appropriate return instruction
+            emitReturnForType(lambda.returnType());
+
+            exitScopeFrame(false);
+            mv.visitMaxs(0, 0);
+            mv.visitEnd();
+        }
+
+        mv = savedMv;
+    }
+
+    /**
+     * Emit return instruction based on type.
+     */
+    private void emitReturnForType(String type) {
+        switch (type.toLowerCase()) {
+            case "void" -> mv.visitInsn(RETURN);
+            case "integer", "int", "boolean", "byte", "char" -> mv.visitInsn(IRETURN);
+            case "long" -> mv.visitInsn(LRETURN);
+            case "float" -> mv.visitInsn(FRETURN);
+            case "double" -> mv.visitInsn(DRETURN);
+            default -> mv.visitInsn(ARETURN);  // Object types
+        }
+    }
+
+    /**
+     * Get the number of local variable slots needed for a type.
+     */
+    private int typeSlotSize(String type) {
+        return switch (type.toLowerCase()) {
+            case "long", "double" -> 2;
+            default -> 1;
+        };
     }
 
     // ========================================================================
@@ -1043,16 +1140,13 @@ public class CompilerVisitor extends JvmBasicParserBaseVisitor<Object> {
                 mv.visitVarInsn(ALOAD, 0);  // Push 'this'/'me'
                 visit(ctx.expression());    // Push value
 
-                // Get field type
-                ClassSymbol classSym = symbols.getClass(currentClass);
-                if (classSym != null) {
-                    FieldSymbol field = classSym.getField(fieldName);
-                    if (field != null) {
-                        // Box primitive if assigning to nullable field
-                        emitBoxingIfNeeded(field.type);
-                        mv.visitFieldInsn(PUTFIELD, currentClass, fieldName, typeToDescriptor(field.type));
-                        return null;
-                    }
+                // Get field type - check inheritance hierarchy
+                SymbolCollector.FieldLookupResult fieldLookup = symbols.findFieldInHierarchy(currentClass, fieldName);
+                if (fieldLookup != null) {
+                    // Box primitive if assigning to nullable field
+                    emitBoxingIfNeeded(fieldLookup.field.type);
+                    mv.visitFieldInsn(PUTFIELD, fieldLookup.ownerClass, fieldName, typeToDescriptor(fieldLookup.field.type));
+                    return null;
                 }
                 throw new RuntimeException("Unknown field: " + fieldName + " in class " + currentClass);
             } else if (innerLValue instanceof JvmBasicParser.SimpleLValueContext simpleLValue) {
@@ -1062,15 +1156,13 @@ public class CompilerVisitor extends JvmBasicParserBaseVisitor<Object> {
                 String objType = lastExprType;
                 visit(ctx.expression());    // Push value
 
-                ClassSymbol classSym = symbols.getClass(objType);
-                if (classSym != null) {
-                    FieldSymbol field = classSym.getField(fieldName);
-                    if (field != null) {
-                        // Box primitive if assigning to nullable field
-                        emitBoxingIfNeeded(field.type);
-                        mv.visitFieldInsn(PUTFIELD, objType, fieldName, typeToDescriptor(field.type));
-                        return null;
-                    }
+                // Get field type - check inheritance hierarchy
+                SymbolCollector.FieldLookupResult fieldLookup = symbols.findFieldInHierarchy(objType, fieldName);
+                if (fieldLookup != null) {
+                    // Box primitive if assigning to nullable field
+                    emitBoxingIfNeeded(fieldLookup.field.type);
+                    mv.visitFieldInsn(PUTFIELD, fieldLookup.ownerClass, fieldName, typeToDescriptor(fieldLookup.field.type));
+                    return null;
                 }
                 throw new RuntimeException("Unknown field: " + fieldName + " in class " + objType);
             }
@@ -2165,6 +2257,17 @@ public class CompilerVisitor extends JvmBasicParserBaseVisitor<Object> {
     // Map common type names to their internal JVM names
     private String mapExternalType(String typeName) {
         return switch (typeName) {
+            // Core types
+            case "Object" -> "java/lang/Object";
+            case "String" -> "java/lang/String";
+            case "Integer" -> "java/lang/Integer";
+            case "Long" -> "java/lang/Long";
+            case "Float" -> "java/lang/Float";
+            case "Double" -> "java/lang/Double";
+            case "Boolean" -> "java/lang/Boolean";
+            case "Byte" -> "java/lang/Byte";
+            case "Short" -> "java/lang/Short";
+            case "Character", "Char" -> "java/lang/Character";
             // Exception types
             case "Exception" -> "java/lang/Exception";
             case "RuntimeException" -> "java/lang/RuntimeException";
@@ -2227,13 +2330,111 @@ public class CompilerVisitor extends JvmBasicParserBaseVisitor<Object> {
                            desc.charAt(0) == 'C' ? T_CHAR :
                            desc.charAt(0) == 'S' ? T_SHORT : T_INT);
         } else {
-            // Reference array: ANEWARRAY
-            mv.visitTypeInsn(ANEWARRAY, elementType.equals("String") ?
-                            "java/lang/String" : elementType);
+            // Reference array: ANEWARRAY - use mapExternalType to get correct internal name
+            mv.visitTypeInsn(ANEWARRAY, mapExternalType(elementType));
         }
 
         lastExprType = elementType + "[]";
         return null;
+    }
+
+    @Override
+    public Object visitArrayInitializerExpr(JvmBasicParser.ArrayInitializerExprContext ctx) {
+        // Array initializer: {expr1, expr2, ...}
+        // The element type must be inferred from context (var declaration)
+
+        // Get the expressions from the expression list
+        var exprList = ctx.expressionList();
+        int size = (exprList != null) ? exprList.expression().size() : 0;
+
+        // Infer element type from parent context (var statement)
+        String elementType = inferArrayElementType(ctx);
+
+        // Push the array size
+        pushIntConstant(size);
+
+        // Create the array
+        String desc = primitiveArrayType(elementType);
+        if (desc != null) {
+            // Primitive array: NEWARRAY
+            mv.visitIntInsn(NEWARRAY, desc.charAt(0) == 'I' ? T_INT :
+                           desc.charAt(0) == 'J' ? T_LONG :
+                           desc.charAt(0) == 'F' ? T_FLOAT :
+                           desc.charAt(0) == 'D' ? T_DOUBLE :
+                           desc.charAt(0) == 'Z' ? T_BOOLEAN :
+                           desc.charAt(0) == 'B' ? T_BYTE :
+                           desc.charAt(0) == 'C' ? T_CHAR :
+                           desc.charAt(0) == 'S' ? T_SHORT : T_INT);
+        } else {
+            // Reference array: ANEWARRAY - use mapExternalType to get correct internal name
+            mv.visitTypeInsn(ANEWARRAY, mapExternalType(elementType));
+        }
+
+        // Now populate the array with values
+        // Stack has: [arrayref]
+        if (exprList != null) {
+            int index = 0;
+            for (var expr : exprList.expression()) {
+                mv.visitInsn(DUP);              // Stack: [arrayref, arrayref]
+                pushIntConstant(index);         // Stack: [arrayref, arrayref, index]
+                visit(expr);                    // Stack: [arrayref, arrayref, index, value]
+                coerceToType(elementType);      // Coerce value to element type
+                emitArrayStore(elementType);    // Stack: [arrayref]
+                index++;
+            }
+        }
+
+        lastExprType = elementType + "[]";
+        return null;
+    }
+
+    /**
+     * Push an int constant onto the stack using optimal bytecode.
+     */
+    private void pushIntConstant(int value) {
+        if (value >= -1 && value <= 5) {
+            mv.visitInsn(ICONST_0 + value);
+        } else if (value >= Byte.MIN_VALUE && value <= Byte.MAX_VALUE) {
+            mv.visitIntInsn(BIPUSH, value);
+        } else if (value >= Short.MIN_VALUE && value <= Short.MAX_VALUE) {
+            mv.visitIntInsn(SIPUSH, value);
+        } else {
+            mv.visitLdcInsn(value);
+        }
+    }
+
+    /**
+     * Infer the element type for an array initializer from context.
+     */
+    private String inferArrayElementType(JvmBasicParser.ArrayInitializerExprContext ctx) {
+        // Walk up tree to find var statement
+        org.antlr.v4.runtime.tree.ParseTree parent = ctx.getParent();
+        while (parent != null) {
+            if (parent instanceof JvmBasicParser.VarStatementContext varCtx) {
+                String varType = varCtx.typeName().getText();
+                // Extract element type from array type (e.g., "Integer[]" -> "Integer")
+                if (varType.endsWith("[]")) {
+                    return varType.substring(0, varType.length() - 2);
+                }
+                return varType;
+            }
+            parent = parent.getParent();
+        }
+
+        // Default to Object if can't infer - try to infer from first element
+        var exprList = ctx.expressionList();
+        if (exprList != null && !exprList.expression().isEmpty()) {
+            // Visit first expression to determine its type
+            visit(exprList.expression(0));
+            String firstType = lastExprType;
+            // Pop the value we just computed (we'll compute it again in the main loop)
+            mv.visitInsn(POP);
+            if (firstType != null && !firstType.isEmpty()) {
+                return firstType;
+            }
+        }
+
+        return "Object";
     }
 
     // Return primitive type descriptor, or null for reference types
@@ -6448,6 +6649,9 @@ public class CompilerVisitor extends JvmBasicParserBaseVisitor<Object> {
                 if (pendingFunctionName != null) {
                     handleUserFunctionCall(pendingFunctionName, funcCall.argumentList());
                     pendingFunctionName = null;
+                } else if (lastExprType != null && lastExprType.toLowerCase().startsWith("function(")) {
+                    // The value on stack is a Function type - invoke it as a lambda
+                    handleLambdaOnStackCall(lastExprType, funcCall.argumentList());
                 } else {
                     visit(postfix);
                 }
@@ -6769,6 +6973,26 @@ public class CompilerVisitor extends JvmBasicParserBaseVisitor<Object> {
 
     // Handle user-defined function calls
     private void handleUserFunctionCall(String funcName, JvmBasicParser.ArgumentListContext argList) {
+        // First check if this is a lambda variable call (local variable)
+        LocalVar lambdaVar = lookupScopedVariable(funcName);
+        if (lambdaVar == null) {
+            lambdaVar = dynamicLocals.get(funcName);
+        }
+
+        if (lambdaVar != null && lambdaVar.type().toLowerCase().startsWith("function(")) {
+            // This is a call to a lambda stored in a local variable
+            handleLambdaVariableCall(lambdaVar, argList);
+            return;
+        }
+
+        // Check if this is a global variable with function type
+        SymbolCollector.VariableSymbol globalVar = symbols.getGlobal(funcName);
+        if (globalVar != null && globalVar.type.toLowerCase().startsWith("function(")) {
+            // This is a call to a lambda stored in a global variable
+            handleGlobalLambdaCall(funcName, globalVar.type, argList);
+            return;
+        }
+
         FunctionSymbol func = symbols.getFunction(funcName);
         if (func == null) {
             throw new RuntimeException("Unknown function: " + funcName);
@@ -6793,6 +7017,240 @@ public class CompilerVisitor extends JvmBasicParserBaseVisitor<Object> {
 
         // Set lastExprType based on return type
         lastExprType = func.returnType;
+    }
+
+    /**
+     * Handle calling a lambda stored in a variable.
+     * Generates: load var, box arguments, invoke Function.apply, unbox result
+     */
+    private void handleLambdaVariableCall(LocalVar lambdaVar, JvmBasicParser.ArgumentListContext argList) {
+        // Parse the function type to get parameter count and return type
+        String funcType = lambdaVar.type();
+        int parenEnd = funcType.indexOf(')');
+        String paramPart = funcType.substring(9, parenEnd); // After "Function("
+        int asIndex = funcType.toLowerCase().lastIndexOf(" as ");
+        String returnType = asIndex > 0 ? funcType.substring(asIndex + 4).trim() : "Object";
+
+        // Determine argument count
+        String[] paramTypes = paramPart.isEmpty() ? new String[0] : paramPart.split(",\\s*");
+        int argCount = paramTypes.length;
+
+        // Load the lambda variable onto stack
+        mv.visitVarInsn(ALOAD, lambdaVar.slot());
+
+        // Push arguments, boxing them for Object parameters
+        if (argList != null) {
+            var args = argList.argument();
+            for (int i = 0; i < args.size(); i++) {
+                visit(args.get(i).expression());
+                // Box primitives for functional interface call
+                emitBoxingForFunctionalInterface(lastExprType);
+            }
+        }
+
+        // Determine interface and method to call
+        String interfaceName;
+        String methodDescriptor;
+
+        switch (argCount) {
+            case 0 -> {
+                interfaceName = "java/util/function/Supplier";
+                methodDescriptor = "()Ljava/lang/Object;";
+            }
+            case 1 -> {
+                interfaceName = "java/util/function/Function";
+                methodDescriptor = "(Ljava/lang/Object;)Ljava/lang/Object;";
+            }
+            case 2 -> {
+                interfaceName = "java/util/function/BiFunction";
+                methodDescriptor = "(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;";
+            }
+            default -> throw new RuntimeException("Lambda calls with more than 2 parameters not supported");
+        }
+
+        // Call the functional interface method
+        String methodName = argCount == 0 ? "get" : "apply";
+        mv.visitMethodInsn(INVOKEINTERFACE, interfaceName, methodName, methodDescriptor, true);
+
+        // Unbox result if needed
+        lastExprType = returnType;
+        emitUnboxingFromObject(returnType);
+    }
+
+    /**
+     * Handle calling a lambda stored in a global (static field) variable.
+     * Uses GETSTATIC to load the lambda, then calls the functional interface method.
+     */
+    private void handleGlobalLambdaCall(String varName, String funcType, JvmBasicParser.ArgumentListContext argList) {
+        // Parse the function type to get parameter count and return type
+        int parenEnd = funcType.indexOf(')');
+        String paramPart = funcType.substring(9, parenEnd); // After "Function("
+        int asIndex = funcType.toLowerCase().lastIndexOf(" as ");
+        String returnType = asIndex > 0 ? funcType.substring(asIndex + 4).trim() : "Object";
+
+        // Determine argument count
+        String[] paramTypes = paramPart.isEmpty() ? new String[0] : paramPart.split(",\\s*");
+        int argCount = paramTypes.length;
+
+        // Load the lambda from static field
+        String fieldDesc = typeToDescriptor(funcType);
+        mv.visitFieldInsn(GETSTATIC, className, varName, fieldDesc);
+
+        // Push arguments, boxing them for Object parameters
+        if (argList != null) {
+            var args = argList.argument();
+            for (int i = 0; i < args.size(); i++) {
+                visit(args.get(i).expression());
+                // Box primitives for functional interface call
+                emitBoxingForFunctionalInterface(lastExprType);
+            }
+        }
+
+        // Determine interface and method to call
+        String interfaceName;
+        String methodDescriptor;
+
+        switch (argCount) {
+            case 0 -> {
+                interfaceName = "java/util/function/Supplier";
+                methodDescriptor = "()Ljava/lang/Object;";
+            }
+            case 1 -> {
+                interfaceName = "java/util/function/Function";
+                methodDescriptor = "(Ljava/lang/Object;)Ljava/lang/Object;";
+            }
+            case 2 -> {
+                interfaceName = "java/util/function/BiFunction";
+                methodDescriptor = "(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;";
+            }
+            default -> throw new RuntimeException("Lambda calls with more than 2 parameters not supported");
+        }
+
+        // Call the functional interface method
+        String methodName = argCount == 0 ? "get" : "apply";
+        mv.visitMethodInsn(INVOKEINTERFACE, interfaceName, methodName, methodDescriptor, true);
+
+        // Unbox result if needed
+        lastExprType = returnType;
+        emitUnboxingFromObject(returnType);
+    }
+
+    /**
+     * Handle calling a lambda that is already on the stack.
+     * The Function object is on top of the stack when this is called.
+     */
+    private void handleLambdaOnStackCall(String funcType, JvmBasicParser.ArgumentListContext argList) {
+        // Parse the function type to get parameter count and return type
+        int parenEnd = funcType.indexOf(')');
+        String paramPart = funcType.substring(9, parenEnd); // After "Function("
+        int asIndex = funcType.toLowerCase().lastIndexOf(" as ");
+        String returnType = asIndex > 0 ? funcType.substring(asIndex + 4).trim() : "Object";
+
+        // Determine argument count
+        String[] paramTypes = paramPart.isEmpty() ? new String[0] : paramPart.split(",\\s*");
+        int argCount = paramTypes.length;
+
+        // Push arguments, boxing them for Object parameters
+        // Note: lambda is already on stack
+        if (argList != null) {
+            var args = argList.argument();
+            for (int i = 0; i < args.size(); i++) {
+                visit(args.get(i).expression());
+                // Box primitives for functional interface call
+                emitBoxingForFunctionalInterface(lastExprType);
+            }
+        }
+
+        // Determine interface and method to call
+        String interfaceName;
+        String methodDescriptor;
+
+        switch (argCount) {
+            case 0 -> {
+                interfaceName = "java/util/function/Supplier";
+                methodDescriptor = "()Ljava/lang/Object;";
+            }
+            case 1 -> {
+                interfaceName = "java/util/function/Function";
+                methodDescriptor = "(Ljava/lang/Object;)Ljava/lang/Object;";
+            }
+            case 2 -> {
+                interfaceName = "java/util/function/BiFunction";
+                methodDescriptor = "(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;";
+            }
+            default -> throw new RuntimeException("Lambda calls with more than 2 parameters not supported");
+        }
+
+        // Call the functional interface method
+        String methodName = argCount == 0 ? "get" : "apply";
+        mv.visitMethodInsn(INVOKEINTERFACE, interfaceName, methodName, methodDescriptor, true);
+
+        // Unbox result if needed
+        lastExprType = returnType;
+        emitUnboxingFromObject(returnType);
+    }
+
+    /**
+     * Box primitive value for passing to functional interface (which takes Object).
+     */
+    private void emitBoxingForFunctionalInterface(String type) {
+        switch (type.toLowerCase()) {
+            case "integer", "int" -> {
+                mv.visitMethodInsn(INVOKESTATIC, "java/lang/Integer", "valueOf", "(I)Ljava/lang/Integer;", false);
+            }
+            case "long" -> {
+                mv.visitMethodInsn(INVOKESTATIC, "java/lang/Long", "valueOf", "(J)Ljava/lang/Long;", false);
+            }
+            case "float" -> {
+                mv.visitMethodInsn(INVOKESTATIC, "java/lang/Float", "valueOf", "(F)Ljava/lang/Float;", false);
+            }
+            case "double" -> {
+                mv.visitMethodInsn(INVOKESTATIC, "java/lang/Double", "valueOf", "(D)Ljava/lang/Double;", false);
+            }
+            case "boolean", "bool" -> {
+                mv.visitMethodInsn(INVOKESTATIC, "java/lang/Boolean", "valueOf", "(Z)Ljava/lang/Boolean;", false);
+            }
+            case "byte" -> {
+                mv.visitMethodInsn(INVOKESTATIC, "java/lang/Byte", "valueOf", "(B)Ljava/lang/Byte;", false);
+            }
+            case "char" -> {
+                mv.visitMethodInsn(INVOKESTATIC, "java/lang/Character", "valueOf", "(C)Ljava/lang/Character;", false);
+            }
+            // Reference types don't need boxing
+        }
+    }
+
+    /**
+     * Unbox return value from functional interface (which returns Object).
+     * This variant includes a CHECKCAST before unboxing since functional interface returns Object.
+     */
+    private void emitUnboxingFromObject(String expectedType) {
+        switch (expectedType.toLowerCase()) {
+            case "integer", "int" -> {
+                mv.visitTypeInsn(CHECKCAST, "java/lang/Integer");
+                mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/Integer", "intValue", "()I", false);
+            }
+            case "long" -> {
+                mv.visitTypeInsn(CHECKCAST, "java/lang/Long");
+                mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/Long", "longValue", "()J", false);
+            }
+            case "float" -> {
+                mv.visitTypeInsn(CHECKCAST, "java/lang/Float");
+                mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/Float", "floatValue", "()F", false);
+            }
+            case "double" -> {
+                mv.visitTypeInsn(CHECKCAST, "java/lang/Double");
+                mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/Double", "doubleValue", "()D", false);
+            }
+            case "boolean", "bool" -> {
+                mv.visitTypeInsn(CHECKCAST, "java/lang/Boolean");
+                mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/Boolean", "booleanValue", "()Z", false);
+            }
+            case "string" -> {
+                mv.visitTypeInsn(CHECKCAST, "java/lang/String");
+            }
+            // Other reference types - just leave as Object or cast if needed
+        }
     }
 
     // Emit the correct println call based on the type on the stack
@@ -6848,16 +7306,14 @@ public class CompilerVisitor extends JvmBasicParserBaseVisitor<Object> {
         String objectType = lastExprType;
 
         // Check if this is a field access on a user-defined class
-        ClassSymbol classSym = symbols.getClass(objectType);
-        if (classSym != null) {
-            FieldSymbol field = classSym.getField(memberName);
-            if (field != null) {
-                // Emit GETFIELD to read the field
-                mv.visitFieldInsn(GETFIELD, objectType, memberName, typeToDescriptor(field.type));
-                lastExprType = field.type;
-                lastMemberAccess = null;  // Field access is complete
-                return null;
-            }
+        // Use findFieldInHierarchy to check parent classes as well
+        SymbolCollector.FieldLookupResult fieldLookup = symbols.findFieldInHierarchy(objectType, memberName);
+        if (fieldLookup != null) {
+            // Emit GETFIELD with the class that owns the field (important for inheritance)
+            mv.visitFieldInsn(GETFIELD, fieldLookup.ownerClass, memberName, typeToDescriptor(fieldLookup.field.type));
+            lastExprType = fieldLookup.field.type;
+            lastMemberAccess = null;  // Field access is complete
+            return null;
         }
 
         // Not a field access, record for potential method call
@@ -6876,6 +7332,231 @@ public class CompilerVisitor extends JvmBasicParserBaseVisitor<Object> {
     @Override
     public Object visitParenExpr(JvmBasicParser.ParenExprContext ctx) {
         return visit(ctx.expression());
+    }
+
+    // ========================================================================
+    // Lambda Expressions
+    // ========================================================================
+
+    @Override
+    public Object visitLambdaExpr(JvmBasicParser.LambdaExprContext ctx) {
+        // Generate unique name for this lambda
+        String lambdaMethodName = "$lambda$" + lambdaCounter++;
+
+        // Extract parameter info from the parameter list
+        java.util.List<String> paramNames = new java.util.ArrayList<>();
+        java.util.List<String> paramTypes = new java.util.ArrayList<>();
+
+        if (ctx.parameterList() != null) {
+            for (JvmBasicParser.ParameterContext param : ctx.parameterList().parameter()) {
+                paramNames.add(param.IDENTIFIER().getText());
+                paramTypes.add(param.typeName().getText());
+            }
+        }
+
+        // Determine return type from the target variable type if available
+        // For now, infer from expression or use Object
+        String returnType = inferLambdaReturnType(ctx);
+
+        // Store lambda info for later generation
+        pendingLambdas.add(new LambdaInfo(
+            lambdaMethodName,
+            paramNames,
+            paramTypes,
+            returnType,
+            ctx.expression()
+        ));
+
+        // Generate invokedynamic call using LambdaMetafactory
+        emitLambdaInvokeDynamic(lambdaMethodName, paramNames, paramTypes, returnType);
+
+        // Set last expression type to the functional interface type
+        lastExprType = buildFunctionalInterfaceType(paramTypes, returnType);
+        return null;
+    }
+
+    @Override
+    public Object visitTernaryExpr(JvmBasicParser.TernaryExprContext ctx) {
+        // Ternary expression: condition ? trueExpr : falseExpr
+        // expression(0) = condition
+        // expression(1) = trueExpr
+        // expression(2) = falseExpr
+
+        Label falseLabel = new Label();
+        Label endLabel = new Label();
+
+        // Evaluate condition
+        visit(ctx.expression(0));
+
+        // The condition might be a comparison result (int 0 or 1) or a boolean
+        // For boolean comparisons like "x = nil", lastExprType might be "Boolean"
+        // We need to branch based on the condition being false (0)
+
+        // If the condition is an equality comparison, it leaves an int (0 or 1) on the stack
+        // We need to check if it's 0 (false) and jump to false branch
+        mv.visitJumpInsn(IFEQ, falseLabel);
+
+        // True branch
+        visit(ctx.expression(1));
+        String trueBranchType = lastExprType;
+
+        // Convert to Object if needed for consistent types in ternary
+        // This ensures both branches leave the same type on the stack
+        if (isPrimitiveType(trueBranchType)) {
+            emitBoxingForFunctionalInterface(trueBranchType);
+        }
+
+        mv.visitJumpInsn(GOTO, endLabel);
+
+        // False branch
+        mv.visitLabel(falseLabel);
+        visit(ctx.expression(2));
+        String falseBranchType = lastExprType;
+
+        // Convert to Object if needed for consistent types
+        if (isPrimitiveType(falseBranchType)) {
+            emitBoxingForFunctionalInterface(falseBranchType);
+        }
+
+        // End label
+        mv.visitLabel(endLabel);
+
+        // Result type - use Object if types differ, otherwise use common type
+        if (trueBranchType.equals(falseBranchType)) {
+            lastExprType = trueBranchType;
+        } else {
+            lastExprType = "Object";
+        }
+
+        return null;
+    }
+
+    /**
+     * Infer the return type of a lambda from context.
+     * This is a best-effort inference - defaults to Integer for now.
+     */
+    private String inferLambdaReturnType(JvmBasicParser.LambdaExprContext ctx) {
+        // Try to infer from assignment context
+        // Walk up the tree to find var declaration
+        org.antlr.v4.runtime.tree.ParseTree parent = ctx.getParent();
+        while (parent != null) {
+            if (parent instanceof JvmBasicParser.VarStatementContext varCtx) {
+                String varType = varCtx.typeName().getText();
+                // Parse Function(T) as R to extract R
+                if (varType.toLowerCase().startsWith("function(")) {
+                    int asIndex = varType.toLowerCase().lastIndexOf(" as ");
+                    if (asIndex > 0) {
+                        return varType.substring(asIndex + 4).trim();
+                    }
+                }
+            }
+            parent = parent.getParent();
+        }
+        // Default to Integer if can't infer
+        return "Integer";
+    }
+
+    /**
+     * Build the functional interface type string.
+     */
+    private String buildFunctionalInterfaceType(java.util.List<String> paramTypes, String returnType) {
+        // Map to Java functional interfaces
+        if (paramTypes.isEmpty()) {
+            return "java/util/function/Supplier";
+        } else if (paramTypes.size() == 1) {
+            return "java/util/function/Function";
+        } else if (paramTypes.size() == 2) {
+            return "java/util/function/BiFunction";
+        }
+        return "java/util/function/Function";
+    }
+
+    /**
+     * Emit invokedynamic instruction to create lambda instance.
+     */
+    private void emitLambdaInvokeDynamic(String lambdaMethodName,
+                                          java.util.List<String> paramNames,
+                                          java.util.List<String> paramTypes,
+                                          String returnType) {
+        // Build the method type for the lambda implementation
+        StringBuilder implDescriptor = new StringBuilder("(");
+        for (String paramType : paramTypes) {
+            implDescriptor.append(typeToDescriptor(paramType));
+        }
+        implDescriptor.append(")");
+        implDescriptor.append(typeToDescriptor(returnType));
+
+        // Determine functional interface and SAM method
+        String functionalInterface;
+        String samMethodName;
+        String samMethodDescriptor;
+        String instantiatedDescriptor;
+
+        if (paramTypes.isEmpty()) {
+            // Supplier<R>
+            functionalInterface = "java/util/function/Supplier";
+            samMethodName = "get";
+            samMethodDescriptor = "()Ljava/lang/Object;";
+            instantiatedDescriptor = "()" + boxedTypeDescriptor(returnType);
+        } else if (paramTypes.size() == 1) {
+            // Function<T, R>
+            functionalInterface = "java/util/function/Function";
+            samMethodName = "apply";
+            samMethodDescriptor = "(Ljava/lang/Object;)Ljava/lang/Object;";
+            instantiatedDescriptor = "(" + boxedTypeDescriptor(paramTypes.get(0)) + ")" + boxedTypeDescriptor(returnType);
+        } else if (paramTypes.size() == 2) {
+            // BiFunction<T, U, R>
+            functionalInterface = "java/util/function/BiFunction";
+            samMethodName = "apply";
+            samMethodDescriptor = "(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;";
+            instantiatedDescriptor = "(" + boxedTypeDescriptor(paramTypes.get(0)) + boxedTypeDescriptor(paramTypes.get(1)) + ")" + boxedTypeDescriptor(returnType);
+        } else {
+            throw new RuntimeException("Lambdas with more than 2 parameters not supported yet");
+        }
+
+        // Bootstrap method handle for LambdaMetafactory.metafactory
+        Handle bootstrapHandle = new Handle(
+            H_INVOKESTATIC,
+            "java/lang/invoke/LambdaMetafactory",
+            "metafactory",
+            "(Ljava/lang/invoke/MethodHandles$Lookup;Ljava/lang/String;Ljava/lang/invoke/MethodType;Ljava/lang/invoke/MethodType;Ljava/lang/invoke/MethodHandle;Ljava/lang/invoke/MethodType;)Ljava/lang/invoke/CallSite;",
+            false
+        );
+
+        // Implementation method handle (our generated static method)
+        Handle implHandle = new Handle(
+            H_INVOKESTATIC,
+            className,
+            lambdaMethodName,
+            implDescriptor.toString(),
+            false
+        );
+
+        // Generate invokedynamic
+        mv.visitInvokeDynamicInsn(
+            samMethodName,                                    // Name of SAM method
+            "()L" + functionalInterface + ";",               // Factory method type
+            bootstrapHandle,                                  // Bootstrap method
+            Type.getType(samMethodDescriptor),               // SAM method type (erased)
+            implHandle,                                       // Implementation method
+            Type.getType(instantiatedDescriptor)             // Instantiated method type
+        );
+    }
+
+    /**
+     * Get boxed type descriptor for primitives.
+     */
+    private String boxedTypeDescriptor(String type) {
+        return switch (type.toLowerCase()) {
+            case "integer", "int" -> "Ljava/lang/Integer;";
+            case "long" -> "Ljava/lang/Long;";
+            case "float" -> "Ljava/lang/Float;";
+            case "double" -> "Ljava/lang/Double;";
+            case "boolean" -> "Ljava/lang/Boolean;";
+            case "byte" -> "Ljava/lang/Byte;";
+            case "char" -> "Ljava/lang/Character;";
+            default -> typeToDescriptor(type);
+        };
     }
 
     // ========================================================================
@@ -7420,6 +8101,24 @@ public class CompilerVisitor extends JvmBasicParserBaseVisitor<Object> {
         boolean isNullable = type.endsWith("?");
         if (isNullable) {
             type = type.substring(0, type.length() - 1);
+        }
+
+        // Handle function types like Function(Integer) as Integer
+        // These map to java.util.function interfaces
+        if (type.toLowerCase().startsWith("function(")) {
+            // Count parameters to determine which functional interface to use
+            int parenEnd = type.indexOf(')');
+            if (parenEnd > 0) {
+                String paramPart = type.substring(9, parenEnd); // After "Function("
+                int paramCount = paramPart.isEmpty() ? 0 : paramPart.split(",").length;
+
+                return switch (paramCount) {
+                    case 0 -> "Ljava/util/function/Supplier;";
+                    case 1 -> "Ljava/util/function/Function;";
+                    case 2 -> "Ljava/util/function/BiFunction;";
+                    default -> "Ljava/util/function/Function;";  // Fallback
+                };
+            }
         }
 
         // Handle array types

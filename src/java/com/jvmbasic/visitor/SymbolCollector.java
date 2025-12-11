@@ -652,6 +652,24 @@ public class SymbolCollector extends JvmBasicParserBaseListener {
         symbols.addConstant(constant);
     }
 
+    @Override
+    public void enterConstFieldDeclaration(JvmBasicParser.ConstFieldDeclarationContext ctx) {
+        String name = ctx.IDENTIFIER().getText();
+        String type = ctx.typeName().getText();
+        int line = ctx.getStart().getLine();
+
+        // Add as constant in current class scope
+        ConstantSymbol constant = new ConstantSymbol(name, type, line);
+        symbols.addConstant(constant);
+
+        // Also add as a class field (static final)
+        if (currentClass != null) {
+            FieldSymbol field = new FieldSymbol(name, type, line);
+            field.isStatic = true;
+            symbols.getClass(currentClass).addField(field);
+        }
+    }
+
     // ========================================================================
     // Scope Type Enum
     // ========================================================================
@@ -781,6 +799,42 @@ public class SymbolCollector extends JvmBasicParserBaseListener {
         public boolean hasClass(String name) { return classes.containsKey(name); }
         public boolean hasFunction(String name) { return functions.containsKey(name); }
         public boolean hasEnum(String name) { return enums.containsKey(name); }
+
+        /**
+         * Find a field in a class or its parent classes.
+         * Returns a FieldLookupResult with the field and the class that owns it,
+         * or null if not found.
+         */
+        public FieldLookupResult findFieldInHierarchy(String className, String fieldName) {
+            ClassSymbol cls = getClass(className);
+            while (cls != null) {
+                FieldSymbol field = cls.getField(fieldName);
+                if (field != null) {
+                    return new FieldLookupResult(field, cls.name);
+                }
+                // Move to parent class
+                String base = cls.getBaseClass();
+                if (base == null || base.equals("Object")) {
+                    break;
+                }
+                cls = getClass(base);
+            }
+            return null;
+        }
+    }
+
+    /**
+     * Result of looking up a field in a class hierarchy.
+     * Contains the field and the name of the class that owns it.
+     */
+    public static class FieldLookupResult {
+        public final FieldSymbol field;
+        public final String ownerClass;
+
+        public FieldLookupResult(FieldSymbol field, String ownerClass) {
+            this.field = field;
+            this.ownerClass = ownerClass;
+        }
     }
 
     public static class ClassSymbol {

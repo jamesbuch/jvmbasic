@@ -55,7 +55,7 @@
 
 ## Test Suite Status
 
-**68 tests passing, 0 failing**
+**62 tests passing, 0 failing**
 
 Test coverage includes:
 - Arithmetic operations
@@ -70,14 +70,9 @@ Test coverage includes:
 - Regex operations
 - Assert namespace helpers
 - Enum operations
+- Lambda expressions
 
 ## Known Issues
-
-### Lambdas (Compiler Crash)
-```basic
-var add as Function = (a as Integer, b as Integer) => a + b
-```
-**Issue**: Compiler throws `Index 0 out of bounds` during compilation.
 
 ### Nullable Types (Runtime Error)
 ```basic
@@ -125,5 +120,5 @@ var arr as String[] = {"a", "b", "c"}  ' Not yet supported
 
 - **tests/**: 34 test files, all passing
 - **examples/**: 51 example files
-  - 48 compile and run correctly
-  - 3 have issues (lambdas, nullables, abstract classes)
+  - 49 compile and run correctly
+  - 2 have issues (nullables, abstract classes)

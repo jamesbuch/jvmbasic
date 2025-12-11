@@ -120,10 +120,15 @@ typeParameter
 
 classMember
     : fieldDeclaration
+    | constFieldDeclaration
     | propertyDeclaration
     | methodDeclaration
     | abstractMethodDeclaration
     | constructorDeclaration
+    ;
+
+constFieldDeclaration
+    : accessModifier? CONST IDENTIFIER AS typeName EQ expression
     ;
 
 fieldDeclaration
@@ -588,6 +593,7 @@ primaryExpression
     | SUPER                                              # SuperExpr
     | NEW typeName LPAREN argumentList? RPAREN           # NewObjectExpr
     | NEW typeName LBRACKET expression RBRACKET          # NewArrayExpr
+    | LBRACE expressionList? RBRACE                      # ArrayInitializerExpr
     | TYPEOF expression                                  # TypeOfExpr
     | qualifiedName DOUBLE_COLON IDENTIFIER              # MethodRefExpr
     ;

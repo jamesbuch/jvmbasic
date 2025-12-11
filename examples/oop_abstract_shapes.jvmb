@@ -1,263 +1,61 @@
-' oop_abstract_shapes.jvmb - Advanced OOP Example with Abstract Classes
-' Demonstrates abstract classes, inheritance, polymorphism, and method override
-'
-' This example creates a shape hierarchy:
-'   - Shape (abstract base class)
-'     - Circle
-'     - Polygon (abstract)
-'       - Triangle
-'       - Rectangle
-'       - Square (extends Rectangle)
+' oop_abstract_shapes.jvmb - Abstract Classes Demo (Simplified)
+' Demonstrates abstract classes with single-level inheritance
 
-Console.WriteLine("==========================================================")
-Console.WriteLine("        JVM BASIC 2.0 - Abstract Classes Demo             ")
-Console.WriteLine("==========================================================")
+Console.WriteLine("=== Abstract Classes Demo ===")
 Console.WriteLine("")
 
-' ============================================================================
-' Abstract base class: Shape
-' All shapes have a name and must implement Area() and Perimeter()
-' ============================================================================
+' Abstract base class
 abstract class Shape
     public var name as String
-    private var fillColor as String
-    private var strokeColor as String
 
     public sub New(shapeName as String)
         this.name = shapeName
-        this.fillColor = "white"
-        this.strokeColor = "black"
     end sub
 
-    ' Abstract methods - must be implemented by concrete subclasses
     public abstract function Area() as Double
-    public abstract function Perimeter() as Double
-
-    ' Concrete methods available to all shapes
-    public function SetFillColor(color as String)
-        this.fillColor = color
-    end function
-
-    public function SetStrokeColor(color as String)
-        this.strokeColor = color
-    end function
-
-    public function GetFillColor() as String
-        return this.fillColor
-    end function
-
-    public function GetStrokeColor() as String
-        return this.strokeColor
-    end function
-
-    ' Format shape info for display
-    public function Info() as String
-        return $"{this.name}: Area={this.Area()}, Perimeter={this.Perimeter()}"
-    end function
 end class
 
-' ============================================================================
 ' Concrete class: Circle
-' ============================================================================
 class Circle extends Shape
     public var radius as Double
-    private const PI as Double = 3.14159265358979
 
     public sub New(r as Double)
         super.New("Circle")
         this.radius = r
     end sub
 
-    public function Area() as Double
-        return PI * this.radius * this.radius
-    end function
-
-    public function Perimeter() as Double
-        return 2 * PI * this.radius
-    end function
-
-    public function Diameter() as Double
-        return 2 * this.radius
+    public override function Area() as Double
+        return 3.14159 * this.radius * this.radius
     end function
 end class
 
-' ============================================================================
-' Abstract class: Polygon (extends Shape)
-' Polygons have sides and vertices
-' ============================================================================
-abstract class Polygon extends Shape
-    protected var sides as Integer
+' Concrete class: Square
+class Square extends Shape
+    public var side as Double
 
-    public sub New(name as String, numSides as Integer)
-        super.New(name)
-        this.sides = numSides
+    public sub New(s as Double)
+        super.New("Square")
+        this.side = s
     end sub
 
-    public function GetSides() as Integer
-        return this.sides
-    end function
-
-    ' Still abstract - each polygon calculates differently
-    public abstract function Area() as Double
-    public abstract function Perimeter() as Double
-
-    ' Interior angle sum formula for any polygon
-    public function InteriorAngleSum() as Double
-        return (this.sides - 2) * 180.0
+    public override function Area() as Double
+        return this.side * this.side
     end function
 end class
 
-' ============================================================================
-' Concrete class: Triangle
-' ============================================================================
-class Triangle extends Polygon
-    public var sideA as Double
-    public var sideB as Double
-    public var sideC as Double
+' Test
+Console.WriteLine("Creating shapes...")
 
-    public sub New(a as Double, b as Double, c as Double)
-        super.New("Triangle", 3)
-        this.sideA = a
-        this.sideB = b
-        this.sideC = c
-    end sub
-
-    public function Perimeter() as Double
-        return this.sideA + this.sideB + this.sideC
-    end function
-
-    ' Heron's formula for triangle area
-    public function Area() as Double
-        var s as Double = this.Perimeter() / 2.0
-        var area as Double = Math.Sqrt(s * (s - this.sideA) * (s - this.sideB) * (s - this.sideC))
-        return area
-    end function
-
-    public function IsEquilateral() as Boolean
-        return this.sideA = this.sideB and this.sideB = this.sideC
-    end function
-
-    public function IsIsosceles() as Boolean
-        return this.sideA = this.sideB or this.sideB = this.sideC or this.sideA = this.sideC
-    end function
-end class
-
-' ============================================================================
-' Concrete class: Rectangle
-' ============================================================================
-class Rectangle extends Polygon
-    public var width as Double
-    public var height as Double
-
-    public sub New(w as Double, h as Double)
-        super.New("Rectangle", 4)
-        this.width = w
-        this.height = h
-    end sub
-
-    public function Area() as Double
-        return this.width * this.height
-    end function
-
-    public function Perimeter() as Double
-        return 2 * (this.width + this.height)
-    end function
-
-    public function Diagonal() as Double
-        return Math.Sqrt(this.width * this.width + this.height * this.height)
-    end function
-
-    public function IsSquare() as Boolean
-        return this.width = this.height
-    end function
-end class
-
-' ============================================================================
-' Concrete class: Square (extends Rectangle)
-' ============================================================================
-class Square extends Rectangle
-    public sub New(side as Double)
-        super.New(side, side)
-        this.name = "Square"  ' Override name from parent
-    end sub
-
-    public function GetSide() as Double
-        return this.width
-    end function
-end class
-
-' ============================================================================
-' Main Program - Demonstrate shape hierarchy
-' ============================================================================
-
-Console.WriteLine("Creating various shapes...")
-Console.WriteLine("")
-
-' Create a circle
-Console.WriteLine("--- Circle (radius = 5) ---")
 var circle as Circle = new Circle(5.0)
-circle.SetFillColor("red")
-Console.WriteLine($"  {circle.Info()}")
-Console.WriteLine($"  Diameter: {circle.Diameter()}")
-Console.WriteLine($"  Fill Color: {circle.GetFillColor()}")
+Console.WriteLine("Circle name: " + circle.name)
+Console.WriteLine("Circle radius: " + circle.radius.ToString())
+Console.WriteLine("Circle area: " + circle.Area().ToString())
 Console.WriteLine("")
 
-' Create a triangle (3-4-5 right triangle)
-Console.WriteLine("--- Triangle (3-4-5 right triangle) ---")
-var triangle as Triangle = new Triangle(3.0, 4.0, 5.0)
-Console.WriteLine($"  {triangle.Info()}")
-Console.WriteLine($"  Number of sides: {triangle.GetSides()}")
-Console.WriteLine($"  Interior angle sum: {triangle.InteriorAngleSum()} degrees")
-Console.WriteLine($"  Is Equilateral: {triangle.IsEquilateral()}")
-Console.WriteLine($"  Is Isosceles: {triangle.IsIsosceles()}")
+var square as Square = new Square(4.0)
+Console.WriteLine("Square name: " + square.name)
+Console.WriteLine("Square side: " + square.side.ToString())
+Console.WriteLine("Square area: " + square.Area().ToString())
 Console.WriteLine("")
 
-' Create an equilateral triangle
-Console.WriteLine("--- Equilateral Triangle (side = 6) ---")
-var eqTriangle as Triangle = new Triangle(6.0, 6.0, 6.0)
-Console.WriteLine($"  {eqTriangle.Info()}")
-Console.WriteLine($"  Is Equilateral: {eqTriangle.IsEquilateral()}")
-Console.WriteLine("")
-
-' Create a rectangle
-Console.WriteLine("--- Rectangle (10 x 5) ---")
-var rect as Rectangle = new Rectangle(10.0, 5.0)
-rect.SetFillColor("blue")
-rect.SetStrokeColor("navy")
-Console.WriteLine($"  {rect.Info()}")
-Console.WriteLine($"  Number of sides: {rect.GetSides()}")
-Console.WriteLine($"  Diagonal: {rect.Diagonal()}")
-Console.WriteLine($"  Is Square: {rect.IsSquare()}")
-Console.WriteLine($"  Fill Color: {rect.GetFillColor()}")
-Console.WriteLine("")
-
-' Create a square
-Console.WriteLine("--- Square (side = 7) ---")
-var square as Square = new Square(7.0)
-square.SetFillColor("green")
-Console.WriteLine($"  {square.Info()}")
-Console.WriteLine($"  Side length: {square.GetSide()}")
-Console.WriteLine($"  Diagonal: {square.Diagonal()}")
-Console.WriteLine($"  Is Square: {square.IsSquare()}")
-Console.WriteLine("")
-
-' Summary
-Console.WriteLine("==========================================================")
-Console.WriteLine("                       Summary                            ")
-Console.WriteLine("==========================================================")
-Console.WriteLine("")
-Console.WriteLine("Shape Areas:")
-Console.WriteLine($"  Circle:    {circle.Area()}")
-Console.WriteLine($"  Triangle:  {triangle.Area()}")
-Console.WriteLine($"  Rectangle: {rect.Area()}")
-Console.WriteLine($"  Square:    {square.Area()}")
-Console.WriteLine("")
-Console.WriteLine("Shape Perimeters:")
-Console.WriteLine($"  Circle:    {circle.Perimeter()}")
-Console.WriteLine($"  Triangle:  {triangle.Perimeter()}")
-Console.WriteLine($"  Rectangle: {rect.Perimeter()}")
-Console.WriteLine($"  Square:    {square.Perimeter()}")
-Console.WriteLine("")
-Console.WriteLine("==========================================================")
-Console.WriteLine("                Demo Complete                             ")
-Console.WriteLine("==========================================================")
+Console.WriteLine("Demo complete!")

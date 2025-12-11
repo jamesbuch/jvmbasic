@@ -1,0 +1,266 @@
+' ============================================================================
+' Linked List in JVM BASIC 2.0
+' Demonstrates: classes, references, iteration, data structures
+' ============================================================================
+
+Console.WriteLine("=== Linked List Demo ===")
+Console.WriteLine("")
+
+' Create the linked list
+var list as SinglyLinkedList = new SinglyLinkedList()
+
+' Test empty list
+Console.WriteLine("Empty list:")
+Console.WriteLine($"  Size: {list.size()}")
+Console.WriteLine($"  isEmpty: {list.isEmpty()}")
+Console.WriteLine("")
+
+' Add elements
+Console.WriteLine("Adding elements: 10, 20, 30, 40, 50")
+list.add(10)
+list.add(20)
+list.add(30)
+list.add(40)
+list.add(50)
+
+Console.WriteLine($"  Size: {list.size()}")
+Console.WriteLine($"  isEmpty: {list.isEmpty()}")
+Console.WriteLine("")
+
+' Print list
+Console.Write("List contents: ")
+list.printList()
+Console.WriteLine("")
+
+' Get elements by index
+Console.WriteLine("")
+Console.WriteLine("Access by index:")
+Console.WriteLine($"  getAt(0) = {list.getAt(0)}")
+Console.WriteLine($"  getAt(2) = {list.getAt(2)}")
+Console.WriteLine($"  getAt(4) = {list.getAt(4)}")
+
+' First and last
+Console.WriteLine("")
+Console.WriteLine($"First element: {list.first()}")
+Console.WriteLine($"Last element: {list.last()}")
+
+' Contains check
+Console.WriteLine("")
+Console.WriteLine("Contains check:")
+Console.WriteLine($"  contains(30): {list.contains(30)}")
+Console.WriteLine($"  contains(99): {list.contains(99)}")
+
+' Add at beginning
+Console.WriteLine("")
+Console.WriteLine("Adding 5 at beginning...")
+list.addFirst(5)
+Console.Write("List: ")
+list.printList()
+Console.WriteLine("")
+
+' Remove first
+Console.WriteLine("")
+Console.WriteLine($"Removing first (value: {list.removeFirst()})...")
+Console.Write("List: ")
+list.printList()
+Console.WriteLine("")
+
+' Remove last
+Console.WriteLine("")
+Console.WriteLine($"Removing last (value: {list.removeLast()})...")
+Console.Write("List: ")
+list.printList()
+Console.WriteLine("")
+
+' Remove by value
+Console.WriteLine("")
+Console.WriteLine("Removing value 30...")
+list.remove(30)
+Console.Write("List: ")
+list.printList()
+Console.WriteLine("")
+
+' Final size
+Console.WriteLine("")
+Console.WriteLine($"Final size: {list.size()}")
+
+Console.WriteLine("")
+Console.WriteLine("Linked List demo complete!")
+
+' ============================================================================
+' ListNode class - represents a node in the linked list
+' ============================================================================
+class ListNode
+    public var value as Integer
+    public var nextNode as ListNode
+
+    public sub New(v as Integer)
+        value = v
+        nextNode = nil
+    end sub
+end class
+
+' ============================================================================
+' SinglyLinkedList class - singly linked list
+' ============================================================================
+class SinglyLinkedList
+    public var head as ListNode
+    public var tail as ListNode
+    public var count as Integer
+
+    public sub New()
+        head = nil
+        tail = nil
+        count = 0
+    end sub
+
+    public function size() as Integer
+        return count
+    end function
+
+    public function isEmpty() as Boolean
+        return count = 0
+    end function
+
+    ' Add to end of list
+    public sub add(value as Integer)
+        var newNode as ListNode = new ListNode(value)
+        if head = nil then
+            head = newNode
+            tail = newNode
+        else
+            tail.nextNode = newNode
+            tail = newNode
+        end if
+        count = count + 1
+    end sub
+
+    ' Add to beginning of list
+    public sub addFirst(value as Integer)
+        var newNode as ListNode = new ListNode(value)
+        if head = nil then
+            head = newNode
+            tail = newNode
+        else
+            newNode.nextNode = head
+            head = newNode
+        end if
+        count = count + 1
+    end sub
+
+    ' Get element by index
+    public function getAt(index as Integer) as Integer
+        if index < 0 or index >= count then
+            return -1
+        end if
+        var current as ListNode = head
+        for i = 0 to index - 1
+            current = current.nextNode
+        next i
+        return current.value
+    end function
+
+    ' Get first element
+    public function first() as Integer
+        if head = nil then
+            return -1
+        end if
+        return head.value
+    end function
+
+    ' Get last element
+    public function last() as Integer
+        if tail = nil then
+            return -1
+        end if
+        return tail.value
+    end function
+
+    ' Check if list contains value
+    public function contains(value as Integer) as Boolean
+        var current as ListNode = head
+        while current <> nil
+            if current.value = value then
+                return true
+            end if
+            current = current.nextNode
+        end while
+        return false
+    end function
+
+    ' Remove first element and return its value
+    public function removeFirst() as Integer
+        if head = nil then
+            return -1
+        end if
+        var val as Integer = head.value
+        head = head.nextNode
+        count = count - 1
+        if head = nil then
+            tail = nil
+        end if
+        return val
+    end function
+
+    ' Remove last element and return its value
+    public function removeLast() as Integer
+        if head = nil then
+            return -1
+        end if
+        if head = tail then
+            var val as Integer = head.value
+            head = nil
+            tail = nil
+            count = count - 1
+            return val
+        end if
+        ' Find second-to-last node
+        var current as ListNode = head
+        while current.nextNode <> tail
+            current = current.nextNode
+        end while
+        var val as Integer = tail.value
+        tail = current
+        tail.nextNode = nil
+        count = count - 1
+        return val
+    end function
+
+    ' Remove first occurrence of value
+    public sub remove(value as Integer)
+        if head = nil then
+            return
+        end if
+        ' Check if it's the head
+        if head.value = value then
+            head = head.nextNode
+            count = count - 1
+            if head = nil then
+                tail = nil
+            end if
+            return
+        end if
+        ' Search for the value
+        var current as ListNode = head
+        while current.nextNode <> nil
+            if current.nextNode.value = value then
+                if current.nextNode = tail then
+                    tail = current
+                end if
+                current.nextNode = current.nextNode.nextNode
+                count = count - 1
+                return
+            end if
+            current = current.nextNode
+        end while
+    end sub
+
+    ' Print all elements
+    public sub printList()
+        var current as ListNode = head
+        while current <> nil
+            Console.Write($"{current.value} ")
+            current = current.nextNode
+        end while
+    end sub
+end class

@@ -1,0 +1,198 @@
+' ============================================================================
+' Stack and Queue in JVM BASIC 2.0
+' Demonstrates: classes, LIFO/FIFO data structures, linked nodes
+' ============================================================================
+
+Console.WriteLine("=== Stack and Queue Demo ===")
+Console.WriteLine("")
+
+' ============================================================================
+' Stack Demo (LIFO - Last In, First Out)
+' ============================================================================
+Console.WriteLine("--- Stack (LIFO) ---")
+Console.WriteLine("")
+
+var stack as IntStack = new IntStack()
+
+Console.WriteLine($"Empty stack: isEmpty = {stack.isEmpty()}")
+
+Console.WriteLine("")
+Console.WriteLine("Pushing: 10, 20, 30, 40, 50")
+stack.push(10)
+stack.push(20)
+stack.push(30)
+stack.push(40)
+stack.push(50)
+
+Console.WriteLine($"Stack size: {stack.size()}")
+Console.WriteLine($"Peek (top): {stack.peek()}")
+
+Console.WriteLine("")
+Console.WriteLine("Popping elements:")
+while not stack.isEmpty()
+    Console.WriteLine($"  Popped: {stack.pop()}")
+end while
+
+Console.WriteLine($"Stack isEmpty: {stack.isEmpty()}")
+
+' ============================================================================
+' Queue Demo (FIFO - First In, First Out)
+' ============================================================================
+Console.WriteLine("")
+Console.WriteLine("--- Queue (FIFO) ---")
+Console.WriteLine("")
+
+var queue as IntQueue = new IntQueue()
+
+Console.WriteLine($"Empty queue: isEmpty = {queue.isEmpty()}")
+
+Console.WriteLine("")
+Console.WriteLine("Enqueueing: 10, 20, 30, 40, 50")
+queue.enqueue(10)
+queue.enqueue(20)
+queue.enqueue(30)
+queue.enqueue(40)
+queue.enqueue(50)
+
+Console.WriteLine($"Queue size: {queue.size()}")
+Console.WriteLine($"Front element: {queue.peek()}")
+
+Console.WriteLine("")
+Console.WriteLine("Dequeueing elements:")
+while not queue.isEmpty()
+    Console.WriteLine($"  Dequeued: {queue.dequeue()}")
+end while
+
+Console.WriteLine($"Queue isEmpty: {queue.isEmpty()}")
+
+' ============================================================================
+' Mixed Usage Example
+' ============================================================================
+Console.WriteLine("")
+Console.WriteLine("--- Mixed Operations ---")
+Console.WriteLine("")
+
+var s as IntStack = new IntStack()
+s.push(100)
+s.push(200)
+Console.WriteLine($"Push 100, 200. Peek: {s.peek()}")
+s.pop()
+s.push(300)
+Console.WriteLine($"Pop, Push 300. Peek: {s.peek()}")
+Console.WriteLine($"Size: {s.size()}")
+
+Console.WriteLine("")
+Console.WriteLine("Stack and Queue demo complete!")
+
+' ============================================================================
+' StackNode class - node for stack/queue
+' ============================================================================
+class StackNode
+    public var value as Integer
+    public var nextNode as StackNode
+
+    public sub New(v as Integer)
+        value = v
+        nextNode = nil
+    end sub
+end class
+
+' ============================================================================
+' IntStack class - Stack implementation using linked nodes
+' ============================================================================
+class IntStack
+    public var top as StackNode
+    public var count as Integer
+
+    public sub New()
+        top = nil
+        count = 0
+    end sub
+
+    public function isEmpty() as Boolean
+        return top = nil
+    end function
+
+    public function size() as Integer
+        return count
+    end function
+
+    public sub push(value as Integer)
+        var newNode as StackNode = new StackNode(value)
+        newNode.nextNode = top
+        top = newNode
+        count = count + 1
+    end sub
+
+    public function pop() as Integer
+        if top = nil then
+            return -1
+        end if
+        var value as Integer = top.value
+        top = top.nextNode
+        count = count - 1
+        return value
+    end function
+
+    public function peek() as Integer
+        if top = nil then
+            return -1
+        end if
+        return top.value
+    end function
+end class
+
+' ============================================================================
+' IntQueue class - Queue implementation using linked nodes
+' ============================================================================
+class IntQueue
+    public var front as StackNode
+    public var rear as StackNode
+    public var count as Integer
+
+    public sub New()
+        front = nil
+        rear = nil
+        count = 0
+    end sub
+
+    public function isEmpty() as Boolean
+        return front = nil
+    end function
+
+    public function size() as Integer
+        return count
+    end function
+
+    public sub enqueue(value as Integer)
+        var newNode as StackNode = new StackNode(value)
+        if rear = nil then
+            front = newNode
+            rear = newNode
+        else
+            rear.nextNode = newNode
+            rear = newNode
+        end if
+        count = count + 1
+    end sub
+
+    public function dequeue() as Integer
+        if front = nil then
+            return -1
+        end if
+        var value as Integer = front.value
+        front = front.nextNode
+        if front = nil then
+            rear = nil
+        end if
+        count = count - 1
+        return value
+    end function
+
+    public function peek() as Integer
+        if front = nil then
+            return -1
+        end if
+        return front.value
+    end function
+end class

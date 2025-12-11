@@ -1,0 +1,223 @@
+' ============================================================================
+' Binary Search Tree in JVM BASIC 2.0
+' Demonstrates: classes, OOP, recursion, data structures
+' ============================================================================
+
+Console.WriteLine("=== Binary Search Tree Demo ===")
+Console.WriteLine("")
+
+' Create the BST
+var tree as BST = new BST()
+
+' Insert values
+Console.WriteLine("Inserting: 50, 30, 70, 20, 40, 60, 80")
+tree.insert(50)
+tree.insert(30)
+tree.insert(70)
+tree.insert(20)
+tree.insert(40)
+tree.insert(60)
+tree.insert(80)
+
+' Display tree traversals
+Console.WriteLine("")
+Console.Write("In-order traversal:   ")
+tree.inorder()
+Console.WriteLine("")
+
+Console.Write("Pre-order traversal:  ")
+tree.preorder()
+Console.WriteLine("")
+
+Console.Write("Post-order traversal: ")
+tree.postorder()
+Console.WriteLine("")
+
+' Search operations
+Console.WriteLine("")
+Console.WriteLine("Searching:")
+Console.WriteLine($"  Contains 40: {tree.contains(40)}")
+Console.WriteLine($"  Contains 55: {tree.contains(55)}")
+Console.WriteLine($"  Contains 80: {tree.contains(80)}")
+Console.WriteLine($"  Contains 15: {tree.contains(15)}")
+
+' Min and Max
+Console.WriteLine("")
+Console.WriteLine($"Minimum value: {tree.findMin()}")
+Console.WriteLine($"Maximum value: {tree.findMax()}")
+
+' Count nodes
+Console.WriteLine($"Total nodes: {tree.count()}")
+
+Console.WriteLine("")
+Console.WriteLine("Binary Search Tree demo complete!")
+
+' ============================================================================
+' TreeNode class - represents a node in the BST
+' ============================================================================
+class TreeNode
+    public var value as Integer
+    public var left as TreeNode
+    public var right as TreeNode
+
+    public sub New(v as Integer)
+        value = v
+        left = nil
+        right = nil
+    end sub
+
+    ' Insert into subtree rooted at this node
+    public function insertValue(v as Integer) as TreeNode
+        if v < value then
+            if left = nil then
+                left = new TreeNode(v)
+            else
+                left = left.insertValue(v)
+            end if
+        elseif v > value then
+            if right = nil then
+                right = new TreeNode(v)
+            else
+                right = right.insertValue(v)
+            end if
+        end if
+        return me
+    end function
+
+    ' Search for a value in subtree
+    public function search(v as Integer) as Boolean
+        if v = value then
+            return true
+        elseif v < value then
+            if left = nil then
+                return false
+            else
+                return left.search(v)
+            end if
+        else
+            if right = nil then
+                return false
+            else
+                return right.search(v)
+            end if
+        end if
+    end function
+
+    ' In-order traversal
+    public sub printInorder()
+        if left <> nil then
+            left.printInorder()
+        end if
+        Console.Write($"{value} ")
+        if right <> nil then
+            right.printInorder()
+        end if
+    end sub
+
+    ' Pre-order traversal
+    public sub printPreorder()
+        Console.Write($"{value} ")
+        if left <> nil then
+            left.printPreorder()
+        end if
+        if right <> nil then
+            right.printPreorder()
+        end if
+    end sub
+
+    ' Post-order traversal
+    public sub printPostorder()
+        if left <> nil then
+            left.printPostorder()
+        end if
+        if right <> nil then
+            right.printPostorder()
+        end if
+        Console.Write($"{value} ")
+    end sub
+
+    ' Count nodes in subtree
+    public function countNodes() as Integer
+        var total as Integer = 1
+        if left <> nil then
+            total = total + left.countNodes()
+        end if
+        if right <> nil then
+            total = total + right.countNodes()
+        end if
+        return total
+    end function
+end class
+
+' ============================================================================
+' BST class - Binary Search Tree wrapper
+' ============================================================================
+class BST
+    public var root as TreeNode
+
+    public sub New()
+        root = nil
+    end sub
+
+    public sub insert(value as Integer)
+        if root = nil then
+            root = new TreeNode(value)
+        else
+            root = root.insertValue(value)
+        end if
+    end sub
+
+    public function contains(value as Integer) as Boolean
+        if root = nil then
+            return false
+        end if
+        return root.search(value)
+    end function
+
+    public sub inorder()
+        if root <> nil then
+            root.printInorder()
+        end if
+    end sub
+
+    public sub preorder()
+        if root <> nil then
+            root.printPreorder()
+        end if
+    end sub
+
+    public sub postorder()
+        if root <> nil then
+            root.printPostorder()
+        end if
+    end sub
+
+    public function findMin() as Integer
+        if root = nil then
+            return -1
+        end if
+        var current as TreeNode = root
+        while current.left <> nil
+            current = current.left
+        end while
+        return current.value
+    end function
+
+    public function findMax() as Integer
+        if root = nil then
+            return -1
+        end if
+        var current as TreeNode = root
+        while current.right <> nil
+            current = current.right
+        end while
+        return current.value
+    end function
+
+    public function count() as Integer
+        if root = nil then
+            return 0
+        end if
+        return root.countNodes()
+    end function
+end class

@@ -16,7 +16,7 @@ A modern BASIC compiler targeting the Java Virtual Machine, written in Java usin
 | **Exit/Continue** | `exit for`, `continue while`, etc. | ✅ |
 | **Try/Catch/Finally** | Exception handling with `throw` | ✅ |
 | **Assert** | `assert condition, "message"` | ✅ |
-| **Arrays** | Declaration, access, iteration | ✅ |
+| **Arrays** | Declaration, access, iteration, initializers (`{1, 2, 3}`) | ✅ |
 | **OOP Classes** | Classes, constructors, fields, instance methods | ✅ |
 | **Inheritance** | `extends`, `super.Method()`, `Super.New()` | ✅ |
 | **Access Modifiers** | public, private, protected | ✅ |
@@ -35,24 +35,21 @@ A modern BASIC compiler targeting the Java Virtual Machine, written in Java usin
 
 | **Enums** | Enum types with members and explicit values | ✅ |
 | **Interfaces** | Interface definitions and implementation | ✅ |
+| **Lambdas** | `lambda (x as Integer) => x * 2`, Function types | ✅ |
 | **Test Framework** | `#[Test]` annotations, `assert`, `.jvmt` files | ✅ |
 
 ## Current Status
 
-**68 tests passing** - See [STATUS.md](docs/STATUS.md) for detailed status.
+**62 tests passing** - See [STATUS.md](docs/STATUS.md) for detailed status.
 
 ### Known Issues
 
 | Feature | Issue |
 |---------|-------|
-| Lambdas | Compiler crash on lambda expressions |
-| Nullable Types | Runtime `VerifyError` on null comparisons |
 | Abstract Classes | Parse errors with `abstract` keyword |
-| Array Initializers | `{1, 2, 3}` syntax not yet supported |
 
 **Coming Soon:**
 
-- Lambda expressions
 - Async/Await and concurrency primitives
 - Jetty web server integration with attributes
 

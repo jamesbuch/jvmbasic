@@ -1,0 +1,154 @@
+' ============================================================================
+' Sorting Algorithms in JVM BASIC 2.0
+' Demonstrates: arrays, array initializers, functions, recursion
+' ============================================================================
+
+Console.WriteLine("=== Sorting Algorithms Demo ===")
+Console.WriteLine("")
+
+' Test data using array initializers
+var original as Integer[] = {64, 34, 25, 12, 22, 11, 90, 5, 77, 42}
+var size as Integer = 10
+
+' Display original array
+Console.Write("Original: ")
+printArray(original, size)
+
+' ----------------------------------------------------------------------------
+' 1. Bubble Sort
+' ----------------------------------------------------------------------------
+Console.WriteLine("")
+Console.WriteLine("1. Bubble Sort:")
+var bubble as Integer[] = copyArray(original, size)
+bubbleSort(bubble, size)
+Console.Write("   Result: ")
+printArray(bubble, size)
+
+' ----------------------------------------------------------------------------
+' 2. Selection Sort
+' ----------------------------------------------------------------------------
+Console.WriteLine("")
+Console.WriteLine("2. Selection Sort:")
+var selection as Integer[] = copyArray(original, size)
+selectionSort(selection, size)
+Console.Write("   Result: ")
+printArray(selection, size)
+
+' ----------------------------------------------------------------------------
+' 3. Insertion Sort
+' ----------------------------------------------------------------------------
+Console.WriteLine("")
+Console.WriteLine("3. Insertion Sort:")
+var insertion as Integer[] = copyArray(original, size)
+insertionSort(insertion, size)
+Console.Write("   Result: ")
+printArray(insertion, size)
+
+' ----------------------------------------------------------------------------
+' 4. Quick Sort
+' ----------------------------------------------------------------------------
+Console.WriteLine("")
+Console.WriteLine("4. Quick Sort:")
+var quick as Integer[] = copyArray(original, size)
+quickSort(quick, 0, size - 1)
+Console.Write("   Result: ")
+printArray(quick, size)
+
+Console.WriteLine("")
+Console.WriteLine("All sorting algorithms complete!")
+
+' ============================================================================
+' Helper Functions
+' ============================================================================
+
+sub printArray(arr as Integer[], n as Integer)
+    Console.Write("[")
+    for i = 0 to n - 1
+        Console.Write(arr[i])
+        if i < n - 1 then
+            Console.Write(", ")
+        end if
+    next
+    Console.WriteLine("]")
+end sub
+
+function copyArray(src as Integer[], n as Integer) as Integer[]
+    var dest as Integer[] = new Integer[n]
+    for i = 0 to n - 1
+        dest[i] = src[i]
+    next
+    return dest
+end function
+
+sub swap(arr as Integer[], i as Integer, j as Integer)
+    var temp as Integer = arr[i]
+    arr[i] = arr[j]
+    arr[j] = temp
+end sub
+
+' ============================================================================
+' Sorting Implementations
+' ============================================================================
+
+' Bubble Sort - O(n²)
+sub bubbleSort(arr as Integer[], n as Integer)
+    for i = 0 to n - 2
+        for j = 0 to n - i - 2
+            if arr[j] > arr[j + 1] then
+                swap(arr, j, j + 1)
+            end if
+        next
+    next
+end sub
+
+' Selection Sort - O(n²)
+sub selectionSort(arr as Integer[], n as Integer)
+    for i = 0 to n - 2
+        var minIdx as Integer = i
+        for j = i + 1 to n - 1
+            if arr[j] < arr[minIdx] then
+                minIdx = j
+            end if
+        next
+        if minIdx <> i then
+            swap(arr, i, minIdx)
+        end if
+    next
+end sub
+
+' Insertion Sort - O(n²)
+sub insertionSort(arr as Integer[], n as Integer)
+    for i = 1 to n - 1
+        var key as Integer = arr[i]
+        var j as Integer = i - 1
+        while j >= 0 and arr[j] > key
+            arr[j + 1] = arr[j]
+            j = j - 1
+        end while
+        arr[j + 1] = key
+    next
+end sub
+
+' Quick Sort - O(n log n) average
+sub quickSort(arr as Integer[], low as Integer, high as Integer)
+    if low < high then
+        var pi as Integer = partition(arr, low, high)
+        quickSort(arr, low, pi - 1)
+        quickSort(arr, pi + 1, high)
+    end if
+end sub
+
+function partition(arr as Integer[], low as Integer, high as Integer) as Integer
+    var pivot as Integer = arr[high]
+    var i as Integer = low - 1
+
+    for j = low to high - 1
+        if arr[j] <= pivot then
+            i = i + 1
+            swap(arr, i, j)
+        end if
+    next
+
+    swap(arr, i + 1, high)
+    return i + 1
+end function
