@@ -115,6 +115,7 @@ ASSERT      : A S S E R T ;
 
 // Other keywords
 IMPORT      : I M P O R T ;
+MODULE      : M O D U L E ;
 ENUM        : E N U M ;
 CONST       : C O N S T ;
 TYPEOF      : T Y P E O F ;

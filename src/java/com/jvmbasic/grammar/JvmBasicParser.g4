@@ -29,7 +29,7 @@ options {
 // ============================================================================
 
 compilationUnit
-    : importDeclaration* topLevelElement* EOF
+    : importDeclaration* (moduleDeclaration | topLevelElement*) EOF
     ;
 
 // Allow declarations and statements to be interleaved
@@ -45,6 +45,31 @@ importDeclaration
 
 qualifiedName
     : IDENTIFIER (DOT IDENTIFIER)*
+    ;
+
+// --- Module Declaration ---
+// A module is a container for related types and functions
+// Example:
+//   Public Module Collections
+//       Public class List ... End class
+//       Private class Node ... End class
+//   End Module
+moduleDeclaration
+    : accessModifier? MODULE IDENTIFIER moduleBody END MODULE
+    ;
+
+moduleBody
+    : moduleMember*
+    ;
+
+moduleMember
+    : accessModifier? classDeclaration
+    | accessModifier? interfaceDeclaration
+    | accessModifier? enumDeclaration
+    | accessModifier? functionDeclaration
+    | accessModifier? subDeclaration
+    | accessModifier? constDeclaration
+    | accessModifier? varStatement
     ;
 
 // ============================================================================
@@ -547,6 +572,7 @@ memberName
     | CONST
     | ENUM
     | IMPORT
+    | MODULE
     | USING
     | ASYNC
     | AWAIT
