@@ -26,6 +26,7 @@ import java.util.*;
 public class SymbolCollector extends JvmBasicParserBaseListener {
 
     private final SymbolTable symbols = new SymbolTable();
+    private String currentModule = null;
     private String currentClass = null;
     private String currentFunction = null;
 
@@ -97,6 +98,33 @@ public class SymbolCollector extends JvmBasicParserBaseListener {
     }
 
     // ========================================================================
+    // Module Declarations
+    // ========================================================================
+
+    @Override
+    public void enterModuleDeclaration(JvmBasicParser.ModuleDeclarationContext ctx) {
+        String name = ctx.IDENTIFIER().getText();
+        int line = ctx.getStart().getLine();
+
+        // Check for access modifier
+        String access = "Private";  // Default access for modules
+        if (ctx.accessModifier() != null) {
+            access = ctx.accessModifier().getText();
+        }
+
+        ModuleSymbol moduleSymbol = new ModuleSymbol(name, line, access);
+        symbols.addModule(moduleSymbol);
+        currentModule = name;
+        enterScope(name, ScopeType.MODULE, line);
+    }
+
+    @Override
+    public void exitModuleDeclaration(JvmBasicParser.ModuleDeclarationContext ctx) {
+        exitScope();
+        currentModule = null;
+    }
+
+    // ========================================================================
     // Class Declarations
     // ========================================================================
 
@@ -106,6 +134,24 @@ public class SymbolCollector extends JvmBasicParserBaseListener {
         int line = ctx.getStart().getLine();
 
         ClassSymbol classSymbol = new ClassSymbol(name, line);
+
+        // Set module if inside one
+        if (currentModule != null) {
+            classSymbol.setModule(currentModule);
+
+            // Get access modifier from moduleMember parent context if applicable
+            if (ctx.getParent() instanceof JvmBasicParser.ModuleMemberContext memberCtx) {
+                if (memberCtx.accessModifier() != null) {
+                    classSymbol.setAccess(memberCtx.accessModifier().getText());
+                }
+            }
+
+            // Add class to module
+            ModuleSymbol module = symbols.getModule(currentModule);
+            if (module != null) {
+                module.addClass(classSymbol);
+            }
+        }
 
         // Check for abstract modifier
         if (ctx.ABSTRACT() != null) {
@@ -179,6 +225,12 @@ public class SymbolCollector extends JvmBasicParserBaseListener {
 
         if (currentClass != null) {
             symbols.getClass(currentClass).addMethod(func);
+        } else if (currentModule != null) {
+            // Module-level function
+            ModuleSymbol module = symbols.getModule(currentModule);
+            if (module != null) {
+                module.addFunction(func);
+            }
         } else {
             symbols.addFunction(func);
         }
@@ -210,6 +262,12 @@ public class SymbolCollector extends JvmBasicParserBaseListener {
 
         if (currentClass != null) {
             symbols.getClass(currentClass).addMethod(sub);
+        } else if (currentModule != null) {
+            // Module-level sub
+            ModuleSymbol module = symbols.getModule(currentModule);
+            if (module != null) {
+                module.addFunction(sub);
+            }
         } else {
             symbols.addFunction(sub);
         }
@@ -676,6 +734,7 @@ public class SymbolCollector extends JvmBasicParserBaseListener {
 
     public enum ScopeType {
         GLOBAL,
+        MODULE,
         CLASS,
         FUNCTION,
         FOR,
@@ -772,33 +831,62 @@ public class SymbolCollector extends JvmBasicParserBaseListener {
     // ========================================================================
 
     public static class SymbolTable {
+        private final Map<String, ModuleSymbol> modules = new LinkedHashMap<>();
         private final Map<String, ClassSymbol> classes = new LinkedHashMap<>();
         private final Map<String, FunctionSymbol> functions = new LinkedHashMap<>();
         private final Map<String, VariableSymbol> globals = new LinkedHashMap<>();
         private final Map<String, ConstantSymbol> constants = new LinkedHashMap<>();
         private final Map<String, EnumSymbol> enums = new LinkedHashMap<>();
 
+        public void addModule(ModuleSymbol m) { modules.put(m.name, m); }
         public void addClass(ClassSymbol c) { classes.put(c.name, c); }
         public void addFunction(FunctionSymbol f) { functions.put(f.name, f); }
         public void addGlobal(VariableSymbol v) { globals.put(v.name, v); }
         public void addConstant(ConstantSymbol c) { constants.put(c.name, c); }
         public void addEnum(EnumSymbol e) { enums.put(e.name, e); }
 
-        public ClassSymbol getClass(String name) { return classes.get(name); }
+        public ModuleSymbol getModule(String name) { return modules.get(name); }
+
+        /**
+         * Get a class by name, handling qualified names like "Module.ClassName"
+         * or "Module/ClassName" by extracting the simple class name.
+         */
+        public ClassSymbol getClass(String name) {
+            // First try direct lookup
+            ClassSymbol cls = classes.get(name);
+            if (cls != null) return cls;
+
+            // Handle qualified names with dot (e.g., "TestModule.Point")
+            if (name.contains(".")) {
+                String simpleName = name.substring(name.lastIndexOf('.') + 1);
+                return classes.get(simpleName);
+            }
+            // Handle qualified names with slash (e.g., "TestModule/Point")
+            if (name.contains("/")) {
+                String simpleName = name.substring(name.lastIndexOf('/') + 1);
+                return classes.get(simpleName);
+            }
+            return null;
+        }
+
         public FunctionSymbol getFunction(String name) { return functions.get(name); }
         public VariableSymbol getGlobal(String name) { return globals.get(name); }
         public ConstantSymbol getConstant(String name) { return constants.get(name); }
         public EnumSymbol getEnum(String name) { return enums.get(name); }
 
+        public Collection<ModuleSymbol> getModules() { return modules.values(); }
         public Collection<ClassSymbol> getClasses() { return classes.values(); }
         public Collection<FunctionSymbol> getFunctions() { return functions.values(); }
         public Collection<VariableSymbol> getGlobals() { return globals.values(); }
         public Collection<ConstantSymbol> getConstants() { return constants.values(); }
         public Collection<EnumSymbol> getEnums() { return enums.values(); }
 
-        public boolean hasClass(String name) { return classes.containsKey(name); }
+        public boolean hasModule(String name) { return modules.containsKey(name); }
+        public boolean hasClass(String name) { return getClass(name) != null; }
         public boolean hasFunction(String name) { return functions.containsKey(name); }
         public boolean hasEnum(String name) { return enums.containsKey(name); }
+
+        public java.util.Set<String> getModuleNames() { return modules.keySet(); }
 
         /**
          * Find a field in a class or its parent classes.
@@ -810,7 +898,8 @@ public class SymbolCollector extends JvmBasicParserBaseListener {
             while (cls != null) {
                 FieldSymbol field = cls.getField(fieldName);
                 if (field != null) {
-                    return new FieldLookupResult(field, cls.name);
+                    // Return the internal name for proper bytecode generation
+                    return new FieldLookupResult(field, cls.getInternalName());
                 }
                 // Move to parent class
                 String base = cls.getBaseClass();
@@ -837,11 +926,62 @@ public class SymbolCollector extends JvmBasicParserBaseListener {
         }
     }
 
+    /**
+     * ModuleSymbol - represents a module declaration
+     * A module contains classes, functions, enums, constants, and variables
+     * organized as a namespace/package.
+     */
+    public static class ModuleSymbol {
+        public final String name;
+        public final int line;
+        public final String access;  // Public or Private
+        private final Map<String, ClassSymbol> classes = new LinkedHashMap<>();
+        private final Map<String, FunctionSymbol> functions = new LinkedHashMap<>();
+        private final Map<String, EnumSymbol> enums = new LinkedHashMap<>();
+        private final Map<String, ConstantSymbol> constants = new LinkedHashMap<>();
+        private final Map<String, VariableSymbol> variables = new LinkedHashMap<>();
+
+        public ModuleSymbol(String name, int line, String access) {
+            this.name = name;
+            this.line = line;
+            this.access = access;
+        }
+
+        public void addClass(ClassSymbol c) { classes.put(c.name, c); }
+        public void addFunction(FunctionSymbol f) { functions.put(f.name, f); }
+        public void addEnum(EnumSymbol e) { enums.put(e.name, e); }
+        public void addConstant(ConstantSymbol c) { constants.put(c.name, c); }
+        public void addVariable(VariableSymbol v) { variables.put(v.name, v); }
+
+        public ClassSymbol getClass(String name) { return classes.get(name); }
+        public FunctionSymbol getFunction(String name) { return functions.get(name); }
+        public EnumSymbol getEnum(String name) { return enums.get(name); }
+        public ConstantSymbol getConstant(String name) { return constants.get(name); }
+        public VariableSymbol getVariable(String name) { return variables.get(name); }
+
+        public Collection<ClassSymbol> getClasses() { return classes.values(); }
+        public Collection<FunctionSymbol> getFunctions() { return functions.values(); }
+        public Collection<EnumSymbol> getEnums() { return enums.values(); }
+        public Collection<ConstantSymbol> getConstants() { return constants.values(); }
+        public Collection<VariableSymbol> getVariables() { return variables.values(); }
+
+        public boolean isPublic() { return "Public".equalsIgnoreCase(access); }
+
+        /**
+         * Get the fully qualified name for a class in this module
+         */
+        public String getQualifiedClassName(String className) {
+            return name + "/" + className;
+        }
+    }
+
     public static class ClassSymbol {
         public final String name;
         public final int line;
         private String baseClass = "Object";
         private boolean isAbstract = false;
+        private String module = null;  // Module this class belongs to (null if top-level)
+        private String access = "Public";  // Access modifier within module
         private final List<String> interfaces = new ArrayList<>();
         private final Map<String, FieldSymbol> fields = new LinkedHashMap<>();
         private final Map<String, FunctionSymbol> methods = new LinkedHashMap<>();
@@ -855,6 +995,11 @@ public class SymbolCollector extends JvmBasicParserBaseListener {
         public String getBaseClass() { return baseClass; }
         public void setAbstract(boolean isAbstract) { this.isAbstract = isAbstract; }
         public boolean isAbstract() { return isAbstract; }
+        public void setModule(String module) { this.module = module; }
+        public String getModule() { return module; }
+        public void setAccess(String access) { this.access = access; }
+        public String getAccess() { return access; }
+        public boolean isPublic() { return "Public".equalsIgnoreCase(access); }
         public void addInterface(String iface) { interfaces.add(iface); }
         public List<String> getInterfaces() { return interfaces; }
 
@@ -864,6 +1009,18 @@ public class SymbolCollector extends JvmBasicParserBaseListener {
         public FunctionSymbol getMethod(String name) { return methods.get(name); }
         public Collection<FieldSymbol> getFields() { return fields.values(); }
         public Collection<FunctionSymbol> getMethods() { return methods.values(); }
+
+        /**
+         * Get the internal JVM name for this class
+         * For module classes: ModuleName/ClassName
+         * For top-level classes: ClassName
+         */
+        public String getInternalName() {
+            if (module != null) {
+                return module + "/" + name;
+            }
+            return name;
+        }
     }
 
     public static class FunctionSymbol {

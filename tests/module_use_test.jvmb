@@ -1,0 +1,30 @@
+' Test using a compiled module
+
+' This test demonstrates creating and using module classes
+' The TestModule must be compiled first (module_test.jvmb)
+
+' Note: For now this is a manual test - run after compiling module_test.jvmb
+' and ensure TestModule/ directory exists with Point.class
+
+' Create a Point from the TestModule
+var p1 as TestModule.Point = new TestModule.Point(3, 4)
+var p2 as TestModule.Point = new TestModule.Point(0, 0)
+
+Console.WriteLine($"Point 1: {p1.toString()}")
+Console.WriteLine($"Point 2: {p2.toString()}")
+Console.WriteLine($"Point 1 x = {p1.x}, y = {p1.y}")
+
+' Simple verification
+if p1.x = 3 and p1.y = 4 then
+    Console.WriteLine("PASS: Point 1 coordinates correct")
+else
+    Console.WriteLine("FAIL: Point 1 coordinates wrong")
+end if
+
+if p2.x = 0 and p2.y = 0 then
+    Console.WriteLine("PASS: Point 2 coordinates correct")
+else
+    Console.WriteLine("FAIL: Point 2 coordinates wrong")
+end if
+
+Console.WriteLine("Module use test complete!")

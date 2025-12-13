@@ -1,0 +1,37 @@
+' Test module declaration parsing
+Public Module TestModule
+
+    ' Public class accessible to importers
+    Public class Point
+        public var x as Integer
+        public var y as Integer
+
+        public sub New(px as Integer, py as Integer)
+            x = px
+            y = py
+        end sub
+
+        public function toString() as String
+            return $"({x}, {y})"
+        end function
+    end class
+
+    ' Private helper class (internal to module)
+    Private class PointHelper
+        public function distance(p1 as Point, p2 as Point) as Double
+            var dx as Integer = p2.x - p1.x
+            var dy as Integer = p2.y - p1.y
+            return Math.Sqrt(dx * dx + dy * dy)
+        end function
+    end class
+
+    ' Public function
+    Public function CreatePoint(x as Integer, y as Integer) as Point
+        return new Point(x, y)
+    end function
+
+    ' Module-level constant
+    Public const ORIGIN_X as Integer = 0
+    Public const ORIGIN_Y as Integer = 0
+
+End Module

@@ -1,0 +1,30 @@
+' Test module with function - pure module file
+' This file defines a module (library) that can be used by other programs
+Public Module MathUtils
+
+    ' A simple point class
+    Public class Point
+        public var x as Integer
+        public var y as Integer
+
+        public sub New(px as Integer, py as Integer)
+            x = px
+            y = py
+        end sub
+
+        public function toString() as String
+            return $"({x}, {y})"
+        end function
+    end class
+
+    ' Factory function to create a Point
+    Public function CreatePoint(x as Integer, y as Integer) as Point
+        return new Point(x, y)
+    end function
+
+    ' Simple add function
+    Public function Add(a as Integer, b as Integer) as Integer
+        return a + b
+    end function
+
+End Module

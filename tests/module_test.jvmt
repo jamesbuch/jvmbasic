@@ -1,0 +1,69 @@
+' module_test.jvmt - Module system unit tests
+
+' Define a test module
+Public Module TestMath
+
+    Public class Point
+        public var x as Integer
+        public var y as Integer
+
+        public sub New(px as Integer, py as Integer)
+            x = px
+            y = py
+        end sub
+
+        public function toString() as String
+            return $"({x}, {y})"
+        end function
+    end class
+
+    Public function CreatePoint(x as Integer, y as Integer) as Point
+        return new Point(x, y)
+    end function
+
+    Public function Add(a as Integer, b as Integer) as Integer
+        return a + b
+    end function
+
+    Public function Multiply(a as Integer, b as Integer) as Integer
+        return a * b
+    end function
+
+End Module
+
+' Tests for module classes
+#[Test "Module class instantiation works"]
+sub testModuleClassNew()
+    var p as TestMath.Point = new TestMath.Point(5, 10)
+    Assert.Equal(5, p.x, "x should be 5")
+    Assert.Equal(10, p.y, "y should be 10")
+end sub
+
+#[Test "Module class method works"]
+sub testModuleClassMethod()
+    var p as TestMath.Point = new TestMath.Point(3, 4)
+    var str as String = p.toString()
+    Assert.Equal("(3, 4)", str, "toString should return (3, 4)")
+end sub
+
+' Tests for module functions
+#[Test "Module factory function works"]
+sub testModuleFactoryFunction()
+    var p as TestMath.Point = TestMath.CreatePoint(7, 8)
+    Assert.Equal(7, p.x, "x should be 7")
+    Assert.Equal(8, p.y, "y should be 8")
+end sub
+
+#[Test "Module Add function works"]
+sub testModuleAddFunction()
+    var result as Integer = TestMath.Add(15, 27)
+    Assert.Equal(42, result, "15 + 27 should equal 42")
+end sub
+
+#[Test "Module Multiply function works"]
+sub testModuleMultiplyFunction()
+    var result as Integer = TestMath.Multiply(6, 7)
+    Assert.Equal(42, result, "6 * 7 should equal 42")
+end sub
+
+Console.WriteLine("Module tests loaded")

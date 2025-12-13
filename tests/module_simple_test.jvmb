@@ -1,0 +1,16 @@
+' Simple module test - no string interpolation
+var p1 as TestModule.Point = new TestModule.Point(3, 4)
+
+' Direct field access test
+var x as Integer = p1.x
+var y as Integer = p1.y
+
+Console.WriteLine("Testing module class field access")
+Console.WriteLine(x)
+Console.WriteLine(y)
+
+if x = 3 then
+    Console.WriteLine("PASS: x = 3")
+else
+    Console.WriteLine("FAIL: x was not 3")
+end if
