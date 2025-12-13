@@ -114,6 +114,7 @@ public class CompilerVisitor extends JvmBasicParserBaseVisitor<Object> {
     // OOP support: generated class files for user-defined classes
     private final java.util.Map<String, byte[]> generatedClasses = new java.util.LinkedHashMap<>();
     private String currentClass = null;  // Name of class being compiled (null = main class)
+    private String currentModuleName = null;  // Name of module being compiled (null = no module)
 
     private record LocalVar(String name, String type, int slot) {}
 
@@ -178,6 +179,20 @@ public class CompilerVisitor extends JvmBasicParserBaseVisitor<Object> {
 
     @Override
     public Object visitCompilationUnit(JvmBasicParser.CompilationUnitContext ctx) {
+        // Check if this is a module file
+        if (ctx.moduleDeclaration() != null) {
+            // Module compilation - generate minimal main class and visit module
+            cw = new ClassWriter(ClassWriter.COMPUTE_FRAMES | ClassWriter.COMPUTE_MAXS);
+            cw.visit(V21, ACC_PUBLIC | ACC_SUPER, className, null, "java/lang/Object", null);
+            generateDefaultConstructor();
+            cw.visitEnd();
+
+            // Visit the module to generate its classes
+            visit(ctx.moduleDeclaration());
+            return null;
+        }
+
+        // Normal compilation (not a module)
         // Initialize class writer
         cw = new ClassWriter(ClassWriter.COMPUTE_FRAMES | ClassWriter.COMPUTE_MAXS);
         cw.visit(V21, ACC_PUBLIC | ACC_SUPER, className, null, "java/lang/Object", null);
@@ -207,6 +222,519 @@ public class CompilerVisitor extends JvmBasicParserBaseVisitor<Object> {
 
         cw.visitEnd();
         return null;
+    }
+
+    // ========================================================================
+    // Module Declaration
+    // ========================================================================
+
+    /**
+     * Visit a module declaration.
+     * A module generates:
+     * - A package-like namespace (module name as directory)
+     * - Each class in the module gets qualified name: ModuleName/ClassName
+     * - Module-level functions become static methods on a ModuleName$Module class
+     * - Module-level constants become static final fields on ModuleName$Module class
+     */
+    @Override
+    public Object visitModuleDeclaration(JvmBasicParser.ModuleDeclarationContext ctx) {
+        String moduleName = ctx.IDENTIFIER().getText();
+        ModuleSymbol moduleSym = symbols.getModule(moduleName);
+        if (moduleSym == null) {
+            throw new RuntimeException("Unknown module: " + moduleName);
+        }
+
+        currentModuleName = moduleName;
+
+        // Process each module member
+        for (JvmBasicParser.ModuleMemberContext member : ctx.moduleBody().moduleMember()) {
+            // Classes, interfaces, enums within module
+            if (member.classDeclaration() != null) {
+                visitModuleClassDeclaration(member.classDeclaration(), moduleName);
+            } else if (member.interfaceDeclaration() != null) {
+                visit(member.interfaceDeclaration());
+            } else if (member.enumDeclaration() != null) {
+                visitModuleEnumDeclaration(member.enumDeclaration(), moduleName);
+            } else if (member.functionDeclaration() != null) {
+                // Module-level functions - will be collected for module class
+                // TODO: Generate as static methods on ModuleName$Module class
+            } else if (member.subDeclaration() != null) {
+                // Module-level subs - will be collected for module class
+                // TODO: Generate as static methods on ModuleName$Module class
+            } else if (member.constDeclaration() != null) {
+                // Module-level constants
+                // TODO: Generate as static final fields on ModuleName$Module class
+            } else if (member.varStatement() != null) {
+                // Module-level variables
+                // TODO: Generate as static fields on ModuleName$Module class
+            }
+        }
+
+        // Generate module utility class if there are module-level functions/constants
+        generateModuleUtilityClass(ctx, moduleName, moduleSym);
+
+        currentModuleName = null;
+        return null;
+    }
+
+    /**
+     * Visit a class declaration within a module.
+     * The class is generated with a qualified name: ModuleName/ClassName
+     */
+    private void visitModuleClassDeclaration(JvmBasicParser.ClassDeclarationContext ctx, String moduleName) {
+        String classNameStr = ctx.IDENTIFIER().getText();
+        ClassSymbol classSym = symbols.getClass(classNameStr);
+        if (classSym == null) {
+            throw new RuntimeException("Unknown class: " + classNameStr);
+        }
+
+        // Save current class writer state
+        ClassWriter savedCw = cw;
+        MethodVisitor savedMv = mv;
+        String savedCurrentClass = currentClass;
+
+        // Use qualified name for module classes
+        String qualifiedName = moduleName + "/" + classNameStr;
+        currentClass = qualifiedName;  // Use qualified name for field access instructions
+        cw = new ClassWriter(ClassWriter.COMPUTE_FRAMES | ClassWriter.COMPUTE_MAXS);
+
+        // Determine base class
+        String baseClass = classSym.getBaseClass();
+        String baseClassInternal = "java/lang/Object";
+        if (baseClass != null && !baseClass.equals("Object")) {
+            // Check if base class is in same module
+            ClassSymbol baseSym = symbols.getClass(baseClass);
+            if (baseSym != null && moduleName.equals(baseSym.getModule())) {
+                baseClassInternal = moduleName + "/" + baseClass;
+            } else {
+                baseClassInternal = baseClass.replace(".", "/");
+            }
+        }
+
+        // Collect interfaces
+        List<String> ifaceList = classSym.getInterfaces();
+        String[] interfaces = null;
+        if (ifaceList != null && !ifaceList.isEmpty()) {
+            interfaces = ifaceList.stream()
+                .map(iface -> iface.replace(".", "/"))
+                .toArray(String[]::new);
+        }
+
+        // Determine access flags
+        int accessFlags = ACC_SUPER;
+        if (classSym.isPublic()) {
+            accessFlags |= ACC_PUBLIC;
+        }
+        if (classSym.isAbstract()) {
+            accessFlags |= ACC_ABSTRACT;
+        }
+
+        cw.visit(V21, accessFlags, qualifiedName, null, baseClassInternal, interfaces);
+
+        // Generate fields
+        for (FieldSymbol field : classSym.getFields()) {
+            int access = fieldAccessToOpcodes(field.getAccessModifier());
+            if (field.isStatic()) {
+                access |= ACC_STATIC;
+            }
+            cw.visitField(access, field.name, typeToDescriptor(field.type), null, null).visitEnd();
+        }
+
+        // Generate constructor(s)
+        boolean hasConstructor = false;
+        for (JvmBasicParser.ClassMemberContext member : ctx.classMember()) {
+            if (member.constructorDeclaration() != null) {
+                generateModuleClassConstructor(member.constructorDeclaration(), classNameStr,
+                    qualifiedName, baseClassInternal, classSym, moduleName);
+                hasConstructor = true;
+            }
+        }
+
+        // If no constructor, generate default constructor
+        if (!hasConstructor) {
+            generateDefaultClassConstructor(baseClassInternal);
+        }
+
+        // Generate methods
+        for (JvmBasicParser.ClassMemberContext member : ctx.classMember()) {
+            if (member.methodDeclaration() != null) {
+                generateModuleClassMethod(member.methodDeclaration(), classNameStr,
+                    qualifiedName, classSym, moduleName);
+            } else if (member.abstractMethodDeclaration() != null) {
+                generateAbstractMethod(member.abstractMethodDeclaration(), classNameStr, classSym);
+            }
+        }
+
+        // Generate properties
+        for (JvmBasicParser.ClassMemberContext member : ctx.classMember()) {
+            if (member.propertyDeclaration() != null) {
+                generateProperty(member.propertyDeclaration(), classNameStr);
+            }
+        }
+
+        cw.visitEnd();
+
+        // Store with qualified name (module/class path)
+        generatedClasses.put(qualifiedName, cw.toByteArray());
+
+        // Restore state
+        cw = savedCw;
+        mv = savedMv;
+        currentClass = savedCurrentClass;
+    }
+
+    /**
+     * Visit an enum declaration within a module.
+     */
+    private void visitModuleEnumDeclaration(JvmBasicParser.EnumDeclarationContext ctx, String moduleName) {
+        String enumName = ctx.IDENTIFIER().getText();
+        String qualifiedName = moduleName + "/" + enumName;
+
+        // Save current class writer state
+        ClassWriter savedCw = cw;
+        MethodVisitor savedMv = mv;
+
+        // Create new class writer for this enum
+        cw = new ClassWriter(ClassWriter.COMPUTE_FRAMES | ClassWriter.COMPUTE_MAXS);
+
+        int accessFlags = ACC_PUBLIC | ACC_FINAL | ACC_SUPER;
+        cw.visit(V21, accessFlags, qualifiedName, null, "java/lang/Object", null);
+
+        // Generate static int fields for each enum member
+        int nextValue = 0;
+        for (JvmBasicParser.EnumMemberContext member : ctx.enumMember()) {
+            String memberName = member.IDENTIFIER().getText();
+            int value = nextValue;
+            if (member.INTEGER_LITERAL() != null) {
+                value = Integer.parseInt(member.INTEGER_LITERAL().getText());
+            }
+            cw.visitField(ACC_PUBLIC | ACC_STATIC | ACC_FINAL, memberName, "I", null, value).visitEnd();
+            nextValue = value + 1;
+        }
+
+        // Generate private constructor
+        mv = cw.visitMethod(ACC_PRIVATE, "<init>", "()V", null, null);
+        mv.visitCode();
+        mv.visitVarInsn(ALOAD, 0);
+        mv.visitMethodInsn(INVOKESPECIAL, "java/lang/Object", "<init>", "()V", false);
+        mv.visitInsn(RETURN);
+        mv.visitMaxs(1, 1);
+        mv.visitEnd();
+
+        cw.visitEnd();
+
+        // Store with qualified name
+        generatedClasses.put(qualifiedName, cw.toByteArray());
+
+        // Restore state
+        cw = savedCw;
+        mv = savedMv;
+    }
+
+    /**
+     * Generate the module utility class that holds module-level functions, constants, and variables.
+     * Class name: ModuleName$Module
+     */
+    private void generateModuleUtilityClass(JvmBasicParser.ModuleDeclarationContext moduleCtx,
+                                            String moduleName, ModuleSymbol moduleSym) {
+        // Only generate if there are module-level members
+        if (moduleSym.getFunctions().isEmpty() &&
+            moduleSym.getConstants().isEmpty() &&
+            moduleSym.getVariables().isEmpty()) {
+            return;
+        }
+
+        String utilClassName = moduleName + "/" + moduleName + "$Module";
+
+        ClassWriter savedCw = cw;
+        MethodVisitor savedMv = mv;
+        String savedCurrentClass = currentClass;
+
+        currentClass = utilClassName;
+        cw = new ClassWriter(ClassWriter.COMPUTE_FRAMES | ClassWriter.COMPUTE_MAXS);
+        cw.visit(V21, ACC_PUBLIC | ACC_FINAL | ACC_SUPER, utilClassName, null, "java/lang/Object", null);
+
+        // Generate static fields for module constants
+        for (ConstantSymbol constant : moduleSym.getConstants()) {
+            int access = ACC_PUBLIC | ACC_STATIC | ACC_FINAL;
+            String descriptor = typeToDescriptor(constant.type);
+            // TODO: Set initial value properly
+            cw.visitField(access, constant.name, descriptor, null, null).visitEnd();
+        }
+
+        // Generate static fields for module variables
+        for (VariableSymbol variable : moduleSym.getVariables()) {
+            int access = ACC_PUBLIC | ACC_STATIC;
+            String descriptor = typeToDescriptor(variable.type);
+            cw.visitField(access, variable.name, descriptor, null, null).visitEnd();
+        }
+
+        // Generate private constructor (utility class)
+        mv = cw.visitMethod(ACC_PRIVATE, "<init>", "()V", null, null);
+        mv.visitCode();
+        mv.visitVarInsn(ALOAD, 0);
+        mv.visitMethodInsn(INVOKESPECIAL, "java/lang/Object", "<init>", "()V", false);
+        mv.visitInsn(RETURN);
+        mv.visitMaxs(1, 1);
+        mv.visitEnd();
+
+        // Generate static methods for module-level functions and subs
+        for (JvmBasicParser.ModuleMemberContext member : moduleCtx.moduleBody().moduleMember()) {
+            if (member.functionDeclaration() != null) {
+                generateModuleFunction(member.functionDeclaration(), moduleName, moduleSym);
+            } else if (member.subDeclaration() != null) {
+                generateModuleSub(member.subDeclaration(), moduleName, moduleSym);
+            }
+        }
+
+        cw.visitEnd();
+
+        generatedClasses.put(utilClassName, cw.toByteArray());
+
+        cw = savedCw;
+        mv = savedMv;
+        currentClass = savedCurrentClass;
+    }
+
+    /**
+     * Generate a static function for a module.
+     * Module functions are generated as public static methods.
+     */
+    private void generateModuleFunction(JvmBasicParser.FunctionDeclarationContext ctx,
+                                        String moduleName, ModuleSymbol moduleSym) {
+        String funcName = ctx.IDENTIFIER().getText();
+        String returnType = ctx.typeName().getText();
+
+        // Build parameter descriptor
+        StringBuilder descriptor = new StringBuilder("(");
+        List<String> paramTypes = new ArrayList<>();
+        List<String> paramNames = new ArrayList<>();
+
+        if (ctx.parameterList() != null) {
+            for (JvmBasicParser.ParameterContext param : ctx.parameterList().parameter()) {
+                String type = param.typeName().getText();
+                paramTypes.add(type);
+                paramNames.add(param.IDENTIFIER().getText());
+                descriptor.append(typeToDescriptor(type));
+            }
+        }
+        descriptor.append(")").append(typeToDescriptor(returnType));
+
+        mv = cw.visitMethod(ACC_PUBLIC | ACC_STATIC, funcName, descriptor.toString(), null, null);
+        mv.visitCode();
+
+        currentMethod = funcName;
+        localVarSlot = 0;  // Static method, no 'this' reference
+        dynamicLocals.clear();
+        scopeStack.clear();
+        enterScopeFrame(funcName);
+
+        // Register parameters (note: no slot 0 for 'this' in static methods)
+        for (int i = 0; i < paramNames.size(); i++) {
+            String name = paramNames.get(i);
+            String type = paramTypes.get(i);
+            scopeStack.peek().variables().put(name, new LocalVar(name, type, localVarSlot));
+            localVarSlot += typeSlotSize(type);
+        }
+
+        // Visit function body
+        for (JvmBasicParser.StatementContext stmt : ctx.statement()) {
+            visit(stmt);
+        }
+
+        exitScopeFrame(false);
+
+        // Emit default return in case no explicit return statement was reached
+        emitDefaultReturn(returnType);
+
+        mv.visitMaxs(0, 0);
+        mv.visitEnd();
+        currentMethod = null;
+    }
+
+    /**
+     * Generate a static sub for a module.
+     * Module subs are generated as public static void methods.
+     */
+    private void generateModuleSub(JvmBasicParser.SubDeclarationContext ctx,
+                                   String moduleName, ModuleSymbol moduleSym) {
+        String subName = ctx.IDENTIFIER().getText();
+
+        // Build parameter descriptor
+        StringBuilder descriptor = new StringBuilder("(");
+        List<String> paramTypes = new ArrayList<>();
+        List<String> paramNames = new ArrayList<>();
+
+        if (ctx.parameterList() != null) {
+            for (JvmBasicParser.ParameterContext param : ctx.parameterList().parameter()) {
+                String type = param.typeName().getText();
+                paramTypes.add(type);
+                paramNames.add(param.IDENTIFIER().getText());
+                descriptor.append(typeToDescriptor(type));
+            }
+        }
+        descriptor.append(")V");
+
+        mv = cw.visitMethod(ACC_PUBLIC | ACC_STATIC, subName, descriptor.toString(), null, null);
+        mv.visitCode();
+
+        currentMethod = subName;
+        localVarSlot = 0;  // Static method, no 'this' reference
+        dynamicLocals.clear();
+        scopeStack.clear();
+        enterScopeFrame(subName);
+
+        // Register parameters (note: no slot 0 for 'this' in static methods)
+        for (int i = 0; i < paramNames.size(); i++) {
+            String name = paramNames.get(i);
+            String type = paramTypes.get(i);
+            scopeStack.peek().variables().put(name, new LocalVar(name, type, localVarSlot));
+            localVarSlot += typeSlotSize(type);
+        }
+
+        // Visit sub body
+        for (JvmBasicParser.StatementContext stmt : ctx.statement()) {
+            visit(stmt);
+        }
+
+        exitScopeFrame(false);
+        mv.visitInsn(RETURN);
+        mv.visitMaxs(0, 0);
+        mv.visitEnd();
+        currentMethod = null;
+    }
+
+    /**
+     * Generate a constructor for a class within a module.
+     */
+    private void generateModuleClassConstructor(
+            JvmBasicParser.ConstructorDeclarationContext ctx,
+            String simpleClassName,
+            String qualifiedClassName,
+            String baseClassInternal,
+            ClassSymbol classSym,
+            String moduleName) {
+        // Build parameter descriptor
+        StringBuilder descriptor = new StringBuilder("(");
+        List<String> paramTypes = new ArrayList<>();
+        List<String> paramNames = new ArrayList<>();
+
+        if (ctx.parameterList() != null) {
+            for (JvmBasicParser.ParameterContext param : ctx.parameterList().parameter()) {
+                String type = param.typeName().getText();
+                paramTypes.add(type);
+                paramNames.add(param.IDENTIFIER().getText());
+                descriptor.append(typeToDescriptor(type));
+            }
+        }
+        descriptor.append(")V");
+
+        mv = cw.visitMethod(ACC_PUBLIC, "<init>", descriptor.toString(), null, null);
+        mv.visitCode();
+
+        currentMethod = "<init>";
+        localVarSlot = 1; // slot 0 is 'this'
+        dynamicLocals.clear();
+        scopeStack.clear();
+        enterScopeFrame("<init>");
+
+        // Register parameters
+        for (int i = 0; i < paramNames.size(); i++) {
+            String name = paramNames.get(i);
+            String type = paramTypes.get(i);
+            scopeStack.peek().variables().put(name, new LocalVar(name, type, localVarSlot));
+            localVarSlot += typeSlotSize(type);
+        }
+
+        // Call super constructor
+        mv.visitVarInsn(ALOAD, 0);
+        mv.visitMethodInsn(INVOKESPECIAL, baseClassInternal, "<init>", "()V", false);
+
+        // Visit constructor body
+        for (JvmBasicParser.StatementContext stmt : ctx.statement()) {
+            visit(stmt);
+        }
+
+        exitScopeFrame(false);
+        mv.visitInsn(RETURN);
+        mv.visitMaxs(0, 0);
+        mv.visitEnd();
+
+        currentMethod = null;
+    }
+
+    /**
+     * Generate a method for a class within a module.
+     */
+    private void generateModuleClassMethod(
+            JvmBasicParser.MethodDeclarationContext ctx,
+            String simpleClassName,
+            String qualifiedClassName,
+            ClassSymbol classSym,
+            String moduleName) {
+        String methodName = ctx.IDENTIFIER().getText();
+        boolean isFunction = ctx.FUNCTION() != null;
+
+        // Build parameter descriptor
+        StringBuilder descriptor = new StringBuilder("(");
+        List<String> paramTypes = new ArrayList<>();
+        List<String> paramNames = new ArrayList<>();
+
+        if (ctx.parameterList() != null) {
+            for (JvmBasicParser.ParameterContext param : ctx.parameterList().parameter()) {
+                String type = param.typeName().getText();
+                paramTypes.add(type);
+                paramNames.add(param.IDENTIFIER().getText());
+                descriptor.append(typeToDescriptor(type));
+            }
+        }
+        descriptor.append(")");
+
+        String returnType = "Void";
+        if (isFunction && ctx.typeName() != null) {
+            returnType = ctx.typeName().getText();
+        }
+        descriptor.append(typeToDescriptor(returnType));
+
+        // Access modifiers
+        int access = ACC_PUBLIC;
+        if (ctx.accessModifier() != null) {
+            access = fieldAccessToOpcodes(ctx.accessModifier().getText());
+        }
+
+        mv = cw.visitMethod(access, methodName, descriptor.toString(), null, null);
+        mv.visitCode();
+
+        currentMethod = methodName;
+        localVarSlot = 1; // slot 0 is 'this'
+        dynamicLocals.clear();
+        scopeStack.clear();
+        enterScopeFrame(methodName);
+
+        // Register parameters
+        for (int i = 0; i < paramNames.size(); i++) {
+            String name = paramNames.get(i);
+            String type = paramTypes.get(i);
+            scopeStack.peek().variables().put(name, new LocalVar(name, type, localVarSlot));
+            localVarSlot += typeSlotSize(type);
+        }
+
+        // Visit method body
+        for (JvmBasicParser.StatementContext stmt : ctx.statement()) {
+            visit(stmt);
+        }
+
+        exitScopeFrame(false);
+
+        // Add return if function doesn't explicitly return
+        if (!isFunction || "Void".equals(returnType)) {
+            mv.visitInsn(RETURN);
+        }
+
+        mv.visitMaxs(0, 0);
+        mv.visitEnd();
+
+        currentMethod = null;
     }
 
     /**
@@ -325,6 +853,35 @@ public class CompilerVisitor extends JvmBasicParserBaseVisitor<Object> {
             case "float" -> mv.visitInsn(FRETURN);
             case "double" -> mv.visitInsn(DRETURN);
             default -> mv.visitInsn(ARETURN);  // Object types
+        }
+    }
+
+    /**
+     * Emit default return value for a type (used when function doesn't have explicit return).
+     */
+    private void emitDefaultReturn(String type) {
+        switch (type.toLowerCase()) {
+            case "void" -> mv.visitInsn(RETURN);
+            case "integer", "int", "boolean", "byte", "char" -> {
+                mv.visitInsn(ICONST_0);
+                mv.visitInsn(IRETURN);
+            }
+            case "long" -> {
+                mv.visitInsn(LCONST_0);
+                mv.visitInsn(LRETURN);
+            }
+            case "float" -> {
+                mv.visitInsn(FCONST_0);
+                mv.visitInsn(FRETURN);
+            }
+            case "double" -> {
+                mv.visitInsn(DCONST_0);
+                mv.visitInsn(DRETURN);
+            }
+            default -> {
+                mv.visitInsn(ACONST_NULL);
+                mv.visitInsn(ARETURN);  // Object types
+            }
         }
     }
 
@@ -1353,7 +1910,20 @@ public class CompilerVisitor extends JvmBasicParserBaseVisitor<Object> {
             visit(ctx.expression());
             // Determine return type and use appropriate return instruction
             String returnType = "Void";
-            if (currentClass != null) {
+
+            // Check module functions first (when inside module utility class)
+            if (currentModuleName != null) {
+                ModuleSymbol module = symbols.getModule(currentModuleName);
+                if (module != null) {
+                    FunctionSymbol func = module.getFunction(currentMethod);
+                    if (func != null) {
+                        returnType = func.returnType;
+                    }
+                }
+            }
+
+            // If not found in module, check class methods
+            if ("Void".equals(returnType) && currentClass != null) {
                 // Look up method in current class
                 ClassSymbol classSym = symbols.getClass(currentClass);
                 if (classSym != null) {
@@ -1362,13 +1932,16 @@ public class CompilerVisitor extends JvmBasicParserBaseVisitor<Object> {
                         returnType = method.returnType;
                     }
                 }
-            } else {
-                // Look up in global functions
+            }
+
+            // If still not found, check global functions
+            if ("Void".equals(returnType)) {
                 FunctionSymbol func = symbols.getFunction(currentMethod);
                 if (func != null) {
                     returnType = func.returnType;
                 }
             }
+
             // Coerce expression result to match function return type
             coerceToType(returnType);
             generateReturn(returnType);
@@ -2207,7 +2780,9 @@ public class CompilerVisitor extends JvmBasicParserBaseVisitor<Object> {
         ClassSymbol classSym = symbols.getClass(typeName);
         if (classSym != null) {
             // User-defined class: NEW, DUP, push args, INVOKESPECIAL <init>
-            mv.visitTypeInsn(NEW, typeName);
+            // Use internal name for module classes (e.g., TestModule/Point instead of Point)
+            String internalClassName = classSym.getInternalName();
+            mv.visitTypeInsn(NEW, internalClassName);
             mv.visitInsn(DUP);
 
             // Build constructor descriptor and push arguments with type coercion
@@ -2236,7 +2811,7 @@ public class CompilerVisitor extends JvmBasicParserBaseVisitor<Object> {
             }
             descBuilder.append(")V");
 
-            mv.visitMethodInsn(INVOKESPECIAL, typeName, "<init>", descBuilder.toString(), false);
+            mv.visitMethodInsn(INVOKESPECIAL, internalClassName, "<init>", descBuilder.toString(), false);
             lastExprType = typeName;
             return null;
         }
@@ -2274,6 +2849,13 @@ public class CompilerVisitor extends JvmBasicParserBaseVisitor<Object> {
 
     // Map common type names to their internal JVM names
     private String mapExternalType(String typeName) {
+        // First check if this is a user-defined class that might be in a module
+        ClassSymbol classSym = symbols.getClass(typeName);
+        if (classSym != null) {
+            // Use the class's internal name which includes module path if applicable
+            return classSym.getInternalName();
+        }
+
         return switch (typeName) {
             // Core types
             case "Object" -> "java/lang/Object";
@@ -2640,6 +3222,13 @@ public class CompilerVisitor extends JvmBasicParserBaseVisitor<Object> {
             pendingEnumName = name;
             return null;
         }
+        // Check if this is a module name (for module function/class access)
+        ModuleSymbol moduleSym = symbols.getModule(name);
+        if (moduleSym != null) {
+            pendingNamespace = name;
+            pendingModuleName = name;  // Track that this is a module, not a built-in namespace
+            return null;
+        }
         // Check if this is a function name (will be handled by FunctionCall postfixOp)
         if (symbols.getFunction(name) != null) {
             pendingFunctionName = name;
@@ -2673,6 +3262,8 @@ public class CompilerVisitor extends JvmBasicParserBaseVisitor<Object> {
 
     // Track namespace for method calls
     private String pendingNamespace = null;
+    // Track module name for module function calls (to distinguish from built-in namespaces)
+    private String pendingModuleName = null;
     // Track function name for function calls
     private String pendingFunctionName = null;
     // Track enum name for enum member access (e.g., Color.Red)
@@ -2749,7 +3340,6 @@ public class CompilerVisitor extends JvmBasicParserBaseVisitor<Object> {
             if (classSym != null) {
                 FunctionSymbol methodSym = classSym.getMethod(methodName);
                 if (methodSym != null) {
-                    String objectType = lastObjectType;
                     lastObjectType = null;
 
                     // Push arguments onto stack (object is already on stack)
@@ -2760,8 +3350,10 @@ public class CompilerVisitor extends JvmBasicParserBaseVisitor<Object> {
                     }
 
                     // Build method descriptor and call INVOKEVIRTUAL
+                    // Use internal name (slashes) for bytecode - class may have qualified name like Module.Class
+                    String internalName = classSym.getInternalName();
                     String descriptor = buildMethodDescriptor(methodSym);
-                    mv.visitMethodInsn(INVOKEVIRTUAL, objectType, methodName, descriptor, false);
+                    mv.visitMethodInsn(INVOKEVIRTUAL, internalName, methodName, descriptor, false);
                     lastExprType = methodSym.returnType;
                     return null;
                 }
@@ -2810,6 +3402,45 @@ public class CompilerVisitor extends JvmBasicParserBaseVisitor<Object> {
                 mv.visitMethodInsn(INVOKEVIRTUAL, "java/util/Scanner", "nextLine", "()Ljava/lang/String;", false);
                 lastExprType = "String";
                 return null;
+            }
+        }
+
+        // Handle module function calls (e.g., TestModule.CreatePoint())
+        if (pendingModuleName != null) {
+            String moduleName = pendingModuleName;
+            pendingModuleName = null;
+            pendingNamespace = null;
+
+            ModuleSymbol module = symbols.getModule(moduleName);
+            if (module != null) {
+                FunctionSymbol func = module.getFunction(methodName);
+                if (func != null) {
+                    // Module functions are static methods on ModuleName/ModuleName$Module class
+                    String utilClassName = moduleName + "/" + moduleName + "$Module";
+
+                    // Build descriptor and push arguments
+                    StringBuilder descBuilder = new StringBuilder("(");
+                    List<ParameterSymbol> params = func.getParameters();
+
+                    if (ctx.argumentList() != null) {
+                        List<JvmBasicParser.ArgumentContext> args = ctx.argumentList().argument();
+                        for (int i = 0; i < args.size(); i++) {
+                            visit(args.get(i).expression());
+                            if (i < params.size()) {
+                                coerceToType(params.get(i).type);
+                            }
+                        }
+                    }
+
+                    for (ParameterSymbol param : params) {
+                        descBuilder.append(typeToDescriptor(param.type));
+                    }
+                    descBuilder.append(")").append(typeToDescriptor(func.returnType));
+
+                    mv.visitMethodInsn(INVOKESTATIC, utilClassName, methodName, descBuilder.toString(), false);
+                    lastExprType = func.returnType;
+                    return null;
+                }
             }
         }
 
@@ -6803,6 +7434,45 @@ public class CompilerVisitor extends JvmBasicParserBaseVisitor<Object> {
             return;
         }
 
+        // Handle module function calls (e.g., TestModule.CreatePoint())
+        if (pendingModuleName != null) {
+            String moduleName = pendingModuleName;
+            pendingModuleName = null;
+            pendingNamespace = null;
+
+            ModuleSymbol module = symbols.getModule(moduleName);
+            if (module != null) {
+                FunctionSymbol func = module.getFunction(methodName);
+                if (func != null) {
+                    // Module functions are static methods on ModuleName/ModuleName$Module class
+                    String utilClassName = moduleName + "/" + moduleName + "$Module";
+
+                    // Build descriptor and push arguments
+                    StringBuilder descBuilder = new StringBuilder("(");
+                    List<ParameterSymbol> params = func.getParameters();
+
+                    if (argList != null) {
+                        List<JvmBasicParser.ArgumentContext> args = argList.argument();
+                        for (int i = 0; i < args.size(); i++) {
+                            visit(args.get(i).expression());
+                            if (i < params.size()) {
+                                coerceToType(params.get(i).type);
+                            }
+                        }
+                    }
+
+                    for (ParameterSymbol param : params) {
+                        descBuilder.append(typeToDescriptor(param.type));
+                    }
+                    descBuilder.append(")").append(typeToDescriptor(func.returnType));
+
+                    mv.visitMethodInsn(INVOKESTATIC, utilClassName, methodName, descBuilder.toString(), false);
+                    lastExprType = func.returnType;
+                    return;
+                }
+            }
+        }
+
         // Handle WebServer namespace - calls com.jvmbasic.runtime.BasicWeb
         if ("WebServer".equalsIgnoreCase(pendingNamespace)) {
             pendingNamespace = null;
@@ -6965,8 +7635,10 @@ public class CompilerVisitor extends JvmBasicParserBaseVisitor<Object> {
                 }
 
                 // Build method descriptor and call INVOKEVIRTUAL
+                // Use internal name (slashes) for bytecode - class may have qualified name like Module.Class
+                String internalName = classSym.getInternalName();
                 String descriptor = buildMethodDescriptor(methodSym);
-                mv.visitMethodInsn(INVOKEVIRTUAL, objectType, methodName, descriptor, false);
+                mv.visitMethodInsn(INVOKEVIRTUAL, internalName, methodName, descriptor, false);
                 lastExprType = methodSym.returnType;
                 return;
             }
@@ -7334,10 +8006,41 @@ public class CompilerVisitor extends JvmBasicParserBaseVisitor<Object> {
             return null;
         }
 
+        // Check if this is an external/module class field access
+        // For types like "TestModule.Point", we need to handle field access
+        // even if the class isn't in our symbol table (compiled separately)
+        if (objectType != null && objectType.contains(".")) {
+            // This is a qualified type name - likely from a module
+            // Convert dot notation to slash for internal name
+            String internalClassName = objectType.replace(".", "/");
+            // Assume public field with same name as member - default to int for now
+            // TODO: Load actual field info from compiled class file
+            String fieldType = inferExternalFieldType(internalClassName, memberName);
+            mv.visitFieldInsn(GETFIELD, internalClassName, memberName, typeToDescriptor(fieldType));
+            lastExprType = fieldType;
+            lastMemberAccess = null;
+            return null;
+        }
+
         // Not a field access, record for potential method call
         lastMemberAccess = memberName;
         lastObjectType = objectType;
         return null;
+    }
+
+    /**
+     * Infer the type of an external field when the class isn't in our symbol table.
+     * This is a fallback for module classes compiled separately.
+     *
+     * For now, we don't use reflection (which can cause classloader issues).
+     * Instead, we default to common types and rely on the JVM's bytecode verifier.
+     * A more sophisticated approach would parse the .class file directly.
+     */
+    private String inferExternalFieldType(String internalClassName, String fieldName) {
+        // Default to Integer for unknown external field types
+        // The JVM will verify this at runtime
+        // TODO: Parse .class file to get actual field type
+        return "Integer";
     }
 
     // Track last member access for method call resolution

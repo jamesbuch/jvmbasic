@@ -1,0 +1,10 @@
+' Simplified module function test
+var result as Integer = TestModule.Add(5, 7)
+Console.WriteLine("Testing module Add function")
+Console.WriteLine(result)
+
+if result = 12 then
+    Console.WriteLine("PASS: Module Add function works")
+else
+    Console.WriteLine("FAIL: Expected 12")
+end if

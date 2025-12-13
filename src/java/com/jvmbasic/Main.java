@@ -15,6 +15,7 @@ import org.antlr.v4.runtime.tree.*;
 import java.io.*;
 import java.net.*;
 import java.nio.file.*;
+import java.util.*;
 
 /**
  * JVM BASIC Compiler - Main Entry Point
@@ -49,6 +50,7 @@ public class Main {
     private static String outputName = null;
     private static String outputDir = null;
     private static String sourceFile = null;
+    private static List<String> libraryFiles = new ArrayList<>();
 
     public static void main(String[] args) {
         try {
@@ -137,7 +139,12 @@ public class Main {
                     break;
                 default:
                     if (!args[i].startsWith("-")) {
-                        sourceFile = args[i];
+                        if (sourceFile == null) {
+                            sourceFile = args[i];
+                        } else {
+                            // Additional source files are libraries
+                            libraryFiles.add(args[i]);
+                        }
                     }
                     break;
             }
@@ -183,6 +190,7 @@ public class Main {
               java -jar jvmbasic.jar -ir -sir -parse-only examples/hello.jvmb
               java -jar jvmbasic.jar --output-all -parse-only examples/hello.jvmb
               java -jar jvmbasic.jar --test tests/calculator_test.jvmt
+              java -jar jvmbasic.jar main.jvmb mymodule.jvmb   (compile with library)
             """);
     }
 
@@ -341,12 +349,72 @@ public class Main {
             walker.walk(debugListener, tree);
         }
 
-        // Collect symbols (always needed for visitor)
+        // Collect symbols from library files first (for module imports)
         SymbolCollector symbolCollector = new SymbolCollector();
         ParseTreeWalker walker = new ParseTreeWalker();
+
+        // Process library files to collect their symbols and generate their classes
+        List<LibraryCompilation> libraryCompilations = new ArrayList<>();
+        for (String libPath : libraryFiles) {
+            String libSource = Files.readString(Path.of(libPath));
+            CharStream libInput = CharStreams.fromString(libSource);
+            JvmBasicLexer libLexer = new JvmBasicLexer(libInput);
+            CommonTokenStream libTokens = new CommonTokenStream(libLexer);
+            JvmBasicParser libParser = new JvmBasicParser(libTokens);
+            libParser.removeErrorListeners();
+            libParser.addErrorListener(new CompilerErrorListener(libPath));
+
+            JvmBasicParser.CompilationUnitContext libTree = libParser.compilationUnit();
+            if (libParser.getNumberOfSyntaxErrors() > 0) {
+                System.err.println("Library " + libPath + " failed with " + libParser.getNumberOfSyntaxErrors() + " syntax error(s)");
+                System.exit(1);
+            }
+
+            // Collect symbols from library
+            walker.walk(symbolCollector, libTree);
+
+            // Determine library output name
+            String libOutputName = Path.of(libPath)
+                .getFileName()
+                .toString()
+                .replaceFirst("\\.(bas|jvmb|jvmt)$", "");
+
+            libraryCompilations.add(new LibraryCompilation(libPath, libOutputName, libTree));
+            System.out.println("Loaded library: " + libPath);
+        }
+
+        // Collect symbols from main source file
         walker.walk(symbolCollector, tree);
 
-        // Pass 2: Use visitor to generate code
+        // Generate code for library files first
+        for (LibraryCompilation lib : libraryCompilations) {
+            CompilerVisitor libVisitor = new CompilerVisitor(lib.outputName, symbolCollector.getSymbols());
+            libVisitor.visit(lib.tree);
+
+            // Write library class files
+            Path libOutputPath = outputDir != null
+                ? Path.of(outputDir).resolve(lib.outputName + ".class")
+                : Path.of(lib.outputName + ".class");
+            Files.write(libOutputPath, libVisitor.getBytecode());
+            System.out.println("Compiled library: " + libOutputPath);
+
+            // Write generated classes from library (module classes)
+            for (var entry : libVisitor.getGeneratedClasses().entrySet()) {
+                String clsName = entry.getKey();
+                byte[] clsBytecode = entry.getValue();
+                Path clsPath = outputDir != null
+                    ? Path.of(outputDir).resolve(clsName + ".class")
+                    : Path.of(clsName + ".class");
+                Path parent = clsPath.getParent();
+                if (parent != null) {
+                    Files.createDirectories(parent);
+                }
+                Files.write(clsPath, clsBytecode);
+                System.out.println("Generated class: " + clsPath + " (" + clsBytecode.length + " bytes)");
+            }
+        }
+
+        // Pass 2: Use visitor to generate code for main file
         if (debugMode) {
             System.out.println("\n=== Pass 2: Code Generation (Visitor) ===");
         }
@@ -379,6 +447,11 @@ public class Main {
                 classPath = Path.of(outputDir).resolve(className + ".class");
             } else {
                 classPath = Path.of(className + ".class");
+            }
+            // Create parent directories if needed (for module classes like Module/Class)
+            Path parent = classPath.getParent();
+            if (parent != null) {
+                Files.createDirectories(parent);
             }
             Files.write(classPath, classBytecode);
             System.out.println("Generated class: " + classPath + " (" + classBytecode.length + " bytes)");
@@ -425,6 +498,11 @@ public class Main {
             System.exit(1);
         }
     }
+
+    /**
+     * Holds parsed library information for deferred compilation.
+     */
+    private record LibraryCompilation(String path, String outputName, JvmBasicParser.CompilationUnitContext tree) {}
 
     /**
      * Custom error listener for better error messages

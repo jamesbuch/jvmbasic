@@ -1,0 +1,14 @@
+' Test using module-level functions
+' The TestModule must be compiled first (module_test.jvmb)
+
+' Create a Point using the module factory function
+var p as TestModule.Point = TestModule.CreatePoint(10, 20)
+
+Console.WriteLine("Testing module function call")
+Console.WriteLine($"Point from factory: ({p.x}, {p.y})")
+
+if p.x = 10 and p.y = 20 then
+    Console.WriteLine("PASS: Module function works correctly")
+else
+    Console.WriteLine("FAIL: Module function returned wrong values")
+end if

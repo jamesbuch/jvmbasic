@@ -225,6 +225,12 @@ public class SymbolCollector extends JvmBasicParserBaseListener {
 
         if (currentClass != null) {
             symbols.getClass(currentClass).addMethod(func);
+        } else if (currentModule != null) {
+            // Module-level function
+            ModuleSymbol module = symbols.getModule(currentModule);
+            if (module != null) {
+                module.addFunction(func);
+            }
         } else {
             symbols.addFunction(func);
         }
@@ -256,6 +262,12 @@ public class SymbolCollector extends JvmBasicParserBaseListener {
 
         if (currentClass != null) {
             symbols.getClass(currentClass).addMethod(sub);
+        } else if (currentModule != null) {
+            // Module-level sub
+            ModuleSymbol module = symbols.getModule(currentModule);
+            if (module != null) {
+                module.addFunction(sub);
+            }
         } else {
             symbols.addFunction(sub);
         }
@@ -834,7 +846,29 @@ public class SymbolCollector extends JvmBasicParserBaseListener {
         public void addEnum(EnumSymbol e) { enums.put(e.name, e); }
 
         public ModuleSymbol getModule(String name) { return modules.get(name); }
-        public ClassSymbol getClass(String name) { return classes.get(name); }
+
+        /**
+         * Get a class by name, handling qualified names like "Module.ClassName"
+         * or "Module/ClassName" by extracting the simple class name.
+         */
+        public ClassSymbol getClass(String name) {
+            // First try direct lookup
+            ClassSymbol cls = classes.get(name);
+            if (cls != null) return cls;
+
+            // Handle qualified names with dot (e.g., "TestModule.Point")
+            if (name.contains(".")) {
+                String simpleName = name.substring(name.lastIndexOf('.') + 1);
+                return classes.get(simpleName);
+            }
+            // Handle qualified names with slash (e.g., "TestModule/Point")
+            if (name.contains("/")) {
+                String simpleName = name.substring(name.lastIndexOf('/') + 1);
+                return classes.get(simpleName);
+            }
+            return null;
+        }
+
         public FunctionSymbol getFunction(String name) { return functions.get(name); }
         public VariableSymbol getGlobal(String name) { return globals.get(name); }
         public ConstantSymbol getConstant(String name) { return constants.get(name); }
@@ -848,9 +882,11 @@ public class SymbolCollector extends JvmBasicParserBaseListener {
         public Collection<EnumSymbol> getEnums() { return enums.values(); }
 
         public boolean hasModule(String name) { return modules.containsKey(name); }
-        public boolean hasClass(String name) { return classes.containsKey(name); }
+        public boolean hasClass(String name) { return getClass(name) != null; }
         public boolean hasFunction(String name) { return functions.containsKey(name); }
         public boolean hasEnum(String name) { return enums.containsKey(name); }
+
+        public java.util.Set<String> getModuleNames() { return modules.keySet(); }
 
         /**
          * Find a field in a class or its parent classes.
@@ -862,7 +898,8 @@ public class SymbolCollector extends JvmBasicParserBaseListener {
             while (cls != null) {
                 FieldSymbol field = cls.getField(fieldName);
                 if (field != null) {
-                    return new FieldLookupResult(field, cls.name);
+                    // Return the internal name for proper bytecode generation
+                    return new FieldLookupResult(field, cls.getInternalName());
                 }
                 // Move to parent class
                 String base = cls.getBaseClass();

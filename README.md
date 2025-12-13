@@ -19,7 +19,13 @@ A modern BASIC compiler targeting the Java Virtual Machine, written in Java usin
 | **Arrays** | Declaration, access, iteration, initializers (`{1, 2, 3}`) | ✅ |
 | **OOP Classes** | Classes, constructors, fields, instance methods | ✅ |
 | **Inheritance** | `extends`, `super.Method()`, `Super.New()` | ✅ |
+| **Abstract Classes** | Abstract methods, partial implementation | ✅ |
+| **Interfaces** | Interface definitions and implementation | ✅ |
+| **Enums** | Enum types with members and explicit values | ✅ |
+| **Modules** | Module namespaces, classes, and functions | ✅ |
 | **Access Modifiers** | public, private, protected | ✅ |
+| **Lambdas** | `lambda (x as Integer) => x * 2`, Function types | ✅ |
+| **Test Framework** | `#[Test]` annotations, `assert`, `.jvmt` files | ✅ |
 | **Console I/O** | WriteLine, Write, ReadLine | ✅ |
 | **Math Namespace** | Sqrt, Sin, Cos, Pow, Random, Abs, etc. | ✅ |
 | **Str Namespace** | ToUpper, Length, Substring, Replace, Split, etc. | ✅ |
@@ -32,26 +38,25 @@ A modern BASIC compiler targeting the Java Virtual Machine, written in Java usin
 | **Crypto Namespace** | SHA, MD5, HMAC, AES, RSA, BCrypt, Argon2, Base64, Hex | ✅ |
 | **BigInt Namespace** | Arbitrary precision integers, arithmetic, conversions | ✅ |
 | **Decimal Namespace** | Arbitrary precision decimals, arithmetic, rounding | ✅ |
-
-| **Enums** | Enum types with members and explicit values | ✅ |
-| **Interfaces** | Interface definitions and implementation | ✅ |
-| **Lambdas** | `lambda (x as Integer) => x * 2`, Function types | ✅ |
-| **Test Framework** | `#[Test]` annotations, `assert`, `.jvmt` files | ✅ |
+| **Assert Namespace** | Equal, NotEqual, True, False, Nil, Contains, etc. | ✅ |
+| **Array Namespace** | Sort, Reverse, Contains, IndexOf, Join, etc. | ✅ |
+| **Web Server** | WebServer namespace with routing (experimental) | ✅ |
+| **Caching** | Redis and Memcached support (experimental) | ✅ |
 
 ## Current Status
 
-**62 tests passing** - See [STATUS.md](docs/STATUS.md) for detailed status.
+**67 tests passing** - See [STATUS.md](docs/STATUS.md) for detailed status.
 
-### Known Issues
+### Recent Additions
 
-| Feature | Issue |
-|---------|-------|
-| Abstract Classes | Parse errors with `abstract` keyword |
+- **Modules**: Multi-file compilation with module namespaces
+- **Abstract Classes**: Abstract methods and partial implementation
+- **Web Features**: WebServer, Redis, Memcached namespaces
 
 **Coming Soon:**
 
 - Async/Await and concurrency primitives
-- Jetty web server integration with attributes
+- Generic type parameters
 
 ## Quick Start
 
@@ -75,17 +80,16 @@ Programs that use runtime namespaces (Math, Str, File, Http, Json, Db, Date, Cry
 
 ```bash
 # From the jvmbasic directory
-java -cp ".:src/java/build/libs/jvmbasic-compiler-2.0.0-SNAPSHOT.jar:lib/*" your_program
+java -cp ".:src/java/build/libs/jvmbasic-runtime-2.0.0-SNAPSHOT.jar:lib/*" your_program
 
-# Or from the examples directory
-cd examples
-java -cp ".:../src/java/build/libs/jvmbasic-compiler-2.0.0-SNAPSHOT.jar:../lib/*" hello
+# Or with the compiler jar (includes runtime)
+java -cp ".:src/java/build/libs/jvmbasic-compiler-2.0.0-SNAPSHOT.jar:lib/*" your_program
 ```
 
 On Windows, use semicolons instead of colons:
 
 ```bash
-java -cp ".;src/java/build/libs/jvmbasic-compiler-2.0.0-SNAPSHOT.jar;lib/*" your_program
+java -cp ".;src/java/build/libs/jvmbasic-runtime-2.0.0-SNAPSHOT.jar;lib/*" your_program
 ```
 
 Simple programs that only use Console.WriteLine don't need the full classpath:
@@ -142,6 +146,140 @@ Console.WriteLine(alice.Greet())
 Console.WriteLine($"Age: {alice.age}")
 ```
 
+### Inheritance
+```basic
+class Animal
+    public var name as String
+
+    public sub New(n as String)
+        this.name = n
+    end sub
+
+    public function Speak() as String
+        return "..."
+    end function
+end class
+
+class Dog extends Animal
+    public sub New(n as String)
+        Super.New(n)
+    end sub
+
+    public override function Speak() as String
+        return $"{this.name} says Woof!"
+    end function
+end class
+
+var dog as Dog = new Dog("Rex")
+Console.WriteLine(dog.Speak())  ' Rex says Woof!
+```
+
+### Abstract Classes
+
+```basic
+abstract class Shape
+    public var name as String
+
+    public sub New(n as String)
+        this.name = n
+    end sub
+
+    ' Abstract method - must be implemented by subclasses
+    public abstract function Area() as Double
+end class
+
+class Circle extends Shape
+    public var radius as Double
+
+    public sub New(r as Double)
+        Super.New("Circle")
+        this.radius = r
+    end sub
+
+    public override function Area() as Double
+        return 3.14159 * this.radius * this.radius
+    end function
+end class
+
+var circle as Circle = new Circle(5.0)
+Console.WriteLine($"Area: {circle.Area()}")
+```
+
+### Interfaces
+
+```basic
+interface IDrawable
+    function Draw() as String
+end interface
+
+class Rectangle implements IDrawable
+    public var width as Integer
+    public var height as Integer
+
+    public sub New(w as Integer, h as Integer)
+        this.width = w
+        this.height = h
+    end sub
+
+    public function Draw() as String
+        return $"Rectangle {this.width}x{this.height}"
+    end function
+end class
+```
+
+### Modules
+```basic
+' MathUtils.jvmb - Module definition
+Public Module MathUtils
+    Public class Point
+        public var x as Integer
+        public var y as Integer
+
+        public sub New(px as Integer, py as Integer)
+            x = px
+            y = py
+        end sub
+    end class
+
+    Public function Add(a as Integer, b as Integer) as Integer
+        return a + b
+    end function
+End Module
+
+' main.jvmb - Using the module
+var p as MathUtils.Point = new MathUtils.Point(3, 4)
+var sum as Integer = MathUtils.Add(10, 20)
+Console.WriteLine($"Point: ({p.x}, {p.y})")
+Console.WriteLine($"Sum: {sum}")
+```
+
+Compile with: `java -jar jvmbasic-compiler.jar main.jvmb MathUtils.jvmb`
+
+### Enums
+```basic
+enum Color
+    Red = 1
+    Green = 2
+    Blue = 3
+end enum
+
+var c as Color = Color.Green
+if c = Color.Green then
+    Console.WriteLine("Color is green")
+end if
+```
+
+### Lambdas
+```basic
+' Lambda expression
+var double as Function(Integer) as Integer = lambda (x as Integer) => x * 2
+Console.WriteLine(double(5))  ' 10
+
+' Lambda with multiple statements
+var greet as Function(String) as String = lambda (name as String) => $"Hello, {name}!"
+Console.WriteLine(greet("World"))
+```
+
 ### HTTP Client
 ```basic
 ' Make a GET request
@@ -151,6 +289,10 @@ Console.WriteLine("Status: " & Http.GetStatus())
 if Http.IsSuccess() then
     Console.WriteLine("Response: " & response)
 end if
+
+' POST with JSON body
+Http.SetHeader("Content-Type", "application/json")
+var result as String = Http.Post("https://api.example.com/users", "{\"name\":\"Alice\"}")
 
 ' URL encoding
 var encoded as String = Http.UrlEncode("Hello World!")
@@ -220,7 +362,32 @@ next i
 for each n in numbers
     Console.WriteLine(n)
 next
+
+' Array initializer
+var fruits as String[] = {"apple", "banana", "cherry"}
+for each fruit in fruits
+    Console.WriteLine(fruit)
+next
 ```
+
+### Test Framework
+
+```basic
+' test_example.jvmt - Test file
+#[Test "Addition works correctly"]
+function TestAddition()
+    var result as Integer = 2 + 2
+    assert result = 4, "2 + 2 should equal 4"
+end function
+
+#[Test "String concatenation"]
+function TestStrings()
+    var s as String = "Hello" & " " & "World"
+    Assert.Equal("Hello World", s)
+end function
+```
+
+Run tests with: `java -jar jvmbasic-compiler.jar --test test_example.jvmt`
 
 ## Project Structure
 
@@ -229,6 +396,8 @@ jvmbasic/
 ├── src/java/                      # JVM BASIC 2.0 compiler
 │   ├── com/jvmbasic/
 │   │   ├── grammar/               # ANTLR4 grammar files
+│   │   │   ├── JvmBasicLexer.g4   # Lexer grammar
+│   │   │   └── JvmBasicParser.g4  # Parser grammar
 │   │   ├── ir/                    # Intermediate representation
 │   │   ├── runtime/               # Runtime library classes
 │   │   │   ├── BasicMath.java     # Math namespace
@@ -239,15 +408,21 @@ jvmbasic/
 │   │   │   ├── BasicJson.java     # Json namespace
 │   │   │   ├── BasicDb.java       # Db namespace
 │   │   │   ├── BasicDate.java     # Date namespace
-│   │   │   └── BasicCrypto.java   # Crypto namespace
+│   │   │   ├── BasicCrypto.java   # Crypto namespace
+│   │   │   ├── BasicArray.java    # Array namespace
+│   │   │   ├── BasicAssert.java   # Assert namespace
+│   │   │   ├── BasicWeb.java      # WebServer namespace
+│   │   │   └── BasicCache.java    # Redis/Memcached
+│   │   ├── semantic/              # Semantic analysis
 │   │   └── visitor/               # Code generation
+│   │       ├── SymbolCollector.java  # Pass 1: Symbol collection
+│   │       └── CompilerVisitor.java  # Pass 2: Bytecode generation
 │   └── build.gradle.kts
 │
 ├── examples/                      # Example programs (.jvmb)
-├── tests/                         # Test programs (.jvmb)
+├── tests/                         # Test programs (.jvmb, .jvmt)
 ├── docs/                          # Documentation
-│   ├── CLAUDE.md                  # AI assistant context
-│   ├── TODO.md                    # Development roadmap
+│   ├── STATUS.md                  # Current implementation status
 │   ├── USER_GUIDE.md              # Language reference
 │   └── LANGUAGE_FEATURES.md       # Detailed feature docs
 │
@@ -259,15 +434,13 @@ jvmbasic/
 │   └── ...
 │
 ├── test-runner.sh                 # Test runner script
-├── build-examples.sh              # Example builder script
-│
-└── legacy-jvm-basic/              # Legacy C++ implementation (archived)
+└── build-examples.sh              # Example builder script
 ```
 
 ## Command Line Options
 
 ```bash
-java -jar jvmbasic-compiler-2.0.0-SNAPSHOT.jar [options] source.jvmb
+java -jar jvmbasic-compiler-2.0.0-SNAPSHOT.jar [options] source.jvmb [library.jvmb ...]
 ```
 
 ### Compilation Options
@@ -278,6 +451,16 @@ java -jar jvmbasic-compiler-2.0.0-SNAPSHOT.jar [options] source.jvmb
 | `-d` | Enable debug output with detailed trace information |
 | `-parse-only` | Parse and analyze without generating bytecode |
 | `-semantic` | Run semantic analysis with type checking |
+| `--test` | Run as test file (for `.jvmt` files) |
+
+### Multi-File Compilation
+
+Compile a program with its library modules:
+
+```bash
+# main.jvmb uses MathUtils module defined in mathutils.jvmb
+java -jar jvmbasic-compiler.jar main.jvmb mathutils.jvmb
+```
 
 ### Output Options
 
@@ -311,20 +494,20 @@ java myprogram
 java -jar jvmbasic-compiler-2.0.0-SNAPSHOT.jar -o MyApp myprogram.jvmb
 java MyApp
 
+# Compile with library module
+java -jar jvmbasic-compiler-2.0.0-SNAPSHOT.jar main.jvmb mymodule.jvmb
+
 # Parse only (syntax check)
 java -jar jvmbasic-compiler-2.0.0-SNAPSHOT.jar -parse-only myprogram.jvmb
 
 # Show parse tree for debugging
 java -jar jvmbasic-compiler-2.0.0-SNAPSHOT.jar -tree myprogram.jvmb
 
-# Show IR and compile
-java -jar jvmbasic-compiler-2.0.0-SNAPSHOT.jar -ir myprogram.jvmb
-
 # Run semantic analysis
 java -jar jvmbasic-compiler-2.0.0-SNAPSHOT.jar -semantic myprogram.jvmb
 
-# Full debug output with all IR formats
-java -jar jvmbasic-compiler-2.0.0-SNAPSHOT.jar -d -ir -sir myprogram.jvmb
+# Run test file
+java -jar jvmbasic-compiler-2.0.0-SNAPSHOT.jar --test tests/mytest.jvmt
 ```
 
 ## Standard Library
@@ -582,12 +765,28 @@ var randomBytes as String = Crypto.RandomBytes(32)  ' Base64 encoded
 var uuid as String = Crypto.UUID()
 ```
 
-## Documentation
+### Assert (Testing)
 
-- [User Guide](docs/USER_GUIDE.md) - Language reference
-- [Developer Guide](docs/DEVELOPER_GUIDE.md) - Compiler internals
-- [Architecture](docs/ARCHITECTURE.md) - Compiler pipeline and design
-- [TODO](docs/TODO.md) - Development roadmap
+```basic
+' Basic assertions
+Assert.True(condition)
+Assert.False(condition)
+Assert.Equal(expected, actual)
+Assert.NotEqual(expected, actual)
+Assert.Nil(value)
+Assert.NotNil(value)
+
+' String assertions
+Assert.Contains("Hello World", "World")
+Assert.StartsWith("Hello World", "Hello")
+Assert.EndsWith("Hello World", "World")
+
+' Numeric assertions
+Assert.Greater(10, 5)
+Assert.GreaterOrEqual(10, 10)
+Assert.Less(5, 10)
+Assert.LessOrEqual(10, 10)
+```
 
 ## Compiler Architecture
 
@@ -634,16 +833,27 @@ Source Code (.jvmb)
     .class file(s)
 ```
 
-### Listener vs Visitor
+### Two-Pass Compilation
 
-| Pattern | Used For | Key Trait |
-|---------|----------|-----------|
-| **Listener** | Symbol collection, validation | Automatic tree walk, no return values |
-| **Visitor** | IR building, code generation | Controlled traversal, return values |
+| Pass | Component | Purpose |
+|------|-----------|---------|
+| **Pass 1** | SymbolCollector | Gathers all declarations (classes, functions, variables, modules) |
+| **Pass 2** | CompilerVisitor | Generates JVM bytecode with full type information |
 
-## Legacy Implementation
+### Module Compilation
 
-The original C++ implementation is archived in `legacy-jvm-basic/`. It includes 23 namespaces and 280+ functions but is no longer in active development.
+When compiling with library files, the compiler:
+
+1. Parses all library files first
+2. Collects symbols from libraries into shared symbol table
+3. Compiles library files to generate their class files
+4. Compiles main file with access to library symbols
+
+## Documentation
+
+- [User Guide](docs/USER_GUIDE.md) - Language reference
+- [Status](docs/STATUS.md) - Current implementation status
+- [Language Features](docs/LANGUAGE_FEATURES.md) - Detailed feature docs
 
 ## License
 
